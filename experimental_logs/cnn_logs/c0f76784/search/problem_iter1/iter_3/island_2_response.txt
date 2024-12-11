@@ -1,0 +1,113 @@
+## Transformation Analysis:
+
+The transformation applies the following rules to the input grid:
+
+1. **Inner Fill (8):** Cells within an object that are surrounded by other object cells (no direct neighbors are background) are replaced with the value 8.
+2. **Outer Fill (7):** Background cells diagonally adjacent to an object, but not part of the object itself, are replaced with the value 7.
+3. **Single-Neighbor Fill (6):**  Background cells directly adjacent to only one object cell are replaced with the value 6.
+
+This transformation effectively outlines the objects, highlights their inner areas, and marks specific points around their perimeter. 
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" using the DSL from `dsl.py` to achieve the described transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T): # Iterate over objects
+    for i, j in delta(toindices(obj)): # Iterate over cells in the object's bounding box but not in the object
+      if 0 <= i < len(I) and 0 <= j < len(I[0]):
+        if sum(1 for a, b in dneighbors((i, j)) if (a, b) in toindices(obj)) == 3: # Three direct neighbors belong to the object
+          O = fill(O, 8, {(i, j)}) # Inner Fill
+        elif sum(1 for a, b in ineighbors((i, j)) if (a, b) in toindices(obj)) > 0 and I[i][j] == 0: # At least one diagonal neighbor belongs to the object
+          O = fill(O, 7, {(i, j)}) # Outer Fill
+        elif sum(1 for a, b in dneighbors((i, j)) if (a, b) in toindices(obj)) == 1 and I[i][j] == 0: # Only one direct neighbor belongs to the object
+          O = fill(O, 6, {(i, j)}) # Single-Neighbor Fill
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate over Objects:** The code iterates through each object in the input grid using `objects(I, T, F, T)`.
+2. **Iterate over Delta:** For each object, it iterates over cells within its bounding box that aren't part of the object using `delta(toindices(obj))`.
+3. **Apply Rules:** For each cell, it checks the three transformation rules:
+    - **Inner Fill:** If the cell has three direct neighbors belonging to the object, it's filled with 8.
+    - **Outer Fill:** If the cell is background (value 0) and has at least one diagonal neighbor belonging to the object, it's filled with 7.
+    - **Single-Neighbor Fill:** If the cell is background and has only one direct neighbor belonging to the object, it's filled with 6.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  inner_cells = mpapply(lambda obj: sfilter(dneighbors(centerofmass(obj)), lambda x: all(n in toindices(obj) for n in dneighbors(x)) and x not in toindices(obj)), objects(I, T, F, T))
+  outer_cells = mpapply(lambda obj: difference(ineighbors(centerofmass(obj)), toindices(obj)), objects(I, T, F, T))
+  single_neighbor_cells = mpapply(lambda obj: sfilter(delta(toindices(obj)), lambda x: sum(1 for n in dneighbors(x) if n in toindices(obj)) == 1), objects(I, T, F, T))
+  O = fill(I, 8, inner_cells)
+  O = fill(O, 7, outer_cells)
+  O = fill(O, 6, single_neighbor_cells)
+  return O
+```
+
+**Explanation:**
+
+1. **Pre-calculate Cells:** This version pre-calculates the sets of cells to be filled for each rule using `mpapply` and `sfilter`.
+    - `inner_cells`: Identifies cells within an object surrounded by other object cells.
+    - `outer_cells`:  Identifies background cells diagonally adjacent to objects.
+    - `single_neighbor_cells`: Identifies background cells adjacent to only one object cell.
+2. **Apply Fills:** Applies the fill operations for each rule based on the pre-calculated cell sets.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    O = I
+    for obj in objects(I, T, F, T):
+        inner = sfilter(dneighbors(centerofmass(obj)), lambda cell: all(n in toindices(obj) for n in dneighbors(cell)) and cell not in toindices(obj))
+        outer = difference(ineighbors(centerofmass(obj)), toindices(obj))
+        single = sfilter(delta(toindices(obj)), lambda cell: sum(1 for n in dneighbors(cell) if n in toindices(obj)) == 1)
+        O = fill(O, 8, inner)
+        O = fill(O, 7, outer)
+        O = fill(O, 6, single)
+    return O
+```
+
+**Explanation:**
+
+This version is similar to Version 2 but calculates the cell sets within the loop for each object.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  inner = mpapply(lambda obj: sfilter(dneighbors(centerofmass(obj)), lambda cell: all(n in toindices(obj) for n in dneighbors(cell)) and cell not in toindices(obj)), objs)
+  outer = mfilter(objs, lambda obj: difference(ineighbors(centerofmass(obj)), toindices(obj)))
+  single =  mpapply(lambda obj: sfilter(delta(toindices(obj)), lambda cell: sum(1 for n in dneighbors(cell) if n in toindices(obj)) == 1), objs)
+  return fill(fill(fill(I, 8, inner), 7, outer), 6, single)
+```
+
+**Explanation:**
+
+Version 4 pre-calculates cell sets outside the loop and chains the fill operations for conciseness.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    O = fill(O, 8, sfilter(dneighbors(centerofmass(obj)), lambda cell: all(n in toindices(obj) for n in dneighbors(cell)) and cell not in toindices(obj))) # Inner Fill
+    O = fill(O, 7, difference(ineighbors(centerofmass(obj)), toindices(obj))) # Outer Fill
+    O = fill(O, 6, sfilter(delta(toindices(obj)), lambda cell: sum(1 for n in dneighbors(cell) if n in toindices(obj)) == 1)) # Single-Neighbor Fill
+  return O
+```
+
+**Explanation:**
+
+Version 5 combines aspects of previous versions, calculating cell sets within the loop but directly applying fills without intermediate variables. 
+
+
+All five versions of "Program_to_be_generated" implement the same transformation logic using different approaches and function combinations within the DSL. They highlight the flexibility and expressiveness of the provided DSL for spatial reasoning and transformation tasks.

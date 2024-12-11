@@ -1,0 +1,154 @@
+## Transformation Analysis:
+
+The transformation involves shifting objects of a specific color within the grid, effectively "dropping" them down or "floating" them up. Here's a breakdown:
+
+* **Target Color:** The transformation focuses on a single color (e.g., '2' in the provided examples). 
+* **Direction:** Objects of the target color are shifted either downwards or upwards.
+* **Shift and Replace:**  
+    * The object is moved in the specified direction until it encounters a non-background cell or the grid boundary.
+    * The original position of the object is filled with the background color.
+    * If the object moves downwards, the top row it occupied is replaced with the background color.
+    * If the object moves upwards, the bottom row it occupied is replaced with the background color.
+
+**Example (Output_0):** The '2' colored objects are moved downwards. Notice how they stop upon hitting the '5's or the bottom grid boundary. The original positions of the '2's are replaced with '0's (background color), and the top rows the '2's occupied are also filled with '0's. 
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def shift_objects(grid, target_color, direction):
+  """Shifts objects of a specific color."""
+
+  def shift_object(obj, direction):
+    """Shifts a single object."""
+    offset = (direction, 0)
+    shifted_obj = shift(obj, offset)
+
+    # Determine the replacement row based on direction
+    replacement_row = uppermost(shifted_obj) if direction == -1 else lowermost(shifted_obj)
+    replacement_indices = {(replacement_row, j) for j in range(leftmost(obj), rightmost(obj) + 1)}
+
+    return shifted_obj, replacement_indices
+
+  new_grid = grid
+  for obj in colorfilter(objects(grid, T, F, T), target_color):
+    shifted_obj, replacement_indices = shift_object(obj, direction)
+
+    new_grid = cover(new_grid, obj)  
+    new_grid = paint(new_grid, shifted_obj)
+    new_grid = fill(new_grid, mostcolor(grid), replacement_indices)
+
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`shift_objects(grid, target_color, direction)`:**
+   - Takes the grid, target color, and direction as input.
+   - Identifies objects of the `target_color` using `colorfilter` and `objects`.
+   - Iterates through each object (`obj`).
+   - Calls `shift_object` to handle the shift for each object.
+   - Updates the `new_grid` after each object shift. 
+   - Returns the modified `new_grid`.
+
+2. **`shift_object(obj, direction)`:**
+   - Takes a single object and the direction as input.
+   - Calculates the `offset` based on the `direction`.
+   - Shifts the `obj` using the `shift` function.
+   - Determines the `replacement_row` based on the `direction` (top row for upward shift, bottom row for downward shift).
+   - Calculates the `replacement_indices` that need to be filled with the background color.
+   - Returns the `shifted_obj` and `replacement_indices`.
+
+**Versions 2-5:** (See below for explanations)
+
+**Version 2:**
+
+```python
+def shift_objects(grid, target_color, direction):
+  """Shifts objects of a specific color."""
+  new_grid = paint(canvas(mostcolor(grid), shape(grid)), asobject(grid)) # Initialize a new grid 
+  for obj in colorfilter(objects(grid, T, F, T), target_color):
+    new_obj = shift(obj, (direction * (height(grid) if direction == 1 else -height(grid)), 0)) # Shift object far beyond the boundary
+    new_grid = underpaint(new_grid, new_obj) # Paint the shifted object onto the new grid only if the corresponding cell is background
+  return new_grid
+```
+
+**Version 3:**
+
+```python
+def shift_objects(grid, target_color, direction):
+  """Shifts objects of a specific color."""
+  for i in range(height(grid)-1):
+    for obj in colorfilter(objects(grid, T, F, T), target_color):
+      if direction == 1:
+        if lowermost(obj) < height(grid)-1 and index(grid, (lowermost(obj)+1, leftmost(obj))) == mostcolor(grid):
+          grid = move(grid, obj, (1, 0)) # Move the object down
+      else:
+        if uppermost(obj) > 0 and index(grid, (uppermost(obj)-1, leftmost(obj))) == mostcolor(grid):
+          grid = move(grid, obj, (-1, 0)) # Move the object up
+  return grid
+```
+
+**Version 4:**
+
+```python
+def shift_objects(grid, target_color, direction):
+  """Shifts objects of a specific color."""
+  def move_until_blocked(grid, obj, direction):
+    """Moves an object in a direction until blocked."""
+    while True:
+      new_obj = shift(obj, (direction, 0))
+      if any(index(grid, (i, j)) != mostcolor(grid) for _, (i, j) in new_obj if 0 <= i < height(grid) and 0 <= j < width(grid)):
+        break  # Stop if the new position overlaps with a non-background cell
+      obj = new_obj
+    return obj
+  new_grid = grid
+  for obj in colorfilter(objects(grid, T, F, T), target_color):
+    new_obj = move_until_blocked(new_grid, obj, direction)
+    new_grid = cover(new_grid, obj)
+    new_grid = paint(new_grid, new_obj)
+  return new_grid
+```
+
+**Version 5:**
+
+```python
+def shift_objects(grid, target_color, direction):
+  """Shifts objects of a specific color."""
+  new_grid = grid
+  for row in (reversed(range(height(grid)-1)) if direction == -1 else range(1, height(grid))):
+    for col in range(width(grid)):
+      if index(grid, (row, col)) == target_color and index(grid, (row - direction, col)) == mostcolor(grid):
+        new_grid = fill(new_grid, target_color, {(row - direction, col)}) # Move the target color
+        new_grid = fill(new_grid, mostcolor(grid), {(row, col)}) # Fill the original position with background
+  return new_grid
+```
+
+## Explanation for Versions 2-5:
+
+**Version 2 Explanation:**
+1. **Initialization:** A new grid is initialized with the same shape as the input grid but filled with the background color. The original objects from the input grid are then painted onto this new grid.
+2. **Shifting:** Each object of the target color is shifted far beyond the grid boundary (upwards or downwards).
+3. **Conditional Painting:** The `underpaint` function is used to paint the shifted object onto the new grid. However, it only paints the object if the corresponding cell in the new grid is currently the background color. This ensures that the objects "stop" when they encounter a non-background cell.
+
+**Version 3 Explanation:**
+1. **Iterative Shifting:** The code iterates through each row of the grid. For each row, it iterates through all objects of the target color.
+2. **Boundary and Collision Check:** Before shifting an object, the code checks if the move is possible:
+   - It ensures the object is not already at the grid boundary in the direction of movement.
+   - It verifies that the cell adjacent to the object in the direction of movement is the background color.
+3. **Moving Objects:** If the conditions are met, the `move` function is used to shift the object one cell in the specified direction.
+
+**Version 4 Explanation:**
+1. **`move_until_blocked` Function:** This function takes an object and a direction as input. It repeatedly shifts the object in the given direction until it encounters a non-background cell. 
+2. **Object Shifting:** For each object of the target color, the `move_until_blocked` function is used to determine its final shifted position.
+3. **Updating the Grid:** The original object is removed from the grid using `cover`. Then, the shifted object is painted onto the grid using `paint`.
+
+**Version 5 Explanation:**
+1. **Row-wise Iteration:**  The code iterates through the rows of the grid either in reverse or forward order based on the `direction`.
+2. **Cell Examination:** For each cell in the grid:
+   - It checks if the cell contains the `target_color`.
+   - It verifies if the cell adjacent to it in the `direction` of movement is the background color.
+3. **Direct Color Swapping:** If both conditions are met, the code directly swaps the color of the current cell (containing the `target_color`) with the adjacent background cell.
+
+Each of these versions provides a different approach to achieving the desired transformation, showcasing the flexibility and expressiveness of the provided DSL.

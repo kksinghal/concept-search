@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation consistently involves moving the objects corresponding to digits '3' and '4' to new positions on the grid. Here's a breakdown:
+
+* **Digit '3':** Always moves to the vertical center of the grid. 
+    * In even-height grids, it occupies the upper row of the two center rows.
+    * Its horizontal position is determined by its original horizontal position relative to the center column of the input grid. It maintains the same distance from the center column.
+* **Digit '4':**  Always positioned one row below digit '3'. 
+    * Its horizontal position follows the same logic as digit '3', maintaining its relative distance from the center column.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1**
+
+```python
+def program_v1(I):
+  objs = fgpartition(I)
+  three = extract(objs, lambda o: color(o) == 3)
+  four = extract(objs, lambda o: color(o) == 4)
+  target_col = width(I) // 2
+  target_three = (height(I) // 2, target_col + leftmost(three) - width(three) // 2)
+  target_four = (target_three[0] + 1, target_col + leftmost(four) - width(four) // 2)
+  new_three = shift(three, subtract(target_three, ulcorner(three)))
+  new_four = shift(four, subtract(target_four, ulcorner(four)))
+  O = paint(paint(cover(cover(I, three), four), new_three), new_four)
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Isolates the objects containing digits '3' and '4'.
+2. **Calculate Target Positions:** 
+    * Determines the target column (vertical center).
+    * Calculates the target row for '3' (grid center row or upper of the two center rows).
+    * Sets the target row for '4' one row below '3'.
+    * Calculates the horizontal shift for each digit based on their original distance from the center column.
+3. **Shift and Paint:** 
+    * Shifts both objects to their target positions.
+    * Clears the original positions of '3' and '4' in the grid.
+    * Paints the shifted objects onto the cleared grid. 
+
+**Program Version 2**
+
+```python
+def program_v2(I):
+  threes = {(3, ij) for ij in ofcolor(I, 3)}
+  fours = {(4, ij) for ij in ofcolor(I, 4)}
+  center_row = height(I) // 2
+  center_col = width(I) // 2
+  three_shift = (center_row - uppermost(threes), center_col - leftmost(threes))
+  four_shift = (center_row + 1 - uppermost(fours), center_col - leftmost(fours))
+  O = paint(
+      paint(
+          canvas(0, shape(I)), 
+          shift(threes, three_shift)
+      ),
+      shift(fours, four_shift)
+  )
+  return O
+```
+
+**Explanation:**
+
+1. **Find Digit Indices:** Identifies the indices of cells containing digits '3' and '4'.
+2. **Calculate Center and Shifts:** Determines the center row and column of the grid and calculates the required shifts for both digits to reach their target positions.
+3. **Create and Paint:** 
+    * Generates a blank canvas of the same size as the input.
+    * Shifts the '3' and '4' cells to their calculated positions.
+    * Paints the shifted digits onto the canvas.
+
+**Program Version 3**
+
+```python
+def program_v3(I):
+  def reposition(grid, value, target):
+    indices = ofcolor(grid, value)
+    if indices:
+      return fill(grid, 0, indices), shift(frozenset({(value, i) for i in indices}), target)
+    else:
+      return grid, frozenset()
+
+  center_row = height(I) // 2
+  center_col = width(I) // 2
+  I, new_three = reposition(I, 3, (center_row - uppermost(ofcolor(I, 3)), center_col - leftmost(ofcolor(I, 3))))
+  I, new_four = reposition(I, 4, (center_row + 1 - uppermost(ofcolor(I, 4)), center_col - leftmost(ofcolor(I, 4))))
+  O = paint(paint(I, new_three), new_four)
+  return O
+```
+
+**Explanation:**
+
+1. **Define `reposition` Function:** This function handles moving a specific digit to a target location.
+2. **Apply Repositioning:** Calls `reposition` for both '3' and '4', calculating their target positions based on the grid's center and their original positions.
+3. **Paint:** Paints the repositioned digits onto the grid.
+
+**Program Version 4**
+
+```python
+def program_v4(I):
+  def move_to_center(grid, value, row_offset):
+    obj = extract(fgpartition(grid), lambda o: color(o) == value)
+    target_col = width(grid) // 2
+    target = (height(grid) // 2 + row_offset, target_col + leftmost(obj) - width(obj) // 2)
+    return paint(cover(grid, obj), shift(obj, subtract(target, ulcorner(obj))))
+
+  O = move_to_center(move_to_center(I, 3, 0), 4, 1)
+  return O 
+```
+
+**Explanation:**
+
+1. **Define `move_to_center` Function:** This function handles moving a specific digit to the center of the grid with a given row offset. 
+2. **Apply Movement:** Calls `move_to_center` twice:
+    * First, to move digit '3' to the center row (offset 0).
+    * Second, to move digit '4' to the row below the center (offset 1).
+
+**Program Version 5**
+
+```python
+def program_v5(I):
+  three_indices = ofcolor(I, 3)
+  four_indices = ofcolor(I, 4)
+  target_row_three = height(I) // 2
+  target_row_four = target_row_three + 1
+  O = canvas(0, shape(I))
+  for i, j in three_indices:
+    O = paint(O, {(3, (target_row_three, j))})
+  for i, j in four_indices:
+    O = paint(O, {(4, (target_row_four, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Locate Digits:** Finds the indices of cells containing '3' and '4'.
+2. **Determine Target Rows:** Calculates the target rows for both digits.
+3. **Iterate and Paint:** Iterates over the indices of each digit and paints them onto a blank canvas at their new positions, effectively moving them vertically while preserving their horizontal placement. 

@@ -1,0 +1,144 @@
+## Transformation Analysis:
+
+**Input 0 to Output 0:**
+
+1. **Upscale & Shift:** The input grid is horizontally upscaled by a factor of 2. The '2' objects are then shifted 5 positions to the right. 
+2. **'+' Pattern:**  A '+' shaped pattern of '3's is drawn around each '2', but only within the bounds of the original '2' object's position.
+
+**Input 1 to Output 1:**
+
+1. **Upscale & Shift:** Similar to the previous transformation, the grid is horizontally upscaled by 2. Each '2' object is then shifted rightward. The shift amount varies: 
+    - Top '2': Shifted 7 positions.
+    - Middle '2': Shifted 9 positions.
+    - Bottom '2':  Shifted 1 position.
+2. **'+' Pattern:** A '+' pattern of '3's is drawn around each '2' object. The pattern extends beyond the original bounds of the '2' object. 
+
+
+## Program_to_be_generated:
+
+**Version 1 (Shift based on height):**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  twos = colorfilter(objs, 2)
+  new_grid = hupscale(I, 2)  # Double the grid horizontally
+
+  for obj in twos:
+    i, j = ulcorner(obj)
+    shift_amount = 10 - i  # Shift amount decreases with row index
+    new_grid = paint(new_grid, shift(recolor(3, obj), (0, shift_amount))) # Shift and recolor the '2' object
+    new_grid = fill(new_grid, 3, {(i, j + shift_amount - 1), (i, j + shift_amount + 1), (i - 1, j + shift_amount), (i + 1, j + shift_amount)}) # Draw '+' pattern
+
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Identify '2' objects and create a horizontally upscaled grid.
+2. **Shift Calculation:** Calculate a shift amount for each '2' object based on its row index. Higher objects are shifted less.
+3. **Shift and Paint:** Shift and recolor each '2' object to '3' based on the calculated shift.
+4. **'+' Pattern:** Draw the '+' pattern using `fill` and relative indexing to the shifted object.
+
+**Version 2 (Conditional Shift):**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  twos = colorfilter(objs, 2)
+  new_grid = hupscale(I, 2)
+
+  for i, row in enumerate(I):
+    for j, value in enumerate(row):
+      if value == 2:
+        if i < 5:
+          new_grid = paint(new_grid, shift(recolor(3, {(2, (i, j))}), (0, 7)))  # Top '2' shift
+        elif i < 10:
+          new_grid = paint(new_grid, shift(recolor(3, {(2, (i, j))}), (0, 9)))  # Middle '2' shift
+        else:
+          new_grid = paint(new_grid, shift(recolor(3, {(2, (i, j))}), (0, 1)))  # Bottom '2' shift
+        new_grid = fill(new_grid, 3, {(i, j + 6), (i, j + 8), (i - 1, j + 7), (i + 1, j + 7)}) # Draw '+' pattern
+
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **Conditional Shift:** Iterate through the original grid. Based on the row index (i) of a '2', apply a specific rightward shift.
+3. **'+' Pattern:** Similar to Version 1, but with fixed indices for the '+' pattern. 
+
+**Version 3 (Using `occurrences`):**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  two = next(iter(colorfilter(objs, 2)))
+  new_grid = hupscale(I, 2)
+  shifts = ((0, 7), (0, 9), (0, 1))
+
+  for k, loc in enumerate(occurrences(I, two)):
+    i, j = loc
+    new_grid = paint(new_grid, shift(recolor(3, {(2, (i, j))}), shifts[k]))  # Shift based on occurrence index
+    new_grid = fill(new_grid, 3, {(i, j + 6), (i, j + 8), (i - 1, j + 7), (i + 1, j + 7)}) 
+
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as before, but store a single '2' object and define shifts.
+2. **Occurrence-Based Shift:** Use `occurrences` to find all locations of the '2' object.  Apply shifts based on the order of occurrence.
+3. **'+' Pattern:** Similar to previous versions.
+
+**Version 4 (Predefined Shifts):**
+
+```python
+def program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    twos = colorfilter(objs, 2)
+    new_grid = hupscale(I, 2)
+    shifts = {ulcorner(obj): (0, 10 - ulcorner(obj)[0]) for obj in twos}  # Predefine shifts based on upper-left corner
+
+    for obj in twos:
+        i, j = ulcorner(obj)
+        new_grid = paint(new_grid, shift(recolor(3, obj), shifts[(i, j)]))  # Apply predefined shift
+        new_grid = fill(new_grid, 3, {(i, j + shifts[(i, j)][1] - 1), 
+                                      (i, j + shifts[(i, j)][1] + 1), 
+                                      (i - 1, j + shifts[(i, j)][1]), 
+                                      (i + 1, j + shifts[(i, j)][1])})  # Draw '+' pattern
+
+    return new_grid
+```
+
+**Explanation:**
+
+1. **Predefined Shifts:** Calculate and store shifts for each '2' based on their upper-left corner before the main loop.
+2. **Shift Application:** Apply the predefined shift for each '2' object using the stored shifts.
+3. **'+' Pattern:** Draw the '+' pattern based on the predefined shift.
+
+**Version 5 (Simplified `fill`):**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  twos = colorfilter(objs, 2)
+  new_grid = hupscale(I, 2) 
+  for obj in twos:
+    i, j = ulcorner(obj)
+    shift_amount = 10 - i
+    new_grid = paint(new_grid, shift(recolor(3, obj), (0, shift_amount))) 
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        if abs(di) != abs(dj): # This ensures we only fill in '+' shape
+          new_grid = fill(new_grid, 3, {(i + di, j + shift_amount + dj)}) 
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization and Shifting:** Same as in Version 1.
+2. **Simplified '+' Pattern:** Instead of manually defining each coordinate for the '+' pattern, use nested loops and conditional `fill` to draw the '+'.
+
+
+These are just five potential solutions; many more variations are possible. The best approach often depends on factors like code readability, efficiency, and the specific DSL functions available. 

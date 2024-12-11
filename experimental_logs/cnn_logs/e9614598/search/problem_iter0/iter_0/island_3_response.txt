@@ -1,0 +1,118 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) in the input grid and drawing a horizontal line of a new digit (3 in this case) centered on the object's vertical center. The line's width is equal to the object's width. The original objects are preserved.
+
+**Input_0 Example:**
+
+1. **Object Identification:** Two '1' digits form a single object.
+2. **Line Drawing:** A horizontal line of '3's is drawn, centered on the object's vertical center (row 4), with a width equal to the object's width (8 units).
+
+**Input_1 Example:**
+
+1. **Object Identification:** Two '1' digits form two separate objects.
+2. **Line Drawing:** Two separate horizontal lines of '3's are drawn, each centered on the respective object's vertical center (row 0 and row 8) and with width 1.
+
+## Program Versions:
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  output = I
+  for obj in objs:
+    w = width(obj)
+    center_row = uppermost(obj) + height(obj) // 2
+    leftmost_col = leftmost(obj)
+    line = frozenset({(3, (center_row, j)) for j in range(leftmost_col, leftmost_col + w)})
+    output = paint(output, line)
+  return output
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts objects (connected regions of the same digit) from the input grid `I`.
+2. **Iterate and Draw:**  The code iterates through each object. For each object:
+   -  `width(obj)` calculates the width of the object.
+   - `center_row` determines the vertical center row of the object.
+   - `leftmost_col` finds the leftmost column of the object.
+   - A `line` of '3's is created using `frozenset` with the calculated width and position.
+   - The `line` is painted onto the `output` grid using `paint`.
+3. **Return Output:** The modified `output` grid is returned. 
+
+
+**Program Version 2**
+
+```python
+def solve(I):
+  return paint(I, merge({recolor(3, {(uppermost(obj) + height(obj) // 2, j) for j in range(leftmost(obj), leftmost(obj) + width(obj))}) for obj in objects(I, T, F, T)}))
+```
+
+**Explanation:**
+
+This version compresses the logic into a single line:
+
+1. **Identify Objects:** `objects(I, T, F, T)` identifies objects as in Version 1.
+2. **Create Lines:** A set comprehension is used to create lines for each object:
+   - `uppermost(obj) + height(obj) // 2` calculates the center row.
+   - `range(leftmost(obj), leftmost(obj) + width(obj))` generates the column indices for the line.
+   - `{(...)}` creates a set of indices for the line.
+   - `recolor(3, {...})` recolors those indices to '3'.
+3. **Merge and Paint:** `merge({...})` combines the lines from all objects. `paint(I, ...)` paints the merged lines onto the input grid `I`.
+
+**Program Version 3**
+
+```python
+def solve(I):
+  def process_object(obj):
+    row = uppermost(obj) + height(obj) // 2
+    return recolor(3, {(row, j) for j in range(leftmost(obj), leftmost(obj) + width(obj))})
+  return paint(I, merge(apply(process_object, objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+This version introduces a helper function for clarity:
+
+1. **`process_object` Function:** This function takes an object as input and returns a line of '3's at the object's center row.
+2. **Apply and Merge:** `apply(process_object, objects(I, T, F, T))` applies `process_object` to each object in the grid. `merge(...)` combines the resulting lines.
+3. **Paint:** `paint(I, ...)` paints the merged lines onto the input grid.
+
+
+**Program Version 4**
+
+```python
+def solve(I):
+  def draw_line(obj, output):
+    row = uppermost(obj) + height(obj) // 2
+    for j in range(leftmost(obj), leftmost(obj) + width(obj)):
+      output = paint(output, {(3, (row, j))})
+    return output
+  return last(rapply(rbind(draw_line, I), objects(I, T, F, T))) 
+```
+
+**Explanation:**
+
+This version uses a different approach with `rapply` and a helper function:
+
+1. **`draw_line` Function:**  This function takes an object and the current output grid. It iterates through the object's width and paints individual '3' cells on the output at the object's center row. 
+2. **`rapply` and Binding:**  `objects(I, T, F, T)` extracts objects from the input. `rbind(draw_line, I)` creates a partially applied function with the input grid `I` bound to the `output` argument of `draw_line`. `rapply` then applies this bound function to each object from `objects`.
+3. **`last` for Final Output:** `rapply` returns a tuple of outputs (grids). `last` selects the final modified grid as the result. 
+
+**Program Version 5**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  lines = mapply(lambda obj: recolor(3, connect((uppermost(obj) + height(obj) // 2, leftmost(obj)), (uppermost(obj) + height(obj) // 2, rightmost(obj)))), objs)
+  return paint(I, lines)
+```
+
+**Explanation:**
+
+This version leverages the `connect` function to draw lines:
+
+1. **Objects and Lines:** `objects(I, T, F, T)` identifies objects. `mapply` is used to create lines for each object:
+    - For each object, `connect` draws a horizontal line from the leftmost to the rightmost column at the object's center row. 
+    - `recolor(3, ...)` sets the color of the line to '3'.
+2. **Paint Lines:**  `paint(I, lines)` paints the merged set of lines onto the input grid. 

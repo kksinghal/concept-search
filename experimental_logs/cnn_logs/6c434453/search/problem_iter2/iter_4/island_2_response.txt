@@ -1,0 +1,112 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects with the value '2', rotating them 270 degrees counter-clockwise, and then placing them back onto a blank canvas of the same size as the input.  The original positions of the '1's in the input grid determine the new positions of the rotated '2' objects in the output grid. Finally, the colors '1' and '2' are swapped in the output grid.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)  # Identify all objects in the input
+  target_objs = colorfilter(objs, 2)  # Filter for objects with color '2'
+  locations = ofcolor(I, 1)  # Get indices of all '1's
+  O = canvas(0, shape(I))  # Create a blank canvas
+  for obj, loc in zip(target_objs, locations):
+    transformed_obj = rot270(toobject(toindices(obj), I))  # Rotate object 270 degrees
+    O = paint(O, shift(transformed_obj, loc))  # Place the rotated object at the location of '1'
+  O = switch(O, 1, 2) # Switch colors '1' and '2'
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify and Rotate:** This version first identifies all '2' objects and rotates them by 270 degrees counter-clockwise.
+2. **Find Target Locations:** It then extracts the locations of all cells containing '1' in the input grid.
+3. **Paint on Canvas:**  A blank canvas is created, and each rotated '2' object is painted onto this canvas at the corresponding location of a '1' from the input.
+4. **Switch Colors:** Finally, it swaps the colors '1' and '2' on the output grid. 
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  indices_2 = ofcolor(I, 2)  # Get indices of '2's
+  indices_1 = ofcolor(I, 1)  # Get indices of '1's
+  O = canvas(0, shape(I))  # Create a blank canvas
+  for i2, i1 in zip(indices_2, indices_1):
+    O = fill(O, 1, {i1})  # Place '1' at the location of '1' in input
+    O = fill(O, 2, astuple(i1[0] + i2[1] - i1[1], i1[1] - i2[0] + i1[0])) # Calculate rotated position for '2'
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Indices:** This version focuses on directly manipulating indices. It extracts the indices of all '2's and '1's.
+2. **Direct Placement:** It iterates through pairs of '2' and '1' indices. For each pair, it directly calculates the rotated position of the '2' relative to the corresponding '1' index. 
+3. **Fill Canvas:** It fills the blank canvas with '1' at the location of the original '1' and '2' at the calculated rotated position.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  two_objects = objects(replace(I, 1, 0), T, T, T)  # Identify '2' objects (treating '1' as background)
+  one_indices = ofcolor(I, 1)  # Get locations of '1's
+  O = canvas(0, shape(I))  # Blank canvas
+  for obj, idx in zip(two_objects, one_indices):
+    shifted_obj = shift(obj, subtract(idx, ulcorner(obj)))  # Shift object so its top-left corner aligns with the '1' index
+    rotated_obj =  toobject(toindices(rot270(toobject(toindices(shifted_obj), I))), I)  # Rotate the shifted object
+    O = paint(O, rotated_obj)  # Paint the rotated object onto the canvas
+  return switch(O, 1, 2) # Switch colors '1' and '2'
+```
+
+**Explanation:**
+
+1. **Isolate and Align:**  This version first identifies the '2' objects by treating '1' as background. It then calculates the shift needed to align the top-left corner of each '2' object with the corresponding '1' index. 
+2. **Rotate and Paint:** The aligned object is rotated 270 degrees, and the rotated object is painted onto the canvas.
+3. **Switch Colors:** Finally, colors '1' and '2' are swapped. 
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = replace(I, 2, 8)  # Temporarily replace '2' with '8' to avoid conflicts
+  O = replace(O, 1, 2)  # Replace '1' with '2' 
+  O = replace(O, 8, 1)  # Replace temporary '8' (originally '2') with '1'
+  transformed_objects = apply(lambda obj: shift(rot270(toobject(toindices(obj), O)), ulcorner(ofcolor(I, 1).intersection(toindices(obj)))), 
+                              colorfilter(objects(O, T, T, T), 1)) # Rotate and shift the '1' objects (originally '2')
+  return paint(canvas(0, shape(I)), merge(transformed_objects))  # Paint the transformed objects onto a blank canvas
+```
+
+**Explanation:**
+
+1. **Swap and Rotate:** This version cleverly uses temporary color replacements to first swap the colors '1' and '2'. Then, it identifies the objects that were originally '2' (now '1') and rotates them 270 degrees. 
+2. **Shift and Paint:** It determines the correct shift for each rotated object based on the intersection of its indices with the original '1' locations. Finally, it paints the transformed objects onto a blank canvas.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def transform_object(obj):
+    c = color(obj)
+    idx = first(ofcolor(I, 1).intersection(toindices(obj))) if c == 2 else (0, 0) # Find intersection with '1' if the object is '2'
+    return shift(rot270(toobject(toindices(obj), I)) if c == 2 else obj,  # Rotate if '2'
+                subtract(idx, ulcorner(obj)) if c == 2 else (0, 0))  # Shift based on intersection point
+
+  return paint(canvas(0, shape(I)), merge(apply(transform_object, objects(I, T, T, T))))
+```
+
+**Explanation:**
+
+1. **Transform Function:** This version defines a dedicated `transform_object` function for clarity. 
+2. **Conditional Transformation:** The function checks the color of each object. If it's '2', it calculates the intersection point with the original '1' locations and uses it to determine the required shift after rotating the object.
+3. **Apply and Paint:** The `transform_object` function is applied to all objects in the input, and the resulting transformed objects are merged and painted onto a blank canvas. 

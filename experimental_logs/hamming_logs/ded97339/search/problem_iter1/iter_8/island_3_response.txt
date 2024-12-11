@@ -1,0 +1,180 @@
+## Transformation Analysis:
+
+The transformation focuses on objects (connected regions) formed by the least frequent color in the input grid. The goal is to extend these objects either horizontally or vertically until they hit another object of the least frequent color. 
+
+* **Horizontal Extension:**  If an object's uppermost cell is on the same row as the uppermost cell of another object, the object extends horizontally to connect with the other object.
+* **Vertical Extension:** If an object's leftmost cell is on the same column as the leftmost cell of another object, the object extends vertically to connect with the other object.
+
+Let's analyze this with the input-output pairs:
+
+* **Input_0:** The '8' objects extend horizontally to connect with each other.
+* **Input_1:** One '8' object extends vertically to connect with another below it, and the bottom '8' object extends horizontally to connect with another. 
+* **Input_2:** The top '8' object extends horizontally to connect with another. The remaining '8' objects extend vertically to connect with each other.
+
+
+## Program to Be Generated:
+
+Here are five distinct programs to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+  
+  filled_indices = mpapply(lambda obj1, obj2: 
+                         frozenset((i, k) for _, (i, _) in obj1 
+                                  for k in range(width(I)) 
+                                  if (uppermost(obj1) == uppermost(obj2)) and (obj1 != obj2)),
+                        target_objs, target_objs)
+  
+  filled_indices = filled_indices | mpapply(lambda obj1, obj2:
+                                          frozenset((k, j) for _, (_, j) in obj1 
+                                                    for k in range(height(I)) 
+                                                    if (leftmost(obj1) == leftmost(obj2)) and (obj1 != obj2)),
+                                          target_objs, target_objs)
+  
+  O = underfill(I, target_color, filled_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Finds the least frequent color (`target_color`) and identifies objects formed by this color (`target_objs`).
+2. **Horizontal Extension:**  For each pair of objects (`obj1`, `obj2`) in `target_objs`, it checks if their uppermost rows are the same. If they are, it fills all cells in that row between the objects. 
+3. **Vertical Extension:** Similar to horizontal extension, it checks if the leftmost columns of each object pair are the same. If they are, it fills the cells vertically between them.
+4. **Apply Transformation:** Fills the identified cells (`filled_indices`) with the `target_color` on the input grid (`I`).
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+  
+  h_connections = mpapply(lambda obj1, obj2:
+                         connect((uppermost(obj1), leftmost(obj1)), (uppermost(obj2), rightmost(obj2))) 
+                         if (uppermost(obj1) == uppermost(obj2)) and (obj1 != obj2) else frozenset(), 
+                         target_objs, target_objs)
+  
+  v_connections = mpapply(lambda obj1, obj2:
+                         connect((uppermost(obj1), leftmost(obj1)), (lowermost(obj2), leftmost(obj2))) 
+                         if (leftmost(obj1) == leftmost(obj2)) and (obj1 != obj2) else frozenset(),
+                         target_objs, target_objs)
+  
+  O = underfill(I, target_color, h_connections | v_connections)
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:**  Same as Version 1.
+2. **Horizontal Connections:** For each object pair, it uses `connect` to draw a line between the upper-left corner of one object and the upper-right corner of the other if their uppermost rows align. 
+3. **Vertical Connections:**  Similar to horizontal connections, but it connects the upper-left corner of one object to the lower-left corner of the other if their leftmost columns align.
+4. **Apply Transformation:** Fills the cells on the connection lines (`h_connections` and `v_connections`) with the `target_color`.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+
+  h_fill = mpapply(lambda obj1, obj2:
+                  frozenset((uppermost(obj1), j) 
+                            for j in range(min(leftmost(obj1), leftmost(obj2)) + 1, 
+                                          max(rightmost(obj1), rightmost(obj2)))) 
+                  if uppermost(obj1) == uppermost(obj2) and obj1 != obj2 else frozenset(), 
+                  target_objs, target_objs)
+
+  v_fill = mpapply(lambda obj1, obj2:
+                  frozenset((i, leftmost(obj1)) 
+                            for i in range(min(uppermost(obj1), uppermost(obj2)) + 1,
+                                          max(lowermost(obj1), lowermost(obj2))))
+                  if leftmost(obj1) == leftmost(obj2) and obj1 != obj2 else frozenset(),
+                  target_objs, target_objs)
+
+  O = underfill(I, target_color, h_fill | v_fill)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as Version 1.
+2. **Horizontal Fill:** Identifies the row to fill and iterates through the column indices between the two objects, adding the cell coordinates to `h_fill`.
+3. **Vertical Fill:** Similar to horizontal fill, but identifies the column to fill and iterates through row indices.
+4. **Apply Transformation:**  Fills the cells in `h_fill` and `v_fill` with the `target_color`.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+  
+  filled_indices = set()
+  for obj1 in target_objs:
+    for obj2 in target_objs:
+      if obj1 != obj2:
+        if uppermost(obj1) == uppermost(obj2):
+          for j in range(min(leftmost(obj1), leftmost(obj2)) + 1, 
+                         max(rightmost(obj1), rightmost(obj2))):
+            filled_indices.add((uppermost(obj1), j))
+        if leftmost(obj1) == leftmost(obj2):
+          for i in range(min(uppermost(obj1), uppermost(obj2)) + 1, 
+                         max(lowermost(obj1), lowermost(obj2))):
+            filled_indices.add((i, leftmost(obj1)))  
+
+  O = underfill(I, target_color, frozenset(filled_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as Version 1.
+2. **Nested Loops:** Uses nested loops to iterate through all pairs of `target_objs`.
+3. **Conditional Filling:**  If the uppermost rows or leftmost columns of the object pair are the same, it fills the cells between them.
+4. **Apply Transformation:** Fills the identified cells (`filled_indices`) with the `target_color`.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+  
+  filled_cells = set()
+  for obj1 in target_objs:
+    for obj2 in target_objs:
+      if obj1 != obj2:
+        if hmatching(obj1, obj2):
+          h_start = min(leftmost(obj1), leftmost(obj2)) + 1
+          h_end = max(rightmost(obj1), rightmost(obj2))
+          for j in range(h_start, h_end):
+            filled_cells.add((uppermost(obj1), j))
+        if vmatching(obj1, obj2):
+          v_start = min(uppermost(obj1), uppermost(obj2)) + 1
+          v_end = max(lowermost(obj1), lowermost(obj2))
+          for i in range(v_start, v_end):
+            filled_cells.add((i, leftmost(obj1)))
+  
+  O = underfill(I, target_color, frozenset(filled_cells))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as Version 1.
+2. **Iterate and Check:** Iterates through all pairs of objects and uses `hmatching` and `vmatching` to check for shared rows or columns. 
+3. **Calculate Fill Range:**  Calculates the starting and ending points for horizontal and vertical fills.
+4. **Fill Cells:**  Fills the identified cells between objects.
+5. **Apply Transformation:** Fills the final `filled_cells` set with the `target_color` on the input grid.
+
+
+These five versions demonstrate different approaches to achieve the same goal, utilizing various DSL functions and logic. They highlight the flexibility of the DSL and offer diverse solutions to the transformation challenge. 

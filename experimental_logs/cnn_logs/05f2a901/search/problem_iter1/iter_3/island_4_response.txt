@@ -1,0 +1,109 @@
+## Transformation Analysis:
+
+The transformation in all three examples involves moving objects downwards to the bottom of the grid without changing their relative horizontal positions. The objects are moved such that their top edge aligns with the bottom edge of the grid or another object already positioned at the bottom. 
+
+**Logic Breakdown:**
+
+1. **Identify Objects:**  The transformation treats each distinct connected component of non-background color as a separate object.
+2. **Move Downwards:** Each object is shifted downwards until it reaches the bottom of the grid or encounters another object. 
+3. **Preserve Horizontal Position:** The horizontal position (column-wise) of each object remains unchanged during the transformation.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcommon(I), shape(I)) # Create a blank canvas
+  for obj in sorted(fgpartition(I), key=lambda obj: uppermost(obj)): # Sort objects top-down
+    O = underpaint(O, shift(obj, (height(I) - lowermost(obj) - 1, 0)))  # Shift & paint
+  return O
+```
+
+**Explanation:**
+
+1. **Create Canvas:** `canvas(mostcommon(I), shape(I))` creates a blank canvas with the same dimensions as the input grid (`I`), filled with the most common color (background) of the input.
+2. **Iterate & Sort:** `sorted(fgpartition(I), key=lambda obj: uppermost(obj))` extracts all objects from the input (excluding the background) and sorts them based on their uppermost row index. This ensures objects are processed from top to bottom.
+3. **Shift & Paint:** For each object `obj`, `shift(obj, (height(I) - lowermost(obj) - 1, 0))` calculates the downward shift required to align the object's bottom edge with the bottom of the grid and shifts the object accordingly.  `underpaint(O, ...)` then paints this shifted object onto the canvas `O`. The `underpaint` function ensures that only background cells are painted over.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = sorted(fgpartition(I), key=lambda x: -uppermost(x)) # Sort objects bottom-up
+  O = I
+  for obj in objs:
+    O = paint(cover(O, obj), shift(obj, (height(I) - uppermost(obj) - height(obj), 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **Sort Objects:** This version sorts the objects from bottom to top using  `sorted(fgpartition(I), key=lambda x: -uppermost(x))`.
+2. **Iterate & Modify:** It iterates through each object `obj` in the sorted list.
+3. **Erase & Shift:** `cover(O, obj)` removes the object `obj` from the current grid `O`. Then,  `shift(obj, (height(I) - uppermost(obj) - height(obj), 0))` calculates the displacement to move the object to the bottom and shifts it. 
+4. **Paint:** Finally, `paint(...)` paints the shifted object back onto the grid `O`.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = fgpartition(I)
+    shifted_objs = frozenset({shift(obj, (height(I) - lowermost(obj) - 1, 0)) for obj in objs})
+    return paint(canvas(mostcommon(I), shape(I)), merge(shifted_objs))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `fgpartition(I)` extracts all foreground objects from the input grid.
+2. **Calculate Shifts & Shift:** It then uses a set comprehension to iterate through each `obj` in `objs`. For each object, it calculates the required downward shift using `(height(I) - lowermost(obj) - 1, 0)` and applies it using the `shift` function. The shifted objects are stored in the `shifted_objs` set.
+3. **Create Canvas & Paint:**  A new canvas is created with `canvas(mostcommon(I), shape(I))` filled with the background color. Finally, all shifted objects are merged using `merge(shifted_objs)` and painted onto the canvas using the `paint` function.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def process_row(row_index):
+    row_objects = frozenset({obj for obj in fgpartition(I) if uppermost(obj) == row_index})
+    return shift(merge(row_objects), (height(I) - row_index - height(merge(row_objects)), 0)) 
+  return paint(canvas(mostcommon(I), shape(I)), 
+               merge(apply(process_row, interval(0, height(I), 1))))
+```
+
+**Explanation:**
+
+1. **`process_row` function:** This helper function takes a `row_index` as input. 
+    -  It identifies all objects starting at that specific row using `frozenset({obj for obj in fgpartition(I) if uppermost(obj) == row_index})`.
+    -  It then merges these objects using `merge` and calculates the downward shift needed to bring the bottom of the merged object to the bottom of the grid. 
+    -  Finally, it returns the shifted merged object.
+2. **Apply to Each Row:** The main function iterates through each row index of the grid using `interval(0, height(I), 1)`. 
+   - For each row, it applies the `process_row` function using `apply`. 
+   - This results in a collection of shifted merged objects.
+3. **Paint on Canvas:** A new canvas is created with `canvas(mostcommon(I), shape(I))`.  All the shifted objects are then merged using `merge` and painted onto this canvas using `paint`.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    def move_object(obj):
+      return shift(obj, (height(I) - lowermost(obj) - 1, 0))
+    return paint(canvas(mostcommon(I), shape(I)),
+                 merge(apply(move_object, fgpartition(I))))
+```
+
+**Explanation:**
+
+1. **`move_object` Function:** This helper function takes an object `obj` as input and calculates the downward shift required to move it to the bottom of the grid. It returns the shifted object.
+2. **Apply Shift to Objects:** The main function first extracts all foreground objects using `fgpartition(I)`. It applies the `move_object` function to each object using `apply(move_object, fgpartition(I))`. This results in a set of shifted objects.
+3. **Paint Shifted Objects:**  A new canvas is created with the background color using  `canvas(mostcommon(I), shape(I))`. Finally, all the shifted objects are merged together using `merge(...)` and painted onto this canvas with the `paint` function.
+
+These five versions provide different approaches to achieve the same transformation, showcasing a variety of DSL function combinations and logic flow. 

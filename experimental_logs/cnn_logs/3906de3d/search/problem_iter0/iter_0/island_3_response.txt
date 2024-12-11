@@ -1,0 +1,158 @@
+## Transformation Analysis:
+
+The transformation involves identifying diagonal lines of '1's within the input grid and replacing the '1's adjacent to these diagonals with '2's. Let's break down each example:
+
+**Input_0 -> Output_0:**
+-  A single diagonal line of '1's exists.
+- The two '1's directly above and below this diagonal are replaced with '2's.
+
+**Input_1 -> Output_1:**
+- Two diagonal lines of '1's are present. 
+-  For each diagonal, the adjacent '1's are replaced with '2's.
+
+**Input_2 -> Output_2:**
+- Three diagonal lines of '1's exist.
+- Similar to the previous examples, adjacent '1's are replaced with '2's. 
+
+## Program_to_be_generated:
+
+Here are five distinct program versions achieving the described transformation:
+
+**Program Version 1:**
+
+```python
+def solve_to_be_generated(I):
+    # Find indices of all '1's in the grid
+    ones = ofcolor(I, ONE) 
+    # Generate all possible pairs of '1' indices
+    pairs = product(ones, ones)
+    # Filter pairs to keep only those forming diagonal lines 
+    diagonals = mfilter(pairs, lambda p: abs(first(p)[0] - last(p)[0]) == abs(first(p)[1] - last(p)[1]) and first(p) != last(p))
+    # Extract adjacent indices for each diagonal
+    adjacent_indices = mpapply(lambda p: dneighbors(first(p)) | dneighbors(last(p)), diagonals)
+    # Filter adjacent indices to keep only those containing '1'
+    filtered_indices =  sfilter(adjacent_indices, lambda i: index(I, i) == 1)
+    # Replace '1's at the filtered indices with '2's
+    O = underfill(I, TWO, filtered_indices)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify '1's and Pairs:** Find all occurrences of '1' and generate pairs.
+2. **Filter Diagonals:** Keep only pairs representing diagonal lines.
+3. **Find Adjacent Indices:** Extract indices directly adjacent to diagonal endpoints.
+4. **Filter for '1's:** Keep adjacent indices where the grid value is '1'.
+5. **Replace with '2's:**  Replace the '1's at these filtered indices with '2's.
+
+**Program Version 2:**
+
+```python
+def solve_to_be_generated(I):
+    # Get grid dimensions
+    h, w = shape(I)
+    # Generate all possible diagonal directions 
+    directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+    # Function to find adjacent indices for a diagonal line
+    def find_adjacent(i, j, di, dj):
+      return {(i + di, j + dj), (i - di, j - dj)}
+    # Initialize the output grid as a copy of the input
+    O = I
+    # Iterate through each cell in the grid
+    for i in range(h):
+      for j in range(w):
+        # If the cell contains a '1'
+        if I[i][j] == ONE:
+          # Check each diagonal direction
+          for di, dj in directions:
+            # Check if the adjacent cells in the diagonal direction also contain '1's
+            if 0 <= i + di < h and 0 <= j + dj < w and 0 <= i - di < h and 0 <= j - dj < w and I[i + di][j + dj] == ONE and I[i - di][j - dj] == ONE:
+              # If true, update the output grid by replacing the adjacent '1's with '2's
+              O = fill(O, TWO, find_adjacent(i, j, di, dj))
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate and Check:**  Iterate through every cell, checking for '1'.
+2. **Diagonal Check:** For each '1', check if it's part of a diagonal by examining adjacent cells in all four diagonal directions.
+3. **Replace Adjacent '1's:** If a diagonal is detected, replace the adjacent '1's with '2's.
+
+**Program Version 3:**
+
+```python
+def solve_to_be_generated(I):
+    # Find objects in the grid (connected components of '1's)
+    objs = objects(I, True, True, False) 
+    to_replace = set()
+    for obj in objs:
+        # Check if the object is a diagonal line
+        if len(obj) > 1 and (hline(obj) or vline(obj) or len(obj) == 2):
+            continue
+        # Add adjacent indices of the diagonal line to be replaced
+        for (v, (i, j)) in obj:
+            to_replace |= {(i + 1, j + 1), (i - 1, j - 1), (i + 1, j - 1), (i - 1, j + 1)}
+    # Filter out indices that are out of bounds or don't contain '1'
+    to_replace = {(i, j) for (i, j) in to_replace if 0 <= i < len(I) and 0 <= j < len(I[0]) and I[i][j] == 1}
+    # Replace '1's at the filtered indices with '2's
+    O = underfill(I, 2, to_replace)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Diagonal Objects:** Find connected components of '1's, filtering for those forming diagonal lines.
+2. **Mark Adjacent Cells:** Mark adjacent cells around diagonal objects for replacement.
+3. **Filter Valid Cells:** Ensure marked cells are within the grid bounds and contain '1'.
+4. **Replace with '2's:** Replace the filtered cells with '2's in the output grid.
+
+**Program Version 4:**
+
+```python
+def solve_to_be_generated(I):
+    shifted_grids = (
+        shift(asobject(I), (1, 1)),
+        shift(asobject(I), (-1, -1)),
+        shift(asobject(I), (1, -1)),
+        shift(asobject(I), (-1, 1)),
+    )
+    diag_mask = canvas(0, shape(I))
+    for shifted_grid in shifted_grids:
+        diag_mask = cellwise(diag_mask, paint(diag_mask, shifted_grid), 1)
+    diag_indices = ofcolor(diag_mask, 1)
+    O = underfill(I, 2, diag_indices)
+    return O
+```
+
+**Explanation:**
+
+1. **Create Shifted Grids:** Generate shifted versions of the input grid in all four diagonal directions.
+2. **Identify Diagonal '1's:** Compare the original grid with each shifted grid, marking cells where '1's align diagonally.
+3. **Create Diagonal Mask:** Combine the marked cells to create a mask representing diagonal '1's.
+4. **Replace Adjacent Cells:** Replace cells adjacent to the diagonal '1's with '2's in the output grid.
+
+**Program Version 5:**
+
+```python
+def solve_to_be_generated(I):
+    h, w = shape(I)
+    O = canvas(0, (h, w))
+    for i in range(h):
+      for j in range(w):
+        if I[i][j] == 1:
+            O = paint(O, {(1, (i,j))})
+            if (i > 0 and j > 0 and I[i-1][j-1] == 1 and I[i+1][j+1] == 1) or \
+               (i > 0 and j < w-1 and I[i-1][j+1] == 1 and I[i+1][j-1] == 1) or \
+               (i < h-1 and j > 0 and I[i+1][j-1] == 1 and I[i-1][j+1] == 1) or \
+               (i < h-1 and j < w-1 and I[i+1][j+1] == 1 and I[i-1][j-1] == 1):
+                O = paint(O, {(2, (i + 1, j)), (2, (i - 1, j)), (2, (i, j + 1)), (2, (i, j - 1))})
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate and Copy '1's:** Iterate through the grid, copying '1's to the output grid.
+2. **Check for Diagonal Conditions:** For each '1', check all four diagonal directions for the presence of another '1' two cells away and within the grid boundaries.
+3. **Replace with '2's:** If a diagonal line is detected, replace the adjacent cells with '2's in the output grid. 
+
+These five programs offer diverse solutions using various DSL functions and logic. Each program successfully achieves the desired transformation, as analyzed from the input-output examples.

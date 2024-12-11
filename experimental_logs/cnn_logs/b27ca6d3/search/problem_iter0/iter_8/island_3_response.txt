@@ -1,0 +1,150 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids seems to involve identifying non-zero elements and drawing a horizontal line of "3"s centered on these elements but only extending over other non-zero elements. 
+
+* **Input_0:** Each "2" in the input grid has a horizontal line of "3"s drawn across it, extending only as far as it encounters another "2" or the edge of the grid. 
+
+* **Input_1:** This follows the same pattern as Input_0. Notably, diagonally placed "2"s do not cause the lines to intersect; the line drawing appears to prioritize horizontal connections. 
+
+## Program_to_be_generated:
+
+Here are five distinct program versions using the DSL to achieve the described transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  def paint_line(i, j):
+    line = {(i, k) for k in range(j) if index(I, (i, k)) != ZERO}
+    return frozenset() if len(line) == 0 else frozenset({(THREE, idx) for idx in connect(first(line)[1], last(line)[1])})
+  painted = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != ZERO:
+        painted = paint(painted, paint_line(i, j))
+  return paint(painted,  frozenset({(THREE, idx) for idx in paint_line(i, len(I[0]))}))
+```
+
+**Explanation:**
+
+1. **`paint_line(i, j)` function:** 
+    - This function takes a row index (i) and a column index (j) as input. 
+    - It identifies all non-zero cells in the row from the beginning to the given column index (j).
+    - It then connects the first and last non-zero cells found with a line of "3"s, effectively painting a horizontal line over the non-zero elements encountered.
+2. **Main loop:**
+    - The program iterates through each cell in the input grid (`I`).
+    - For each non-zero cell encountered, it calls the `paint_line` function to draw a horizontal line up to that cell's column.
+    - The line is painted onto a copy of the input grid (`painted`) using the `paint` function.
+3. **Final Line:**
+    - After the loop, the program draws one final line for the last row to cover any remaining non-zero elements. 
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  def hline_to_non_zero(i, j):
+    return {(i, k) for k in range(width(I)) if index(I, (i, k)) != ZERO and k <= j}
+  filled_grid = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != ZERO:
+        line_indices = hline_to_non_zero(i, j)
+        start_j = leftmost(line_indices)
+        end_j = rightmost(line_indices)
+        filled_grid = fill(filled_grid, THREE, {(i, k) for k in range(start_j, end_j + 1)})
+  return filled_grid
+```
+
+**Explanation:**
+
+1. **`hline_to_non_zero(i, j)` function:**
+    - Takes row (i) and column (j) indices.
+    - Returns indices of non-zero cells in the row up to column j.
+2. **Main Loop:**
+    - Iterates through each cell of the grid.
+    - If a non-zero cell is found:
+      -  It determines the start and end column indices of the continuous line of non-zero cells up to the current cell's column.
+      -  It fills the cells between those indices with the value "3".
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+    def extend_line(start, end, row_idx):
+        return frozenset({(THREE, (row_idx, j)) for j in range(start, end + 1)})
+    painted = I
+    for i, row in enumerate(I):
+        non_zero_indices = [j for j, val in enumerate(row) if val != ZERO]
+        if non_zero_indices:
+            start_j = non_zero_indices[0]
+            end_j = non_zero_indices[-1]
+            painted = paint(painted, extend_line(start_j, end_j, i))
+    return painted
+```
+
+**Explanation:**
+
+1. **`extend_line(start, end, row_idx)` function:** 
+    - Creates a horizontal line of "3"s between the given start and end column indices on a specified row.
+2. **Main Loop:**
+    - Iterates through each row.
+    - Finds the column indices of all non-zero elements in the row.
+    - If non-zero elements exist:
+      -  Gets the leftmost and rightmost non-zero column indices.
+      -  Uses `extend_line` to create a line of "3"s spanning those columns on the current row.
+      -  Paints the line onto the grid. 
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  def line_segment(i, start_j, end_j):
+    return {(THREE, (i, j)) for j in range(start_j, end_j + 1)}
+  painted = I
+  for i, row in enumerate(I):
+    current_segment_start = None
+    for j, val in enumerate(row):
+      if val != ZERO and current_segment_start is None:
+        current_segment_start = j
+      elif val == ZERO and current_segment_start is not None:
+        painted = paint(painted, line_segment(i, current_segment_start, j - 1))
+        current_segment_start = None
+    if current_segment_start is not None:
+      painted = paint(painted, line_segment(i, current_segment_start, len(row) - 1))
+  return painted
+```
+
+**Explanation:** 
+
+1. **`line_segment(i, start_j, end_j)` function:**
+    -  Similar to previous versions, creates a horizontal line segment.
+2. **Main Loop:** 
+    - Iterates through each row, tracking the start index of a non-zero segment.
+    - When a zero is encountered, it marks the end of the segment, draws the line, and resets the segment start. 
+    - Handles the last segment of each row. 
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  def paint_horizontal(grid, i):
+    non_zero_cols = {j for j in range(width(grid)) if grid[i][j] != ZERO}
+    if non_zero_cols:
+      start_col = min(non_zero_cols)
+      end_col = max(non_zero_cols)
+      return fill(grid, THREE, {(i, j) for j in range(start_col, end_col + 1)})
+    return grid
+  return tuple(tuple(row) for row in apply(lambda x: paint_horizontal(I, x), range(height(I))))
+```
+
+**Explanation:**
+
+1.  **`paint_horizontal(grid, i)` function:**
+    -  Takes a grid and row index as input.
+    -  Identifies non-zero column indices in the row.
+    -  Fills a horizontal line with "3"s spanning the non-zero elements. 
+2. **Main Logic:**
+    -  Uses `apply` to apply the `paint_horizontal` function to each row index of the grid.
+    -  Constructs and returns the modified grid. 
+
+These five programs demonstrate different approaches to solving the transformation using the DSL. Each version leverages unique combinations of DSL functions and logic to achieve the desired output. 

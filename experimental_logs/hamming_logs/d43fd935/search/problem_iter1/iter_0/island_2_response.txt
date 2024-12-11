@@ -1,0 +1,158 @@
+## Transformation Analysis:
+
+The transformation in all three examples can be described as **"expanding" the smallest object in the input grid to connect with all other objects of the same color**. This expansion happens horizontally and vertically until it reaches another object of the same color. 
+
+Let's break it down for each example:
+
+**Input 0:** The smallest object is the single '1'. It expands horizontally to the right until it connects with the other '1'. It also expands upwards, connecting with the '3' object.
+
+**Input 1:** The smallest object is the '8' at (0,6). It expands upwards and to the right, connecting with other '8's. Similarly, the '7' at (9,6) expands upwards connecting with other '7's.
+
+**Input 2:** The smallest object is any of the single '1's. They expand vertically to connect with each other. 
+
+## Program Versions:
+
+Here are five distinct program versions achieving the described transformation:
+
+**Program Version 1**
+
+```python
+def solve_expanded_objects(I):
+    objs = objects(I, T, F, T)  # Extract all objects, excluding background
+    min_obj = argmin(objs, size)  # Find the smallest object
+    target_color = color(min_obj)  # Get the color of the smallest object
+    other_objs = remove(min_obj, objs)  # Get all objects except the smallest one
+    expanded_obj = min_obj  # Initialize the expanded object
+
+    for obj in other_objs:
+      if color(obj) == target_color:  # Check if the object has the target color
+        # Expand horizontally
+        if hmatching(expanded_obj, obj):
+          expanded_obj = combine(expanded_obj, toobject(connect(leftmost(obj), rightmost(expanded_obj)), I))
+        # Expand vertically
+        if vmatching(expanded_obj, obj):
+          expanded_obj = combine(expanded_obj, toobject(connect(uppermost(obj), lowermost(expanded_obj)), I))
+
+    O = paint(cover(I, min_obj), expanded_obj) # Paint the expanded object back onto the grid
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** The code starts by identifying all objects in the grid (excluding the background) and finding the smallest one.
+2. **Target Color:**  It determines the color of the smallest object, which will be used for expansion.
+3. **Iterative Expansion:** The program iterates through all other objects on the grid. If an object shares the target color:
+    * **Horizontal Check:** It checks for a horizontal match and expands the object by connecting its leftmost point to the rightmost point of the expanding object.
+    * **Vertical Check:** It performs a similar check for vertical matching and expands accordingly.
+4. **Final Output:** Finally, it paints the expanded object onto the original grid after removing the initial smallest object. 
+
+**Program Version 2**
+
+```python
+def solve_expanded_objects(I):
+  objs = objects(I, T, F, T)
+  min_obj = argmin(objs, size)
+  target_color = color(min_obj)
+  O = I
+
+  for i, row in enumerate(I):
+    for j, value in enumerate(row):
+      if value == target_color and (i,j) in toindices(min_obj):
+        # Horizontal expansion
+        for dj in range(1, width(I)):
+          if index(I, (i, j + dj)) == target_color:
+            O = fill(O, target_color, connect((i,j), (i, j + dj - 1)))
+            break
+        # Vertical expansion
+        for di in range(1, height(I)):
+          if index(I, (i + di, j)) == target_color:
+            O = fill(O, target_color, connect((i,j), (i + di - 1, j)))
+            break
+  return O
+```
+
+**Explanation:**
+
+1. **Object and Color Identification:** Similar to Version 1, this version identifies objects and the target color for expansion.
+2. **Iterate Through Grid:** It then iterates through each cell of the grid. If a cell's color matches the target color and belongs to the smallest object:
+    * **Horizontal Expansion:** It expands horizontally from that cell, filling with the target color until it encounters another cell of the same color.
+    * **Vertical Expansion:** It does the same for vertical expansion.
+3. **Direct Grid Modification:** This version directly modifies the input grid `I` during the expansion process, storing the result in `O`.
+
+**Program Version 3**
+
+```python
+def solve_expanded_objects(I):
+  min_obj = argmin(objects(I, T, F, T), size)
+  target_color = color(min_obj)
+  expansion_area = backdrop(min_obj)
+  O = I
+  
+  for i, j in expansion_area:
+    # Horizontal expansion check
+    if any(index(I, (i, x)) == target_color for x in range(j)):
+      O = fill(O, target_color, (i, j))
+
+    # Vertical expansion check
+    if any(index(I, (y, j)) == target_color for y in range(i)):
+      O = fill(O, target_color, (i, j))
+
+  return O
+```
+
+**Explanation:**
+
+1. **Initial Steps:** Similar to previous versions, it identifies the smallest object and its color. 
+2. **Expansion Area:** It defines an "expansion area" using `backdrop(min_obj)`, encompassing the bounding box of the smallest object.
+3. **Cell-by-Cell Expansion:** The code iterates through each cell within the expansion area.
+    * **Horizontal Check:** It checks if there is any cell with the target color to the left of the current cell in the same row. If yes, it fills the current cell with the target color.
+    * **Vertical Check:** It performs a similar check vertically, looking for the target color above the current cell in the same column.
+
+**Program Version 4**
+
+```python
+def solve_expanded_objects(I):
+    min_obj = argmin(objects(I, T, F, T), size)
+    target_color = color(min_obj)
+    O = paint(canvas(mostcolor(I), shape(I)), min_obj)
+
+    for i in range(height(I)):
+      for j in range(width(I)):
+        if index(O, (i,j)) == target_color:
+          # Horizontal Expansion
+          O = fill(O, target_color, hfrontier((i,j)) & backdrop(min_obj))
+          # Vertical Expansion
+          O = fill(O, target_color, vfrontier((i,j)) & backdrop(min_obj))
+
+    return O
+```
+
+**Explanation:**
+
+1. **Initialization:** It identifies the smallest object and its color. It creates a canvas of the same size as the input grid, filled with the background color, and paints the smallest object onto it.
+2. **Iterative Expansion:** It iterates through each cell of the newly created grid (`O`). If a cell has the target color:
+   * **Horizontal Expansion:** It uses `hfrontier` to generate a horizontal line from the current cell and fills the intersection of this line and the expansion area (`backdrop(min_obj)`) with the target color.
+   * **Vertical Expansion:** It does the same for vertical expansion using `vfrontier`.
+
+**Program Version 5**
+
+```python
+def solve_expanded_objects(I):
+  min_obj = argmin(objects(I, T, F, T), size)
+  t_color = color(min_obj)
+  O = I
+  for obj in objects(I, T, F, T):
+    if color(obj) == t_color:
+      for (i, j) in toindices(obj):
+        O = fill(O, t_color, backdrop(combine(min_obj, {(t_color, (i, j))})))
+  return O
+```
+
+**Explanation:**
+
+1. **Object and Color Identification:**  Identifies the smallest object and its color.
+2. **Iterate Through Objects:** It iterates through each object on the grid. If an object has the target color:
+   * **Iterate Through Cells:** For each cell in the object, it combines the smallest object with the current cell using `combine`. Then, it calculates the `backdrop` of this combined object, effectively creating an expansion area that bridges the smallest object and the current cell. 
+   * **Fill Expansion Area:** It fills this expansion area with the target color on the output grid `O`.
+
+These five programs demonstrate various approaches to achieve the desired object expansion. They showcase different logical flows and utilize diverse combinations of DSL functions, showcasing the flexibility and power of this DSL in solving spatial reasoning tasks. 

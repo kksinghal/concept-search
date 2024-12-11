@@ -1,0 +1,170 @@
+## Transformation Analysis:
+
+The transformation involves moving all '5' objects in the grid towards the center of mass of the '2' objects, but only until they are adjacent (Manhattan distance of 1) to any part of the '2' objects. 
+
+Let's break down each input-output pair:
+
+**Input_0 to Output_0:**
+
+- The '5' object at the top moves down until it's adjacent to the '2' object.
+- The three '5's at the bottom move up until they form a horizontal line adjacent to the bottom of the '2' object.
+
+**Input_1 to Output_1:**
+
+- The two groups of '5' objects move diagonally towards the center of the '2' objects until they are adjacent.
+
+**Input_2 to Output_2:**
+
+- The vertical line of '5' objects moves right until it's adjacent to the left side of the leftmost '2' object.
+- The two individual '5' objects move diagonally towards the center of the nearest '2' object until they are adjacent. 
+
+## Program to be Generated:
+
+Here are five distinct versions of the program to achieve this transformation:
+
+**Program Version 1:**
+
+```python
+def program(I):
+  # Find the target locations: all indices of '2' objects
+  targets = toindices(merge(colorfilter(objects(I, True, False, True), 2)))
+  
+  # Function to calculate the direction towards the nearest target
+  def direction_to_nearest_target(obj):
+    closest_target = argmin(targets, lambda t: manhattan(obj, frozenset({(0, t)})))
+    return (sign(closest_target[0] - center(obj)[0]), sign(closest_target[1] - center(obj)[1]))
+
+  # Function to move an object towards the target until adjacent
+  def move_until_adjacent(obj):
+    while min(manhattan(obj, frozenset({(0, t)})) for t in targets) > 1:
+      obj = shift(obj, direction_to_nearest_target(obj))
+    return obj
+
+  # Apply to '5' objects
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_until_adjacent, fives)
+  
+  # Combine: remove old, paint new
+  return paint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **Identify target locations:**  Instead of the center of mass, this version finds all indices of '2' objects as potential target locations.
+2. **Calculate direction:** The `direction_to_nearest_target` function now determines the direction towards the closest target index for each '5' object.
+3. **Move until adjacent:** The `move_until_adjacent` function moves each '5' object one step at a time until it is adjacent to any of the target indices.
+4. **Combine and return:** The final steps remain similar to the previous programs, removing the original '5' objects and painting the moved objects.
+
+**Program Version 2:**
+
+```python
+def program(I):
+  # Find target area: bounding box of all '2' objects
+  target_area = backdrop(merge(colorfilter(objects(I, True, False, True), 2)))
+  
+  # Function to check if an object is adjacent to the target area
+  def is_adjacent_to_target(obj):
+    return any(manhattan(obj, frozenset({(0, t)})) == 1 for t in target_area)
+
+  # Function to move an object towards the target area
+  def move_to_target_area(obj):
+    while not is_adjacent_to_target(obj):
+      obj_center = center(obj)
+      closest_target = argmin(target_area, lambda t: manhattan(obj, frozenset({(0, t)})))
+      obj = shift(obj, (sign(closest_target[0] - obj_center[0]), sign(closest_target[1] - obj_center[1])))
+    return obj
+
+  # Apply to '5' objects
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_to_target_area, fives)
+  
+  # Combine: remove old, paint new
+  return paint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **Define target area:** This version determines the bounding box of all '2' objects as the target area.
+2. **Check for adjacency:**  The `is_adjacent_to_target` function verifies if any part of a '5' object is adjacent to the target area. 
+3. **Move towards target area:** The `move_to_target_area` function iteratively moves each '5' object towards the closest point within the target area until it becomes adjacent.
+4. **Combine and return:** The final steps remain consistent with the previous versions.
+
+**Program Version 3 (using gravitate function):**
+
+```python
+def program(I):
+  # Find the target object: the largest '2' object 
+  target_object = argmax(colorfilter(objects(I, True, False, True), 2), size)
+
+  # Move '5' objects to the target object
+  def move_to_target(obj):
+    return shift(obj, gravitate(obj, toindices(target_object)))
+
+  # Apply the move function to all '5' objects
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_to_target, fives)
+
+  # Combine the original grid (without '5's) with the moved '5's
+  return paint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **Identify the target object:**  Instead of using center of mass or all '2' indices, this version finds the largest '2' object and designates it as the target. 
+2. **Utilize `gravitate` function:**  The `move_to_target` function employs the `gravitate` function to calculate the necessary shift to move each '5' object adjacent to the target object.
+3. **Combine and return:** Similar to previous versions, the original '5' objects are removed, and the moved ones are painted onto the grid. 
+
+**Program Version 4 (using for loop):**
+
+```python
+def program(I):
+  # Target: Center of mass of all '2's
+  target = centerofmass(toobject(ofcolor(I, 2), I))
+  
+  # Find all '5' objects
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = set()
+  
+  # Iterate through each '5' object
+  for five in fives:
+    while manhattan(five, frozenset({(0, target)})) > 1:
+      direction = (sign(target[0] - center(five)[0]), sign(target[1] - center(five)[1]))
+      five = shift(five, direction)
+    moved_fives.add(five)
+  
+  return paint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **Calculate target:** Similar to Program A, this version uses the center of mass of all '2's as the target location.
+2. **Iterate and move:** It then iterates through each '5' object individually. In each iteration, it calculates the direction towards the target and shifts the object one step at a time until it's adjacent to the target.
+3. **Combine and return:** The final steps are the same as the previous versions, removing the original '5' objects and painting the moved ones onto the grid.
+
+**Program Version 5 (using list comprehension):**
+
+```python
+def program(I):
+  # Target: Center of bounding box of all '2's
+  target = center(backdrop(merge(colorfilter(objects(I, True, False, True), 2))))
+  
+  # Move each '5' object towards the target until adjacent
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = frozenset({
+    shift(five, (sign(target[0]-center(five)[0]), sign(target[1]-center(five)[1])))
+    for five in fives
+    for _ in range(manhattan(five, frozenset({(0, target)}))-1)
+  })
+  
+  # Combine the original grid (without '5's) with the moved '5's
+  return paint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **Calculate target:** Similar to Program B, this version uses the center of the bounding box of all '2's as the target.
+2. **Move using list comprehension:**  Instead of a while loop, it utilizes list comprehension to move each '5' object.  The list comprehension iterates over each '5' object and shifts it towards the target for a number of times equal to its initial Manhattan distance to the target minus 1, ensuring adjacency.
+3. **Combine and return:** The final steps are consistent with the previous programs. 
+
+
+These five versions provide distinct approaches to achieve the desired transformation, highlighting the flexibility and expressiveness of the DSL. 

@@ -1,0 +1,133 @@
+## Transformation Analysis:
+
+The transformation involves moving and rotating objects made of the digit '5' within the grid. 
+
+* **Vertical Movement:** All '5' objects are moved downwards by a fixed amount. 
+* **Rotation:** Objects located on the left half of the grid (j <= 6) are not rotated. Objects on the right half (j > 6) are rotated 180 degrees.
+
+## Program_to_be_generated:
+
+### Program Version 1:  (Using `ofcolor`, `shift`, `hmirror`)
+
+```python
+def Program_to_be_generated(I):
+  five_indices = ofcolor(I, FIVE)
+  left_indices = frozenset((i, j) for i, j in five_indices if j <= 6)
+  right_indices = five_indices - left_indices
+  moved_left = shift(left_indices, (4, 0)) 
+  moved_right = shift(hmirror(right_indices), (4, 0))
+  O = fill(fill(I, ZERO, five_indices), FIVE, moved_left | moved_right)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify '5' cells:** `five_indices = ofcolor(I, FIVE)` gets all indices of cells containing '5'.
+2. **Separate Left & Right:**  Divide `five_indices` into `left_indices` (j <= 6) and `right_indices`.
+3. **Move Left Objects:** `moved_left = shift(left_indices, (4, 0))` shifts objects on the left down by 4 units.
+4. **Move & Rotate Right Objects:**
+   - `hmirror(right_indices)` mirrors the right objects horizontally (180-degree rotation).
+   - `shift(..., (4, 0))` shifts the mirrored objects down by 4 units.
+5. **Combine and Paint:** 
+   - `moved_left | moved_right` combines the moved indices.
+   - `fill(fill(I, ZERO, five_indices), FIVE, ...)` clears original '5's and paints the moved objects.
+
+
+### Program Version 2: (Using `objects`, `centerofmass`, `hmirror`)
+
+```python
+def Program_to_be_generated(I):
+  five_objs = objects(I, True, False, False)
+  shifted_objs = frozenset()
+  for obj in five_objs:
+    i, j = centerofmass(obj)
+    if j <= 6:
+      shifted_objs = shifted_objs | shift(obj, (4, 0))
+    else:
+      shifted_objs = shifted_objs | shift(hmirror(obj), (4, 0))
+  O = paint(cover(I, five_objs), shifted_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Get '5' Objects:** `five_objs = objects(I, True, False, False)` extracts objects made of '5'.
+2. **Iterate and Transform:** Loop through each object in `five_objs`:
+   - `i, j = centerofmass(obj)` gets the object's center coordinates.
+   - If `j <= 6` (left half), shift down by 4: `shift(obj, (4, 0))`.
+   - If `j > 6` (right half), mirror horizontally and then shift down: `shift(hmirror(obj), (4, 0))`.
+3. **Paint to Output:**
+   - `cover(I, five_objs)` removes the original '5' objects from the input grid.
+   - `paint(..., shifted_objs)` paints the transformed objects onto the cleared grid.
+
+### Program Version 3: (Using loops and `index`)
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(ZERO, shape(I))
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == FIVE:
+        new_i = i + 4
+        new_j = j if j <= 6 else len(I[0]) - j + 6
+        if 0 <= new_i < len(I) and 0 <= new_j < len(I[0]):
+          O = paint(O, {(FIVE, (new_i, new_j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Create Empty Canvas:** `O = canvas(ZERO, shape(I))` initializes an empty grid `O` with the same dimensions as input `I`.
+2. **Iterate and Transform:** Nested loops go through each cell in `I`.
+   - If the cell value is '5':
+     - Calculate `new_i` (down by 4).
+     - Calculate `new_j`: If on the left half, keep `j`; otherwise, mirror horizontally.
+     - If `new_i` and `new_j` are within grid bounds, paint a '5' at the new location in `O`. 
+
+### Program Version 4: (Functional approach with `prapply`)
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  def transform(i, j):
+    if I[i][j] != FIVE: return ZERO
+    new_i = i + 4
+    new_j = j if j <= 6 else w - j + 6
+    return FIVE if 0 <= new_i < h and 0 <= new_j < w else ZERO
+  indices = product(interval(0, h, 1), interval(0, w, 1)) 
+  O = prapply(lambda i, j: transform(i, j), indices, indices)
+  return totuple(totuple(x) for x in O) 
+```
+
+**Explanation:**
+
+1. **Define `transform` Function:** This function takes cell indices (i, j) and:
+   - Returns 0 if the cell is not '5'.
+   - Calculates the new indices based on left/right position and checks bounds.
+   - Returns '5' if the new indices are valid, otherwise 0.
+2. **Generate Indices:** `indices = ...` creates a set of all cell indices in the grid.
+3. **Apply Transformation:** `O = prapply(...)` applies `transform` to each index pair.
+4. **Format Output:**  Converts the result to the correct grid tuple format.
+
+### Program Version 5: (Using `downscale` and `upscale`)
+
+```python
+def Program_to_be_generated(I):
+  downscaled = downscale(I, 2)
+  transformed = []
+  for row_index, row in enumerate(downscaled):
+    new_row = [0] * len(row)
+    for col_index, value in enumerate(row):
+      if value == 5:
+        new_col_index = col_index if col_index <= 3 else len(row) - col_index + 3
+        if 0 <= new_col_index < len(row):
+          new_row[new_col_index] = 5
+    transformed.append(new_row)
+  return upscale(tuple(tuple(row) for row in transformed), 2)
+```
+
+**Explanation:**
+
+1. **Downscale:** Reduce the grid size by half using `downscale(I, 2)`.
+2. **Transform:** Iterate through the downscaled grid, mirroring '5's on the right half.
+3. **Upscale:** Resize the transformed grid back to the original size using `upscale(..., 2)`.

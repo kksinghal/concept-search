@@ -1,0 +1,84 @@
+## Transformation Analysis:
+
+The transformation involves extracting a specific object from the input grid, rotating it 90 degrees clockwise, and then painting it onto a blank canvas of the same size as the top half of the input grid. The object to be extracted is determined differently for each example:
+
+* **Example 0:** The largest object in the grid is extracted.
+* **Example 1:** The object with the largest height is extracted.
+* **Example 2:** The object with the smallest width is extracted.
+
+## Code Generation:
+
+Since we don't have the 'togrid' function in our DSL, we need a workaround. Observing the examples, we notice that directly painting the rotated object onto the canvas, after shifting its coordinates, achieves the desired effect without needing the 'togrid' function. We can utilize this observation to generate our programs.
+
+### Program Version 1: (Prioritizing Largest Object)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) # Extract objects, excluding background
+  obj = argmax(objs, size) if objs else frozenset() # Find the largest object
+  rotated_obj = asobject(rot90(crop(canvas(0, shape(I)), ulcorner(obj), shape(obj)))) # "Rotate" the object
+  shifted_obj = shift(rotated_obj, (0, width(I)//2)) # Shift to the right half 
+  O = paint(canvas(mostcolor(I), (height(I)//2, width(I))), shifted_obj) # Paint on a blank canvas
+  return O
+```
+
+**Explanation:** This program prioritizes selecting the largest object, rotates it, and then paints it onto the canvas.
+
+### Program Version 2: (Prioritizing Height)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  obj = argmax(objs, height) if objs else frozenset() # Find the tallest object
+  rotated_obj = asobject(rot90(crop(canvas(0, shape(I)), ulcorner(obj), shape(obj)))) 
+  shifted_obj = shift(rotated_obj, (0, width(I)//2))
+  O = paint(canvas(mostcolor(I), (height(I)//2, width(I))), shifted_obj) 
+  return O
+```
+
+**Explanation:** This program prioritizes selecting the object with the largest height for rotation and painting.
+
+### Program Version 3: (Prioritizing Smallest Width)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) 
+  obj = argmin(objs, width) if objs else frozenset() # Find the object with the smallest width
+  rotated_obj = asobject(rot90(crop(canvas(0, shape(I)), ulcorner(obj), shape(obj)))) 
+  shifted_obj = shift(rotated_obj, (0, width(I)//2)) 
+  O = paint(canvas(mostcolor(I), (height(I)//2, width(I))), shifted_obj)
+  return O
+```
+
+**Explanation:** This version focuses on finding the object with the smallest width, rotating it, and then painting it.
+
+### Program Version 4: (Using Lefthalf and Right Half)
+
+```python
+def Program_to_be_generated(I):
+  left = lefthalf(I) # Extract left half
+  objs = objects(I, T, F, T)
+  obj = argmax(objs, lambda o: (size(o), -height(o), width(o))) if objs else frozenset() # Find object based on size, then height, then inverse width
+  rotated_obj = asobject(rot90(crop(canvas(0, shape(I)), ulcorner(obj), shape(obj)))) 
+  shifted_obj = shift(rotated_obj, (0, width(I)//2)) 
+  O = paint(canvas(mostcolor(I), shape(left)), shifted_obj) # Use left half's shape for the canvas
+  return O
+```
+
+**Explanation:** This version leverages the `lefthalf` function to determine the canvas size and employs a more complex object selection logic based on size, height, and inverse width.
+
+### Program Version 5: (Conditional Rotation Based on Object Shape)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  obj = argmax(objs, size) if objs else frozenset()
+  rotated_obj = asobject(rot90(crop(canvas(0, shape(I)), ulcorner(obj), shape(obj)))) if portrait(obj) else asobject(crop(canvas(0, shape(I)), ulcorner(obj), shape(obj))) # Rotate only if the object is taller than wide
+  shifted_obj = shift(rotated_obj, (0, width(I)//2)) 
+  O = paint(canvas(mostcolor(I), (height(I)//2, width(I))), shifted_obj) 
+  return O
+```
+
+**Explanation:** This version conditionally rotates the object 90 degrees clockwise only if it's taller than wide, adding another layer of complexity to the transformation logic. 
+
+These five distinct programs demonstrate a range of approaches to achieve the same transformation outcome, highlighting the flexibility and expressiveness of the provided DSL. 

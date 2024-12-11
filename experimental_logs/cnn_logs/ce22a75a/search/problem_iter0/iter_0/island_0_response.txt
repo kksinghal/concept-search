@@ -1,0 +1,126 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects formed by connected pixels of the same value (excluding the background color 0) and replacing them with 3x3 squares of value 1. The position of the square corresponds to the position of the original object, maintaining the same upper-left corner.
+
+**Example:**
+
+Input:
+
+```
+0 0 0 0 5 0 0 0 0
+0 0 0 0 5 0 0 0 0 
+0 0 0 0 5 0 0 0 0
+0 0 0 0 5 0 0 0 0
+0 0 0 0 5 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 5 0 0 5 0
+0 0 0 0 0 0 0 0 0 
+```
+
+Output:
+
+```
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0 
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 1 1 1
+0 0 0 1 1 1 1 1 1 
+```
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)  # Find all objects
+  squares = mapply(lambda obj: recolor(1, backdrop(obj)), objs)  # Replace each object with a square of 1s
+  O = paint(I, merge(squares))  # Paint the squares onto the original grid
+  return O 
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`:** Identifies all connected objects in the grid (excluding background).
+2. **`mapply(lambda obj: recolor(1, backdrop(obj)), objs)`:** For each object, creates a new object with value 1 covering the same bounding box.
+3. **`paint(I, merge(squares))`:** Merges all the generated squares and paints them onto the original grid, replacing any existing values. 
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)  # Partition the grid into objects
+  corners = mapply(ulcorner, objs)  # Get the upper-left corner of each object
+  squares = mapply(lambda corner: recolor(1, crop(I, corner, (3, 3))), corners)  # Create squares at each corner
+  O = paint(I, merge(squares))  # Paint the squares onto the original grid
+  return O
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Partitions the grid into objects, excluding the background.
+2. **`mapply(ulcorner, objs)`:** Extracts the upper-left corner coordinates of each object.
+3. **`mapply(lambda corner: recolor(1, crop(I, corner, (3, 3))), corners)`:** For each corner, creates a 3x3 square filled with 1s.
+4. **`paint(I, merge(squares))`:** Combines all squares and paints them onto the original grid.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  indices =  mfilter(asindices(I), lambda loc: index(I, loc) != 0)  # Get indices of all non-background cells
+  shifted_indices = mpapply(lambda i, j: frozenset({(i, j), (i+1, j), (i+2, j), (i, j+1), (i+1, j+1), (i+2, j+1), (i, j+2), (i+1, j+2), (i+2, j+2)}), indices, indices) # Generate indices for 3x3 squares
+  O = fill(I, 1, shifted_indices)  # Fill the grid with 1s at the generated indices
+  return O
+```
+
+**Explanation:**
+
+1. **`mfilter(asindices(I), lambda loc: index(I, loc) != 0)`:** Collects all indices of non-background cells in the grid.
+2. **`mpapply(lambda i, j: ..., indices, indices)`:** For each non-background cell index, generates the indices corresponding to a 3x3 square starting at that location.
+3. **`fill(I, 1, shifted_indices)`:** Fills the grid with 1s at all the generated square indices.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    shifted_objs = mapply(lambda obj: shift(obj, (-1, -1)), objs)
+    O = paint(I, merge(mapply(lambda obj: recolor(1, backdrop(obj)), shifted_objs)))
+    return O
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`:**  Identifies all connected objects in the grid, excluding the background.
+2. **`shifted_objs = mapply(lambda obj: shift(obj, (-1, -1)), objs)`:**  Shifts each object one unit up and one unit left.
+3. **`merge(mapply(lambda obj: recolor(1, backdrop(obj)), shifted_objs))`:** Creates a new object with value 1 covering the bounding box of each shifted object and merges them.
+4. **`paint(I, ...)`:** Paints the merged objects onto the original grid.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  changed = True
+  while changed:
+    changed = False
+    for i in range(len(I) - 2):
+      for j in range(len(I[0]) - 2):
+        if I[i][j] != 0:
+          I = fill(I, 1, ((i, j), (i+1, j), (i+2, j), (i, j+1), (i+1, j+1), (i+2, j+1), (i, j+2), (i+1, j+2), (i+2, j+2)))
+          changed = True
+  return I
+```
+
+**Explanation:**
+
+1. **Iterative approach:** This version iterates through the grid, looking for non-zero cells.
+2. **`for i in range(len(I) - 2):` and `for j in range(len(I[0]) - 2):`**: These loops iterate over each cell in the grid, excluding the last two rows and columns.
+3. **`if I[i][j] != 0:`**: If a non-zero cell is found, the `fill` function is used to create a 3x3 square of 1s starting from that cell.
+4. **`changed = True`**: This flag indicates that the grid was modified during the iteration, and the loop will continue until no more changes are made.
+
+Each version offers a different approach to achieve the desired transformation, demonstrating diverse use of DSL functions and logic. 

@@ -1,0 +1,128 @@
+## Transformation Analysis:
+
+The transformation consistently applies the following rules to all input grids:
+
+1. **Color Change:** All occurrences of the digit '2' are replaced with the digit '7'. 
+2. **Shape Modification:** For each object composed of the digit '5':
+    * If the object is wider than it is tall, a single cell within the object is changed to the digit '6'. This cell is located one cell down and one cell to the right of the object's upper-left corner.
+    * Regardless of shape, the cells directly surrounding the object (forming a rectangular border) are changed to the digit '8'.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program(I):
+  O = paint(I, recolor(SEVEN, ofcolor(I, TWO)))
+  for obj in objects(O, T, F, T):
+    if mostcolor(obj) == FIVE:
+      O = paint(O, recolor(EIGHT, difference(backdrop(obj), box(obj))))
+      if width(obj) > height(obj):
+        O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))}))
+  return O
+```
+
+**Explanation:**
+
+1. **Initial Change:** `O = paint(I, recolor(SEVEN, ofcolor(I, TWO)))` replaces all '2's with '7's, creating an initial output grid `O`.
+2. **Object Iteration:** The code then iterates through each object in the grid using `objects(O, T, F, T)`.
+3. **Color and Shape Check:** For each object, it checks if it's primarily composed of '5's (`mostcolor(obj) == FIVE`). If so:
+    * **Border Addition:** `O = paint(O, recolor(EIGHT, difference(backdrop(obj), box(obj))))` adds an '8' border around the object.
+    * **Conditional '6' Placement:** If the object is wider than tall (`width(obj) > height(obj)`), a '6' is placed one cell down and one cell right from the object's upper-left corner using `O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))}))`.
+4. **Output:** The modified grid `O` is returned.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program(I):
+  O = replace(I, TWO, SEVEN)
+  for obj in objects(O, T, F, T):
+    if color(obj) == FIVE:
+      O = fill(paint(O, recolor(EIGHT, delta(obj))), SIX, {add(ulcorner(obj), (1, 1))} if width(obj) > height(obj) else {})
+  return O
+```
+
+**Explanation:**
+
+1. **Replace '2's:** `O = replace(I, TWO, SEVEN)` efficiently replaces all '2's with '7's.
+2. **Object Processing:** It iterates through objects in `O`.
+3. **Color Check & Modification:** If an object's color is '5':
+    * **Border and Fill:** `O = fill(paint(O, recolor(EIGHT, delta(obj))), ...)` first adds the '8' border by recoloring the object's delta (surrounding cells) and then uses `fill` to potentially add the '6'.
+    * **Conditional '6' Placement:** `... SIX, {add(ulcorner(obj), (1, 1))} if width(obj) > height(obj) else {}`  dynamically creates a set containing the target '6' cell coordinates if the object is wider than tall, otherwise, it fills an empty set (effectively doing nothing). 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == TWO:
+        O = paint(O, {(SEVEN, (i, j))})
+      elif val == FIVE:
+        obj = extract(objects(I, T, F, T), lambda o: (i, j) in toindices(o))
+        O = paint(O, recolor(EIGHT, difference(backdrop(obj), box(obj))))
+        if width(obj) > height(obj):
+          O = paint(O, {(SIX, add(ulcorner(obj), (1, 1)))}) 
+  return O
+```
+
+**Explanation:**
+
+1. **Cell-by-Cell Iteration:** This version iterates through each cell of the input grid `I`.
+2. **'2' Replacement:** If a cell contains '2', it's directly replaced with '7' in `O`.
+3. **'5' Processing:** If a cell contains '5':
+    * **Object Extraction:** `obj = extract(...)` finds the object containing the current cell.
+    * **Border Addition:** An '8' border is added around the extracted object.
+    * **Conditional '6':** If the object is wider than tall, a '6' is placed at the specific location relative to the object.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program(I):
+  O = paint(I, recolor(SEVEN, ofcolor(I, TWO)))
+  objs = objects(O, T, F, T)
+  wide_fives = sfilter(objs, lambda obj: mostcolor(obj) == FIVE and width(obj) > height(obj))
+  for obj in wide_fives:
+    O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))}))
+  for obj in objs:
+    if mostcolor(obj) == FIVE:
+      O = paint(O, recolor(EIGHT, difference(backdrop(obj), box(obj))))
+  return O
+```
+
+**Explanation:**
+
+1. **'2' to '7' & Object Identification:** Similar to previous versions, this one starts by replacing '2's with '7's and identifying objects. 
+2. **Filtering Wide '5' Objects:** `wide_fives = sfilter(...)` creates a subset of objects containing only those made of '5's that are wider than tall.
+3. **Prioritized '6' Placement:** It first iterates through `wide_fives`, adding the '6' to each.
+4. **Border Addition:**  It then iterates through all objects made of '5's and adds the '8' border. This ensures that the '6' is placed before the border in the final output. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program(I):
+  O = paint(I, recolor(SEVEN, ofcolor(I, TWO)))
+  for obj in objects(O, T, F, T):
+    if color(obj) == FIVE:
+      O = paint(O, recolor(EIGHT, outbox(obj)))
+      if width(obj) > height(obj):
+        O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))}))
+  return O
+```
+
+**Explanation:**
+
+1. **Initial Changes & Object Iteration:**  Similar to other versions, it replaces '2's with '7's and iterates through '5' objects.
+2. **Border with `outbox`:** Instead of using `difference(backdrop(obj), box(obj))`, this version directly uses `outbox(obj)` to recolor the cells surrounding the object with '8'.
+3. **Conditional '6':** The '6' placement logic remains the same as in previous versions. 
+
+These five program versions showcase distinct approaches to achieve the same transformation using the provided DSL. They illustrate different ways to manipulate objects, colors, and cell locations, demonstrating the flexibility and expressiveness of the DSL. 

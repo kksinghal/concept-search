@@ -1,0 +1,114 @@
+## Transformation Analysis:
+
+The transformation involves extending objects containing the color '8' downwards by one cell and recoloring them to '7'. Other objects remain unchanged.
+
+**Example Breakdown:**
+
+- In Input_0, the '8's in the top-right object are extended downwards, turning the object into a solid '7' block. 
+- In Input_1, the '8's in the two objects on the right are extended downwards, forming larger '7' objects.
+- In Input_2,  only the '8's in the top-right object are extended downwards, the bottom-right object is unmodified as it does not contain any '8's.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def expand_obj(obj):
+    if 8 in palette(obj):
+      expanded_indices = toindices(obj) | {(i + 1, j) for i, j in toindices(obj) if i < lowermost(obj)}
+      return recolor(7, expanded_indices)
+    return obj
+  return paint(canvas(0, shape(I)), frozenset(apply(expand_obj, fgpartition(I))))
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:**  Extracts all objects from the input grid, excluding the background.
+2. **`apply(expand_obj, ...)`:** Applies the `expand_obj` function to each object.
+3. **`expand_obj(obj)`:** 
+    - Checks if the object contains the color '8' using `8 in palette(obj)`.
+    - If it does:
+        - `toindices(obj) | {(i + 1, j) for i, j in toindices(obj) if i < lowermost(obj)}`: Creates a new set of indices that includes the original object's indices and indices one row below, effectively expanding the object downwards.
+        - `recolor(7, ...)`: Recolors the expanded set of indices to '7'.
+    - If it doesn't, it returns the object unchanged.
+4. **`frozenset(...)`:** Converts the result of `apply` into a frozenset of objects.
+5. **`paint(canvas(0, shape(I)), ...)`:**  Creates a blank canvas of the same size as the input grid and paints the transformed objects onto it.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    objs = fgpartition(I)
+    def extend_down(obj):
+        return recolor(7, toindices(obj) | {(i + 1, j) for i, j in toindices(obj) if i < lowermost(obj)}) if 8 in palette(obj) else obj
+    return paint(canvas(0, shape(I)), frozenset(obj if 8 not in palette(obj) else extend_down(obj) for obj in objs))
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Extracts objects (excluding background) from the input grid.
+2. **`extend_down(obj)`:**  This function is applied to objects containing '8'. It expands the object downwards and recolors it to '7'.
+3. **`paint(canvas(...), ...)`:** Creates a blank canvas and paints the transformed objects onto it. 
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  return tuple(
+    tuple(
+      7 if any(8 == I[i + k][j] for k in range(2) if 0 <= i + k < len(I)) else I[i][j] 
+      for j in range(len(I[0]))
+    ) for i in range(len(I))
+  )
+```
+
+**Explanation:**
+
+1. **`for i in range(len(I))`:** Iterates through each row.
+2. **`for j in range(len(I[0]))`:** Iterates through each cell in the row.
+3. **`any(8 == I[i + k][j] for k in range(2) if 0 <= i + k < len(I))`:** Checks if the current cell or the one below it contains '8', ensuring we don't go out of bounds.
+4. **`7 if ... else I[i][j]`:** If an '8' is found, the current cell is replaced with '7', otherwise it keeps its original value.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def process_cell(i, j, obj):
+    return 7 if (i, j) in toindices(obj) and any(8 == I[r][j] for r in range(i, min(i + 2, len(I)))) else I[i][j]
+  return tuple(
+    tuple(
+      process_cell(i, j, obj) 
+      for j in range(len(I[0]))
+    ) for obj in fgpartition(I) for i in range(len(I))
+  )
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:**  Extracts objects from the input grid, excluding the background.
+2. **`process_cell(i, j, obj)`:** This function checks if a cell at (i, j) belongs to an object and has an '8' below it. If so, it changes the cell value to '7'.
+3. The nested loops iterate over each object, row, and cell of the grid, applying `process_cell` to modify the grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    def expand_downwards(grid, obj):
+        for i, j in toindices(obj):
+            if 8 == grid[i][j] and i + 1 < len(grid):
+                grid = fill(grid, 7, {(i, j), (i + 1, j)})
+        return grid
+    return merge(apply(rbind(expand_downwards, I), fgpartition(I)))
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Extracts objects from the input, excluding the background.
+2. **`expand_downwards(grid, obj)`:** Expands an object downwards by one cell and fills it with '7' if the object contains '8'.
+3. **`rbind(expand_downwards, I)`:** Creates a partially applied function with the grid (I) fixed as the first argument to `expand_downwards`.
+4. **`apply(..., fgpartition(I))`:** Applies the partially applied `expand_downwards` function to each object. 
+5. **`merge(...)`:** Merges the modified objects back into a single grid. 

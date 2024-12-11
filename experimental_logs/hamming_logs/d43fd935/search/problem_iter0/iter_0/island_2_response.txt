@@ -1,0 +1,154 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects of a specific color and extending them vertically until they encounter another object or the grid boundary. Here's a breakdown for each input-output pair:
+
+**Input_0 - Output_0:**
+
+- The object of color `1` is extended downwards until it encounters the object of color `6`.
+
+**Input_1 - Output_1:**
+
+- The objects of color `7` and `8` are extended downwards until they encounter other objects or the grid boundary.
+
+**Input_2 - Output_2:**
+
+- The object of color `1` is extended both upwards and downwards until it encounters the objects of color `3` and the grid boundaries, respectively. 
+
+
+## Program Version 1:
+
+```python
+def solve_7837ac64(I):
+  objs = fgpartition(I)
+  bg = mostcolor(I)
+  new_objs = set()
+  for obj in objs:
+    color = first(obj)[0]
+    for _, (i, j) in obj:
+      for di in [-1, 1]:
+        new_i = i + di
+        while 0 <= new_i < height(I) and index(I, (new_i, j)) == bg:
+          new_objs.add((color, (new_i, j)))
+          new_i += di
+  return paint(I, frozenset(new_objs))
+```
+
+**Explanation:**
+
+1. **Identify objects:** `fgpartition(I)` identifies all objects in the grid except the background.
+2. **Iterate and extend:** The code iterates over each object and each cell within the object. For every cell, it attempts to extend it vertically (up and down) by checking for the background color. If the background color is found, it continues extending until a non-background color or grid boundary is encountered.
+3. **Paint extended objects:** The extended cells are added to `new_objs` with the object's original color. Finally, `paint` function is used to draw these extended objects onto the original grid, generating the output.
+
+
+## Program Version 2:
+
+```python
+def solve_7837ac64(I):
+  objs = fgpartition(I)
+  for obj in objs:
+    I = paint(I, extend_vertically(I, obj))
+  return I
+
+def extend_vertically(grid, obj):
+  color = first(obj)[0]
+  extended = set(obj)
+  for _, (i, j) in obj:
+    for di in [-1, 1]:
+      new_i = i + di
+      while 0 <= new_i < height(grid) and index(grid, (new_i, j)) == mostcolor(grid):
+        extended.add((color, (new_i, j)))
+        new_i += di
+  return frozenset(extended)
+```
+
+**Explanation:**
+
+1. **Iterate and Extend:** This version iterates through each object and uses a helper function `extend_vertically` to handle the extension logic. 
+2. **Helper Function:** `extend_vertically` iterates over each cell of an object and checks for the background color in vertical directions. If found, it adds the cell to `extended` set until it encounters a non-background color or grid boundary.
+3. **Paint in Loop:**  Instead of collecting all extended objects and painting them at once, this version paints the extended object onto the grid within the main loop after each object is processed.
+
+
+## Program Version 3:
+
+```python
+def solve_7837ac64(I):
+  return paint(I, merge(apply(lambda obj: extend_object(I, obj), fgpartition(I))))
+
+def extend_object(grid, obj):
+  color, start = first(obj)
+  extended = {(color, start)}
+  for di in [-1, 1]:
+    pos = start
+    while True:
+      pos = (pos[0] + di, pos[1])
+      if 0 <= pos[0] < height(grid) and index(grid, pos) == mostcolor(grid):
+        extended.add((color, pos))
+      else:
+        break
+  return frozenset(extended) 
+```
+
+**Explanation:**
+
+1. **Functional Approach:**  This version utilizes a more functional approach with `apply` and `merge` functions to process objects.
+2. **Helper Function:**  Similar to version 2, it utilizes a helper function `extend_object`, but instead of iterating over each cell in an object, it starts from the first cell and keeps moving in a single direction (up or down) until it hits a non-background cell or the grid boundary.
+3. **Concise Painting:** It paints all the extended objects at once using a single `paint` function call after processing all objects using `merge` and `apply`.
+
+## Program Version 4:
+
+```python
+def solve_7837ac64(I):
+  return paint(I, 
+               frozenset(merge(
+                 apply(lambda j: extend_column(I, j), range(width(I)))
+               )))
+
+def extend_column(grid, j):
+  extended = set()
+  for i in range(height(grid)):
+    if index(grid, (i, j)) != mostcolor(grid):
+      for di in [-1, 1]:
+        new_i = i + di
+        while 0 <= new_i < height(grid) and index(grid, (new_i, j)) == mostcolor(grid):
+          extended.add((index(grid, (i, j)), (new_i, j)))
+          new_i += di
+  return frozenset(extended)
+```
+
+**Explanation:**
+
+1. **Column-wise Extension:** This version processes the grid column by column. It iterates over each column and uses the `extend_column` helper function to extend objects within that column.
+2. **Helper Function:** `extend_column` iterates through each cell in the column. If it encounters a non-background color, it attempts to extend it vertically (up and down) by checking for the background color until a non-background color or grid boundary is found.
+3. **Paint Extended Cells:**  Similar to previous versions, it collects all extended cells in `extended` set and then paints them onto the original grid using `paint` function after processing all columns.
+
+## Program Version 5:
+
+```python
+def solve_7837ac64(I):
+  new_grid = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    for i in range(height(I)):
+      if index(I, (i, j)) != mostcolor(I):
+        new_grid = paint(new_grid, extend_cell(I, (i, j)))
+  return new_grid
+
+def extend_cell(grid, pos):
+  color = index(grid, pos)
+  extended = {(color, pos)}
+  for di in [-1, 1]:
+    new_i = pos[0] + di
+    while 0 <= new_i < height(grid) and index(grid, (new_i, pos[1])) == mostcolor(grid):
+      extended.add((color, (new_i, pos[1])))
+      new_i += di
+  return frozenset(extended)
+```
+
+**Explanation:**
+
+1. **Create Empty Grid:**  This version initializes a new grid (`new_grid`) with the background color and the same dimensions as the input grid.
+2. **Iterate and Extend:** It iterates over each cell in the original grid. If it encounters a non-background color, it calls the `extend_cell` helper function.
+3. **Helper Function:**  The `extend_cell` function extends the current cell vertically (up and down) as long as it encounters the background color, similar to previous versions.
+4. **Paint on New Grid:** Instead of modifying the original grid, this version paints the extended cell directly onto the `new_grid`.
+5. **Return New Grid:** After processing all cells, the function returns the `new_grid` which represents the transformed grid. 
+
+Each version of the program presented above uses different logic and function combinations to achieve the desired transformation while fulfilling all the specified requirements. 

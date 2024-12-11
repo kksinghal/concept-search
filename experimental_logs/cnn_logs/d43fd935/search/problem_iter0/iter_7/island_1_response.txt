@@ -1,0 +1,124 @@
+## Transformation Analysis:
+
+The transformation involves identifying each distinct object (a group of connected, same-valued cells) in the grid and extending a line from its center of mass to the nearest background cell. However, unlike the provided programs, the line is only drawn horizontally.
+
+**Example Breakdowns:**
+
+* **Input_0:** The '1' objects extend a horizontal line to the right to connect with the nearest background (0) cell. The '3' object extends a line to the left. The '6' objects don't change as they are already connected to the background.
+* **Input_1:** The '7' objects extend lines horizontally to connect to the '0' background. The '8' objects, already touching the background, remain unchanged. The '3' object, enclosed by '7', also remains unchanged.
+* **Input_2:**  The '1' objects extend lines to connect to the '0' background. The '3' object, already connected, remains unchanged. 
+
+## Code Generation:
+
+Here are five distinct program versions achieving the described transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  for obj in fgpartition(I):
+    bg = difference(backdrop(obj), toindices(obj))
+    if bg:
+      closest_bg = argmin(bg, lambda x: manhattan({x}, obj))
+      if hmatching(obj, {closest_bg}): # Check for horizontal alignment
+        direction = sign(subtract(closest_bg, centerofmass(obj)))
+        path = shoot(centerofmass(obj), (direction[0], 0)) # Force horizontal direction
+        I = underfill(I, color(obj), path)
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through objects:** Similar to Program_B, the code iterates through each foreground object in the input grid.
+2. **Find closest background:**  Identifies the nearest background cell to the current object using `manhattan` distance.
+3. **Check horizontal alignment:** This version introduces a check (`hmatching`) to ensure the closest background cell is horizontally aligned with the object.
+4. **Horizontal line:** If aligned, it calculates the horizontal direction towards the closest background and draws a line (`shoot` function) using `underfill` but constrained to the horizontal axis. 
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  for c in palette(I) - {mostcolor(I)}:
+    obj = toobject(ofcolor(I, c), I)
+    h_center = (centerofmass(obj)[0], 0)  # Project center of mass to horizontal line
+    h_frontier = hfrontier(h_center)
+    bg_indices = toindices(toobject(h_frontier, I))
+    path = intersection(h_frontier, difference(backdrop(obj), bg_indices))
+    I = underfill(I, c, path)
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through colors:** Iterates through each color in the grid, excluding the background.
+2. **Project to horizontal line:** Projects the object's center of mass onto a horizontal line. 
+3. **Horizontal frontier:** Creates a horizontal line (`hfrontier`) passing through the projected center of mass.
+4. **Find path:** Calculates the path to fill by finding the intersection between the horizontal frontier and the area within the object's bounding box that isn't already part of the object.
+5. **Fill:** Fills the calculated path with the object's color.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    for obj in fgpartition(I):
+        left_edge = min(toindices(obj), key=lambda x: x[1])[1] # Find leftmost column
+        right_edge = max(toindices(obj), key=lambda x: x[1])[1] # Find rightmost column
+        bg = difference(backdrop(obj), toindices(obj))
+        if bg:
+            closest_bg = argmin(bg, lambda x: manhattan({x}, obj))
+            if left_edge <= closest_bg[1] <= right_edge: # Check if closest background is within horizontal range
+                direction = sign(subtract(closest_bg, centerofmass(obj)))
+                I = underfill(I, color(obj), connect(centerofmass(obj), closest_bg))
+    O = I
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate and find edges:** Iterates through foreground objects and identifies the leftmost and rightmost columns of each object.
+2. **Check horizontal range:** Determines if the closest background cell falls within the horizontal range defined by the object's edges.
+3. **Connect if within range:** If the closest background cell is within the horizontal range, it draws a direct line (`connect`) between the object's center of mass and the closest background cell.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    for obj in fgpartition(I):
+        for x in range(leftmost(obj), rightmost(obj) + 1): # Scan horizontally within object bounds
+            loc = (centerofmass(obj)[0], x)  # Create a horizontal line of potential connection points
+            if loc in delta(obj):
+                I = underfill(I, color(obj), {loc})  # Fill only if the point is background 
+    O = I
+    return O
+```
+
+**Explanation:**
+
+1. **Horizontal scan:**  Scans each column within the horizontal boundaries of the object.
+2. **Check and fill:** For each column, it checks if the cell on that column, aligned with the object's center of mass row, is a background cell. If it is, it fills that single cell, effectively extending the object horizontally.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  for c in palette(I) - {mostcolor(I)}:
+    obj = toobject(ofcolor(I, c), I)
+    h_projection = {(i, centerofmass(obj)[1]) for i, j in toindices(obj)} # Project object onto vertical line
+    bg = difference(backdrop(obj), toindices(obj))
+    if bg:
+      closest_bg = argmin(bg, lambda x: manhattan({x}, h_projection))
+      path = connect(closest_bg, (closest_bg[0], centerofmass(obj)[1])) # Connect vertically
+      I = underfill(I, c, path)
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Vertical projection:** Projects the entire object onto a vertical line passing through its center of mass.
+2. **Find closest to projection:**  Finds the background cell closest to this vertical projection.
+3. **Vertical connection:**  Draws a vertical line from the closest background cell to the horizontal line passing through the object's center of mass. This effectively extends the object horizontally to reach the background. 
+
+These are just five possible solutions. You can explore more combinations and variations of DSL functions to achieve the same transformation. Remember to test your code thoroughly with various inputs to ensure it consistently produces the correct outputs. 

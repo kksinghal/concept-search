@@ -1,0 +1,153 @@
+## Transformation Analysis:
+
+The transformation involves identifying the largest object in the grid (excluding the background color, which is assumed to be the most frequent color) and modifying its top and bottom two rows. The top two rows are re-colored to match the color of the second-largest object. The bottom two rows are re-colored with an alternating pattern of the original color and the color of the second-largest object. 
+
+**Input 0:**
+
+1. The largest object is the '5' shape.
+2. The second-largest object is the '2' shape.
+3. The top two rows of the '5' shape are re-colored to '2'.
+4. The bottom two rows of the '5' shape alternate between '5' and '2'.
+
+**Input 1:**
+
+1. The largest object is the '5' shape in the bottom right.
+2. The second-largest object is the '2' shape.
+3. The top two rows of the '5' shape are re-colored to '2'.
+4. The bottom two rows of the '5' shape alternate between '5' and '2'.
+
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_largest_obj = argmax(difference(objs, {largest_obj}), size)
+  second_color = color(second_largest_obj)
+  top_two_rows = crop(largest_obj, (0, 0), (2, width(largest_obj)))
+  bottom_two_rows = crop(largest_obj, (height(largest_obj) - 2, 0), (2, width(largest_obj)))
+  recolored_top = recolor(second_color, top_two_rows)
+  alternating_bottom = frozenset()
+  for i, row in enumerate(bottom_two_rows):
+    for j, (v, (x, y)) in enumerate(row):
+      if even(i+j):
+        alternating_bottom = insert((second_color, (x, y)), alternating_bottom)
+      else:
+        alternating_bottom = insert((v, (x, y)), alternating_bottom)
+  return paint(paint(I, recolored_top), alternating_bottom) 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identify all objects in the input grid (`objs`), the largest object (`largest_obj`), and the second-largest object (`second_largest_obj`).
+2. **Extract Colors and Rows:** Extract the color of the second-largest object (`second_color`), the top two rows of the largest object (`top_two_rows`), and the bottom two rows (`bottom_two_rows`).
+3. **Recolor:** Recolor the `top_two_rows` with `second_color`. 
+4. **Alternating Pattern:** Create an alternating pattern for the `bottom_two_rows` using `second_color` and the original color of the cells.
+5. **Paint:** Paint the `recolored_top` and `alternating_bottom` onto the input grid to generate the output. 
+
+**Program Version 2:**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_largest_obj = argmax(difference(objs, {largest_obj}), size)
+  second_color = color(second_largest_obj)
+  return paint(paint(I, recolor(second_color, crop(largest_obj, (0, 0), (2, width(largest_obj))))), 
+               recolor(second_color, mfilter(lambda c: even(sum(subtract(c[1], ulcorner(largest_obj)))), crop(largest_obj, (height(largest_obj) - 2, 0), (2, width(largest_obj)))))) 
+```
+
+**Explanation:**
+
+This version compresses the logic of version 1 into a single line using nested functions:
+
+1. **Identification and Extraction:** Same as Version 1.
+2. **Recolor Top:** Recolor the top two rows by combining `recolor` and `crop`.
+3. **Recolor Bottom (Alternating):**  
+    - `mfilter` is used to select cells where the sum of the row and column indices (relative to the top-left corner of the largest object) is even.
+    - These selected cells are then recolored using `recolor`.
+4. **Paint:** Similar to Version 1.
+
+**Program Version 3:**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+  top_indices =  frozenset((i, j) for v, (i, j) in largest_obj if i in {uppermost(largest_obj), uppermost(largest_obj) + 1})
+  bottom_indices =  frozenset((i, j) for v, (i, j) in largest_obj if i in {lowermost(largest_obj), lowermost(largest_obj) - 1})
+  alternating_bottom =  frozenset(((second_color if even(i + j) else v), (i, j)) for v, (i, j) in toobject(bottom_indices, I))
+  return paint(paint(I, recolor(second_color, top_indices)), alternating_bottom)
+```
+
+**Explanation:**
+
+This version focuses on manipulating indices:
+
+1. **Identification and Extraction:** Similar to Version 1 and 2.
+2. **Get Target Indices:** Directly calculate the indices of the top two rows (`top_indices`) and bottom two rows (`bottom_indices`) of the largest object. 
+3. **Recolor and Paint:** 
+    - Recolor `top_indices` directly using `recolor`.
+    - Create `alternating_bottom` by iterating over the `bottom_indices` and applying the even/odd logic to determine the color.
+    - Use `paint` twice to apply the changes to the input grid.
+
+**Program Version 4:**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+  return paint(paint(I, 
+                  recolor(second_color,
+                         frozenset((i, j) for v, (i, j) in largest_obj 
+                                   if i in range(uppermost(largest_obj), uppermost(largest_obj) + 2)))),
+               recolor(second_color, 
+                         mfilter(lambda c: even(sum(subtract(c[1], ulcorner(largest_obj)))), 
+                                frozenset((i, j) for v, (i, j) in largest_obj 
+                                          if i in range(lowermost(largest_obj) - 1, lowermost(largest_obj) + 1)))))
+```
+
+**Explanation:**
+
+This version combines index manipulation and nested functions for a more compact solution:
+
+1. **Identification and Extraction:** Same as Version 3.
+2. **Recolor Top:**
+    - Use a set comprehension to extract indices of the top two rows within `recolor`.
+3. **Recolor Bottom:**
+    - Similar to Version 2, use `mfilter` to select cells with even index sums.
+    - Use a set comprehension to extract indices of the bottom two rows within `recolor`. 
+4. **Paint:** Apply the changes using nested `paint` functions.
+
+**Program Version 5:**
+
+```python
+def program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+  top =  shift(crop(largest_obj, (0, 0), (2, width(largest_obj))), (uppermost(largest_obj), 0))
+  bottom = shift(crop(largest_obj, (height(largest_obj) - 2, 0), (2, width(largest_obj))), (uppermost(largest_obj), 0))
+  return paint(paint(I, recolor(second_color, top)), 
+              mpapply(lambda i, c: (second_color, i) if even(sum(subtract(i, ulcorner(bottom)))) else c, bottom))
+```
+
+**Explanation:**
+
+This version uses a mix of cropping, shifting, and `mpapply` for efficient manipulation:
+
+1. **Identification and Extraction:** Same as previous versions.
+2. **Extract and Shift Rows:**
+    - Use `crop` to extract the top two rows (`top`) and bottom two rows (`bottom`).
+    - Use `shift` to position the extracted rows correctly.
+3. **Recolor and Paint:**
+    - Recolor `top` using `recolor`.
+    - Apply `mpapply` on `bottom` to recolor cells based on even index sums, similar to previous versions.
+    - Paint the modified rows onto the input grid. 
+
+These five versions demonstrate different approaches to achieving the same transformation, showcasing the flexibility of the DSL. 

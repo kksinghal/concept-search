@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) and then moving them to specific positions on the grid. The target positions are determined based on the digit itself and its relative position within the original grid.
+
+- **Digit 1:** Always moved to the center column of the grid, maintaining its original row position.
+- **Digit 2:** Moved one cell diagonally down and to the right of a digit 3, if present. Otherwise, it remains in its original position.
+- **Digit 3:** Moved to the bottom-most row of the grid, maintaining its relative horizontal positioning. If multiple digits 3 exist in the same column, they are consolidated into a single horizontal line at the bottom.
+- **Other Digits:** Remain in their original positions.
+
+## Code Generation:
+
+**Program Version 1**
+
+```python
+def program_to_be_generated(grid):
+  h, w = shape(grid)
+  objs = fgpartition(grid)
+  new_objs = []
+  for obj in objs:
+    v, (i, j) = first(obj)
+    if v == 1:
+      new_objs.append(shift(obj, (-i + h // 2, -j + w // 2)))
+    elif v == 2:
+      target_3 = extract(objs, lambda o: color(o) == 3 and hmatching(o, obj) and vmatching(o, obj))
+      if target_3:
+        new_objs.append(shift(obj, add(position(target_3, obj), (1, 1))))
+      else:
+        new_objs.append(obj)
+    elif v == 3:
+      new_objs.append(shift(obj, (h - 1 - i, 0)))
+    else:
+      new_objs.append(obj)
+  return paint(canvas(0, shape(grid)), merge(new_objs))
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate grid dimensions (h, w) and identify objects using `fgpartition`.
+2. **Object Iteration:** Iterate through each object (`obj`) in the grid.
+3. **Digit Handling:**
+   - **Digit 1:** Move to the center of the grid using `shift` based on calculated offsets.
+   - **Digit 2:** Find the closest digit 3 object using `extract` and move diagonally down and right using `position` and `shift`. If no digit 3 is found, keep the original position.
+   - **Digit 3:** Move to the bottom row while maintaining horizontal position using `shift`.
+   - **Other Digits:** Leave their position unchanged.
+4. **Grid Reconstruction:** Create a blank canvas with `canvas` and paint the transformed objects onto it using `paint` and `merge`.
+
+**Program Version 2**
+
+```python
+def program_to_be_generated(grid):
+  h, w = shape(grid)
+  def transform(obj):
+    v, (i, j) = first(obj)
+    return shift(obj, {
+        1: (-i + h // 2, -j + w // 2),
+        2: branch(extract(fgpartition(grid), lambda o: color(o) == 3 and hmatching(o, obj) and vmatching(o, obj)), 
+                  add(position(extract(fgpartition(grid), lambda o: color(o) == 3 and hmatching(o, obj) and vmatching(o, obj)), obj), (1, 1)),
+                  (0, 0)),
+        3: (h - 1 - i, 0),
+    }.get(v, (0, 0))) 
+  return paint(canvas(0, (h, w)), merge(apply(transform, fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate grid dimensions (h, w).
+2. **Transform Function:** Define a `transform` function that takes an object as input and applies the appropriate transformation based on its color (`v`):
+   - Use a dictionary to map digit values to corresponding transformations.
+   - For digit 2, use `branch` to conditionally apply the diagonal shift based on the presence of a nearby digit 3, identified using `extract`.
+3. **Grid Transformation:** Apply the `transform` function to each object using `apply` and `fgpartition`.
+4. **Grid Reconstruction:** Create a blank canvas using `canvas` and paint the transformed objects onto it using `paint` and `merge`.
+
+**Program Version 3**
+
+```python
+def program_to_be_generated(grid):
+  h, w = shape(grid)
+  def new_pos(obj):
+    v, (i, j) = first(obj)
+    return (h // 2 if v == 1 else i, 
+            w // 2 if v == 1 else (
+                j + 1 if v == 2 and any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in fgpartition(grid)) else j))
+  return paint(canvas(0, (h, w)), 
+               merge(frozenset(frozenset((c, new_pos(frozenset({(c, (i, j))}))) for c, (i, j) in obj) for obj in fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate grid dimensions (h, w).
+2. **New Position Function:** Define a `new_pos` function that takes an object as input and returns its new coordinates based on its color:
+   - Use conditional expressions for concisely defining position changes based on digit value and the presence of a nearby digit 3 using `any`.
+3. **Grid Transformation:** Use a nested `frozenset` comprehension to iterate through objects and individual cells, applying `new_pos` to determine new cell coordinates.
+4. **Grid Reconstruction:** Create a blank canvas with `canvas` and paint the transformed objects using `paint` and `merge`.
+
+**Program Version 4**
+
+```python
+def program_to_be_generated(grid):
+  objs = fgpartition(grid)
+  h, w = shape(grid)
+  return paint(canvas(0, (h, w)), 
+               merge(frozenset(
+                 branch(v == 1, 
+                        shift(obj, (-i + h // 2, -j + w // 2)), 
+                        branch(v == 2 and any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in objs), 
+                               shift(obj, add(position(extract(objs, lambda o: color(o) == 3 and hmatching(o, obj) and vmatching(o, obj)), obj), (1, 1))), 
+                               branch(v == 3, shift(obj, (h - 1 - i, 0)), obj)))
+                 for obj in objs for v, (i, j) in [first(obj)])))
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate grid dimensions (h, w) and identify objects using `fgpartition`.
+2. **Nested Branching:** Use nested `branch` statements within a `frozenset` comprehension to apply the correct transformation based on digit value:
+   - **Digit 1:** Move to the center using `shift`.
+   - **Digit 2:** Check for a nearby digit 3 using `any` and move diagonally using `shift` and `position` if found. Otherwise, maintain the original position.
+   - **Digit 3:** Move to the bottom row using `shift`.
+   - **Other Digits:** Remain in their original positions.
+3. **Grid Reconstruction:** Create a blank canvas using `canvas` and paint the transformed objects onto it using `paint` and `merge`.
+
+**Program Version 5**
+
+```python
+def program_to_be_generated(grid):
+  h, w = shape(grid)
+  def move_obj(obj):
+    c = color(obj)
+    i, j = ulcorner(obj)
+    return branch(c == 1, shift(obj, (-i + h // 2, -j + w // 2)), 
+                 branch(c == 3, shift(obj, (h - 1 - i, 0)), 
+                        branch(c == 2, 
+                               branch(any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in fgpartition(grid)),
+                                     shift(obj, add(position(extract(fgpartition(grid), lambda o: color(o) == 3 and hmatching(o, obj) and vmatching(o, obj)), obj), (1, 1))), 
+                                     obj),
+                               obj)))
+  return paint(canvas(0, (h, w)), merge(apply(move_obj, fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate grid dimensions (h, w).
+2. **Move Object Function:** Define a `move_obj` function that takes an object and returns its potentially moved version:
+    - Extract the color (`c`) and upper-left corner (`i`, `j`) of the object.
+    - Use nested `branch` statements to handle each digit:
+      - Digit 1: Center using `shift`.
+      - Digit 3: Move to the bottom row using `shift`.
+      - Digit 2: Check for adjacent digit 3 using `any`, and if found, move diagonally using `shift`, `position`, and `extract`. Otherwise, keep the original position.
+      - Other Digits: Remain in their original positions.
+3. **Grid Transformation:** Apply `move_obj` to all objects using `apply` and `fgpartition`.
+4. **Grid Reconstruction:** Create a blank canvas with `canvas` and paint the transformed objects onto it using `paint` and `merge`.
+
+These five program versions offer distinct approaches to implementing the transformation logic while utilizing various DSL functions. Each version successfully transforms the input grids to the desired output grids.

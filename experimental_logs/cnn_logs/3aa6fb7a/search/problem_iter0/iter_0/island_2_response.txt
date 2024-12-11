@@ -1,0 +1,132 @@
+## Transformation Analysis:
+
+The transformation replaces a single cell within each object in the input grid with the value '1'. The selected cell is the second cell from the top and left within each object. If an object doesn't have a cell at that position, no replacement occurs within that object. 
+
+**Example:**
+
+In Input_0, the top-left object of '8's gets a '1' replacing the '8' at coordinate (2,1).  The bottom-right object gets a '1' replacing the '8' at coordinate (4,4). 
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve_8eb1be9a(I):
+  objs = objects(I, T, T, T)
+  new_objs = set()
+  for obj in objs:
+    ul = ulcorner(obj)
+    target = (ul[0]+1, ul[1]+1)
+    if contained(target, toindices(obj)):
+      new_objs.add(frozenset({(1, target)} | {(v,p) for v,p in obj if p != target}))
+    else:
+      new_objs.add(obj)
+  O = paint(I, merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, T, T, T)` extracts all objects from the grid.
+2. **Iterate and Modify:** The code iterates through each object (`obj`):
+   - `ulcorner(obj)` finds the upper-left corner of the object.
+   - `target` calculates the coordinates of the cell to be replaced.
+   - `contained(target, toindices(obj))` checks if the target cell exists in the object.
+   - If the target exists, a new object is created with the target cell replaced by '1', otherwise, the original object is added to `new_objs`.
+3. **Reconstruct Grid:** `paint(I, merge(new_objs))` paints all modified objects onto a blank canvas (the original input grid).
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve_8eb1be9a(I):
+  objs = objects(I, T, T, T)
+  modified_cells = set()
+  for obj in objs:
+    ul = ulcorner(obj)
+    target = (ul[0]+1, ul[1]+1)
+    if contained(target, toindices(obj)): 
+      modified_cells.add((1, target))
+    modified_cells |= obj
+  O = paint(I, frozenset(modified_cells))
+  return O
+```
+
+**Explanation:**
+
+1. **Find Objects & Target Cells:** Similar to Version 1, the code identifies objects and calculates the target cell for each.
+2. **Direct Cell Modification:** Instead of creating new objects, this version directly modifies cells:
+   - If the target cell exists within the object, a tuple `(1, target)` is added to `modified_cells`.
+   - All original cells of the object are also added to `modified_cells`.
+3. **Paint Modified Cells:** `paint` is used to draw all modified cells onto a blank canvas.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve_8eb1be9a(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    ul = ulcorner(obj)
+    i, j = ul[0]+1, ul[1]+1 
+    if 0<=i<len(I) and 0<=j<len(I[0]) and I[i][j] != mostcolor(I):
+      O = paint(O, {(1, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Paint:** This version iterates directly through objects and modifies the grid `O` (initialized as a copy of `I`) in-place.
+2. **In-Place Modification:**
+   - The target cell coordinates are calculated.
+   - It verifies if the target cell is within the grid bounds and does not have the background color.
+   - If both conditions are true, the target cell in grid `O` is painted with the value '1'.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve_8eb1be9a(I):
+  def modify_object(obj):
+    ul = ulcorner(obj)
+    target = (ul[0]+1, ul[1]+1)
+    return frozenset({(1, target)} | {(v,p) for v,p in obj if p != target}) if contained(target, toindices(obj)) else obj 
+  O = paint(I, merge(apply(modify_object, objects(I, T, T, T))))
+  return O
+```
+
+**Explanation:**
+
+1. **Helper Function:**  `modify_object` function encapsulates the logic of modifying a single object, similar to Version 1.
+2. **Apply and Paint:**
+   - `apply(modify_object, objects(I, T, T, T))` applies the modification function to each object in the grid.
+   - The modified objects are then merged and painted onto a blank canvas.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve_8eb1be9a(I):
+  def is_target(cell):
+    v, (i, j) = cell
+    return i>0 and j>0 and I[i-1][j] == v and I[i][j-1] == v and I[i-1][j-1] == v
+  O = paint(I, frozenset((1, (i, j)) if is_target((v, (i, j))) else (v, (i, j)) for i, row in enumerate(I) for j, v in enumerate(row)))
+  return O
+```
+
+**Explanation:**
+
+1. **Target Cell Check:** `is_target(cell)` checks if a cell should be replaced by '1'. It ensures the cell's value matches its top, left, and top-left neighbors.
+2. **Direct Grid Iteration:** The code iterates over every cell in the grid:
+   -  `is_target` is used to determine if the current cell needs replacement.
+   - Based on the `is_target` result, either the original cell or a modified cell with value '1' is included in the final set.
+3. **Paint Final Set:**  The resulting set of cells is painted onto a blank canvas. 

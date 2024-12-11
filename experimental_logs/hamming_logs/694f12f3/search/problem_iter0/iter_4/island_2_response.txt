@@ -1,0 +1,113 @@
+## Transformation Analysis:
+
+The transformation involves identifying the two distinct objects in the input grid (excluding the background) and then filling a 2x2 square within each object with a different color. The color used for the fill depends on the object's shape:
+
+* **Taller objects:** The 2x2 square is filled with the color '1'.
+* **Wider objects:** The 2x2 square is filled with the color '2'.
+
+**Input 0:**
+* The top object is taller and gets filled with '1'.
+* The bottom object is wider and gets filled with '2'.
+
+**Input 1:**
+* The top object is wider and gets filled with '2'.
+* The bottom object is taller and gets filled with '1'.
+
+
+## Program Version 1:
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)  # Extract objects without background
+  obj1 = first(objs)
+  obj2 = other(objs, obj1)
+  if height(obj1) > height(obj2):
+    tall_obj, wide_obj = obj1, obj2
+  else:
+    tall_obj, wide_obj = obj2, obj1
+  O = underfill(I, 1, shift(crop(toindices(tall_obj), (1, 1), subtract(shape(tall_obj), (2,2))), (1,1)))
+  O = underfill(O, 2, shift(crop(toindices(wide_obj), (1, 1), subtract(shape(wide_obj), (2,2))), (1,1)))
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Identifies the two foreground objects.
+2. **Determine Taller/Wider:**  Compares heights to determine which object is taller and which is wider.
+3. **Calculate Inner Square:**  Calculates the indices of the inner 2x2 square for each object using `crop` and `shift`.
+4. **Underfill:** Uses `underfill` to paint the inner squares with the appropriate colors ('1' for taller, '2' for wider). 
+
+## Program Version 2:
+
+```python
+def solve(I):
+  O = I
+  for i, obj in enumerate(objects(I, T, F, T)):
+    inner = shift(crop(toindices(obj), (1,1), subtract(shape(obj), (2,2))), (1,1))
+    O = underfill(O, i + 1, inner)
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:** Iterates through each foreground object.
+2. **Calculate Inner Square:**  Similar to Version 1, calculates the indices of the inner square.
+3. **Conditional Underfill:** Uses the loop index (i) to determine the fill color ('1' for the first object, '2' for the second), implicitly handling the taller/wider distinction.
+
+## Program Version 3:
+
+```python
+def solve(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    h, w = shape(obj)
+    fill_value = 1 if h > w else 2
+    inner = toindices(shift(crop(canvas(0, shape(obj)), (1,1), (h-2, w-2)), (1,1)))
+    O = underfill(O, fill_value, intersection(toindices(obj), inner))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Determine Fill Color:** Iterates through objects and explicitly calculates the fill value based on height and width comparison.
+2. **Create Inner Square on Canvas:** Creates a temporary canvas the same size as the object and uses `crop` and `shift` to define the inner square on this canvas.
+3. **Intersect and Underfill:** Finds the intersection between the object's indices and the inner square indices to ensure only the correct cells within the object are filled.
+
+## Program Version 4:
+
+```python
+def solve(I):
+  def fill_inner(obj, color):
+    return underfill(I, color, shift(crop(toindices(obj), (1, 1), subtract(shape(obj), (2,2))), (1,1)))
+  objs = objects(I, T, F, T)
+  obj1 = first(objs)
+  obj2 = other(objs, obj1)
+  return fill_inner(obj2, 2) if height(obj1) > height(obj2) else fill_inner(obj1, 2)
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** Defines a helper function `fill_inner` to encapsulate the logic of filling the inner square.
+2. **Identify Objects and Compare Heights:** Similar to previous versions.
+3. **Conditional Filling:** Uses a conditional expression to call `fill_inner` with the appropriate object and color based on the height comparison.
+
+## Program Version 5:
+
+```python
+def solve(I):
+  def process_object(obj, grid):
+    h, w = shape(obj)
+    fill_value = 1 if h > w else 2
+    inner = toindices(shift(crop(canvas(0, (h,w)), (1,1), (h-2, w-2)), (1,1)))
+    return underfill(grid, fill_value, intersection(toindices(obj), inner))
+
+  O = I 
+  for obj in objects(I, T, F, T):
+    O = process_object(obj, O)
+  return O
+```
+
+**Explanation:**
+
+1. **Define Object Processing Function:** Defines a function `process_object` that handles the entire logic of processing a single object (determining fill color, calculating inner square, and underfilling).
+2. **Iterate and Process:**  Iterates through each object and applies `process_object` to modify the grid. 

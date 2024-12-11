@@ -1,0 +1,113 @@
+## Transformation Analysis:
+
+The transformation consistently applies the following logic:
+
+**For each non-zero cell in the input grid:**
+
+1. **Check its horizontal neighbors:** If a neighbor is zero, change that zero cell to a '3'.
+
+**Essentially, the transformation extends non-zero objects horizontally by one cell if the neighboring cell is empty (represented by '0').** 
+
+## Program_to_be_generated:
+
+**Version 1:** Using `objects` and set manipulation
+
+```python
+def extend_horizontally(I):
+  objs = objects(I, True, False, True)
+  extended_objs = frozenset({(color(obj), (i, j - 1)) for v, (i, j) in obj if j > 0 and I[i][j - 1] == 0} |
+                             {(color(obj), (i, j + 1)) for v, (i, j) in obj if j < len(I[0]) - 1 and I[i][j + 1] == 0} |
+                             obj for obj in objs)
+  return paint(canvas(0, shape(I)), merge(extended_objs))
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, True)`:** Extract all non-zero objects from the input grid (`I`).
+2. **`extended_objs = ...`:**  For each object (`obj`) in `objs`, generate a new object that includes:
+    - The original object's cells.
+    - Left extension: Cells to the left of the object if they are within the grid bounds, empty, and on the same row.
+    - Right extension: Cells to the right, following the same logic as the left extension.
+3. **`return paint(canvas(0, shape(I)), merge(extended_objs))`:** Create a blank canvas of the same size as the input grid and paint the `extended_objs` onto it.
+
+**Version 2:** Using `hconcat`, `cellwise`, and shifting
+
+```python
+def extend_horizontally(I):
+  shifted_left = hconcat(((0,),) * len(I), I)[:, :-1]
+  shifted_right = hconcat(I, ((0,),) * len(I))[:, 1:]
+  left_extension = cellwise(shifted_left, I, 0)
+  right_extension = cellwise(shifted_right, I, 0)
+  combined_extension = cellwise(left_extension, right_extension, 3)
+  return cellwise(combined_extension, I, 0) 
+```
+
+**Explanation:**
+
+1. **`shifted_left`, `shifted_right`:** Create left and right shifted versions of the input grid.
+2. **`left_extension`, `right_extension`:** Use `cellwise` to identify empty cells adjacent to non-zero cells in the shifted grids.
+3. **`combined_extension`:** Combine left and right extensions, prioritizing the extension value '3'.
+4. **`return cellwise(combined_extension, I, 0)`:** Merge the `combined_extension` with the original grid, prioritizing original values over '0's in the extension.
+
+
+**Version 3:** Using nested loops and conditional replacement
+
+```python
+def extend_horizontally(I):
+  output = [[0 for _ in range(len(I[0]))] for _ in range(len(I))]
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != 0:
+        output[i][j] = I[i][j]
+        if j > 0 and I[i][j - 1] == 0:
+          output[i][j - 1] = 3
+        if j < len(I[0]) - 1 and I[i][j + 1] == 0:
+          output[i][j + 1] = 3
+  return tuple(tuple(row) for row in output)
+```
+
+**Explanation:**
+
+1. **`output = ...`:** Create an empty grid (`output`) of the same size as the input.
+2. **Nested loops:** Iterate through each cell in the input grid.
+3. **`if I[i][j] != 0`:** If the current cell is not empty:
+    - Copy its value to the `output` grid.
+    - Check its left and right neighbors: If empty and within grid bounds, set the corresponding cell in `output` to '3'.
+4. **`return tuple(tuple(row) for row in output)`:** Return the modified `output` grid.
+
+**Version 4:** Using list comprehensions
+
+```python
+def extend_horizontally(I):
+  return tuple(
+    tuple(
+      3 if (j > 0 and row[j - 1] != 0 and v == 0) or (j < len(row) - 1 and row[j + 1] != 0 and v == 0) else v 
+      for j, v in enumerate(row)
+    ) 
+    for row in I
+  )
+```
+
+**Explanation:**
+
+This version uses nested list comprehensions to achieve the transformation concisely. It iterates through each cell and applies the extension logic within the comprehension itself.
+
+**Version 5:** Using `papply` and lambda function
+
+```python
+def extend_horizontally(I):
+  h, w = len(I), len(I[0])
+  return tuple(
+    tuple(papply(lambda x, y: 3 if (0 < y < w - 1 and (I[i][y - 1] != 0 or I[i][y + 1] != 0) and x == 0) else x,
+                  row, range(w))) for i, row in enumerate(I))
+```
+
+**Explanation:**
+
+1. **`h, w = len(I), len(I[0])`:** Get the height and width of the input grid.
+2. **Outer loop:** Iterate through each row of the input grid.
+3. **`papply(...)`:** Apply a lambda function to each cell and its index within the row.
+4. **Lambda function:** Check if the cell is '0' and has a non-zero neighbor. If true, return '3', otherwise return the original cell value.
+5. **`return tuple(...)`:** Return the transformed grid.
+
+These five versions showcase different approaches to achieve the desired transformation using various DSL functions and programming paradigms. Each version provides a unique and valid solution to the problem. 

@@ -1,0 +1,128 @@
+## Transformation Analysis:
+
+The transformation seems to identify horizontal sequences of '1's in the input grid and apply the following:
+
+* **Shift Right:** The entire sequence of '1's is shifted one position to the right.
+* **Replace:** 
+    * The original positions of '1's are replaced with '2's.
+    * The shifted positions that overlap with the original '1's are replaced with '0's.
+
+Let's analyze this with each input-output pair:
+
+**Input_0:**
+
+```
+1 0 1 5 1  ->  1 2 1 0 0
+0 0 1 0 1  ->  0 0 0 0 0
+0 0 1 0 1  ->  0 0 0 0 0
+0 1 1 1 1  ->  0 1 2 1 0
+0 0 1 0 1  ->  0 0 0 0 0 
+```
+* The sequence "1111" is shifted to " 1111", overlapping at the second and third positions.
+* Original positions of '1' become '2':  "1 2 1", " 1 2 1"
+* Overlapping shifted positions become '0': "1 2 1 0 0", " 0 1 2 1 0"
+
+**Input_1 & Input_2:**  Follow the same pattern, with longer sequences and varying positions. 
+
+
+## Program Versions:
+
+Here are five distinct versions of "Program_to_be_generated" using the DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  shifted = hconcat(((0,) * height(I),), trim(hconcat(I, ((0,) * height(I),))))
+  O = cellwise(I, shifted, 0)
+  O = replace(O, 1, 2)
+  return O
+```
+
+**Explanation:**
+1. **`shifted = hconcat(((0,) * height(I),), trim(hconcat(I, ((0,) * height(I),))))`**: This line shifts the grid one position to the right, padding with zeros. 
+2. **`O = cellwise(I, shifted, 0)`**:  Compares the original grid (I) and the shifted grid. Where they match (both have '1'), it keeps the value ('1'). Where they don't, it fills with '0'. 
+3. **`O = replace(O, 1, 2)`**: Finally, all remaining '1's (which were the original positions of '1's) are replaced with '2's. 
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, shape(I))  # Initialize output grid with all 0's
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if I[i][j] == 1:
+        O[i][j] = 2  # Replace original '1' with '2'
+        if j < width(I) - 1 and I[i][j + 1] == 1:
+          O[i][j + 1] = 1  # Keep '1' if followed by another '1'
+  return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(0, shape(I))`**: Creates an output grid of the same size as the input, filled with '0's.
+2. **Nested loops:** Iterates through each cell of the input grid.
+3. **`if I[i][j] == 1:`**: Checks if the current cell contains a '1'.
+4.   **`O[i][j] = 2`**:  Replaces the current '1' in the output grid with a '2'.
+5.   **`if j < width(I) - 1 and I[i][j + 1] == 1:`**: Checks if it's not the last column and if the next cell also contains a '1'.
+6.     **`O[i][j + 1] = 1`**:  If the next cell also has a '1', keeps it as '1' in the output grid.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, False) # Get connected components of 1s.
+  shifted_objs = frozenset({shift(obj, (0,1)) for obj in objs if color(obj) == 1}) # Shift each component by 1
+  O = paint(canvas(0, shape(I)), merge(shifted_objs)) # Paint the shifted components onto a blank canvas
+  O = cellwise(I, O, 2) # Use cellwise to replace the original 1s with 2s
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, False)`**: Extracts connected components (objects) from the input grid where cells with the value '1' are considered connected if they are directly adjacent (not diagonally). 
+2. **`shifted_objs = frozenset({shift(obj, (0,1)) for obj in objs if color(obj) == 1})`**:  Shifts each connected component one position to the right.
+3. **`O = paint(canvas(0, shape(I)), merge(shifted_objs))`**: Creates a blank canvas (filled with '0's) and paints the shifted connected components onto it. 
+4. **`O = cellwise(I, O, 2)`**: Compares the input grid with the canvas containing shifted components. If a cell in the input grid has '1', it replaces the corresponding cell in the output grid with '2'. Otherwise, it keeps the value from the shifted components canvas.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == 1:
+        O[i] = O[i][:j] + (2,) + O[i][j+1:] # Place a 2 at the current position
+        if j < len(row) - 1 and row[j+1] == 1:
+          O[i] = O[i][:j+1] + (1,) + O[i][j+2:] # If the next element is also 1, keep it as 1
+  return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(0, shape(I))`**:  Creates an empty output grid of the same size as the input grid, filled with '0's.
+2. **Nested loops:**  Iterates over each cell of the input grid.
+3. **`if val == 1:`**:  Checks if the current cell value is '1'.
+4.    **`O[i] = O[i][:j] + (2,) + O[i][j+1:]`**: Replaces the current cell in the output grid with '2'.
+5.    **`if j < len(row) - 1 and row[j+1] == 1:`**:  Checks if it's not the last column and if the next cell in the row is also '1'.
+6.       **`O[i] = O[i][:j+1] + (1,) + O[i][j+2:]`**: If the next cell is also '1', it keeps the '1' in the output grid at the shifted position.
+
+**Program Version 5:** 
+
+```python
+def Program_to_be_generated(I):
+  shifted = hconcat(trim(hconcat(I, ((0,) * height(I),))), ((0,) * height(I),))  # Shift left and pad
+  O = cellwise(I, shifted, 0) # Compare with original and set to 0 where different
+  O = replace(O, 1, 2) # Replace remaining 1s with 2s
+  return O 
+```
+
+**Explanation:**
+
+1. **`shifted = hconcat(trim(hconcat(I, ((0,) * height(I),))), ((0,) * height(I),))`**:  This line first shifts the entire grid to the left by one position and then pads the right side with zeros, effectively simulating a right shift without overlapping.
+2. **`O = cellwise(I, shifted, 0)`**: This line compares each cell of the original grid (`I`) with the corresponding cell of the shifted grid. If the values are different, it sets the cell in the output grid (`O`) to '0'. If they are the same (both '1'), it keeps the value ('1').
+3. **`O = replace(O, 1, 2)`**: Finally, this line replaces all remaining '1's in the output grid (`O`) with '2's. These remaining '1's represent the original positions of '1's in the input grid.
+
+These programs offer different approaches to achieve the same transformation, showcasing the flexibility of the DSL. 

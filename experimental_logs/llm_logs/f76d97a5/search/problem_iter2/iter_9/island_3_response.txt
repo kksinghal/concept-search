@@ -1,0 +1,168 @@
+## Transformation Analysis:
+
+The transformation involves highlighting the "outline" of each distinct object in the input grid. The outline is defined as the cells that are directly adjacent (horizontally or vertically) to the background color but belong to a different color object. 
+
+Let's break down the transformation for each input-output pair:
+
+**Input_0:**
+
+- **Input:** A single object (color 8) surrounded by background (color 4).
+- **Output:** The outline of the object is highlighted (using the object color 8), and the rest is filled with the background color (0).
+
+**Input_1:**
+
+- **Input:** A single object (color 8) forming a diagonal line surrounded by background (color 6).
+- **Output:** The outline of the diagonal line is highlighted (using the object color 8), and the rest is filled with the background color (6).
+
+**Input_2:**
+
+- **Input:**  A single object (color 9) with some inward curves surrounded by background (color 8).
+- **Output:** The outline of the object, including the inward curves, is highlighted (using the object color 9), and the rest is filled with the background color (8).
+
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" using the provided DSL, along with explanations:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(
+      canvas(mostcolor(I), shape(I)), 
+      merge(
+          apply(
+              lambda obj: intersection(
+                  recolor(
+                      color(obj), 
+                      dneighbors(toindices(obj))
+                  ), 
+                  asobject(
+                      canvas(
+                          mostcolor(I),
+                          shape(I)
+                      )
+                  )
+              ), 
+              objects(I, False, False, True)
+          )
+      )
+  )
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, False, False, True)` extracts all distinct objects from the input grid (`I`) excluding the background.
+2. **Outline Cells:** For each object:
+    - `dneighbors(toindices(obj))` finds the directly adjacent cells.
+    - `recolor(color(obj), ...)` colors these adjacent cells with the object's color.
+    - `intersection(..., asobject(canvas(mostcolor(I), shape(I))))` ensures only the adjacent cells within the grid boundaries are selected.
+3. **Merge Outlines:** `merge(...)` combines the outlines of all objects.
+4. **Paint Outlines:** `paint(canvas(mostcolor(I), shape(I)), ...)` creates a canvas filled with the background color and paints the merged outlines onto it.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  return apply(
+      lambda i_row: tuple(
+          0 if (i_row[0] == 0 or i_row[0] == len(I) - 1 or j == 0 or j == len(i_row[1]) - 1) or any(
+              (i_row[1][max(0, min(len(i_row[1]) - 1, j + k))]) == mostcolor(I) 
+              for k in [-1, 1]
+          ) or any(
+              I[max(0, min(len(I) - 1, i_row[0] + k))][j] == mostcolor(I) 
+              for k in [-1, 1]
+          ) else i_row[1][j] 
+          for j in range(len(i_row[1]))
+      ), 
+      enumerate(I)
+  )
+```
+
+**Explanation:**
+
+1. **Iterate Through Cells:**  The code iterates through each cell in the grid using `enumerate(I)`.
+2. **Boundary Check:** `(i_row[0] == 0 or i_row[0] == len(I) - 1 or j == 0 or j == len(i_row[1]) - 1)` checks if the cell is on the grid boundary.
+3. **Adjacent Background Check:** `any((i_row[1][max(0, min(len(i_row[1]) - 1, j + k))]) == mostcolor(I) for k in [-1, 1])` checks for adjacent background color horizontally and `any(I[max(0, min(len(I) - 1, i_row[0] + k))][j] == mostcolor(I) for k in [-1, 1])` checks vertically.
+4. **Outline Condition:** If a cell is on the boundary or has an adjacent background cell, it's part of the outline and retains its color (`i_row[1][j]`). Otherwise, it's set to 0.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    return paint(
+        canvas(0, shape(I)), 
+        merge(
+            apply(
+                lambda obj: recolor(
+                    color(obj),
+                    difference(
+                        dneighbors(toindices(obj)),
+                        toindices(
+                            objects(
+                                paint(
+                                    canvas(mostcolor(I), shape(I)),
+                                    obj
+                                ),
+                                False,
+                                False,
+                                True
+                            ).pop()
+                        )
+                    )
+                ),
+                objects(I, False, False, True)
+            )
+        )
+    )
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to Version 1, it extracts objects using `objects(I, False, False, True)`.
+2. **Isolate Object:** For each object:
+    - `paint(canvas(mostcolor(I), shape(I)), obj)` creates a temporary grid with only that object.
+    - `objects(..., False, False, True).pop()` extracts the object from the temporary grid (this is done to get the object without background influence).
+3. **Find Outline Cells:** 
+    - `dneighbors(toindices(obj))` gets all adjacent cells to the original object.
+    - `difference(..., toindices(...))` removes cells that belong to the isolated object, leaving only the outline cells.
+4. **Color and Combine:**  Similar to Version 1, it recolors the outline cells and merges them before painting onto a blank canvas.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  return apply(
+      lambda i, row: tuple(
+          0 if any(
+              I[i][max(0, j - 1)] != I[i][j] or I[i][min(len(row) - 1, j + 1)] != I[i][j] or 
+              I[max(0, i - 1)][j] != I[i][j] or I[min(len(I) - 1, i + 1)][j] != I[i][j] 
+              for i in [max(0, i - 1), i, min(len(I) - 1, i + 1)] 
+              for j in [max(0, j - 1), j, min(len(row) - 1, j + 1)] 
+              if (i, j) != (i, j)
+          ) else row[j] 
+          for j in range(len(row))
+      ),
+      enumerate(I)
+  ) 
+```
+
+**Explanation:**
+
+1. **Iterate and Check Neighbors:** This version directly iterates through each cell and its immediate neighbors (including diagonals) using nested loops within the `any` function.
+2. **Outline Condition:** If any neighbor has a different color than the current cell, the current cell is considered part of the outline.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    return cellwise(I, apply(lambda row: tuple(mostcolor(I) if any(v != mostcolor(I) for v in [row[(j + k) % len(row)] for k in [-1, 1]] + [I[(i + k) % len(I)][j] for k in [-1, 1]]) else row[j] for j in range(len(row))) for i, row in enumerate(I)), 0)
+```
+
+**Explanation:**
+
+1. **Identify Potential Outline Cells:** For each row, it checks if a cell has neighbors (horizontal and vertical) with a different color than the background. If so, it marks the cell as a potential outline cell.
+2. **Cellwise Comparison:** It uses `cellwise` to compare the original grid with the grid of potential outline cells.
+3. **Final Output:** If a cell in the original grid is a potential outline cell, it retains its color. Otherwise, it's set to 0.
+
+These five programs represent different approaches to achieve the same transformation. Each version utilizes distinct combinations of DSL functions and logic, demonstrating the flexibility and diversity of solutions possible within the given DSL. 

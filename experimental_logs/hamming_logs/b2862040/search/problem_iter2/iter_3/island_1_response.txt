@@ -1,0 +1,122 @@
+## Transformation Analysis:
+
+The transformation focuses on the rightmost object in the grid, aiming to extend its color horizontally to the left until it hits another object or the grid border. Here's a breakdown for each input-output pair:
+
+**Input_0:**
+- The rightmost object is a single cell with value '8'.
+- The target color becomes '1' (as specified for single-cell objects).
+- The extension goes left, filling the background '9's until reaching the object composed of '8's.
+
+**Input_1:**
+- The rightmost object consists of multiple '8' cells.
+- The target color is the object's color, '8'.
+- The extension fills the background '9's to the left, stopping at the same column as the object's leftmost cell.
+
+**Input_2:**
+- Similar to Input_1, the rightmost object is multi-celled with color '8'.
+- The background '9's are replaced with '1's until reaching the object or the grid border.
+
+**Input_3:**
+- The rightmost object is a single cell with value '1'.
+- The target color remains '1'.
+- The extension fills leftwards, stopping at the multi-celled object containing other '1's.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program, each using a different approach:
+
+**Version 1:** (Using `mfilter` for extension)
+
+```python
+def Program_to_be_generated(I):
+  rm_obj = argmax(objects(I, univalued=False, diagonal=False, without_bg=True), rightmost)
+  target_color = color(rm_obj) if size(rm_obj) > 1 else 1
+  extension = mfilter(range(1, width(I)), lambda w: index(I, (uppermost(rm_obj), rightmost(rm_obj) - w)) == mostcolor(I))
+  return paint(I, recolor(target_color, {(uppermost(rm_obj), rightmost(rm_obj) - w) for w in extension}))
+```
+
+**Explanation:**
+
+1. **Identify the rightmost object (`rm_obj`) and target color (`target_color`):** Same as provided programs.
+2. **Determine the extension range (`extension`):**  `mfilter` efficiently checks each column from the rightmost object's left edge to the grid's left border. If the cell at the same row as the object's uppermost cell is the background color, it's included in the extension.
+3. **Paint the extension:** `paint` applies the `target_color` to the cells identified by `extension`, effectively extending the object leftwards.
+
+**Version 2:** (Iterative approach)
+
+```python
+def Program_to_be_generated(I):
+    rm_obj = argmax(objects(I, univalued=False, diagonal=False, without_bg=True), rightmost)
+    target_color = color(rm_obj) if size(rm_obj) > 1 else 1
+    fill_indices = set()
+    j = rightmost(rm_obj) - 1
+    while j >= 0 and index(I, (uppermost(rm_obj), j)) == mostcolor(I):
+        fill_indices.add((uppermost(rm_obj), j))
+        j -= 1
+    return paint(I, recolor(target_color, frozenset(fill_indices)))
+```
+
+**Explanation:**
+
+1. **Identify the object and target color:** Same as before.
+2. **Iteratively find cells to fill (`fill_indices`):** Starting from the column left of the rightmost object, it checks if the cell is the background color. If so, it's added to `fill_indices`, and the loop continues leftwards.
+3. **Paint the extension:** Same as Version 1.
+
+**Version 3:** (Using `hline` and set operations)
+
+```python
+def Program_to_be_generated(I):
+    rm_obj = argmax(objects(I, univalued=False, diagonal=False, without_bg=True), rightmost)
+    target_color = color(rm_obj) if size(rm_obj) > 1 else 1
+    fill_start = leftmost(rm_obj)
+    fill_end = next((j for j in range(fill_start - 1, -1, -1)
+                    if index(I, (uppermost(rm_obj), j)) != mostcolor(I)), -1) + 1
+    fill_line = hline(frozenset({(fill_end, uppermost(rm_obj)), (fill_start - 1, uppermost(rm_obj))}))
+    return paint(I, recolor(target_color, toindices(fill_line)))
+```
+
+**Explanation:**
+
+1. **Identify object and target color:**  Same as previous versions.
+2. **Determine the horizontal line segment (`fill_line`):**  It finds the start and end columns for the extension and then uses `hline` to generate the indices of a horizontal line segment spanning those columns.
+3. **Paint the extension:**  Similar to previous versions, it paints the `fill_line` with the `target_color`.
+
+**Version 4:** (Leveraging `backdrop` and set difference)
+
+```python
+def Program_to_be_generated(I):
+    rm_obj = argmax(objects(I, univalued=False, diagonal=False, without_bg=True), rightmost)
+    target_color = color(rm_obj) if size(rm_obj) > 1 else 1
+    extension = backdrop(rm_obj) - toindices(objects(I, univalued=False, diagonal=False, without_bg=False))
+    return paint(I, recolor(target_color, extension))
+```
+
+**Explanation:**
+
+1. **Identify object and target color:** Same as earlier versions.
+2. **Determine the extension area (`extension`):** This version calculates the difference between the `backdrop` of the rightmost object (all indices within its bounding box) and the indices of all objects on the grid. This effectively isolates the background cells within the object's bounding box. 
+3. **Paint the extension:** Similar to previous versions. 
+
+**Version 5:** (Recursive approach)
+
+```python
+def Program_to_be_generated(I):
+    def fill_left(grid, row, col, target_color):
+        if col < 0 or index(grid, (row, col)) != mostcolor(grid):
+            return grid
+        grid = fill(grid, target_color, {(row, col)})
+        return fill_left(grid, row, col - 1, target_color)
+
+    rm_obj = argmax(objects(I, univalued=False, diagonal=False, without_bg=True), rightmost)
+    target_color = color(rm_obj) if size(rm_obj) > 1 else 1
+    start_col = rightmost(rm_obj) - 1
+    start_row = uppermost(rm_obj)
+    return fill_left(I, start_row, start_col, target_color)
+```
+
+**Explanation:**
+
+1. **Identify object and target color:** Same as previous versions.
+2. **Define a recursive function (`fill_left`):** This function takes the grid, current row, current column, and target color as input. It checks if the current cell is within the grid bounds and has the background color. If both conditions are true, it fills the cell with the `target_color` and recursively calls itself for the cell to the left.
+3. **Initiate recursive filling:** The main function calls `fill_left`, starting from the cell left of the rightmost object. The recursion handles the extension automatically.
+
+These five versions demonstrate different ways to achieve the same transformation. You can choose the one that best suits your needs in terms of code readability, efficiency, or preferred DSL function usage. 

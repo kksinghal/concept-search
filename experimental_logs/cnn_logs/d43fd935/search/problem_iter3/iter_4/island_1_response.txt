@@ -1,0 +1,144 @@
+## Transformation Analysis:
+
+The transformation seems to follow these rules:
+
+**General Rule:** For each unique digit (excluding the background color - the most frequent digit) in the input grid, the transformation keeps only the leftmost column of that digit's shape and extends it either horizontally or vertically until it hits another digit (excluding the background color).
+
+**Specific Observations:**
+
+* **Input_0:**  The '1's extend horizontally rightward, the '3's extend horizontally leftward, and the '6's extend vertically downwards. 
+* **Input_1:** The '7's extend horizontally rightward and the '8's extend vertically downwards. 
+* **Input_2:** The '1's extend downwards, and the '3's remain unchanged as they are already a single column.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  objs = objects(I, True, False, True) # Identify objects, excluding background
+  for obj in objs:
+    direction = (0, 1) if any(leftmost(obj) < leftmost(obj2) and hmatching(obj, obj2) for obj2 in objs - {obj}) else (1, 0) # Determine extension direction: right if another object is to the right and shares a row, otherwise down
+    extension = shoot(ulcorner(obj), direction) # Create an extension line
+    targets = difference(asindices(I), {c for v, c in obj}) # Identify potential target cells excluding the object itself
+    I = fill(I, color(obj), intersection(extension, targets)) # Fill the extension line with the object's color
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** It identifies all objects in the input grid, excluding the background color.
+2. **Determine Extension Direction:** For each object, it determines the extension direction (right or down) based on the presence and position of other objects. If another object shares a row and is located to the right, the extension is horizontal (rightward); otherwise, it's vertical (downward).
+3. **Create Extension Line:** An extension line is generated from the object's upper-left corner in the determined direction.
+4. **Identify Target Cells:**  The program identifies all cells that are not part of the current object and are within the grid boundaries.
+5. **Fill Extension Line:** The extension line is filled with the object's color, effectively extending the leftmost column until it hits another object or the grid boundary.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  for obj in fgpartition(I): # Iterate over objects excluding background
+    left_edge = {(i, leftmost(obj)) for i in range(uppermost(obj), lowermost(obj) + 1)} # Find the leftmost edge of the object
+    right_neighbors = {(i, j) for i, j in asindices(I) if j > leftmost(obj) and I[i][j] != mostcolor(I) and I[i][j] != color(obj)} # Find cells to the right of the object with different colors than the object and background
+    bottom_neighbors = {(i, j) for i, j in asindices(I) if i > lowermost(obj) and I[i][j] != mostcolor(I) and I[i][j] != color(obj)} # Find cells below the object with different colors than the object and background
+    
+    if right_neighbors:
+      I = fill(I, color(obj), {(i, j) for i, j in asindices(I) if j > leftmost(obj) and j < min(j2 for i2, j2 in right_neighbors if i2 == i) and i in range(uppermost(obj), lowermost(obj) + 1)}) # Extend rightward
+    elif bottom_neighbors:
+      I = fill(I, color(obj), {(i, leftmost(obj)) for i in range(lowermost(obj) + 1, min(i2 for i2, j2 in bottom_neighbors))}) # Extend downward
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate and Find Edges:** This version iterates through each object (excluding the background) and determines its leftmost edge coordinates. 
+2. **Find Neighboring Cells:** It then identifies cells to the right and below the object that have different colors than both the object and the background.
+3. **Conditional Extension:**
+   - **Rightward Extension:** If there are neighboring cells to the right, the program extends the leftmost edge horizontally to the leftmost of these neighboring cells.
+   - **Downward Extension:** If there are no right neighbors but there are neighbors below, the leftmost edge extends downwards until it encounters one of these lower neighbors.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  for obj in fgpartition(I):
+    min_j = leftmost(obj)
+    for j in range(width(I)):
+      if any(index(I, (i, j)) == color(obj) for i in range(height(I))):
+        min_j = j
+        break
+    for i in range(height(I)):
+      if index(I, (i, min_j)) == color(obj):
+        for j in range(min_j + 1, width(I)):
+          if index(I, (i, j)) != mostcolor(I) and index(I, (i, j)) != color(obj):
+            break
+          I = fill(I, color(obj), {(i, j)})
+        break
+    for i in range(height(I)):
+      if index(I, (i, min_j)) == color(obj):
+        for i in range(i + 1, height(I)):
+          if index(I, (i, min_j)) != mostcolor(I) and index(I, (i, min_j)) != color(obj):
+            break
+          I = fill(I, color(obj), {(i, min_j)})
+  return I
+```
+
+**Explanation:**
+
+1. **Find Leftmost Column:** For each object, it finds the leftmost column containing that object's color.
+2. **Horizontal Extension:** It then extends that column horizontally until it hits a different color (excluding the background).
+3. **Vertical Extension:** After horizontal extension, it extends the same column vertically downwards until it encounters a different color.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  bg = mostcolor(I)
+  for obj in objects(I, True, False, True):
+    c = color(obj)
+    ul = ulcorner(obj)
+    for j in range(ul[1] + 1, width(I)):
+      if index(I, (ul[0], j)) != bg:
+        break
+      I = fill(I, c, {(ul[0], j)})
+    for i in range(ul[0] + 1, height(I)):
+      if index(I, (i, ul[1])) != bg:
+        break
+      I = fill(I, c, {(i, ul[1])})
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Background and Objects:** It identifies the background color and then iterates through each object in the grid (excluding the background).
+2. **Horizontal and Vertical Extension:** For each object, it extends its upper-left corner horizontally rightward and then vertically downwards, stopping the extension when it encounters a cell that is not the background color.
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  for obj in fgpartition(I):
+    for i in range(height(I)):
+      for j in range(width(I)):
+        if index(I, (i, j)) == color(obj):
+          if j > 0 and index(I, (i, j - 1)) == mostcolor(I):
+            I = fill(I, color(obj), {(i, k) for k in range(j, width(I)) if index(I, (i, k)) == mostcolor(I)})
+          break
+      for j in range(width(I)):
+        if index(I, (i, j)) == color(obj):
+          if i > 0 and index(I, (i - 1, j)) == mostcolor(I):
+            I = fill(I, color(obj), {(k, j) for k in range(i, height(I)) if index(I, (k, j)) == mostcolor(I)})
+          break
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate and Find Object Cells:**  The program iterates over each object, excluding the background, and scans the grid row by row to find cells belonging to that object.
+2. **Horizontal and Vertical Extension:**
+   - It checks if a cell to the left is the background color. If so, it extends horizontally rightward, filling with the object's color until it encounters a non-background color.
+   - Similarly, it checks if a cell above is the background color. If so, it extends vertically downwards, filling with the object's color until encountering a non-background color. 
+
+These five program versions offer diverse implementations of the transformation logic using different combinations of DSL functions. They are designed to be distinct from each other and from the provided programs, showcasing a range of approaches to solving the given problem. 

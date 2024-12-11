@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation consistently involves identifying the unique non-background object in the input grid and constructing a 'T' shape around its center of mass. The 'T' shape is oriented such that its top points towards the original object. The stem of the 'T' is always color '3' while the top of the 'T' is color '2' unless color '3' is '9', in which case the top of the 'T' is color '0'.
+
+**Let's analyze each input-output pair:**
+
+* **Pair 0:**  The single '7' at (10, 7) becomes the center of the 'T'. The 'T' is constructed with color '3' for the stem and '2' for the top.
+
+* **Pair 1:** Similar to Pair 0, the '7' at (1, 2) dictates the 'T's position and orientation. 
+
+* **Pair 2:** The object '3' at (11, 7) guides the 'T' placement.
+
+## Program to be Generated:
+
+Here are five distinct versions of the program achieving the described transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(fgpartition(I), lambda obj: True)
+  center_i, center_j = centerofmass(obj) if obj else (0, 0) # Default to (0, 0) if no object
+  color1 = next(iter(palette(I) - {mostcolor(I)}), 3)
+  color2 = color1 + 1 if color1 != 9 else 0
+  T_shape = {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1), 
+           (center_i, center_j), (center_i + 1, center_j)}
+  return fill(fill(canvas(mostcolor(I), shape(I)), color1, T_shape), color2, {(center_i + 1, center_j)}) 
+```
+
+**Explanation:**
+
+1. **Find Object & Center:** `extract(fgpartition(I), lambda obj: True)` finds the first (and assumed to be only) foreground object. `centerofmass(obj)` then calculates its center point.
+2. **Determine Colors:** `color1` is set to the first non-background color found in the grid or defaults to '3'. `color2` is then set to `color1 + 1`, wrapping around to '0' if `color1` is '9'.
+3. **Construct 'T' Shape:** The `T_shape` is defined as a set of indices relative to the calculated center point.
+4. **Generate Output:**  A new canvas is created using `canvas(mostcolor(I), shape(I))`, filled with the stem color (`color1`) at the `T_shape` indices, then filled with the top color (`color2`) at the top of the 'T'.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  obj = next((o for o in objects(I, True, False, True)), None)
+  if obj:
+    center_i, center_j = centerofmass(obj)
+    color1 = color(obj)
+    color2 = (color1 + 1) if color1 != 9 else 0
+    O = canvas(mostcolor(I), shape(I))
+    for i in range(center_i - 1, center_i + 2):
+      for j in range(center_j - 1, center_j + 2):
+        if i == center_i + 1 and j == center_j:
+          O = fill(O, color2, {(i, j)})
+        elif abs(i - center_i) + abs(j - center_j) <= 1:
+          O = fill(O, color1, {(i, j)})
+    return O
+  return I 
+```
+
+**Explanation:**
+
+1. **Find Object & Center:** Uses `objects` function to get the first foreground object and its center.
+2. **Determine Colors:**  `color1` is directly taken from the found object, and `color2` is determined as before.
+3. **Iterative Construction:**  Iterates through a 3x3 area around the center, filling in the 'T' shape based on relative index positions.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(fgpartition(I), lambda o: len(o) > 0) if any(len(o) > 0 for o in fgpartition(I)) else None
+  if obj:
+    center_i, center_j = centerofmass(obj)
+    color1 = next(iter(palette(obj)))
+    color2 = 0 if color1 == 9 else color1 + 1
+    T_base = recolor(color1, {(0, 0), (0, 1), (0, 2), (1, 1)})
+    T_top = recolor(color2, {(2, 1)})
+    return paint(paint(canvas(mostcolor(I), shape(I)), shift(T_base, (center_i - 1, center_j - 1))),
+               shift(T_top, (center_i - 1, center_j - 1)))
+  return I
+```
+
+**Explanation:**
+
+1. **Find Object & Center:** Similar to previous versions, but ensures at least one object exists before extracting.
+2. **Construct 'T' Components:** Defines separate `T_base` and `T_top` objects already colored.
+3. **Paint & Shift:**  Paints these pre-colored 'T' components onto a blank canvas at the correct offset based on the object's center.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  obj = next((o for o in fgpartition(I) if len(o) > 0), None)
+  if obj:
+    ci, cj = centerofmass(obj)
+    bg = mostcolor(I)
+    color1 = next(iter(palette(obj)))
+    color2 = color1 + 1 if color1 != 9 else 0
+    T = [[bg if (i, j) not in {(0, 0), (0, 1), (0, 2), (1, 1), (2, 1)} else (color1 if (i, j) != (2, 1) else color2) for j in range(3)] for i in range(3)]
+    O = canvas(bg, (ci - 1, cj - 1)) + tuple(zip(*T)) + canvas(bg, (len(I) - ci - 2, len(I[0]) - cj + 1))
+    return tuple(zip(*O))
+  return I
+```
+
+**Explanation:**
+
+1. **Find Object & Center:** Similar object finding logic.
+2. **Construct 'T' Matrix:** Creates a 3x3 matrix representing the 'T' directly using nested list comprehensions and conditional color assignment.
+3. **Concatenate to Canvas:**  Constructs the output grid by concatenating blank canvas sections with the 'T' matrix.
+
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  obj = next((o for o in objects(I, True, False, True)), None)
+  if not obj: 
+    return I
+  center_i, center_j = centerofmass(obj)
+  color1 = color(obj)
+  color2 = color1 + 1 if color1 != 9 else 0
+  return draw_T(canvas(mostcolor(I), shape(I)), center_i, center_j, color1, color2, 3)
+
+def draw_T(grid, center_i, center_j, color1, color2, size):
+  if size == 1:
+    return fill(grid, color2, {(center_i, center_j)})
+  grid = fill(grid, color1, {(center_i, center_j - size // 2), (center_i, center_j + size // 2), (center_i, center_j)})
+  return draw_T(grid, center_i + 1, center_j, color1, color2, size // 2 * 2 - 1) 
+```
+
+**Explanation:**
+
+1. **Find Object & Colors:** Similar to previous versions.
+2. **Recursive 'T' Drawing:**  Uses a recursive helper function `draw_T` to draw the 'T' shape. The function takes the grid, center point, colors, and size as input. 
+3. **Base Case:**  The base case (size 1) fills a single cell with `color2`. 
+4. **Recursive Step:** Fills the current level's horizontal line of the 'T' and calls itself with a reduced size and updated center point to draw the next level.
+
+These five versions provide distinct approaches to achieving the same transformation, highlighting the flexibility and expressiveness of the provided DSL. 

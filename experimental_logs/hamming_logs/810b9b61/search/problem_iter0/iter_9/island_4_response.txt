@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation consistently recolors connected components of the digit '1' to the digit '3' if and only if the width of the component is at least 3 cells wide. This applies to all input-output pairs. 
+
+## Program_to_be_generated:
+
+**Version 1 (Using `objects`)**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  recolored_objs = frozenset({recolor(3, obj) if width(obj) >= 3 else obj for obj in objs if color(obj) == 1})
+  return paint(canvas(mostcolor(I), shape(I)), merge(recolored_objs)) 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** We use `objects` to find all connected components of '1's. 
+2. **Filter and Recolor:** We iterate over the objects, recoloring those with width >= 3 to '3' while keeping others unchanged. 
+3. **Reconstruct Grid:** We create a blank canvas and paint the modified objects onto it.
+
+**Version 2 (Iterative Approach with `dneighbors`)**
+
+```python
+def Program_to_be_generated(I):
+  h, w = height(I), width(I)
+  I_new = canvas(mostcolor(I), (h, w))
+  ones = ofcolor(I, 1)
+  visited = set()
+
+  def recolor_component(i, j):
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or (i, j) not in ones:
+      return 0
+    visited.add((i, j))
+    return 1 + recolor_component(i, j + 1) + recolor_component(i, j - 1)
+
+  for i, j in ones:
+    if (i, j) not in visited:
+      width = recolor_component(i, j)
+      if width >= 3:
+        I_new = paint(I_new, recolor(3, toobject(frozenset({(i, j)}), I)))
+      else:
+        I_new = paint(I_new, toobject(frozenset({(i, j)}), I))
+  return I_new
+```
+
+**Explanation:**
+
+1. **Initialization:** Create a blank canvas (`I_new`) and find locations of '1's.
+2. **Recursive Exploration:**  `recolor_component` recursively explores connected components, returning their width.
+3. **Conditional Recoloring:** Based on component width, paint it onto the new canvas with the appropriate color. 
+
+**Version 3 (Using `hsplit` and `hconcat`)**
+
+```python
+def Program_to_be_generated(I):
+  parts = hsplit(I, width(I))
+  recolored_parts = tuple(
+      recolor(3, asobject(part)) if colorcount(part, 1) == width(part) and width(part) >= 3 
+      else asobject(part) for part in parts
+  )
+  return hconcat(*[paint(canvas(0, shape(part)), obj) for part, obj in zip(parts, recolored_parts)])
+```
+
+**Explanation:**
+
+1. **Horizontal Split:** Divide the grid into individual columns.
+2. **Column Check and Recolor:**  Check if a column consists only of '1's and has a width >= 3. If so, recolor it to '3'.
+3. **Horizontal Concatenation:** Combine the modified columns back into a grid.
+
+**Version 4 (Set Operations and `ofcolor`)**
+
+```python
+def Program_to_be_generated(I):
+  ones = ofcolor(I, 1)
+  components = objects(paint(canvas(0, shape(I)), recolor(1, ones)), univalued=True, diagonal=False, without_bg=False)
+  wide_components = frozenset(comp for comp in components if width(comp) >= 3)
+  recolor_indices = merge(toindices(comp) for comp in wide_components)
+  return paint(I, recolor(3, recolor_indices)) 
+```
+
+**Explanation:**
+
+1. **Identify '1's and Components:** Find all '1's and extract connected components.
+2. **Filter Wide Components:** Isolate components with width >= 3. 
+3. **Recolor and Combine:** Recolor the selected components and paint them back onto the original grid.
+
+**Version 5 (Flood Fill with Size Check)**
+
+```python
+def Program_to_be_generated(I):
+  h, w = height(I), width(I)
+  visited = set()
+  I_new = canvas(mostcolor(I), (h, w))
+
+  def flood_fill(i, j, current_size=0):
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or I[i][j] != 1:
+      return current_size
+    visited.add((i, j))
+    size_right = flood_fill(i, j + 1, current_size + 1)
+    return max(size_right, current_size)
+
+  for i, j in asindices(I):
+    if I[i][j] == 1 and (i, j) not in visited:
+      size = flood_fill(i, j)
+      if size >= 3:
+        I_new = paint(I_new, recolor(3, toobject(frozenset({(i, j)}), I)))
+      else:
+        I_new = paint(I_new, toobject(frozenset({(i, j)}), I))
+  return I_new
+```
+
+**Explanation:**
+
+1. **Initialization:** Create a blank canvas and keep track of visited cells.
+2. **Flood Fill:** `flood_fill` explores connected '1' components, returning the maximum horizontal size encountered.
+3. **Conditional Recoloring:** Paint components onto the new canvas with '3' if their size is >= 3, otherwise use the original color. 

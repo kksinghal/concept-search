@@ -1,0 +1,178 @@
+## Transformation Analysis:
+
+The transformation involves identifying the location of the digit '1' in the input grid and rearranging other digits based on their frequency relative to this '1'. Here's a breakdown for each digit:
+
+* **Digit '1'**: Remains at its original position.
+* **Digit '3'**: Forms a vertical line centered horizontally above the digit '1'. The line's length corresponds to the frequency of '3' in the input grid.
+* **Digit '7'**: Forms a horizontal line centered vertically to the right of the digit '1'. The line's length corresponds to the frequency of '7' in the input grid.
+* **Other Digits**: Remain in their original positions.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  one_loc = first(ofcolor(I, ONE))
+  O = canvas(ZERO, shape(I))
+  
+  # Place digit '3' vertically above '1'
+  for i in range(colorcount(I, THREE)):
+    O = fill(O, THREE, {(one_loc[0] - colorcount(I, THREE) // 2 + i, one_loc[1])})
+
+  # Place digit '7' horizontally to the right of '1'
+  for i in range(colorcount(I, SEVEN)):
+    O = fill(O, SEVEN, {(one_loc[0], one_loc[1] + 1 + i)})
+
+  # Paint other digits in their original positions
+  for v, (i, j) in asobject(I):
+    if v not in {ONE, THREE, SEVEN}:
+      O = fill(O, v, {(i, j)})
+
+  # Fill '1' at its original position
+  return fill(O, ONE, {one_loc})
+```
+
+**Explanation:**
+
+1. **Initialization**:
+   - Finds the location of digit '1' (`one_loc`).
+   - Creates an empty output grid (`O`) of the same size as the input grid.
+
+2. **Placing '3' and '7'**:
+   - Iterates through the frequency of '3' and places each '3' in a vertical line centered above '1'.
+   - Iterates through the frequency of '7' and places each '7' in a horizontal line to the right of '1'.
+
+3. **Handling Other Digits**:
+   - Iterates through all cells in the input grid, excluding '1', '3', and '7'.
+   - Copies the digits to the output grid in their original positions.
+
+4. **Finalizing**:
+   - Fills the output grid with '1' at its original position.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  one_loc = first(ofcolor(I, ONE))
+  threes = {(THREE, (one_loc[0] - colorcount(I, THREE) // 2 + i, one_loc[1])) for i in range(colorcount(I, THREE))}
+  sevens = {(SEVEN, (one_loc[0], one_loc[1] + 1 + i)) for i in range(colorcount(I, SEVEN))}
+  other_digits = {(v, (i, j)) for v, (i, j) in asobject(I) if v not in {ONE, THREE, SEVEN}}
+  return paint(paint(paint(canvas(ZERO, shape(I)), threes), sevens), other_digits | {(ONE, one_loc)})
+```
+
+**Explanation:**
+
+This version focuses on conciseness by pre-computing object representations for '3', '7', and other digits and then painting them onto the canvas in a single chained operation.
+
+1. **Pre-compute Objects**:
+   - Calculate the positions of all '3's in a vertical line.
+   - Calculate the positions of all '7's in a horizontal line.
+   - Extract all other digits from the input grid while maintaining their positions.
+
+2. **Paint Objects**:
+   - Create a blank canvas of the same size as the input.
+   - Chain `paint` operations to sequentially paint '3's, '7's, other digits, and finally the '1' onto the canvas.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  O = canvas(ZERO, shape(I))
+  one_loc = first(ofcolor(I, ONE))
+
+  paint_line = lambda digit, direction: paint(
+      O,
+      {(digit, add(one_loc, multiply((i - colorcount(I, digit) // 2, i - colorcount(I, digit) // 2), direction))) 
+       for i in range(colorcount(I, digit))})
+
+  O = paint_line(THREE, UP)
+  O = paint_line(SEVEN, RIGHT)
+
+  for v, (i, j) in asobject(I):
+    if v not in {ONE, THREE, SEVEN}:
+      O = fill(O, v, {(i, j)})
+
+  return fill(O, ONE, {one_loc})
+```
+
+**Explanation:**
+
+This version introduces a helper function `paint_line` to abstract the logic of painting both the '3' and '7' lines.
+
+1. **Initialization**: Similar to previous versions.
+
+2. **`paint_line` Function**:
+   - Takes the digit and direction (UP for '3', RIGHT for '7') as input.
+   - Calculates the line's starting point and iteratively paints the digit in the given direction.
+
+3. **Applying `paint_line`**:
+   - Calls `paint_line` for both '3' and '7' to draw the lines.
+
+4. **Rest of the logic**: Similar to version 1.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  one_loc = first(ofcolor(I, ONE))
+  O = paint(canvas(ZERO, shape(I)), {(ONE, one_loc)})
+  for d, direction in ((THREE, UP), (SEVEN, RIGHT)):
+    for i in range(colorcount(I, d)):
+      offset = multiply((i - colorcount(I, d) // 2, i - colorcount(I, d) // 2), direction)
+      O = fill(O, d, {add(one_loc, offset)})
+  return paint(O, {(v, (i, j)) for v, (i, j) in asobject(I) if v != ONE})
+```
+
+**Explanation:**
+
+This version further generalizes the line painting logic by iterating over a list of digit-direction pairs.
+
+1. **Initialization**: Similar to previous versions.
+
+2. **Iterating and Painting**:
+   - Iterates over a list of tuples, each containing a digit ('3' or '7') and its corresponding direction.
+   - For each digit-direction pair, it calculates the line's position and paints it iteratively.
+
+3. **Finalizing**:
+   - After painting both lines, it paints all digits from the input grid except '1' onto the output grid, ensuring other digits remain in their original positions.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  one_loc = first(ofcolor(I, ONE))
+  O = canvas(ZERO, shape(I))
+  for v, (i, j) in asobject(I):
+    if v == THREE:
+      O = fill(O, v, {(one_loc[0] - colorcount(I, v) // 2 + j - one_loc[1], one_loc[1])})
+    elif v == SEVEN:
+      O = fill(O, v, {(one_loc[0], one_loc[1] + 1 + i - one_loc[0])})
+    else:
+      O = fill(O, v, {(i, j)})
+  return fill(O, ONE, {one_loc})
+```
+
+**Explanation:**
+
+This version simplifies the logic by directly manipulating cell coordinates during iteration.
+
+1. **Initialization**: Similar to previous versions.
+
+2. **Iterating and Painting**:
+   - Iterates through each cell in the input grid.
+   - If the cell contains '3', it calculates its position on the vertical line above '1' and fills the corresponding cell in the output grid.
+   - If the cell contains '7', it calculates its position on the horizontal line to the right of '1' and fills the corresponding cell in the output grid.
+   - For all other digits, it directly copies them to their corresponding positions in the output grid.
+
+3. **Finalizing**: Similar to version 1.
+
+This version avoids explicitly calculating line lengths or offsets, streamlining the code while maintaining clarity.

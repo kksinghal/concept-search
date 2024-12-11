@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation focuses on objects within the grid and applies a specific pattern of recoloring:
+
+**For each object:**
+
+1. **Identify horizontal segments:**  The transformation targets horizontal segments within each object, starting from the second row of the object.
+2. **Recolor segments:** These segments are recolored with the value '2'. 
+3. **Skip first and last cell:** Importantly, the first and last cell of each segment remain unchanged, preserving the original object outline. 
+
+Let's visualize this with an example from Output_1:
+
+```
+0 5 5 5 5 5 5 0 0 0
+0 5 2 2 2 2 5 0 0 0 
+0 5 2 2 2 2 5 0 0 0
+0 5 2 2 2 2 5 0 0 0
+0 5 5 5 5 5 5 0 0 0
+```
+
+The second, third, and fourth rows of the top object are recolored. Notice how the first and last '5' in these rows remain unchanged.
+
+
+## Program Versions & Explanations:
+
+Here are five distinct program versions in the provided DSL to achieve this transformation:
+
+**Program Version 1**
+
+```python
+def program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, T, F, T):
+    if size(obj) > 1:
+      O = paint(O, obj)
+      for i in range(1, height(obj) - 1):
+        O = underfill(O, 2, shift(crop(obj, (i, 1), (1, width(obj) - 2)), (uppermost(obj), 0))) 
+  return O 
+```
+
+**Explanation:**
+
+1. **Initialize Canvas:** `O = canvas(mostcolor(I), shape(I))` creates a blank canvas (`O`) of the same size and background color as the input grid (`I`).
+2. **Iterate Objects:** `for obj in objects(I, T, F, T):` iterates through each object in the input grid. `T, F, T` ensures we consider objects with the same color, no diagonal connections, and exclude the background.
+3. **Paint Original Object:** `O = paint(O, obj)` paints the original object onto the canvas. This ensures the object's outline remains unchanged.
+4. **Iterate Segment Rows:** `for i in range(1, height(obj) - 1):` iterates through the rows of the object, excluding the first and last rows.
+5. **Extract and Shift Segment:** 
+   -  `crop(obj, (i, 1), (1, width(obj) - 2))` extracts a one-row segment, excluding the first and last cells.
+   - `shift(..., (uppermost(obj), 0))` shifts the segment back to its original vertical position within the object.
+6. **Underfill:** `O = underfill(O, 2, ...)` fills the canvas with '2' at the indices defined by the shifted segment, but only where the background color is present. This ensures only the internal part of the segment is recolored. 
+
+**Program Version 2**
+
+```python
+def program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, T, F, T):
+    if size(obj) > 1:
+      O = paint(O, obj)
+      for j in range(1, width(obj) - 1):
+        O = underfill(O, 2, {(i, leftmost(obj) + j) for i in range(uppermost(obj) + 1, lowermost(obj))})
+  return O
+```
+
+**Explanation:**
+
+1. **Canvas Initialization:**  Same as Version 1.
+2. **Object Iteration:** Same as Version 1.
+3. **Paint Original Object:** Same as Version 1.
+4. **Iterate Segment Columns:** `for j in range(1, width(obj) - 1):` iterates through columns, excluding the first and last.
+5. **Construct Segment Indices:** `{(i, leftmost(obj) + j) for i in range(uppermost(obj) + 1, lowermost(obj))}` directly generates the indices of the segment within the object, excluding the first and last cells in each row.
+6. **Underfill:** Same as Version 1.
+
+**Program Version 3**
+
+```python
+def program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    if size(obj) > 1:
+      for i in range(uppermost(obj) + 1, lowermost(obj)):
+        for j in range(leftmost(obj) + 1, rightmost(obj)):
+          O = fill(O, 2, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Direct Modification:** `O = I` starts by copying the input grid.
+2. **Object Iteration:** Same as Version 1.
+3. **Iterate Internal Cells:** Nested loops `for i...` and `for j...` iterate through all cells within the object's bounding box, excluding the border cells.
+4. **Fill:** `O = fill(O, 2, {(i, j)})` fills each internal cell with the value '2'.
+
+**Program Version 4**
+
+```python
+def program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    if size(obj) > 1:
+      O = underfill(O, 2, backdrop(shift(crop(obj, (1, 1), (height(obj) - 2, width(obj) - 2)), (uppermost(obj), leftmost(obj)))))
+  return O
+```
+
+**Explanation:**
+
+1. **Direct Modification:** Same as Version 3.
+2. **Object Iteration:** Same as Version 1.
+3. **Extract Inner Object:** 
+   - `crop(obj, (1, 1), (height(obj) - 2, width(obj) - 2))` extracts the inner portion of the object, removing the outer border.
+   -  `shift(..., (uppermost(obj), leftmost(obj)))` shifts the extracted portion back to the original position.
+4. **Backdrop and Underfill:** 
+   - `backdrop(...)` generates indices covering the entire area of the shifted inner object.
+   - `underfill(O, 2, ...)` fills '2' within this backdrop, but only where the background color exists. 
+
+**Program Version 5**
+
+```python
+def program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    if size(obj) > 1:
+      O = paint(O, recolor(2, difference(backdrop(obj), box(obj))))
+  return O
+```
+
+**Explanation:**
+
+1. **Direct Modification:** Same as Version 3.
+2. **Object Iteration:** Same as Version 1.
+3. **Calculate Indices to Recolor:** 
+   - `box(obj)` gets the indices of the object's outer border.
+   - `backdrop(obj)` gets indices covering the object's bounding box.
+   - `difference(...)` finds the indices inside the bounding box but not part of the border.
+4. **Recolor and Paint:** 
+   - `recolor(2, ...)` creates a new object with the color '2' at the calculated indices.
+   - `paint(O, ...)` paints this new object onto the output grid.
+
+These five versions demonstrate distinct approaches to achieving the same transformation, highlighting the flexibility and expressiveness of the provided DSL. Each version leverages different combinations of functions and logic, showcasing the diversity of solutions possible within this programming framework. 

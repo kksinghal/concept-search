@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation consistently involves recoloring objects in the input grid based on their size. The largest object in the grid is always recolored to '8'.  Here's a breakdown of the additional logic:
+
+* **All Inputs:** The smallest object that shares a color with any non-smallest object is recolored to '1'. This means if the smallest object's color only appears in that object, it is not recolored.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  largest_obj = argmax(objs, size)
+  color_counts = {}
+  for obj in objs:
+    color_val = color(obj)
+    if color_val not in color_counts:
+      color_counts[color_val] = 0
+    color_counts[color_val] += 1
+  smallest_shared_color_obj = None
+  for obj in objs:
+    if color_counts[color(obj)] > 1 and (smallest_shared_color_obj is None or size(obj) < size(smallest_shared_color_obj)):
+      smallest_shared_color_obj = obj
+  recolored_objs = recolor(8, largest_obj)
+  if smallest_shared_color_obj is not None:
+    recolored_objs = combine(recolored_objs, recolor(1, smallest_shared_color_obj))
+  O = paint(I, recolored_objs)
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, univalued=True, diagonal=False, without_bg=True)` identifies all objects in the grid.
+2. **Find Largest Object:** `argmax(objs, size)` finds the largest object.
+3. **Find Smallest Object with Shared Color:** 
+    - A dictionary `color_counts` tracks the occurrences of each color.
+    - The loop iterates through objects, finding the smallest object whose color count is greater than 1 (meaning it shares the color with another object).
+4. **Recolor Objects:** 
+    -  The largest object is recolored to '8'.
+    - If a smallest object with a shared color exists, it is recolored to '1'.
+5. **Paint Recolored Objects:** The recolored objects are painted onto the input grid, producing the output.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  shared_color_objs = sfilter(objs, lambda obj: any(color(obj) == color(other_obj) and size(other_obj) != size(obj) for other_obj in objs))
+  smallest_shared_color_obj = argmin(shared_color_objs, size) if shared_color_objs else None
+  recolored_objs = combine(recolor(8, largest_obj), recolor(1, smallest_shared_color_obj) if smallest_shared_color_obj else frozenset())
+  O = paint(I, recolored_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to version 1.
+2. **Find Largest Object:** Similar to version 1.
+3. **Find Objects with Shared Colors:** `sfilter` is used to directly extract objects that share colors with other objects, excluding cases where the object is the only one of its color.
+4. **Find Smallest Shared Color Object:** If any shared color objects exist, `argmin` finds the smallest among them.
+5. **Recolor and Paint:** Similar to version 1, but using a conditional expression to handle cases where no shared color object is found.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = objects(I, True, False, True)
+  largest = argmax(objs, size)
+  other_objs = difference(objs, {largest})
+  smallest = argmin(other_objs, size) if other_objs else None
+  if any(color(smallest) == color(obj) for obj in other_objs if obj != smallest):
+    O = paint(paint(I, recolor(8, largest)), recolor(1, smallest))
+  else:
+    O = paint(I, recolor(8, largest))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Largest Object:** Similar to previous versions.
+2. **Find Other Objects:** `difference` is used to get a set of objects excluding the largest.
+3. **Find Smallest of Other Objects:**  `argmin` finds the smallest object from the remaining ones.
+4. **Check for Shared Color:**  It directly iterates through the `other_objs` to check if the smallest object's color is shared by any other object.
+5. **Conditional Recoloring and Painting:** Based on the shared color check, either only the largest object is recolored, or both the largest and the smallest shared-color objects are recolored and painted.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  filtered_objs = sfilter(objs, lambda obj: obj != largest_obj and any(color(obj) == color(other) for other in objs if other != obj))
+  smallest_to_recolor = argmin(filtered_objs, size) if filtered_objs else None
+  O = paint(paint(I, recolor(8, largest_obj)), recolor(1, smallest_to_recolor) if smallest_to_recolor else frozenset())
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Largest Object:** Same as previous versions.
+2. **Filter Objects for Shared Colors:**  `sfilter` is used with a lambda function to directly select objects that are not the largest and have their color appearing in at least one other object. 
+3. **Find Smallest to Recolor:** If any filtered objects remain, `argmin` finds the smallest.
+4. **Recolor and Paint:** The recoloring and painting logic is similar to version 2, concisely handling the potential absence of a smallest shared-color object.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  def is_smallest_shared_color(obj):
+    return any(color(obj) == color(other) and size(obj) < size(other) for other in objs)
+  smallest_shared_color_obj = next((obj for obj in objs if is_smallest_shared_color(obj)), None)
+  recolored_objs = recolor(8, largest_obj)
+  if smallest_shared_color_obj:
+    recolored_objs = combine(recolored_objs, recolor(1, smallest_shared_color_obj))
+  O = paint(I, recolored_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Largest Object:** Same as previous versions.
+2. **Define Helper Function:** A helper function `is_smallest_shared_color` is defined to determine if an object is the smallest one with its color.
+3. **Find Smallest Shared Color Object:** A generator expression combined with `next` is used to find the first (and thus smallest) object that satisfies `is_smallest_shared_color`.
+4. **Recolor and Paint:** The logic for recoloring and painting remains similar to previous versions, using the identified objects to modify the grid. 

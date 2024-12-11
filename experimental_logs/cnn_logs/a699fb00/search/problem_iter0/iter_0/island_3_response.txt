@@ -1,0 +1,146 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) in the input grid and inserting a new digit (2) to the right of each original digit within the object, effectively stretching the object horizontally. The background (digit 0) remains unchanged.
+
+**Example:**
+
+Input:
+
+```
+1 0 1 0 0
+0 0 0 0 0
+0 0 0 0 0
+0 1 0 1 0
+0 0 0 0 0
+```
+
+Output:
+
+```
+1 2 1 0 0
+0 0 0 0 0
+0 0 0 0 0
+0 1 2 1 0
+0 0 0 0 0
+```
+
+Here, each '1' in the input grid is part of an object. In the output, a '2' is inserted to the right of each '1', expanding the object horizontally.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  new_objs = set()
+  for obj in objs:
+    new_obj = set()
+    for v, (i, j) in obj:
+      new_obj.add((v, (i, j)))
+      new_obj.add((2, (i, j + 1)))
+    new_objs.add(frozenset(new_obj))
+  O = paint(I, merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `fgpartition(I)` identifies all objects (excluding the background) in the input grid `I`.
+2. **Stretch Objects:** For each object:
+    -  Iterate through its cells `(v, (i, j))`.
+    - Add the original cell and a new cell with value '2' to its right `(2, (i, j + 1))` to `new_obj`.
+3. **Paint to Output:**
+    - Merge all the `new_objs` using `merge`.
+    - Paint the merged object onto the original grid `I` using `paint`.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  shifted_objs = mapply(lambda obj: shift(obj, RIGHT), objs)
+  recolored_objs = mapply(lambda obj: recolor(2, obj), shifted_objs)
+  O = paint(I, merge(objs | recolored_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to Version 1, `objects` function is used to identify objects.
+2. **Shift and Recolor:**
+    - `shifted_objs`: Each object is shifted one cell to the right using `shift(obj, RIGHT)`.
+    - `recolored_objs`: Each shifted object is recolored to have the value '2' using `recolor(2, obj)`.
+3. **Paint to Output:**
+    -  The original objects and the recolored, shifted objects are merged using `merge(objs | recolored_objs)`.
+    -  The merged object is painted onto the input grid `I` using `paint`.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0]) - 1):
+      if I[i][j] != 0 and I[i][j + 1] == 0:
+        O = fill(O, 2, {(i, j + 1)})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Fill:** This version iterates through each cell of the input grid `I`.
+2. **Conditional Fill:** If a cell contains a non-zero value and its right neighbor is zero, it fills the right neighbor with '2' using `fill(O, 2, {(i, j + 1)})`.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  indices = asindices(I)
+  right_indices = mapply(lambda loc: (loc[0], loc[1] + 1), indices)
+  filtered_indices = sfilter(right_indices, lambda loc: 0 <= loc[1] < len(I[0]) and I[loc[0]][loc[1]] == 0 and index(I, subtract(loc, RIGHT)) != 0)
+  O = fill(I, 2, filtered_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Get Indices:** `asindices(I)` retrieves all cell indices of the input grid.
+2. **Calculate Right Indices:** `right_indices` calculates the indices of cells immediately to the right of each cell in the grid.
+3. **Filter Indices:**  `filtered_indices` keeps only the right indices that satisfy the following:
+    - They are within the grid bounds (`0 <= loc[1] < len(I[0])`).
+    - The cell at the right index contains a zero (`I[loc[0]][loc[1]] == 0`).
+    - The cell to the left of the right index contains a non-zero value (`index(I, subtract(loc, RIGHT)) != 0`).
+4. **Fill Grid:**  Finally, it fills the cells at the `filtered_indices` with the value '2' using `fill`.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  new_objs = mapply(lambda obj: frozenset((v, add((i, j), (0, v))) for v, (i, j) in obj), objs)
+  O = paint(I, merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions, `fgpartition(I)` identifies objects in the grid.
+2. **Shift Based on Value:** For each object:
+    - Iterate through its cells `(v, (i, j))`.
+    - Calculate the new index by adding the object's value `v` to the column index `j`: `add((i, j), (0, v))`.
+    -  Create a new object with the original value `v` at the new index.
+3. **Paint to Output:**
+    - Merge the new objects using `merge(new_objs)`.
+    -  Paint the merged object onto the input grid `I` using `paint`.
+
+Each version utilizes different DSL functions and logic to achieve the same transformation. Choose the version that you find most readable and efficient for your use case. 

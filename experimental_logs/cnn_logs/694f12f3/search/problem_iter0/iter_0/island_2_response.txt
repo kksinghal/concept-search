@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:**
+
+1. **Identify the target object:** The transformation targets the upper rectangular object composed of '4's.
+2. **Inner Fill:**  The inner portion of the target object is recoloured. The two central columns of '4's are replaced with '1's. 
+3. **Lower Fill:** The row below the target object is recoloured. The four central '4's are replaced by '2's.
+
+**Input_1 to Output_1:**
+
+1. **Identify the target objects:**  The transformation targets both rectangular objects composed of '4's.
+2. **Inner Fill:**  The inner portion of each target object is recoloured. For the upper object, the three central columns of '4's are replaced with '2's. For the lower object, the two central columns of '4's are replaced by '1's.
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve_to_be_generated(I):
+    objs = objects(I, T, F, T)  # Extract objects
+    target = argmax(objs, size)  # Find the largest object
+    h, w = shape(target)
+    
+    # Define inner fill area
+    inner_start = (uppermost(target) + 1, leftmost(target) + w//3)
+    inner_dims = (h - 2,  w//3  + (1 if w % 3 else 0))
+    inner_fill = toindices(crop(I, inner_start, inner_dims))
+    
+    # Define lower fill area
+    lower_fill = toindices(shift(crop(I, (lowermost(target) + 1, 0), (1, w)), (0, leftmost(target) + w//3 - 1)))
+
+    O = underfill(I, 1, inner_fill)  # Fill inner area with 1
+    O = underfill(O, 2, lower_fill)  # Fill lower area with 2
+    return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  `objects(I, T, F, T)` isolates the objects within the grid. 
+2. **Find Target:** `argmax(objs, size)` identifies the largest object, assuming it's the one to be modified.
+3. **Calculate Dimensions:** The height (`h`) and width (`w`) of the target object are determined.
+4. **Inner Fill Area:** `inner_start` and `inner_dims` define the starting point and size of the inner fill area.
+5. **Lower Fill Area:**  `lower_fill` defines the indices for the row below the target object.
+6. **Apply Fills:** `underfill` selectively recolours the grid using the defined areas.
+
+**Program Version 2:**
+
+```python
+def solve_to_be_generated(I):
+    obj = argmax(objects(I, T, F, T), size)  # Target object
+
+    # Inner fill
+    inner_left = shift(crop(obj, (0, 0), shape(obj)), (1, width(obj)//3))
+    inner_right = shift(crop(obj, (0, 2 * width(obj)//3), shape(obj)), (1, -width(obj)//3))
+    inner_fill = toindices(combine(inner_left, inner_right))
+
+    # Lower fill
+    lower_fill = toindices(shift(crop(obj, (height(obj) - 1, 0), (1, width(obj))), (1, width(obj)//3 - 1)))
+
+    O = underfill(I, 1, inner_fill) 
+    O = underfill(O, 2, lower_fill) 
+    return O
+```
+
+**Explanation:**
+
+This version focuses on directly manipulating the target object to determine fill areas.
+
+1. **Extract Target:**  Similar to version 1.
+2. **Inner Fill:**  `inner_left` and `inner_right` crop and shift portions of the target object to represent the sides of the inner fill area. These are combined, and their indices are used for filling.
+3. **Lower Fill:** The bottom row of the target object is cropped, shifted, and its indices are used for filling.
+
+**Program Version 3:**
+
+```python
+def solve_to_be_generated(I):
+    obj = argmax(objects(I, T, F, T), size)
+
+    # Calculate inner fill boundaries
+    left_bound = leftmost(obj) + width(obj)//3
+    right_bound = leftmost(obj) + 2 * width(obj)//3 
+    
+    # Apply inner fill
+    O = I
+    for i in range(uppermost(obj) + 1, lowermost(obj)):
+        for j in range(leftmost(obj), rightmost(obj) + 1):
+            if left_bound <= j <= right_bound:
+                O = fill(O, 1, {(i, j)}) 
+
+    # Apply lower fill
+    for j in range(left_bound, right_bound + 1):
+        O = fill(O, 2, {(lowermost(obj) + 1, j)})
+
+    return O
+```
+
+**Explanation:**
+
+This version uses iterative filling based on calculated boundaries.
+
+1. **Extract Target:** Same as previous versions.
+2. **Calculate Boundaries:** `left_bound` and `right_bound` determine the horizontal range for the inner fill.
+3. **Iterative Inner Fill:** The code iterates through cells within the target object's boundaries and applies the fill if the cell falls within the calculated horizontal range.
+4. **Iterative Lower Fill:** Similar logic is used to iteratively fill the row below the target object.
+
+**Program Version 4:**
+
+```python
+def solve_to_be_generated(I):
+    obj = argmax(objects(I, T, F, T), size) 
+    h, w = shape(obj)
+
+    O = I
+    for i in range(1, h - 1):  # Iterate within the object's height
+        for j in range(w):
+            if w//3 <= j < 2 * w//3:  # Check for inner fill columns
+                O = fill(O, 1, {(uppermost(obj) + i, leftmost(obj) + j)})
+    
+    # Lower fill using shifting
+    lower_segment = shift(crop(obj, (h-1, w//3 - 1), (1, w//3 + (1 if w % 3 else 0))), (1, 0))
+    O = underfill(O, 2, toindices(lower_segment))
+
+    return O 
+```
+
+**Explanation:**
+
+This version combines iterative and object manipulation approaches.
+
+1. **Target and Dimensions:** Similar to previous versions.
+2. **Iterative Inner Fill:** Iterates within the target object's height, checking for columns within the inner fill range and filling accordingly.
+3. **Lower Fill:**  A segment of the target object's bottom row is cropped, shifted to the lower row, and its indices are used for filling.
+
+**Program Version 5:**
+
+```python
+def solve_to_be_generated(I):
+    obj = argmax(objects(I, T, F, T), size) 
+    h, w = shape(obj)
+
+    # Define inner and lower fill areas as objects
+    inner_fill = {(1, (i, j)) for i in range(uppermost(obj) + 1, lowermost(obj)) for j in range(leftmost(obj) + w//3, leftmost(obj) + 2 * w//3 + (1 if w % 3 else 0))}
+    lower_fill = {(2, (lowermost(obj) + 1, j)) for j in range(leftmost(obj) + w//3 - 1, leftmost(obj) + 2 * w//3)}
+
+    O = underpaint(I, inner_fill)
+    O = underpaint(O, lower_fill)
+    return O
+```
+
+**Explanation:**
+
+This version constructs the fill areas as objects and utilizes `underpaint` for direct application.
+
+1. **Target and Dimensions:** Similar to previous versions.
+2. **Object-based Fill Areas:**  `inner_fill` and `lower_fill` are defined as sets of (value, index) tuples, effectively representing objects with the desired fill values and positions.
+3. **Direct Painting:** `underpaint` is used to directly paint these object-based fill areas onto the grid. 

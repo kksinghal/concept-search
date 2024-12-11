@@ -1,0 +1,105 @@
+## Transformation Analysis:
+
+The transformation shifts foreground objects in a specific direction based on their position in the grid:
+
+* **Input_0 to Output_0:** The foreground object (9s) is shifted one cell to the left.
+* **Input_1 to Output_1:** The foreground objects (6s) are shifted one cell to the right.
+* **Input_2 to Output_2:** The foreground object (9s) is shifted one cell upwards.
+* **Input_3 to Output_3:** The foreground objects (2s) are shifted one cell to the left.
+
+
+It seems the general rule is:
+
+* If the object touches the top border, it moves downwards.
+* If the object touches the right border, it moves to the left.
+* Otherwise, the object moves to the right.
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" using the DSL from `dsl.py`:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(canvas(mostcolor(I), shape(I)),
+               merge(shift(obj,
+                           (1 if uppermost(obj) == 0 else -1 if rightmost(obj) == width(I) - 1 else 0, 
+                            -1 if rightmost(obj) == width(I) - 1 else 1))
+                     for obj in fgpartition(I)))
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:**  Identifies and separates the foreground objects from the background in the input grid `I`.
+2. **`for obj in ...`:** Iterates through each identified foreground object.
+3. **`shift(obj, (..., ...))`:** Shifts each object according to the rule:
+    * **Vertical shift:**  `1` (down) if the object's uppermost row is at index `0` (top border), `-1` (up) if the object's rightmost column is at the grid's right border, else `0` (no vertical shift).
+    * **Horizontal shift:** `-1` (left) if the object's rightmost column is at the grid's right border, else `1` (right).
+4. **`merge(...)`:** Combines the shifted objects.
+5. **`paint(canvas(...), ...)`:** Paints the merged objects onto a blank canvas of the same size and background color as the input grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(canvas(mostcolor(I), shape(I)),
+               merge(apply(lambda obj: shift(obj, 
+                                                (bordering(obj, I) and uppermost(obj) == 0,
+                                                 -1 if rightmost(obj) == len(I[0]) - 1 else 1)),
+                           fgpartition(I))))
+```
+
+**Explanation:**
+
+* This version uses `bordering(obj, I)` to simplify the vertical shift logic. If the object is bordering the grid and touching the top, it moves down.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(canvas(mostcolor(I), shape(I)),
+               merge(apply(lambda obj: branch(rightmost(obj) == len(I[0]) - 1, 
+                                              shift(obj, (-1, -1)), 
+                                              shift(obj, (bordering(obj, I) and uppermost(obj) == 0, 1))),
+                           fgpartition(I))))
+```
+
+**Explanation:**
+
+* This version utilizes `branch` for a clearer separation of the shift logic based on whether the object touches the right border.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  O = canvas(mostcolor(I), (h, w))
+  for obj in fgpartition(I):
+    O = paint(O, shift(obj, 
+                      (1 if uppermost(obj) == 0 else -1 if rightmost(obj) == w - 1 else 0, 
+                       -1 if rightmost(obj) == w - 1 else 1)))
+  return O
+```
+
+**Explanation:**
+
+* Instead of merging all objects and then painting them at once, this version iteratively paints each shifted object onto the canvas.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  return apply(lambda row: tuple(v if (i, j) in {(i, (j - 1) % len(row)) for obj in fgpartition(I) 
+                                    for v, (i, j) in obj if rightmost(obj) == len(I[0]) - 1 or (uppermost(obj) == 0 and bordering(obj, I))}
+                                 else mostcolor(I)
+                                 for j, v in enumerate(row)),
+               I)
+```
+
+**Explanation:**
+
+* This version directly manipulates the grid rows instead of working with objects. It determines the new position of each cell based on the transformation rule and constructs the output grid accordingly.
+
+
+These are just a few examples. You can create more variations by combining different functions and approaches. Remember to test your code to ensure it generates the correct output for all input grids. 

@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation seems to "sweep" or "stack" the objects within each grid towards the bottom-left corner, removing any empty space beneath them. The sweeping happens from left to right, then top to bottom.
+
+**Input_0:** 
+- The "2" object is shifted down to occupy the empty space beneath it.
+- The "1" object is shifted down and left to occupy the space vacated by the "2" object.
+- This creates a cascading effect, moving the "3" object down as well.
+
+**Input_1:**
+- All objects are swept downwards, filling the empty spaces below.
+
+**Input_2:**
+- The "2" and "3" objects at the bottom are unaffected.
+- The "1" object at the top is moved down to the first available space.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, False, False, True)
+  new_grid = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    col_objs = sorted(sfilter(objs, lambda obj: leftmost(obj) == j), key=uppermost)
+    current_i = height(I) - 1
+    for obj in col_objs:
+      new_grid = paint(new_grid, shift(obj, (current_i - uppermost(obj), 0)))
+      current_i -= height(obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, False, False, True)` extracts all objects except the background.
+2. **Create Empty Canvas:** `canvas(mostcolor(I), shape(I))` generates an empty grid of the same size and background color as the input.
+3. **Iterate Columns:** The outer loop iterates over each column of the grid.
+4. **Sort Objects by Row:** `sorted(sfilter(objs, lambda obj: leftmost(obj) == j), key=uppermost)` selects objects starting at the current column and sorts them based on their uppermost row.
+5. **Stack Objects:** For each object in the sorted list, it is shifted down to the lowest available position in the column and painted onto the new grid.
+6. **Return:** The transformed grid is returned.
+
+
+**Version 2:**
+
+```python
+def solve(I):
+  h, w = shape(I)
+  bg = mostcolor(I)
+  O = canvas(bg, (h, w))
+  for j in range(w):
+    current_i = h - 1
+    for i in range(h - 1, -1, -1):
+      if I[i][j] != bg:
+        O = paint(O, {(I[i][j], (current_i, j))})
+        current_i -= 1
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize:** Get grid dimensions (`h`, `w`) and background color (`bg`). Create an empty canvas (`O`).
+2. **Iterate Columns:** Loop through each column (`j`) of the grid.
+3. **Iterate Rows from Bottom:** For each column, loop through rows (`i`) from bottom to top.
+4. **Move Non-Background Cells:** If a cell is not background, paint it onto the canvas (`O`) at the lowest available position (`current_i`) in that column.
+5. **Update Available Position:**  Decrement `current_i` to track the next available position in the column.
+6. **Return:** Return the filled canvas.
+
+**Version 3:**
+
+```python
+def solve(I):
+  return rot270(dmirror(compose(lbind(rapply, rot90), lbind(apply, rot270))(
+    lbind(fork, lbind(order, uppermost), size)(objects(I, F, F, T))
+  )))
+```
+
+**Explanation:**
+
+This version utilizes function composition and rotations to achieve the desired transformation in a more concise manner:
+
+1. **Extract & Sort Objects:** `objects(I, F, F, T)` gets non-background objects, then `lbind(fork, lbind(order, uppermost), size)` sorts them by `uppermost` position.
+2. **Apply Transformations:** 
+    - `lbind(apply, rot270)` applies a 270-degree rotation to each object.
+    - `lbind(rapply, rot90)` applies a 90-degree rotation to the result of the previous step.
+3. **Final Transformations:** `dmirror` mirrors the grid diagonally, and `rot270` rotates it back 270 degrees to achieve the final output.
+
+**Version 4:**
+
+```python
+def solve(I):
+  O = I
+  for j in range(width(I)):
+    column = tuple(I[i][j] for i in range(height(I)))
+    new_column = tuple(v for v in column if v != mostcolor(I)) + tuple(mostcolor(I) for _ in range(len(column) - len(tuple(v for v in column if v != mostcolor(I))))
+)
+    O = paint(O, {(v, (i, j)) for i, v in enumerate(new_column)})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate Columns:**  The code iterates through each column (`j`) of the input grid (`I`).
+2. **Process Column:** For each column, it extracts the column values and creates a new column by:
+    - Filtering out the background color values.
+    - Appending the background color to fill the remaining space.
+3. **Paint New Column:** The new column is then painted back onto the grid (`O`) at the same column index.
+4. **Return:** The modified grid is returned.
+
+**Version 5:**
+
+```python
+def solve(I):
+  objs = objects(I, False, False, True)
+  new_objs = set()
+  for obj in objs:
+    new_obj = set()
+    min_i = uppermost(obj)
+    for i in range(height(obj)):
+      for j in range(width(obj)):
+        if (min_i + i, leftmost(obj) + j) in toindices(obj):
+          new_obj.add((index(I, (min_i + i, leftmost(obj) + j)), (min_i + i, leftmost(obj) + j)))
+    new_objs.add(frozenset(new_obj))
+  return paint(canvas(mostcolor(I), shape(I)), merge(new_objs))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Similar to previous versions, it starts by extracting non-background objects.
+2. **Process Each Object:** For each object, it determines its dimensions and iterates over its bounding box.
+3. **Shift Cells Down:** If a cell within the bounding box belongs to the object, it is added to the `new_obj` set, but its row index is adjusted to simulate the downward shift.
+4. **Reconstruct Objects:** The `new_obj` sets are converted back to frozen sets and collected in `new_objs`.
+5. **Paint and Return:** Finally, the new objects are painted onto a blank canvas and returned.
+
+Each version provides a different approach to solving the transformation, showcasing the flexibility and expressiveness of the provided DSL. 

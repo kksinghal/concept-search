@@ -1,0 +1,154 @@
+## Transformation Analysis:
+
+The transformation aims to identify objects (clusters of the same digit different from the background) and move them to specific quadrants based on their original center location. 
+
+* **Quadrant Division:** The grid is divided into four quadrants.
+* **Object Movement:**  
+    * Objects with centers in the top-left quadrant remain in the top-left quadrant.
+    * All other objects are moved to the bottom-right quadrant.
+* **Color Change:** The background color (most frequent color) remains unchanged. All other colors are changed to '1'.
+
+**Example:**
+
+Input_0:
+```
+0 0 0 0 0 0 0 0 0
+0 5 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 5 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 5 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+```
+
+Output_0:
+```
+1 1 1 0 0 0 0 0 0
+1 1 1 0 0 0 0 0 0
+1 1 1 0 0 0 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 1 1 1 0 0 0
+0 0 0 0 0 0 1 1 1
+0 0 0 0 0 0 1 1 1
+0 0 0 0 0 0 1 1 1
+```
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  h, w = halve(shape(I))
+  objs = objects(I, T, F, T)
+  top_left_objs = sfilter(objs, lambda obj: center(obj)[0] < h and center(obj)[1] < w)
+  bottom_right_objs = difference(objs, top_left_objs)
+  moved_objs = mapply(lambda obj: shift(obj, subtract((h,w), ulcorner(obj))), bottom_right_objs)
+  recolored_objs = combine(top_left_objs, moved_objs)
+  O = paint(canvas(mostcommon(I), shape(I)), recolor(1, merge(recolored_objs)))
+  return O
+```
+
+**Explanation:**
+
+1. **Calculate Quadrant Boundaries:** Determine the midpoint of the grid to define the quadrants.
+2. **Identify Objects:** Extract all objects from the input grid.
+3. **Separate Objects by Quadrant:** Filter objects into two groups: those residing in the top-left quadrant and those outside it.
+4. **Move Objects:** Shift the objects outside the top-left quadrant to the bottom-right quadrant.
+5. **Combine Objects:** Merge the objects from both quadrants.
+6. **Recolor and Paint:** Create a canvas with the background color, paint the merged objects onto it, recoloring them to '1'.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  h, w = halve(shape(I))
+  objs = objects(I, T, F, T)
+  O = canvas(mostcommon(I), shape(I))
+  for obj in objs:
+    target_corner = (0, 0) if center(obj)[0] < h and center(obj)[1] < w else (h, w)
+    moved_obj = shift(obj, subtract(target_corner, ulcorner(obj)))
+    O = paint(O, recolor(1, moved_obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Calculate Quadrant Boundaries:** Determine the midpoint of the grid.
+2. **Identify Objects:** Extract all objects from the input grid.
+3. **Iterate and Move:** Loop through each object:
+    * Determine the target corner based on the object's center location.
+    * Shift the object to align its upper-left corner with the target corner.
+    * Recolor the object to '1' and paint it onto the canvas.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  h, w = halve(shape(I))
+  O = canvas(mostcommon(I), shape(I))
+  for i in range(h * 2):
+    for j in range(w * 2):
+      if I[i][j] != mostcommon(I):
+        target_i, target_j = (i, j) if i < h and j < w else (i + h - (i >= h), j + w - (j >= w))
+        O = paint(O, {(1, (target_i, target_j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Calculate Quadrant Boundaries:** Determine the midpoint of the grid.
+2. **Iterate Through Cells:** Loop through each cell in the input grid.
+3. **Conditional Painting:** If the cell's value is not the background color:
+    * Determine the target cell location based on quadrant rules.
+    * Paint a '1' at the target cell on the output canvas.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  h, w = halve(shape(I))
+  quadrant_map = {(i, j): (0, 0) if i < h and j < w else (h, w) for i in range(h * 2) for j in range(w * 2)}
+  O = canvas(mostcommon(I), shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != mostcommon(I):
+        O = paint(O, {(1, quadrant_map[(i, j)])})
+  return O
+```
+
+**Explanation:**
+
+1. **Calculate Quadrant Boundaries:** Determine the midpoint of the grid.
+2. **Create Quadrant Map:** Precompute a dictionary mapping each cell's coordinates to its target quadrant corner.
+3. **Iterate Through Cells:** Loop through each cell in the input grid.
+4. **Conditional Painting:** If the cell's value is not the background color:
+    * Retrieve the target corner from the quadrant map.
+    * Paint a '1' at the target corner on the output canvas.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  h, w = halve(shape(I))
+  O = canvas(mostcommon(I), shape(I))
+  for (val, (i, j)) in asobject(I):
+    if val != mostcommon(I):
+      target_loc = (i, j) if i < h and j < w else (h + i % h, w + j % w)
+      O = paint(O, {(1, target_loc)})
+  return O
+```
+
+**Explanation:**
+
+1. **Calculate Quadrant Boundaries:** Determine the midpoint of the grid.
+2. **Iterate Through Cells as Objects:** Treat each cell as a single-cell object and iterate.
+3. **Conditional Painting:** If the object's value is not the background color:
+    * Determine the target location based on quadrant rules.
+    * Paint a '1' at the target location on the output canvas. 
+
+
+These five versions use different logic and function combinations to achieve the same transformation, demonstrating the flexibility and expressive power of the DSL.

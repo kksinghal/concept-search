@@ -1,0 +1,569 @@
+3.6666666666666665, tensor(0.0228), Description: Add a red square to the right of each colored square in the input grid. 
+:: def jfabcccbbjajedgejbgfafcicdeeabgb(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True) 
+  extension = frozenset((TWO, add(loc, RIGHT)) for obj in objs for v, loc in obj)
+  O = underfill(I, TWO, extension)
+  return O
+ 
+4.666666666666667, tensor(1.8328), Description: For each colored shape in the input grid, draw a red border around it. The border should be one square thick and should not overlap with any other borders. 
+:: def cfijchbjjacaefbcjjhhffbahadaeabi(I):
+  objs = objects(I, T, F, T) # Identify objects, no diagonals, without background
+  O = I
+  for obj in objs:
+    border = delta(toindices(obj)) # Get the border indices
+    O = fill(O, 2, border) # Fill the border with '2'
+  return O 
+ 
+40.666666666666664, tensor(1.7793), Description: For each non-background cell in the input grid, draw a red border around it. The border should be one square thick and should not overlap with any other borders. Then, repaint the original cell with its original color. 
+:: def cbehcggffcefeddjjgefafbccdbhddjc(I):
+  O = canvas(mostcolor(I), shape(I))  # Create a blank canvas of background color
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != mostcolor(I): # If it's not background
+        O = fill(O, 2, neighbors((i, j))) # Fill neighbors with '2'
+        O = fill(O, val, {(i, j)}) # Repaint the original cell
+  return O
+ 
+13.0, tensor(1.7696), Description: Copy the input grid. For each non-background cell, place the cell in the output grid with its original color. If the cell has a background neighbor, draw a red border around it. 
+:: def ddeefafdaagfecagjggedgjjdcffihdf(I):
+  O = canvas(mostcolor(I), shape(I)) # Start with a blank canvas
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != mostcolor(I):
+        O = paint(O, {(val, (i,j))}) # Place the object cell
+        if any(index(I, (ni, nj)) == mostcolor(I) for ni, nj in neighbors((i, j))): # Check for background neighbors
+          O = fill(O, 2, {(i, j)})  # Fill with '2' if it has background neighbors
+  return O
+ 
+4.666666666666667, tensor(0.1560), Description: For each blue square in the input grid, add a red square to the right of it. If the blue square is on the right edge of the grid, do not add a red square. 
+:: def hccaebcjcbecedadieifafdejbgfacbf(I):
+  ones = ofcolor(I, ONE) # Get indices of all '1's
+  neighbors_right = mapply(lambda loc: (loc[0], loc[1]+1), ones) # Calculate indices one position to the right of each '1'
+  valid_neighbors = intersection(neighbors_right, asindices(I)) # Filter indices that fall within the grid bounds
+  O = underfill(I, TWO, valid_neighbors) # Fill '2' at valid neighbor indices
+  return O
+ 
+3.6666666666666665, tensor(0.1022), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def ffafeefabeefefbbafbgdbfcafdhaagb(I):
+  O = I  # Initialize the output grid as a copy of the input
+  for i in range(len(I)):
+    for j in range(len(I[0])-1):
+      if I[i][j] == ONE and I[i][j+1] == ZERO:  # Check if current cell is '1' and the cell to the right is '0'
+        O = fill(O, TWO, {(i, j+1)})  # If true, fill '2' at the cell to the right
+  return O
+ 
+11.666666666666666, tensor(0.0789), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds and not part of the same object, fill that cell with red. 
+:: def egcfehdaahahecdebchiabghefgbcffe(I):
+  objs = objects(I, T, F, F) # Identify objects formed by adjacent '1's
+  O = I
+  for obj in objs:
+    for value, (i, j) in obj: 
+      if j < len(I[0])-1 and (value, (i, j+1)) not in obj:  # Check if the right neighbor is within bounds and not part of the same object
+        O = fill(O, TWO, {(i, j+1)})  # If true, fill '2' in the output grid
+  return O
+ 
+11.666666666666666, tensor(0.0848), Description: For each black square in the input grid, if the square to the right of it is blue in the grid rotated 180 degrees, fill that square with red. 
+:: def hdibegibccgbefdaabbeagjdbecadhbc(I):
+  shifted_grid = rot90(rot90(I)) # Rotate the grid by 180 degrees
+  O = I
+  for i in range(len(shifted_grid)):
+    for j in range(len(shifted_grid[0])-1):
+      if shifted_grid[i][j] == ZERO and shifted_grid[i][j+1] == ONE: # Check if current cell is '0' and the cell to the right is '1' in the rotated grid
+        O = fill(O, TWO, {(i, j)}) # If true, fill '2' in the original grid's corresponding cell
+  return O
+ 
+8.333333333333334, tensor(1.8160), Description: For each blue object in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def dbiiaegaajcdecidafdbgcdffdcihghe(I):
+    objs = objects(I, True, False, False)  # Find all connected objects
+    one_objs = colorfilter(objs, 1)  # Filter for objects with color '1'
+    expanded_objs = frozenset({
+        combine(obj, {(1, add(loc, RIGHT))})  # Expand each object by adding '2' to the right
+        for obj in one_objs for loc in toindices(obj) if index(I, add(loc, RIGHT)) == 0
+    })
+    O = paint(I, merge(expanded_objs))  # Paint the expanded objects onto the input grid
+    return O
+ 
+3.6666666666666665, tensor(1.8081), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def bahdcdedaebhebahacffbicjabffiebe(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == 1 and j + 1 < len(row) and I[i][j+1] == 0:
+        O = fill(O, 2, {(i, j+1)})
+  return O
+ 
+13.0, tensor(1.8081), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def diafajafifcdeebdajdbfcebdbfebifd(I):
+  indices = asindices(I)
+  right_shifted = shift(indices, RIGHT)
+  intersection = indices & right_shifted
+  expansion_candidates = {subtract(loc, RIGHT) for loc in intersection}
+  expansion_indices = frozenset({loc for loc in expansion_candidates if index(I, loc) == 1 and index(I, add(loc, RIGHT)) == 0})
+  O = fill(I, 2, expansion_indices)
+  return O
+ 
+3.3333333333333335, tensor(1.7737), Description: For each black square in the input grid, if the square to the right of it is blue, fill that square with red. 
+:: def gcfaiffaadaheebfbceccfabgccfaeaa(I):
+    return tuple(
+        tuple(
+            2 if j + 1 < len(row) and row[j + 1] == 1 and val == 0 else val
+            for j, val in enumerate(row)
+        )
+        for row in I
+    )
+ 
+3.6666666666666665, tensor(1.7778), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def dacafaeeadcjebdjiccdbdjjfdaffaab(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == ONE and j < len(row) - 1 and I[i][j + 1] == ZERO:
+        O = fill(O, TWO, {(i, j + 1)})
+  return O
+ 
+8.333333333333334, tensor(1.3947), Description: Copy the input grid. For each colored shape, add a square of the same color to the right of the rightmost cell of the shape. If the rightmost cell is already on the right edge of the grid, do nothing. 
+:: def faadjdgfbeadeeahabeibaijcghaebfc(I):
+  O = canvas(ZERO, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    O = paint(O, obj)
+    rightmost_cell = (color(obj), (uppermost(obj), rightmost(obj) + 1))
+    O = paint(O, {rightmost_cell}) 
+  return O
+ 
+13.0, tensor(1.8288), Description: Draw a red border around each colored shape in the input grid. The border should be one square thick and should not overlap with any other borders. 
+:: def fbjjdddicihgecbcicaebbeedafjjfbj(I):
+  O = canvas(mostcolor(I), shape(I)) # Initialize output
+  objs = objects(I, False, True, True) # Extract objects
+  for obj in objs:
+    border = toindices(obj) & outbox(obj) # Find border cells
+    O = fill(O, 2, border) # Mark border cells
+  return O
+ 
+54.0, tensor(0.0515), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds and is black, fill that cell with red. 
+:: def afaecbajhgcaecfjbfbdhbcfbhfafhea(I):
+  objs = objects(I, T, F, F) # Identify objects formed by adjacent '1's
+  O = I
+  for obj in objs:
+    for i, j in toindices(obj):
+      if j < len(I[0]) - 1 and I[i][j + 1] == ZERO: # Check right boundary and emptiness
+        O = fill(O, TWO, {(i, j + 1)})
+  return O
+ 
+13.0, tensor(1.0891), Description: For each blue square in the input grid, add a red square to the right of it. If the square to the right is already colored, do nothing. 
+:: def gadfeddjdbideedcadffcjhhdaadibjg(I):
+  shifted_grid = canvas(0, shape(I)) 
+  h, w = shape(I)
+  for i in range(h):
+    for j in range(w - 1):
+      if I[i][j] == 1: 
+        shifted_grid = fill(shifted_grid, 2, {(i, j + 1)})
+  O = cellwise(I, shifted_grid, 0) 
+  return O
+ 
+4.666666666666667, tensor(1.3123), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is the most common color in the grid. 
+:: def jdhdgaacefhheibeaafccdfbjcaecbbf(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == ONE and j < len(row) - 1 and I[i][j + 1] == mostcommon(I):
+        O = fill(O, TWO, {(i, j + 1)})
+  return O
+ 
+12.666666666666666, tensor(0.9071), Description: For each cell in the input grid, if the cell to the right is within the grid bounds, fill that cell with red. Otherwise, keep the original cell color. 
+:: def gfhijecbefdfecbcaeeefaihaebfehbh(I):
+  shifted_I = fill(I, TWO, shift(asindices(I), RIGHT))
+  O = cellwise(I, shifted_I, fallback=ZERO)
+  return O
+ 
+22.333333333333332, tensor(1.7415), Description: For each colored shape in the input grid, draw a red border around it. The border should be one square thick and should not overlap with any other borders. If a colored square is adjacent to a black square, the border should extend to include the black square. 
+:: def aieacedbehghebecijfefedehfabebaj(I):
+    objs = objects(I, T, F, T)  # Get objects without diagonals, excluding background
+    O = I 
+    for obj in objs:
+      for c in obj:
+        surrounding = dneighbors(c[1])
+        for n in surrounding:
+          if index(I,n) == mostcolor(I):
+            O = fill(O, 2, {n})
+    return O
+ 
+54.0, tensor(0.0515), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds and is black, fill that cell with red. 
+:: def jaggdadbeijeecbdaifdiiacaafebifi(I):
+  objs = objects(I, T, F, F)  # Identify objects formed by adjacent '1's
+  O = I
+  for obj in objs:
+    O = underfill(O, TWO, shift(toindices(obj), RIGHT)) # Shift object indices right and fill with '2' if empty
+  return O
+ 
+4.666666666666667, tensor(1.8160), Description: For each blue object in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def aeacfdebddbbebbfiefgfaacddbhfdjd(I):
+  shifted_ones = mapply(lambda obj: shift(obj, RIGHT), objects(I, True, False, False))
+  O = cellwise(I, underpaint(I, recolor(2, shifted_ones)), 0) 
+  return O
+ 
+13.0, tensor(1.7778), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def egfcdiaieebceeggaeebcfhjfcfdabdd(I):
+  return tuple(tuple(2 if j < len(row)-1 and row[j] == 1 else v for j, v in enumerate(row)) for row in I)
+ 
+13.0, tensor(0.1532), Description: For each colored shape in the input grid, add a red square to the right of it. If the square to the right is already colored, keep the original color. Then, change all blue squares to red. 
+:: def dfaiicbedfhaeejibdhagfhbegebabga(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  right_shifted_objs = mapply(lambda obj: shift(obj, RIGHT), objs)
+  O = cellwise(I, paint(I, right_shifted_objs), fallback=ZERO)
+  O = replace(O, ONE, TWO)
+  return O
+ 
+16.666666666666668, tensor(1.7807), Description: For each colored shape in the input grid, extend the shape one square to the right, only if the square to the right is black. If the square to the right is already colored, keep the original shape. 
+:: def cededcacacfbebfcjcadcjcbabjbdbci(I):
+  extended_objs = mapply(
+      lambda obj: frozenset(
+          (v, (i, j + 1)) if index(I, (i, j + 1)) == ZERO else (v, (i, j))
+          for v, (i, j) in obj
+      ),
+      objects(I, univalued=True, diagonal=False, without_bg=True)
+  )
+  O = paint(canvas(ZERO, shape(I)), extended_objs)
+  return O
+ 
+3.6666666666666665, tensor(1.8095), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def eeeefdcbefgjeaecbaceeedahbbfgdfc(I):
+  objs = objects(I, T, F, T) 
+  O = I
+  for obj in objs:
+    for v, (i, j) in obj:
+      if v == 1:
+        h, w = len(I), len(I[0])
+        if j < w - 1:
+          O = fill(O, 2, {(i, j + 1)})
+  return O
+ 
+8.333333333333334, tensor(0.0152), Description: For each blue square in the input grid, if the square to the left of it is also blue, fill that square with the same color as the blue square to the left. Otherwise, keep the original color. 
+:: def bceccfaafhgfecjibdeeecgafiecaajj(I):
+  shifted = shift(asobject(I), (0, 1))
+  O = I
+  for v, (i, j) in shifted:
+    if index(I, (i, j - 1)) == 1:
+      O = fill(O, v, {(i, j)})
+  return O
+ 
+13.0, tensor(0.1022), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def babcfadegdejegacjadgbdbafcfdbfbg(I):
+  return tuple(tuple(2 if v == 1 and j < len(r)-1 and r[j+1] == 0 else v for j, v in enumerate(r)) for r in I)  # Directly check and fill within the input grid
+ 
+63.0, tensor(1.7370), Description: For each black square in the input grid, if the square to the right of it is within the grid bounds and is also black, fill that square with red. 
+:: def gegdajfhbdjaeeehjighbdjfddfaiidd(I):
+    shifted_right =  shift(asobject(I), (0,1)) # Shift the entire grid to the right
+    filtered_obj = sfilter(shifted_right, lambda x: x[1][1] < len(I[0]) and  x[0] == 0) #Keep only shifted '0's within the grid
+    indices_to_fill = toindices(filtered_obj) #Get the indices of these '0's
+    return paint(I, recolor(2, indices_to_fill)) # Paint these indices with '2' on the original grid
+ 
+4.666666666666667, tensor(1.1929), Description: For each colored shape in the input grid, add a red square to the right of it, only if the square to the right is within the grid bounds. 
+:: def ecccdhccaeghedabaifaaifadhbaeacd(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  extension = frozenset((TWO, add(loc, RIGHT)) for obj in objs for v, loc in obj if loc[1] < width(obj) - 1)
+  O = underfill(I, TWO, extension)
+  return O
+ 
+1.0, tensor(1.9900), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. If there are multiple blue squares in a row, only the first blue square that meets this condition will have a red square added to its right. 
+:: def eaedfhjggjefehfeaacbbafgbhifbgbe(I):
+  def modify_row(row):
+    new_row = list(row)  # Create a mutable copy of the row
+    for i in range(1, len(row)):  # Start from the second element
+      if row[i-1] == 1 and row[i] == 0:
+        new_row[i] = 2  # Modify the list in-place
+        break  # Only modify the first occurrence
+    return tuple(new_row)
+  return tuple(modify_row(r) for r in I)
+ 
+54.0, tensor(1.8160), Description: For each blue object in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def ecegdfcgceaheedejceggbeigbeaccec(I):
+  objects_of_ones = objects(I, True, False, False)
+  new_objects = set()
+  for obj in objects_of_ones:
+    for v, (i, j) in obj:
+      if j + 1 < len(I[0]) and index(I, (i, j+1)) == 0:
+        new_objects.add((2, (i, j+1)))
+  return paint(I, frozenset(new_objects))
+ 
+3.3333333333333335, tensor(1.5984), Description: For each black square in the input grid, if there is a blue square to its right, fill that black square with red. 
+:: def aafcfcibaecbebeeadahadfcaffefdba(I):
+  return tuple(
+      tuple(
+          TWO if any(I[i][k] == ONE and k == j + 1 for k in range(len(row))) else cell
+          for j, cell in enumerate(row)
+      )
+      for i, row in enumerate(I)
+  )
+ 
+646.0, tensor(1.8081), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def aibbcediaeieeefejcbbbcgcfdicajdg(I):
+  """
+  Uses list comprehension and zip to efficiently place 2s.
+  """
+  O = tuple(
+      tuple(
+          2 if j < len(row) - 1 and row[j] == 1 and k == j + 1 else v 
+          for j, v in enumerate(row) for k in range(len(row))
+      )
+      for row in I
+  )
+  return O
+ 
+3.3333333333333335, tensor(1.7414), Description: For each black square in the input grid, if the square to the right of it is blue, fill that square with red. 
+:: def gdbebjeahehfefadjdfeceddjcfbadfa(I):
+    return tuple(
+        tuple(
+            v if (j == len(r) - 1 or v != ZERO or r[j + 1] != ONE) else TWO 
+            for j, v in enumerate(r)
+        )
+        for r in I
+    )
+ 
+3.6666666666666665, tensor(1.6012), Description: For each colored shape in the input grid, add a red square to the right of it, only if the square to the right is black. If the square to the right is already colored, keep the original shape. 
+:: def eaghdedcefabecaaaigiaaebeabebdcf(I):
+  objs = objects(I, True, False, True)
+  return paint(I, merge({frozenset({(TWO, (i, j + 1))}) | obj for obj in objs for _, (i, j) in obj if j < len(I[0]) - 1}))
+ 
+7.0, tensor(1.5690), Description: For each black square in the input grid, if the square to the right or left of it is blue, fill that square with red. 
+:: def dcagdfiechieeidebhicgdcacfgffbec(I):
+    return tuple(
+        tuple(
+            TWO if (j < len(row) - 1 and I[i][j + 1] == ONE) or (j > 0 and I[i][j - 1] == ONE) else cell
+            for j, cell in enumerate(row)
+        )
+        for i, row in enumerate(I)
+    )
+ 
+3.6666666666666665, tensor(1.0710), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black and within the grid bounds. 
+:: def dfjcbfdjafgaefdbbdifacdeaacecfff(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = I
+  for obj in objs:
+    for value, (i, j) in obj:
+      if value == ONE and j < width(I) - 1:
+        O = fill(O, TWO, {(i, j + 1)})
+  return O
+ 
+4.666666666666667, tensor(0.2569), Description: For each blue square in the input grid, add a red square to the right of it. If the square to the right is already colored, keep the original color. Otherwise, keep the original cell color. 
+:: def gfabchebcjfeebedijbgjddbgjafcdec(I):
+  shifted_I = fill(I, TWO, shift(ofcolor(I, ONE), RIGHT))
+  O = cellwise(I, shifted_I, fallback=ZERO)
+  return O
+ 
+33.0, tensor(0.1183), Description: For each colored shape in the input grid, draw a red border around it. The border should be one square thick and should not overlap with any other borders. 
+:: def cafdejbgbbcaeedbieiaaeefhbfddabg(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    border = set()
+    for i, j in toindices(obj):
+      border |= neighbors((i, j))  # Add neighboring indices to border
+    border -= toindices(obj)  # Remove object's own indices
+    O = underfill(O, 2, border)  
+  return O
+ 
+4.666666666666667, tensor(0.8327), Description: For each colored shape in the input grid, copy the rightmost cell of the shape to the output grid. Then, copy the rest of the shape to the output grid, excluding the rightmost cell. This effectively shifts each shape one cell to the right. If the rightmost cell is already on the right edge of the grid, do nothing. 
+:: def fefdheadbahceffebdaaagafdajhgbdi(I):
+  O = canvas(ZERO, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      row_obj = sfilter(obj, lambda cell: cell[1][0] == i)
+      rightmost_cell = argmax(row_obj, lambda cell: cell[1][1])
+      O = paint(O, {rightmost_cell})
+    O = paint(O, remove(rightmost_cell, obj))
+  return O
+ 
+13.0, tensor(1.2919), Description: For each colored shape in the input grid, color the rightmost cell of each row of the shape red. 
+:: def ceeahaibhaadeejejdfagaddbabjiejb(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    for i, row in enumerate(I):
+      if i >= uppermost(obj) and i <= lowermost(obj):
+        j = max([j for j, v in enumerate(row) if (i, j) in toindices(obj)])
+        O = fill(O, TWO, {(i, j)})
+  return O
+ 
+3.6666666666666665, tensor(0.7495), Description: For each colored shape in the input grid, add a red square to the right of it, only if the square to the right is the most common color in the grid. 
+:: def jhbabiebccjdedfjabddehigfbiaagde(I):
+    objs = objects(I, T, F, T)
+    for obj in objs:
+        for v, (i, j) in obj:
+            if j + 1 < len(I[0]) and I[i][j + 1] == mostcolor(I):
+                I = fill(I, 2, {(i, j + 1)})
+    return I
+ 
+13.0, tensor(1.6138), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. 
+:: def fcdheffhbfaaefeebdhaabedigadbhbb(I):
+    return tuple(
+        tuple(
+            TWO if (cell == ONE and j < len(row) - 1 and I[i][j+1] == ZERO) else cell
+            for j, cell in enumerate(row)
+        )
+        for i, row in enumerate(I)
+    )
+ 
+13.0, tensor(1.3851), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black. If the blue square is on the right edge of the grid, do nothing. 
+:: def hejehgabechceeajjbcbcfiaffaeaibg(I):
+  return tuple(apply(lambda row: tuple(v if j == len(row) - 1 else (2 if v == 1 and row[j+1] == 0 else v) for j, v in enumerate(row)), I))
+ 
+40.666666666666664, tensor(0.3209), Description: For each colored shape in the input grid, draw a red border around it. The border should be one square thick and should not overlap with any other borders. If a colored square is adjacent to a black square, the border should extend to include the black square. 
+:: def hhdaedhcdbideeefagddghafdajebcad(I):
+  objs = objects(I, T, F, T)  # Identify objects, no diagonals, without background
+  O = I
+  for obj in objs:
+    surroundings = difference(
+        merge(apply(lambda cell: neighbors(cell[1]), obj)),  # All neighboring indices
+        merge(apply(toindices, objs))  # Indices of all objects
+    )
+    O = fill(O, 2, surroundings)  # Fill the surroundings with '2'
+  return O
+ 
+22.333333333333332, tensor(0.2987), Description: For each colored shape in the input grid, add a red square to each of its immediate neighbors (up, down, left, right) if the neighbor is black. If the neighbor is already colored, do nothing. 
+:: def djhifecbiiigecffjiejbgfaaddahjcb(I):
+  objs = objects(I, T, F, T)
+  filled = I
+  for obj in objs:
+    for x, (i, j) in obj:
+      for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]: # Direct neighbors
+        new_i, new_j = i + di, j + dj
+        h, w = len(I), len(I[0])
+        if 0 <= new_i < h and 0 <= new_j < w: # Check bounds
+          if index(I, (new_i, new_j)) == 0:
+            filled = fill(filled, 2, {(new_i, new_j)})
+  return filled
+ 
+12.666666666666666, tensor(0.0956), Description: For each colored shape in the input grid, add a red square to the left of it, only if the square to the left is black. If the square to the left is already colored, keep the original shape. 
+:: def hffigbeceecfeeceidfaffahfhdfdcbe(I):
+  return paint(I, merge({frozenset({(v, (i, j)) if j == 0 or I[i][j - 1] != mostcolor(I) else (2, (i, j)) for v, (i, j) in obj}) for obj in objects(I, T, F, T)}))
+ 
+13.0, tensor(1.4258), Description: For each colored shape in the input grid, add a red square to the right of it if the square to the right is the most common color in the grid. Additionally, add a red square below it if the square below is the most common color in the grid. If the square to the right or below is already colored, keep the original shape. 
+:: def ccjddeijjfdaedfjadeehehbfefacebb(I):
+  return paint(I, merge({frozenset({(2, (i, j)) if (j + 1 < len(I[0]) and I[i][j + 1] == mostcolor(I)) or (i + 1 < len(I) and I[i + 1][j] == mostcolor(I)) else (v, (i, j)) for v, (i, j) in obj}) for obj in objects(I, T, F, T)}))
+ 
+12.0, tensor(1.1322), Description: For each colored shape in the input grid, add a red square to the right of it, only if the square to the right is black. If the square to the right is already colored, keep the original shape. Then, replace all red squares with black squares. 
+:: def fegiacijadcceeiiaccafdjaabbbbfjh(I):
+  return cellwise(I, paint(canvas(mostcolor(I), shape(I)), merge({recolor(2, shift(obj, (0, 1))) for obj in objects(I, T, F, T)})), 2)
+ 
+3.6666666666666665, tensor(0.1074), Description: For each colored shape in the input grid, add a red square to the right of it, only if the square to the right is black. If the square to the right is already colored, do nothing. 
+:: def ebcaieebagffededajbgdegghbbjfffc(I):
+  objs = objects(I, T, F, T) # Extract objects, no diagonals, without background
+  O = I 
+  for obj in objs:
+    for v, (i, j) in obj:
+      if j + 1 < len(I[0]) and index(I, (i, j + 1)) == 0: # Check if right cell exists and is empty
+        O = fill(O, 2, {(i, j + 1)}) # Fill right cell with '2'
+  return O 
+ 
+4.0, tensor(0.1249), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black and within the grid bounds. 
+:: def behdbhajjjdbeeieafeejifhdgifadig(I):
+  return paint(I, prapply(lambda i, j: (2, (i, j + 1)) if index(I, (i, j)) == 1 and j + 1 < len(I[0]) and index(I, (i, j + 1)) == 0 else (0, (0, 0)), range(len(I)), range(len(I[0]))))
+ 
+3.6666666666666665, tensor(1.1871), Description: Copy the input grid. For each colored shape, add a red square to the right of the rightmost cell of the shape. If the rightmost cell is already on the right edge of the grid, do nothing. 
+:: def aadadedahaaaedfjaaegjaaddiabjjch(I):
+  O = canvas(ZERO, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    O = paint(O, obj)
+    O = paint(O, {(TWO, (uppermost(obj), rightmost(obj) + 1))})
+  return O
+ 
+4.0, tensor(0.0272), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds and is black, fill that cell with red. If the cell to the right is already colored, keep the original shape. If the cell is blue, change it to red. 
+:: def ahaegdfibbgdecbijcacbefefehcbbah(I):
+    return paint(I, merge({frozenset({(v, (i, j)) if v != 1 else (2, (i, j + 1)) if j + 1 < len(I[0]) and (v, (i, j + 1)) not in obj else (v, (i, j))  for v, (i, j) in obj}) for obj in objects(I, T, F, F)}))
+ 
+662.6666666666666, tensor(1.5751), Description: For each colored shape in the input grid, if the cell to the right of the shape is black, fill that cell with red. If the cell to the right is already colored, keep the original shape. 
+:: def dgicbecdfgededfgibcabgahhigcdigb(I):
+  objs = objects(I, T, F, T)
+  return tuple(
+    tuple(
+        TWO if (i, j + 1) in toindices(obj) and cell == ZERO else cell
+        for j, cell in enumerate(row)
+    )
+    for obj in objs
+    for i, row in enumerate(I)
+  ) 
+ 
+55.0, tensor(0.0974), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds and is part of the same object, fill that cell with red. 
+:: def ffbbfaeedjadeddibaffbcficaaaieeb(I):
+  def shift_right(obj):
+    return frozenset({(v, (i, j + 1)) for v, (i, j) in obj if j + 1 < len(I[0]) and (v, (i, j + 1)) in obj})
+  return paint(I, recolor(2, merge(apply(shift_right, objects(I, T, F, F)))))
+ 
+8.333333333333334, tensor(0.8643), Description: For each colored shape in the input grid, add a square of the same color to the right of it, only if the square to the right is black and within the grid bounds. 
+:: def ieahabejaifgehahachdcdceibehdeba(I):
+  objs = objects(I, T, F, T)
+  extensions = set()
+  for obj in objs:
+    for _, (i, j) in obj:
+      if j + 1 < width(I) and index(I, (i, j + 1)) == 0:
+        extensions.add((color(obj), (i, j + 1)))
+  return paint(I, frozenset(extensions))
+ 
+11.333333333333334, tensor(1.1028), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black and there is at least one other blue square in the same column that also has a black square to its right. 
+:: def hfeajihdaeeieiiaicageehgajfddheb(I):
+  return tuple(
+    tuple(
+      TWO if j < len(row) - 1 and I[i][j] == ONE and I[i][j + 1] == ZERO and any(I[k][j + 1] == ONE for k in range(len(I)) if k != i)  else cell
+      for j, cell in enumerate(row)
+    )
+    for i, row in enumerate(I)
+  )
+ 
+6.666666666666667, tensor(1.6096), Description: For each blue square in the input grid, add a red square to the right of it, only if the square to the right is black and there is at least one other blue square below it in the same column. 
+:: def jggjcadddejfecbebadegjfbajfacdec(I):
+    return tuple(
+        tuple(
+            TWO if j < len(row) - 1 and I[i][j] == ONE and I[i][j+1] == ZERO and any(I[k][j] == ONE for k in range(i+1, len(I))) else cell
+            for j, cell in enumerate(row)
+        )
+        for i, row in enumerate(I)
+    )
+ 
+16.666666666666668, tensor(0.9071), Description: For each blue square in the input grid, if the square to the right is black, fill the blue square with red and the square to the right with blue. If the blue square is on the right edge of the grid, fill only the blue square with red. 
+:: def accceffcggeieeebbefgfcbdcifaeaci(I):
+  shifted_grid = canvas(0, shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == 1 and j < len(row) - 1:
+        shifted_grid = fill(shifted_grid, 2, {(i, j)})
+        shifted_grid = fill(shifted_grid, 1, {(i, j + 1)})
+      elif val == 1:
+        shifted_grid = fill(shifted_grid, 1, {(i, j)})
+  return shifted_grid
+ 
+55.333333333333336, tensor(0.0819), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds, fill that cell with red. If the cell is already colored, keep the original color. If the cell is on the right edge of the grid, keep the original color. 
+:: def jjajadbfehcgefbhbdihhjcfdfaciaaf(I):
+  return paint(I, merge(apply(lambda obj: frozenset({(2 if j < rightmost(obj) else v, (i, j + 1 if j < rightmost(obj) else j)) for v, (i, j) in obj}), objects(I, T, F, F))))
+ 
+25.0, tensor(0.9752), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds, add a red square to the right of the object. If the cell to the right is already colored, keep the original shape. 
+:: def hchiefdjgdcbejafifbjbbcgefdcfaea(I):
+  return paint(I, merge(apply(lambda obj: obj | frozenset({(2, (i, j + 1)) for v, (i, j) in obj if j + 1 < len(I[0])}), objects(I, T, F, F))))
+ 
+62.0, tensor(0.9752), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds, add a red square to the right of the object. If the cell to the right is already colored, keep the original shape. 
+:: def daecdfhccjefecadjiecgbffeaiggfdb(I):
+  def extend_right(obj):
+    return frozenset((v, (i, j + 1)) for v, (i, j) in obj if j + 1 < len(I[0]))
+  return paint(I, recolor(2, merge(apply(extend_right, objects(I, T, F, F))))) 
+ 
+57.333333333333336, tensor(0.0520), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds, fill that cell with red. If the cell to the right is already colored, keep the original color. If the cell is on the right edge of the grid, keep the original color. 
+:: def iedfacebifiaeifhjbbhajefebfiejbc(I):
+  def shift_cell_right(v, i, j):
+    return (2, (i, j + 1)) if j + 1 < len(I[0]) else (v, (i, j))
+  return paint(I, frozenset(shift_cell_right(v, i, j) for obj in objects(I, T, F, F) for v, (i, j) in obj))
+ 
+25.666666666666668, tensor(0.9664), Description: For each object in the input grid, if the cell to the right of the object is within the grid bounds and is not part of the same object, add a red square to the right of the object. If the cell to the right is already colored, keep the original shape. 
+:: def adcbcbebebdjeafdbfgbgaadcjabeehe(I):
+  def extend_object(obj):
+    return obj | frozenset({(2, (i, j + 1)) for v, (i, j) in obj if j < rightmost(obj)})
+  return paint(I, merge(apply(extend_object, objects(I, T, F, F))))
+ 
+0.0, tensor(1.5822), Description: For each black square in the input grid, if the square to the left and right of it are both blue, fill that square with red. Otherwise, keep the original color. 
+:: def ddfdfbbdibghedfabgebbiabeiaeiega(I):
+  return tuple(
+    tuple(
+      TWO if (j < width(I) - 1 and cell == ZERO and I[i][j-1] == ONE and I[i][j+1] == ONE)
+      else cell 
+      for j, cell in enumerate(row)
+    )
+    for i, row in enumerate(I)
+  )
+ 

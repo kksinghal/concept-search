@@ -1,0 +1,151 @@
+## Transformation Analysis:
+
+The transformation consistently modifies objects based on their width, painting a vertical strip in their center. Let's break down the transformation for each input-output pair:
+
+**Input_0 to Output_0:**
+
+1. **Object Selection:**  The transformation targets both objects in the input grid (one with 5 columns, the other with 6).
+
+2. **Width-Based Modification:**
+   - **Object 1 (5 columns):** A 2-column wide vertical strip is painted in the center of the object with color '1'. The original object color is replaced with the background color ('0') within the strip.
+   - **Object 2 (6 columns):** A 2-column wide vertical strip is painted in the center of the object with color '2'. The original object color is replaced with the background color ('0') within the strip.
+
+**Input_1 to Output_1:**
+
+1. **Object Selection:**  The transformation targets both objects in the input grid (one with 6 columns, the other with 4).
+
+2. **Width-Based Modification:**
+   - **Object 1 (6 columns):** A 2-column wide vertical strip is painted in the center of the object with color '2'. The original object color is replaced with the background color ('0') within the strip.
+   - **Object 2 (4 columns):** A 2-column wide vertical strip is painted in the center of the object with color '1'. The original object color is replaced with the background color ('0') within the strip.
+
+**General Pattern:**
+
+- The transformation identifies the center two columns of each object.
+- It paints these columns with color '1' if the object width is greater than 4, otherwise with color '2'.
+- The original object color within the center strip is replaced with the background color.
+
+## Program Versions:
+
+Here are five distinct program versions achieving the described transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  bg = mostcolor(I)
+  def modify_obj(obj):
+    w = width(obj)
+    mid = leftmost(obj) + w // 2
+    strip = frozenset((i, j) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(mid - 1, min(mid + 1, width(obj))))
+    color = 1 if w > 4 else 2
+    return recolor(color, strip) | recolor(bg, intersection(toindices(obj), strip))
+  modified_objs = frozenset(modify_obj(obj) for obj in objs)
+  return paint(canvas(bg, shape(I)), merge(modified_objs)) 
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, T, F, T)` identifies all objects in the input grid `I`, treating diagonally connected cells as separate objects and excluding the background.
+
+2. **Iterate and Modify:** The `modify_obj` function is applied to each object. 
+   - It calculates the object width (`w`) and the middle column index (`mid`).
+   - It defines the strip indices (`strip`) spanning two columns centered at `mid`.
+   - It determines the fill color (`color`) based on the width, using '1' for wider objects and '2' for narrower ones.
+   - It recolors the strip with the determined color and recolors the overlapping object area within the strip to the background color.
+
+3. **Combine and Paint:** The modified objects are merged, and the resulting object set is painted onto a blank canvas of the input grid's shape, filled with the background color.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  bg = mostcolor(I)
+  def modify_obj(O, obj):
+    w = width(obj)
+    mid = leftmost(obj) + w // 2
+    strip = frozenset((i, j) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(mid - 1, min(mid + 1, width(obj))))
+    color = 1 if w > 4 else 2
+    return paint(fill(O, color, strip), recolor(bg, intersection(toindices(obj), strip)))
+  return functools.reduce(modify_obj, objs, canvas(bg, shape(I)))
+```
+
+**Explanation:**
+
+- This version utilizes `functools.reduce` to iteratively modify the canvas directly.
+- The `modify_obj` function takes the canvas from the previous iteration (`O`) and the current object.
+- It calculates the strip indices and color similarly to Version 1.
+- It first fills the strip with the determined color on the canvas and then paints the overlapping object area with the background color, effectively overwriting the filled area.
+- `functools.reduce` applies `modify_obj` to each object and the accumulating canvas, starting with a blank canvas.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  def modify_cell(i, j):
+    obj = next((obj for obj in objects(I, T, F, T) if (i, j) in toindices(obj)), None)
+    if obj is None:
+      return bg
+    w = width(obj)
+    mid = leftmost(obj) + w // 2
+    if j in range(mid - 1, min(mid + 1, width(obj))):
+      return 1 if w > 4 else 2
+    elif j in range(mid - 1, min(mid + 2, width(obj))):
+        return bg
+    else:
+      return I[i][j]
+  return tuple(tuple(modify_cell(i, j) for j in range(len(I[0]))) for i in range(len(I)))
+```
+
+**Explanation:**
+
+- This version iterates through each cell of the input grid using nested loops.
+- For each cell, it finds the corresponding object (if any) and determines if the cell lies within the center strip.
+- If the cell is within the strip, it applies the width-based color logic.
+- If the cell is not within an object or outside the strip, it retains its original color.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))
+  for obj in objs:
+    w = width(obj)
+    mid = leftmost(obj) + w // 2
+    color = 1 if w > 4 else 2
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      for j in range(mid - 1, min(mid + 1, width(obj))):
+        O = paint(O, {(color, (i, j))})
+        if (I[i][j], (i, j)) in obj:
+          O = paint(O, {(bg, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+- This version iterates through each object and directly modifies the canvas within nested loops.
+- It calculates the strip indices and color for each object.
+- For each cell within the strip, it paints the cell with the determined color on the canvas and then checks if the cell belongs to the object.
+- If the cell belongs to the object, it overwrites the painted color with the background color.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    return apply(lambda row: tuple(apply(lambda cell: branch(contained(index(I, (row[0], cell[0])), objects(I, T, F, T)) and (cell[0] == (leftmost(objects(I, T, F, T)[0]) + width(objects(I, T, F, T)[0]) // 2 - 1) or cell[0] == (leftmost(objects(I, T, F, T)[0]) + width(objects(I, T, F, T)[0]) // 2)), 1 if width(objects(I, T, F, T)[0]) > 4 else 2, cell[1]), enumerate(row[1]))), enumerate(I))
+```
+
+**Explanation:**
+
+- This version employs a functional approach using nested `apply` functions to process rows and cells.
+- The outer `apply` iterates over rows with their indices.
+- The inner `apply` iterates over cells within each row, also with indices.
+- It checks if the cell belongs to an object and if it lies on either of the two center columns of that object.
+- If both conditions are met, it applies the width-based color logic, otherwise retaining the original cell value.
+
+
+These five program versions provide distinct approaches to achieving the desired transformation using the provided DSL. Each version offers a different perspective on solving the task and highlights the flexibility of the DSL in expressing spatial transformations.

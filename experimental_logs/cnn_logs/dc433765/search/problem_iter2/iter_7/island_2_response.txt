@@ -1,0 +1,150 @@
+## Transformation Analysis:
+
+The transformation consistently applies the following rules to the input grid:
+
+* **Move '3' Up:** The digit '3' is always shifted one cell upwards from its original position.
+* **Move '4' Down:** The digit '4' is always shifted downwards. The exact movement depends on its position relative to '3':
+    * **If '4' is to the right of '3':**  '4' is moved to the bottom row, maintaining its column position. 
+    * **If '4' is to the left of '3':** '4' is moved to the bottom row and also shifted to the rightmost column.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions implementing the described transformation:
+
+**Version 1:  Using `ofcolor`, `shift`, and conditional logic:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  obj3 = toobject(ofcolor(I, 3), I)
+  obj4 = toobject(ofcolor(I, 4), I)
+  return paint(
+    paint(canvas(0, (h, w)), shift(obj3, (-1, 0))),  # Move '3' up
+    shift(obj4, (h - uppermost(obj4) - 1, w - width(obj4) if rightmost(obj4) > rightmost(obj3) else 0)) # Move '4' down, right if needed
+  )
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Find the indices of cells containing '3' and '4' using `ofcolor`. Convert these indices to objects using `toobject`.
+2. **Move '3' Up:** Shift the '3' object one cell upwards using `shift(-1, 0)`.
+3. **Move '4' Down:**  Calculate the downward shift for '4' based on the grid height (`h`) and its current uppermost row (`uppermost(obj4)`).  
+   - If '4' is to the right of '3' (`rightmost(obj4) > rightmost(obj3)`), shift it to the rightmost column (`w - width(obj4)`). 
+   - Otherwise, no horizontal shift is applied.
+4. **Combine and Return:** Use `paint` twice to draw the shifted '3' and '4' onto a blank canvas (`canvas(0, (h, w))`).
+
+**Version 2: Iterating over cells and applying transformations:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  output = canvas(0, (h, w))
+  for i, row in enumerate(I):
+    for j, v in enumerate(row):
+      if v == 3:
+        output = paint(output, {(3, (i-1, j))}) # '3' up
+      elif v == 4:
+        shift_j = w - 1 if any(v == 3 and x < j for x, row in enumerate(I) for v in row) else j # '4' right if '3' is to its left
+        output = paint(output, {(4, (h-1, shift_j))}) # '4' to bottom row
+  return output
+```
+
+**Explanation:**
+
+1. **Initialize Output:** Create a blank canvas (`canvas(0, (h, w))`) to store the output.
+2. **Iterate and Transform:** Iterate through each cell in the input grid.
+   - If the cell contains '3', paint it one row above (`i-1`).
+   - If the cell contains '4':
+      - Check if there exists a '3' in the same row and to the left of '4'. If so, set the horizontal shift (`shift_j`) to the rightmost column (`w-1`). 
+      - Paint '4' at the bottom row (`h-1`) with the calculated horizontal shift.
+3. **Return Output:** The transformed grid is stored in `output`.
+
+**Version 3: Using `subgrid`, `hconcat`, and `vconcat` for structured manipulation:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  obj3 = toobject(ofcolor(I, 3), I)
+  obj4 = toobject(ofcolor(I, 4), I)
+  top = canvas(0, (1, w)) if uppermost(obj3) == 0 else ((0,) * w,)  # Handle top row based on '3' position
+  bottom = canvas(0, (1, w))
+  if rightmost(obj4) > rightmost(obj3):
+    bottom = paint(bottom, {(4, (0, w - 1))})  # '4' to bottom right
+  else:
+    bottom = paint(bottom, {(4, (0, rightmost(obj4)))})  # '4' to bottom, same column
+
+  if uppermost(obj3) == 0: 
+    middle = paint(canvas(0, (h-2, w)), shift(obj3, (-1, 0))) # Move '3' up
+  else:
+    middle = paint(canvas(0, (h-2, w)), obj3)
+
+  return vconcat(top, vconcat(middle, bottom)) 
+```
+
+**Explanation:**
+
+1. **Divide into Sections:** Conceptually divide the grid into three horizontal sections: top, middle, and bottom.
+2. **Handle Top Row:** 
+    - If '3' is in the top row, create a blank top row. 
+    - Otherwise, extract the top row from the input.
+3. **Handle Bottom Row:** Create a bottom row and position '4' based on its position relative to '3'.
+4. **Handle Middle Section:** Create the middle section and place '3' one row up. If '3' was originally in the top row, keep it in the first row of the middle section.
+5. **Concatenate and Return:**  Vertically concatenate (`vconcat`) the three sections to form the final output.
+
+**Version 4: Leveraging `transpose` and column-wise operations:**
+
+```python
+def Program_to_be_generated(I):
+  I_t = dmirror(I)
+  h, w = shape(I_t)
+  obj3 = toobject(ofcolor(I_t, 3), I_t)
+  obj4 = toobject(ofcolor(I_t, 4), I_t)
+
+  top = canvas(0, (1, w)) if uppermost(obj3) == 0 else ((0,) * w,)  # Handle top row based on '3' position
+  bottom = canvas(0, (1, w))
+  if lowermost(obj4) < lowermost(obj3):
+    bottom = paint(bottom, {(4, (0, 0))})  # '4' to bottom left
+  else:
+    bottom = paint(bottom, {(4, (0, lowermost(obj4)))})  # '4' to bottom, same column
+
+  if uppermost(obj3) == 0:
+    middle = paint(canvas(0, (h-2, w)), shift(obj3, (1, 0))) # Move '3' down
+  else:
+    middle = paint(canvas(0, (h-2, w)), obj3)
+
+  return dmirror(vconcat(top, vconcat(middle, bottom))) 
+```
+
+**Explanation:**
+
+1. **Transpose:**  Transpose the input grid using `dmirror` to work with columns instead of rows.
+2. **Apply Logic on Transposed Grid:** Use logic similar to Version 3, but adjust for column-wise operations (e.g., use `lowermost` instead of `rightmost`). 
+3. **Transpose Back:** Transpose the result back using `dmirror` to obtain the correctly oriented output.
+
+**Version 5: Employing `hsplit`, `vsplit`, and grid reconstruction:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  obj3 = toobject(ofcolor(I, 3), I)
+  obj4 = toobject(ofcolor(I, 4), I)
+  if rightmost(obj4) > rightmost(obj3):
+    left = vsplit(I, rightmost(obj3)+1)[0]
+    right = paint(vsplit(I, w-rightmost(obj4))[0], shift(toobject(ofcolor(I, 4), I), (-uppermost(obj4) + h-1, 0)))
+    return hconcat(left, right)
+  else:
+    return paint(paint(canvas(0, (h, w)), shift(obj3, (-1, 0))), shift(obj4, (h - uppermost(obj4) - 1, 0)))
+```
+
+**Explanation:**
+
+1. **Conditional Splitting:**  
+   - If '4' is to the right of '3', split the grid vertically into two parts: one containing '3' and everything to its left, and the other containing '4'.
+   - Otherwise, proceed with the standard '3' up, '4' down movement.
+2. **Handle Right Part (if split):**  
+    - Move '4' in the right part to the bottom row.
+3. **Recombine (if split):** 
+    - Horizontally concatenate the left part and the modified right part.
+4. **Standard Movement (if not split):** Apply the '3' up and '4' down movement as in other versions. 
+
+These five versions provide distinct approaches to solving the given transformation task, showcasing diverse uses of DSL functions and programming logic. 

@@ -1,0 +1,178 @@
+## Transformation Analysis:
+
+The transformation appears to apply the following logic:
+
+1. **Identify target objects:**  The objects with color "2" in the input grid are targeted for transformation.
+
+2. **Rotate target objects:** Each target object is rotated 270 degrees clockwise.
+
+3. **Shift target objects:** The rotated objects are then shifted. 
+    * The shift vector seems to be determined by the difference between the upper-left corner of the first object with color "1" in the input grid and the upper-left corner of the rotated target object.
+
+4. **Recolor:** Finally, the colors "1" and "2" are swapped in the output grid. 
+
+## Program Versions:
+
+Here are five distinct program versions ("Program_to_be_generated") in the provided DSL that implement the described transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 2
+  other_color = 1
+  target_objects = colorfilter(objects(I, T, T, T), target_color)
+  ref_location = ulcorner(toindices(ofcolor(I, other_color)))
+  O = canvas(0, shape(I))
+  for target_object in target_objects:
+    rotated_object = rot270(toobject(toindices(target_object), I))
+    O = paint(O, shift(rotated_object, subtract(ref_location, ulcorner(rotated_object))))
+  return switch(O, other_color, target_color)
+```
+
+**Explanation:**
+
+1. **Initialization:**
+    * `target_color`:  Sets the color of the objects to be transformed (2 in this case).
+    * `other_color`: Sets the reference color (1 in this case).
+    * `target_objects`: Identifies all objects with `target_color` using `colorfilter` and `objects`.
+    * `ref_location`: Finds the upper-left corner of the first object with `other_color` using `ulcorner` and `toindices`.
+    * `O`: Creates an empty canvas (`O`) of the same size as the input grid (`I`) filled with '0'.
+
+2. **Iteration and Transformation:**
+    * The code iterates through each `target_object` in `target_objects`.
+    * `rotated_object`: For each `target_object`, it is rotated 270 degrees clockwise using `rot270` after converting it to an object using `toobject` and `toindices`.
+    * `O`: The `rotated_object` is then shifted using `shift` by the difference between `ref_location` and the upper-left corner of the `rotated_object`. 
+    * The shifted and rotated object is then painted onto the canvas `O`.
+
+3. **Recoloring and Output:**
+    * Finally, the colors `other_color` and `target_color` are swapped in the canvas `O` using `switch` before returning the final output.
+
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  def transform_object(obj):
+    if color(obj) == 2:
+      rotated = rot270(toobject(toindices(obj), I))
+      ref_loc = ulcorner(toindices(ofcolor(I, 1)))
+      return shift(rotated, subtract(ref_loc, ulcorner(rotated)))
+    else:
+      return obj
+  return switch(paint(canvas(0, shape(I)), merge(apply(transform_object, objects(I, T, T, T)))), 1, 2)
+```
+
+**Explanation:**
+
+1. **Define `transform_object` Function:**
+    * This function takes an object `obj` as input.
+    * It checks if the color of the object is 2 using `color(obj) == 2`.
+        * If true, it rotates the object by 270 degrees (`rot270`), calculates the shift amount using the reference location (`ref_loc`) and the object's upper-left corner, and shifts the rotated object accordingly.
+        * If false, it returns the object unchanged.
+
+2. **Apply Transformation and Recolor:**
+    * `objects(I, T, T, T)`: Identifies all objects in the input grid `I`.
+    * `apply(transform_object, ...)`:  Applies the `transform_object` function to each object in the input grid.
+    * `merge(...)`: Merges the transformed objects into a single object set.
+    * `paint(canvas(0, shape(I)), ...)`: Creates an empty canvas and paints the transformed objects onto it.
+    * `switch(..., 1, 2)`:  Finally, it swaps colors 1 and 2 on the canvas to generate the output.
+
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 2
+  other_color = 1
+  one_location = first(toindices(ofcolor(I, other_color)))
+  def transform_cell(i, j):
+    if I[i][j] == target_color:
+      obj = first(sfilter(objects(I, T, T, T), lambda obj: (i, j) in toindices(obj)))
+      rotated = rot270(toobject(toindices(obj), I))
+      return index(shift(rotated, subtract(one_location, ulcorner(rotated))), (i, j))
+    else:
+      return I[i][j]
+  return switch(tuple(tuple(transform_cell(i, j) for j in range(width(I))) for i in range(height(I))), other_color, target_color)
+```
+
+**Explanation:**
+
+1. **Initialization and `transform_cell` Function:**
+   * Similar to previous versions, this code initializes `target_color`, `other_color` and finds the location of the first '1' (`one_location`).
+   *  It defines a `transform_cell` function that takes cell coordinates `(i, j)` as input.
+
+2. **Cell-wise Transformation:**
+   * `transform_cell` checks if the cell at `(i, j)` has the `target_color`.
+     * If true:
+       *  It finds the object (`obj`) containing the cell.
+       *  Rotates the object by 270 degrees (`rotated`).
+       *  Calculates the new cell location in the rotated object after shifting it based on `one_location`.
+       *  Returns the color of the cell at the new location in the rotated and shifted object.
+     * If false: It returns the original cell's color.
+
+3. **Applying Transformation and Recoloring:**
+   * The code iterates through all cell coordinates in the grid and applies `transform_cell` to each cell, creating a new grid.
+   *  Finally, it uses `switch` to swap colors 1 and 2 in the newly created grid to generate the output.
+
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  target_obj = first(colorfilter(objects(I, T, T, T), 2))
+  ref_loc = first(toindices(ofcolor(I, 1)))
+  shift_amount = subtract(ref_loc, ulcorner(target_obj))
+  def transform_cell(value, loc):
+    if value == 2:
+      rotated_loc = subtract(add(rot270(toindices(target_obj)), (1, 1)), subtract((2, 2), loc))
+      return index(toobject(toindices(target_obj), I), add(rotated_loc, shift_amount))
+    else:
+      return value
+  return switch(tuple(tuple(transform_cell(v, (i, j)) for j, v in enumerate(row)) for i, row in enumerate(I)), 1, 2)
+```
+
+**Explanation:**
+
+1. **Identify Target Object and Reference Location:**
+    * `target_obj`: Finds the first object with color 2.
+    * `ref_loc`: Finds the location of the first cell with color 1.
+    * `shift_amount`: Calculates the difference between `ref_loc` and the upper-left corner of the `target_obj`.
+
+2. **Cell-wise Transformation with `transform_cell` Function:**
+    * Defines a function `transform_cell` that takes the cell's value and location as input.
+    * If the `value` is 2:
+        *  `rotated_loc`: Calculates the new cell location within the rotated `target_obj` considering the shift.
+        *  Returns the color of the cell at the `rotated_loc` in the transformed object.
+    * Else, it returns the original cell's value.
+
+3. **Apply Transformation and Recolor:**
+    *  Iterates over each cell in the grid, applies `transform_cell` to determine the new color.
+    *  Uses `switch` to swap colors 1 and 2 in the newly generated grid to produce the output.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  def transform_patch(patch):
+    return shift(rot270(toobject(toindices(patch), I)), subtract(first(toindices(ofcolor(I, 1))), ulcorner(patch))) if color(patch) == 2 else patch
+  return switch(paint(canvas(0, shape(I)), merge(apply(transform_patch, objects(I, T, T, T)))), 1, 2)
+```
+
+**Explanation:**
+
+1. **Define `transform_patch` Function:**
+   * This function takes a `patch` (object) as input.
+   *  It uses a conditional expression to check if the color of the patch is 2 (`color(patch) == 2`).
+      * If true, it rotates the patch 270 degrees, calculates the shift amount based on the first '1' location and the patch's upper-left corner, and returns the shifted and rotated patch.
+      *  If false, it returns the original `patch` unchanged.
+
+2. **Apply Transformation, Paint, and Recolor:**
+    *  Identifies all objects in the input grid (`objects(I, T, T, T)`).
+    *  Applies the `transform_patch` function to each object using `apply`.
+    *  Merges the transformed objects using `merge`.
+    *  Creates an empty canvas and paints the merged objects onto it (`paint(canvas(...), ...)`).
+    *  Finally, it swaps colors 1 and 2 on the canvas to produce the output (`switch(..., 1, 2)`).
+
+
+These five versions provide distinct approaches to implement the desired transformation using different DSL function combinations and logic, offering diverse solutions to the problem.

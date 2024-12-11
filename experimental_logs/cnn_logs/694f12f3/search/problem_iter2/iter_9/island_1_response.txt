@@ -1,0 +1,170 @@
+## Transformation Analysis:
+
+The transformation logic applied to the input grid involves recoloring the inner cells of each object based on its position relative to the horizontal center line of the grid and the object's width. 
+
+* **Objects above the center line:** The inner cells are recolored to 1.
+* **Objects below the center line:** 
+    * **Even width:** The inner cells are recolored to 4.
+    * **Odd width:** The inner cells are recolored to 4 except for the diagonal connecting the upper-left and lower-right corners, which is recolored to 1.
+
+
+## Program Versions:
+
+Here are five distinct versions of the "Program_to_be_generated" using the provided DSL:
+
+
+### Program Version 1:
+
+```python
+def Program_to_be_generated(I):
+  """
+  This version iterates through each object, determines its position and width,
+  and then applies the appropriate recoloring logic.
+  """
+  O = I
+  center_row = height(I) // 2
+  for obj in objects(I, T, F, T):
+    if centerofmass(obj)[0] < center_row:
+      O = fill(O, 1, difference(obj, box(obj)))
+    else:
+      if width(obj) % 2 == 0:
+        O = fill(O, 4, difference(obj, box(obj)))
+      else:
+        O = fill(fill(O, 4, difference(obj, box(obj))), 1, connect(ulcorner(obj), lrcorner(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O` is initialized with the input grid `I`. `center_row` calculates the middle row index.
+2. **Iteration:** It iterates through each object in the input grid using `objects(I, T, F, T)`.
+3. **Position and Width Check:** 
+    - If the object's center of mass is above `center_row`, its inner cells are filled with color 1.
+    - If below, it checks if the object's width is even or odd. 
+        - If even, it fills the inner cells with color 4.
+        - If odd, it fills the inner cells with color 4 and then overwrites the diagonal with color 1.
+4. **Output:** The transformed grid `O` is returned.
+
+
+### Program Version 2:
+
+```python
+def Program_to_be_generated(I):
+  """
+  This version uses nested 'apply' functions to recolor objects based on their properties.
+  """
+  center_row = height(I) // 2
+  recolor_above = lambda obj: fill(I, 1, difference(obj, box(obj)))
+  recolor_below = lambda obj: fill(I, 4, difference(obj, box(obj))) if width(obj) % 2 == 0 else fill(fill(I, 4, difference(obj, box(obj))), 1, connect(ulcorner(obj), lrcorner(obj)))
+  return paint(
+      I, 
+      merge([
+          apply(recolor_above, sfilter(objects(I, T, F, T), lambda obj: centerofmass(obj)[0] < center_row)), 
+          apply(recolor_below, sfilter(objects(I, T, F, T), lambda obj: centerofmass(obj)[0] >= center_row))
+      ])
+  )
+```
+
+**Explanation:**
+
+1. **Initialization:** Defines `center_row`, `recolor_above` (for objects above the center), and `recolor_below` (for objects below) using lambda functions.
+2. **Filtering and Recoloring:**
+    - It filters objects above and below the center line using `sfilter`.
+    - Applies `recolor_above` and `recolor_below` to the filtered objects using `apply`.
+3. **Merging and Painting:** Merges the recolored objects using `merge` and paints them onto the original grid `I` using `paint`.
+4. **Output:** The transformed grid is returned.
+
+
+### Program Version 3:
+
+```python
+def Program_to_be_generated(I):
+  """
+  This version uses a single 'apply' function with conditional logic within to recolor the objects.
+  """
+  center_row = height(I) // 2
+  def recolor(obj):
+    inner = difference(obj, box(obj))
+    if centerofmass(obj)[0] < center_row:
+      return recolor(I, 1, inner)
+    else:
+      return fill(I, 4, inner) if width(obj) % 2 == 0 else fill(fill(I, 4, inner), 1, connect(ulcorner(obj), lrcorner(obj)))
+  return paint(I, merge(apply(recolor, objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **Initialization:** Defines `center_row` and the `recolor` function which handles both above and below center logic.
+2. **Recoloring Logic:**
+    - `recolor` function takes an object as input and calculates its `inner` indices.
+    - It then checks the object's position relative to `center_row` and applies the recoloring rules using conditional statements.
+3. **Application and Painting:** It applies the `recolor` function to all objects using `apply`, merges the results with `merge`, and paints them onto the original grid using `paint`.
+4. **Output:** The transformed grid is returned.
+
+
+### Program Version 4:
+
+```python
+def Program_to_be_generated(I):
+  """
+  This version uses a combination of 'fork', 'apply', and conditional logic for a more functional approach.
+  """
+  center_row = height(I) // 2
+  return paint(
+      I, 
+      merge(
+          apply(
+              lambda obj: fork(
+                  lambda a, b: branch(centerofmass(obj)[0] < center_row, a, b), 
+                  lambda: fill(I, 1, difference(obj, box(obj))), 
+                  lambda: fill(I, 4, difference(obj, box(obj))) if width(obj) % 2 == 0 else fill(fill(I, 4, difference(obj, box(obj))), 1, connect(ulcorner(obj), lrcorner(obj)))
+              ), 
+              objects(I, T, F, T)
+          )
+      )
+  )
+```
+
+**Explanation:**
+
+1. **Initialization:** Defines `center_row`.
+2. **Lambda Function with Fork:** Creates a lambda function that takes an object as input and uses `fork` to apply different functions based on the object's position relative to `center_row`.
+3. **Conditional Recoloring:**
+   - `branch` is used within `fork` to decide which recoloring function to apply based on the object's position.
+   - The chosen function then recolors the inner cells of the object according to the rules.
+4. **Application, Merging, and Painting:** The lambda function is applied to all objects using `apply`. The results are merged using `merge` and painted onto the original grid using `paint`.
+5. **Output:** The transformed grid is returned.
+
+
+### Program Version 5:
+
+```python
+def Program_to_be_generated(I):
+  """
+  This version leverages 'rapply' and a dictionary mapping for a more data-driven approach.
+  """
+  center_row = height(I) // 2
+  recoloring_functions = {
+      (True, 0): lambda obj: fill(I, 1, difference(obj, box(obj))),
+      (False, 0): lambda obj: fill(I, 4, difference(obj, box(obj))),
+      (False, 1): lambda obj: fill(fill(I, 4, difference(obj, box(obj))), 1, connect(ulcorner(obj), lrcorner(obj)))
+  }
+  O = I
+  for obj in objects(I, T, F, T):
+    key = (centerofmass(obj)[0] < center_row, width(obj) % 2)
+    O = rapply(recoloring_functions[key], obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Defines `center_row` and `recoloring_functions`, a dictionary that maps tuples of (position, width parity) to corresponding recoloring functions.
+2. **Iteration and Function Selection:**
+    - Iterates through each object in the grid using `objects(I, T, F, T)`.
+    - Calculates a key tuple based on the object's position relative to `center_row` and its width parity.
+    - Selects the appropriate recoloring function from the `recoloring_functions` dictionary based on the calculated key.
+3. **Recoloring:** Applies the selected recoloring function to the current object using `rapply`.
+4. **Output:** The transformed grid `O` is returned.
+
+
+These five versions demonstrate different ways to achieve the same transformation using the provided DSL, showcasing diverse logic and function combinations. Each version provides a unique approach to the problem, ensuring zero similarity between them. 

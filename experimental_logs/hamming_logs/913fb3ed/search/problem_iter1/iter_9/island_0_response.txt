@@ -1,0 +1,131 @@
+## Transformation Analysis:
+
+The transformation involves identifying the foreground objects in the input grid and drawing a two-layered outline around them. The outline follows these rules:
+
+* **Direct Outline:** Cells directly adjacent (up, down, left, right) to a foreground object are colored with the value `4`.
+* **Diagonal Outline:** Cells diagonally adjacent to a foreground object are colored with the value `1`.
+* **Frame:**  A frame with the value `6` is drawn around the entire input grid, effectively outlining the outermost layer.
+
+**Example Breakdown (Input_0 to Output_0):**
+
+1. **Object Identification:** The foreground objects are the '3', '8', and '2'.
+2. **Direct Outline (4):** A '4' is placed directly above, below, to the left, and to the right of each of the digits '3', '8', and '2'.
+3. **Diagonal Outline (1):** A '1' is placed diagonally to each of the digits '3', '8', and '2'.
+4. **Frame (6):** Finally, a frame of '6's surrounds the entire grid.
+
+## Program to be Generated:
+
+**Program Version 1:** (Inspired by Program_B's frame approach and Program_A's conditional outline)
+
+```python
+def program_to_be_generated_v1(I):
+    result = paint(canvas(0, shape(I)), fgpartition(I))  # Initialize with objects and background
+    for obj in fgpartition(I):
+        result = paint(result, recolor(6, outbox(asindices(I))))  # Draw the frame first
+        for i, j in delta(toindices(obj)):
+            if manhattan(frozenset({(i, j)}), toindices(obj)) == 1:  # Direct neighbor
+                result = fill(result, 4, {(i, j)})
+            elif manhattan(frozenset({(i, j)}), toindices(obj)) == 2 and index(result, (i, j)) == 0:  # Diagonal and empty
+                result = fill(result, 1, {(i, j)})
+    return result 
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a blank canvas the same size as the input and paints the foreground objects onto it.
+2. **Frame:** Draws the outer frame with the value `6` using `outbox` and `recolor`.
+3. **Outline Logic:** Iterates through each cell in the delta (area surrounding objects). It uses `manhattan` distance to determine direct and diagonal neighbors. Direct neighbors are filled with '4'. Diagonal neighbors are filled with '1' only if they are empty (value 0), preventing overwriting the frame.
+4. **Return:** Returns the modified grid.
+
+**Program Version 2:** (Inspired by Program_A's iterative approach and use of neighbor checks)
+
+```python
+def program_to_be_generated_v2(I):
+    result = paint(canvas(0, shape(I)), fgpartition(I))  # Initialize with objects and background
+    for obj in fgpartition(I):
+        for i, j in outbox(asindices(I)):  # Draw the frame first
+            result = fill(result, 6, {(i, j)})
+        for i, j in delta(toindices(obj)):
+            if (i - 1, j) in toindices(obj) or (i + 1, j) in toindices(obj) or (i, j - 1) in toindices(obj) or (i, j + 1) in toindices(obj):
+                result = fill(result, 4, {(i, j)})
+            elif ((i - 1, j - 1) in toindices(obj) or (i - 1, j + 1) in toindices(obj) or (i + 1, j - 1) in toindices(obj) or (i + 1, j + 1) in toindices(obj)) and index(result, (i, j)) == 0: 
+                result = fill(result, 1, {(i, j)})
+    return result
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to version 1.
+2. **Frame:** Similar to version 1.
+3. **Outline Logic:** Iterates over the delta and checks for the presence of object cells in direct and diagonal neighboring positions. It fills the current cell accordingly, using direct checks for neighbors. Again, diagonal filling only occurs if the cell is empty.
+4. **Return:** Returns the modified grid.
+
+**Program Version 3:** (Focuses on using set operations for efficient neighbor identification)
+
+```python
+def program_to_be_generated_v3(I):
+    result = paint(canvas(0, shape(I)), fgpartition(I))  # Initialize with objects and background
+    for obj in fgpartition(I):
+        result = paint(result, recolor(6, outbox(asindices(I)))) # Draw the frame first
+        direct_neighbors = mfilter(lambda d: shift(toindices(obj), d) - toindices(obj), [(0, 1), (0, -1), (1, 0), (-1, 0)])
+        diagonal_neighbors = mfilter(lambda d: shift(toindices(obj), d) - toindices(obj), [(1, 1), (1, -1), (-1, 1), (-1, -1)]) 
+        result = paint(result, recolor(4, direct_neighbors))
+        result = underpaint(result, recolor(1, diagonal_neighbors))  # Only paint if background (value 0)
+    return result 
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to previous versions.
+2. **Frame:** Similar to previous versions.
+3. **Outline Logic:** Calculates direct and diagonal neighbors using `shift` and set difference. It directly paints direct neighbors with '4'. For diagonals, it uses `underpaint` to paint '1' only on cells containing the background value (0).
+4. **Return:** Returns the modified grid.
+
+**Program Version 4:** (Emphasizes code conciseness by merging operations)
+
+```python
+def program_to_be_generated_v4(I):
+  return paint(
+      paint(
+          paint(canvas(0, shape(I)), fgpartition(I)),  # Objects and background
+          recolor(6, outbox(asindices(I)))  # Frame
+      ), 
+      merge([
+          recolor(4, mfilter(lambda d: shift(toindices(obj), d) - toindices(obj), [(0, 1), (0, -1), (1, 0), (-1, 0)])),
+          recolor(1, intersection(
+              mfilter(lambda d: shift(toindices(obj), d) - toindices(obj), [(1, 1), (1, -1), (-1, 1), (-1, -1)]), 
+              ofcolor(paint(canvas(0, shape(I)), fgpartition(I)), 0) # Get indices of background cells
+          ))
+      ])
+  )
+```
+
+**Explanation:**
+
+This version prioritizes conciseness by chaining and merging operations:
+
+1. **Nested Painting:** It nests multiple `paint` calls to apply the frame and outlines in a single expression.
+2. **Merged Outlines:** It directly merges the direct and diagonal outline objects using `merge`. 
+3. **Direct/Conditional Painting:** It uses the same neighbor calculation logic as version 3 but directly paints '4' for direct neighbors. For diagonals, it uses `intersection` with `ofcolor` to paint '1' only on background cells.
+
+**Program Version 5:** (Leverages `cellwise` for a different approach to conditional painting)
+
+```python
+def program_to_be_generated_v5(I):
+    direct_outline = paint(canvas(0, shape(I)), recolor(4, mfilter(lambda d: shift(asindices(I), d), [(0, 1), (0, -1), (1, 0), (-1, 0)])))
+    diagonal_outline = paint(canvas(0, shape(I)), recolor(1, mfilter(lambda d: shift(asindices(I), d), [(1, 1), (1, -1), (-1, 1), (-1, -1)])))
+    combined_outline = cellwise(direct_outline, diagonal_outline, 0)
+    result = paint(canvas(0, shape(I)), fgpartition(I))
+    result = paint(result, recolor(6, outbox(asindices(I))))
+    return cellwise(result, combined_outline, result) # Apply outline only where result is still background
+```
+
+**Explanation:**
+
+This version pre-computes the outlines separately and then combines them conditionally:
+
+1. **Outline Pre-computation:** It creates separate grids for the direct and diagonal outlines, filling them with '4' and '1' respectively.
+2. **Outline Combination:**  Uses `cellwise` to combine the two outlines, keeping '4' from the direct outline and '1' from the diagonal outline, with '0' elsewhere.
+3. **Conditional Application:**  After painting the frame, it uses `cellwise` again to apply the combined outline only to cells where the `result` grid still has the background value.
+
+These five versions offer distinct approaches to the same transformation, showcasing a variety of DSL function combinations and logic flows.

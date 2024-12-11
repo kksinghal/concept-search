@@ -1,0 +1,202 @@
+## Transformation Analysis:
+
+The transformation in all examples focuses on identifying and highlighting the "outer shell" of the most dominant object in the grid. Here's a breakdown:
+
+* **Dominant Object:** The object with the largest area formed by connecting cells with the same value.
+* **Outer Shell:**  The cells belonging to the dominant object which are directly adjacent to a cell of a different value (including the implicit background value outside the grid boundaries).
+
+**Example Breakdown:**
+
+* **Input_0:** The dominant object consists of all '5's. The outer shell includes the top, bottom, and side '5's.
+* **Input_1:** The dominant object consists of all '6's. The outer shell includes the perimeter '6's.
+* **Input_2:** The dominant object consists of all '9's.  The outer shell includes the perimeter '9's.
+
+## Code Generation:
+
+Here are five distinct program versions achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies the outer shell of the dominant object.
+  
+  1. Finds the largest object.
+  2. Iterates through grid cells, checking if a cell belongs to the object and has a differently-valued neighbor.
+  """
+  
+  objs = objects(I, True, False, True) 
+  largest_obj = argmax(objs, size)
+  h, w = len(I), len(I[0])
+  O = [[0 for _ in range(w)] for _ in range(h)]
+  
+  for i in range(h):
+    for j in range(w):
+      if (I[i][j], (i, j)) in largest_obj and any(index(I, (i + di, j + dj)) != I[i][j] for di in [-1, 0, 1] for dj in [-1, 0, 1] if 0 <= i + di < h and 0 <= j + dj < w):
+        O[i][j] = I[i][j]
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **`objects(I, True, False, True)`:**  Extracts objects from the grid (`I`), treating diagonally connected cells as separate objects (`False`) and excluding the background (`True`).
+2. **`largest_obj = argmax(objs, size)`:**  Finds the largest object based on its size.
+3. **Nested Loop:** Iterates through each cell in the grid.
+4. **`if` condition:** Checks if the cell belongs to the largest object and if it has any neighbor (including diagonal) with a different value. 
+5. **`O[i][j] = I[i][j]`:** If the condition is true, the cell is part of the outer shell, and its value is copied to the output grid (`O`).
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Utilizes a combination of delta and toobject functions.
+
+  1. Extracts the largest object.
+  2. Finds the indices surrounding the object (delta).
+  3. Reconstructs the object using the delta indices and the original grid.
+  4. Overlaps the reconstructed object onto a blank canvas.
+  """
+  
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  object_delta = delta(toindices(largest_obj))
+  reconstructed_obj = toobject(object_delta, I)
+  canvas_ = canvas(0, shape(I))
+  O = paint(canvas_, reconstructed_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **`objects`, `argmax`, `toindices`:**  Similar to version 1, these functions extract the largest object and its indices.
+2. **`object_delta = delta(toindices(largest_obj))`:**  Finds the indices surrounding the largest object (its "delta").
+3. **`reconstructed_obj = toobject(object_delta, I)`:** Reconstructs an object from the delta indices and the original grid, essentially capturing the outer shell.
+4. **`canvas_ = canvas(0, shape(I))`:** Creates a blank canvas of the same size as the input.
+5. **`O = paint(canvas_, reconstructed_obj)`:** Paints the reconstructed object (outer shell) onto the canvas. 
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Leverages set operations to find the outer shell.
+
+  1. Identifies all object indices and background indices.
+  2. Calculates the neighborhood of each background cell.
+  3. Finds the intersection between object indices and background cell neighborhoods.
+  """
+
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  obj_indices = toindices(largest_obj)
+  bg_indices = asindices(I) - obj_indices
+  outer_shell = set()
+  
+  for bg_index in bg_indices:
+    neighbors_ = dneighbors(bg_index)
+    intersection = neighbors_ & obj_indices
+    if intersection:
+      outer_shell |= intersection
+  
+  O = canvas(0, shape(I))
+  O = paint(O, toobject(outer_shell, I))
+  return O
+```
+
+**Explanation:**
+
+1. **`objects`, `argmax`, `toindices`, `asindices`:** Extract the largest object, its indices, and the background indices. 
+2. **Loop:** Iterates through each background index.
+3. **`neighbors_ = dneighbors(bg_index)`:**  Finds the direct neighbors of the current background cell. 
+4. **`intersection = neighbors_ & obj_indices`:** Calculates the intersection between the object indices and the neighbors of the background cell. This intersection represents the outer shell cells.
+5. **`outer_shell |= intersection`:**  Adds the identified outer shell indices to the `outer_shell` set.
+6. **`O = canvas(...)`, `paint(...)`:** Creates a canvas and paints the outer shell based on the collected indices.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses a modified flood-fill approach.
+
+  1. Starts from a background cell.
+  2. Expands outward, marking cells as part of the outer shell 
+     if they belong to the dominant object and are adjacent to an already marked cell.
+  """
+
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  h, w = len(I), len(I[0])
+  O = [[0 for _ in range(w)] for _ in range(h)]
+  visited = set()
+  queue = [(0, 0)]
+
+  while queue:
+    i, j = queue.pop(0)
+    visited.add((i, j))
+    for di in [-1, 0, 1]:
+      for dj in [-1, 0, 1]:
+        ni, nj = i + di, j + dj
+        if 0 <= ni < h and 0 <= nj < w and (ni, nj) not in visited and (I[ni][nj], (ni, nj)) in largest_obj and any(O[ni + ddi][nj + ddj] != 0 for ddi in [-1, 0, 1] for ddj in [-1, 0, 1] if 0 <= ni + ddi < h and 0 <= nj + ddj < w):
+          O[ni][nj] = I[ni][nj] 
+          queue.append((ni, nj))
+  
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1.  **Initialization:**  Identifies the largest object. Creates an empty output grid (`O`) and initializes a queue with a starting background cell (0, 0).
+2.  **Flood Fill Loop:** Iterates using the queue.
+3.  **Neighbor Check:** For each neighbor of the current cell, checks:
+    *   **Validity:** If it's within the grid bounds and not visited.
+    *   **Dominant Object:** If it belongs to the largest object.
+    *   **Shell Condition:**  If it's adjacent to an already marked cell in the output grid (`O`).
+4.  **Marking and Enqueueing:** If all conditions are met, the neighbor is marked as part of the outer shell in `O`, and it's added to the queue for further expansion.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Employs a border-following technique.
+
+  1. Starts from a known outer shell cell (e.g., a corner).
+  2. Systematically explores neighboring cells, "hugging" the border of the dominant object.
+  """
+  
+  objs = objects(I, True, False, True)
+  largest_obj = argmax(objs, size)
+  h, w = len(I), len(I[0])
+  O = [[0 for _ in range(w)] for _ in range(h)]
+  i, j = ulcorner(toindices(largest_obj)) # Start from a corner
+
+  direction = (0, 1)  # Initial direction (right)
+
+  while True:
+    if (I[i][j], (i, j)) in largest_obj and any(index(I, (i + di, j + dj)) != I[i][j] for di in [-1, 0, 1] for dj in [-1, 0, 1] if 0 <= i + di < h and 0 <= j + dj < w):
+      O[i][j] = I[i][j]
+
+    # Determine the next direction (turn clockwise if needed)
+    for _ in range(4):
+      next_i, next_j = i + direction[0], j + direction[1]
+      if 0 <= next_i < h and 0 <= next_j < w and (I[next_i][next_j], (next_i, next_j)) in largest_obj:
+        i, j = next_i, next_j
+        break
+      else:
+        direction = (direction[1], -direction[0])  # Rotate direction clockwise
+    else:
+      break  # No valid neighbor found, exit loop
+
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Initialization:**  Identifies the largest object. Creates an empty output grid (`O`) and initializes the starting position (`i`, `j`) to a corner of the dominant object. 
+2. **Border Following Loop:**
+   - Marks the current cell if it belongs to the outer shell.
+   - Determines the next movement direction:  It prioritizes moving along the border of the dominant object. If it can't move along the border, it rotates its direction clockwise to "hug" the object.
+3. **Loop Termination:** The loop continues until no valid neighbor (belonging to the object's border) is found, indicating that the entire outer shell has been traced. 

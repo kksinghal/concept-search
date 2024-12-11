@@ -1,0 +1,161 @@
+## Transformation Analysis:
+
+The transformation relabels the objects in the input grid based on their order of appearance in a left-to-right, top-to-bottom scan. The first object encountered retains its original color, while subsequent objects are assigned new, unique colors. 
+
+Let's break down the transformation for each example:
+
+**Input_0:** 
+* The first object encountered (top-left) retains its original color (5).
+* The second object encountered (bottom) is assigned color 2.
+* The third object (left) is assigned color 3.
+* The fourth object (bottom-right) is assigned color 1.
+
+**Input_1:** 
+* The first object encountered (bottom-left) retains its original color (5).
+* The second object (top-right) is assigned color 3.
+* The third object (top) is assigned color 2.
+* The fourth object (bottom) is assigned color 1.
+
+**Input_2:** 
+* The first object encountered (bottom-left) retains its original color (5).
+* The second object (top) is assigned color 3.
+* The third object (top-right) is assigned color 2.
+* The fourth object (bottom) is assigned color 1.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve this transformation:
+
+**Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, T, F)
+  obj_list = sorted(objs, key=lambda obj: min(i * 100 + j for v, (i, j) in obj))
+  mapping = {color(obj): i + 1 if i > 0 else color(obj) for i, obj in enumerate(obj_list)}
+  O = canvas(ZERO, shape(I))
+  for i, obj in enumerate(obj_list):
+    O = paint(O, recolor(mapping[color(obj)], obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, F)` extracts all objects from the input grid (`I`) allowing for multi-valued objects and diagonal connections, without excluding the background.
+2. **Sort Objects:** `sorted(objs, key=lambda obj: min(i * 100 + j for v, (i, j) in obj))` sorts the objects based on their top-left corner location (row first, then column).
+3. **Create Mapping:** `mapping = {color(obj): i + 1 if i > 0 else color(obj) for i, obj in enumerate(obj_list)}` creates a dictionary mapping the original object color to its new color based on the order in the sorted list. The first object retains its color.
+4. **Initialize Canvas:** `O = canvas(ZERO, shape(I))` creates an empty output grid (`O`) with the same dimensions as the input grid.
+5. **Paint Objects:**  The code iterates through the sorted object list and paints each object onto the output grid with its new color using `recolor` and `paint`.
+
+**Version 2:**
+
+```python
+def solve(I):
+  O = canvas(ZERO, shape(I))
+  visited = set()
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != ZERO and (i, j) not in visited:
+        obj = objects(crop(I, (i, j), (1, 1)), T, T, F)
+        visited |= toindices(merge(obj))
+        O = paint(O, recolor(len(visited), obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize Canvas:** Creates an empty output grid (`O`) with the same dimensions as the input.
+2. **Iterate and Track:** Iterates through the input grid, tracking visited cells in the `visited` set.
+3. **Extract and Relabel:** When encountering a non-zero, unvisited cell:
+    * Extracts the object containing that cell.
+    * Adds the object's indices to `visited`.
+    * Paints the object onto the output grid with a new color determined by the number of visited cells.
+
+**Version 3:**
+
+```python
+def solve(I):
+    objs = objects(I, T, T, F)
+    O = I
+    count = 1
+    for i, obj in enumerate(objs):
+        if i == 0:
+            first_color = color(obj)
+        else:
+            O = replace(O, color(obj), count + 1)
+            count += 1
+    O = replace(O, ZERO, count + 1)
+    O = replace(O, first_color, ZERO)
+    return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, T, T, F)` extracts all objects.
+2. **Iterate and Relabel:** Iterates through objects, replacing colors sequentially, except for the first object.
+3. **Handle Background:** Replaces the background color (0) with a temporary color.
+4. **Restore First Object:** Replaces the first object's original color back to 0.
+
+**Version 4:**
+
+```python
+def solve(I):
+    O = canvas(ZERO, shape(I))
+    seen = set()
+    label = 1
+    for i in range(height(I)):
+        for j in range(width(I)):
+            if I[i][j] != 0 and (i, j) not in seen:
+                seen.add((i, j))
+                queue = [(i, j)]
+                while queue:
+                    ci, cj = queue.pop(0)
+                    for ni, nj in neighbors((ci, cj)):
+                        if 0 <= ni < height(I) and 0 <= nj < width(I) and I[ni][nj] != 0 and (ni, nj) not in seen:
+                            seen.add((ni, nj))
+                            queue.append((ni, nj))
+                            O = paint(O, {(label, (ni, nj))})
+                label += 1
+    return O
+```
+
+**Explanation:**
+
+1. **Initialize:** Creates an empty output grid and sets up variables for tracking seen cells and the current label.
+2. **Iterate and Flood Fill:** Iterates through the grid, performing a flood fill algorithm for each new object encountered:
+   - Marks the starting cell as seen.
+   - Uses a queue to process neighboring cells with the same color.
+   - Assigns the current label to the output grid for all cells in the object.
+   - Increments the label for the next object.
+
+**Version 5:**
+
+```python
+def solve(I):
+    def relabel_object(i, j, label):
+        if 0 <= i < height(I) and 0 <= j < width(I) and I[i][j] != 0 and (i, j) not in seen:
+            seen.add((i, j))
+            O = paint(O, {(label, (i, j))})
+            for ni, nj in dneighbors((i, j)):
+                O = relabel_object(ni, nj, label)
+        return O
+    
+    O = canvas(ZERO, shape(I))
+    seen = set()
+    label = 1
+    for i in range(height(I)):
+        for j in range(width(I)):
+            if I[i][j] != 0 and (i, j) not in seen:
+                O = relabel_object(i, j, label)
+                label += 1
+    return O
+```
+
+**Explanation:**
+
+1. **Define Recursive Function:** `relabel_object` recursively explores and relabels an object:
+   - Base Case: If out of bounds, background, or already seen, return the grid.
+   - Recursive Step: Mark the current cell as seen, paint it with the given label, and recursively call the function for its neighbors.
+2. **Initialize and Iterate:** Similar to Version 4, but uses `relabel_object` for object relabeling.
+
+These five versions provide different approaches to achieve the desired transformation, showcasing the flexibility and expressiveness of the DSL. Each version has its own advantages and disadvantages in terms of code complexity, readability, and efficiency, highlighting the importance of exploring diverse solutions.

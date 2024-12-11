@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation seems to separate objects based on their color, then shifts them to specific corners of the grid while maintaining their original shape and orientation. 
+
+**Detailed Breakdown:**
+
+* **Input_0 to Output_0:** The single object (color 9) is shifted to the bottom-right corner.
+* **Input_1 to Output_1:** The object with color 6 is split into two parts and each part shifted to bottom-left and bottom-right corners respectively. 
+* **Input_2 to Output_2:**  The single object (color 9) is shifted to the top-left corner.
+* **Input_3 to Output_3:** The object with color 2 is split into two parts and each part shifted to top-left and bottom-left corners respectively.
+
+**Overall Pattern:**  The transformation seems to identify objects of a specific color (possibly the least common color), and then repositions them within the grid. The target positions are likely determined by the object's initial position relative to the grid's center.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions using the provided DSL:
+
+**Version 1:**
+
+```python
+def program(I):
+  # Identify the least common color (target object color)
+  target_color = leastcolor(I)  
+  
+  # Get objects of the target color
+  objs = colorfilter(objects(I, T, F, T), target_color) 
+
+  # Initialize output grid with background color
+  O = canvas(mostcolor(I), shape(I))
+
+  for obj in objs:
+    # Calculate target position based on object's center
+    ci, cj = center(obj)
+    target_i = height(I) - height(obj) if ci > height(I) // 2 else 0
+    target_j = width(I) - width(obj) if cj > width(I) // 2 else 0
+    
+    # Shift and paint object onto output grid
+    O = paint(O, shift(obj, (target_i - ci, target_j - cj)))
+
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Color:** `leastcolor(I)` finds the least frequent color, which is assumed to be the color of the object(s) to be moved.
+2. **Extract Target Objects:** `colorfilter(objects(I, T, F, T), target_color)` identifies and extracts all objects of the target color from the input grid.
+3. **Initialize Output:** `canvas(mostcolor(I), shape(I))` creates an empty output grid filled with the background color.
+4. **Iterate and Reposition:** The code iterates through each target object:
+    - **Calculate Target Position:** It determines the target corner position (top-left or bottom-right) based on the object's center relative to the grid's center.
+    - **Shift and Paint:** The object is shifted to the target position and painted onto the output grid.
+
+**Version 2:**
+
+```python
+def program(I):
+  # Identify target color 
+  target_color = leastcolor(I)
+
+  # Create output grid with objects moved to corners 
+  O = canvas(mostcolor(I), shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == target_color:
+        # Calculate target position
+        target_i = height(I) - 1 if i > height(I) // 2 else 0
+        target_j = width(I) - 1 if j > width(I) // 2 else 0
+        O = paint(O, {(val, (target_i, target_j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Color:** Similar to Version 1.
+2. **Iterate and Reposition:** This version iterates directly through the input grid cells:
+    - **Target Position Calculation:** It determines the target corner (bottom-right or top-left) for each cell based on its position relative to the grid's center. 
+    - **Paint:** If a cell contains the target color, it is painted onto the output grid at its designated corner position.
+
+**Version 3:** (using `fork`)
+
+```python
+def program(I):
+  target_color = leastcolor(I)
+  O = canvas(mostcolor(I), shape(I))
+  def shift_to_corner(i, j, val):
+    target_i = height(I) - 1 if i > height(I) // 2 else 0
+    target_j = width(I) - 1 if j > width(I) // 2 else 0
+    return paint(O, {(val, (target_i, target_j))})
+  O = fork(lambda x, y: y, lambda x: x, prapply(lambda i, j: shift_to_corner(i, j, I[i][j]), *pair(astuple(0, height(I)), astuple(0, width(I)))))(O)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Color:** Similar to previous versions.
+2. **Define `shift_to_corner`:** This helper function calculates the target corner position and paints a cell onto the output grid.
+3. **Apply Transformation:** 
+    - `prapply` applies `shift_to_corner` to all cell indices of the input grid.
+    - `fork` is used to discard the intermediate results of `prapply` and return the final output grid.
+
+**Version 4:** (using `rapply`)
+
+```python
+def program(I):
+  target_color = leastcolor(I)
+  O = canvas(mostcolor(I), shape(I))
+  def shift_row(row_index):
+    return rapply(lambda j: paint(O, {(I[row_index][j], (height(I) - 1 if row_index > height(I) // 2 else 0, width(I) - 1 if j > width(I) // 2 else 0))}), range(width(I)))
+  O = last(rapply(shift_row, range(height(I))))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Color:** Same as previous versions.
+2. **Define `shift_row`:**  This helper function takes a row index and processes each cell in that row, calculating the target position and painting it onto the output grid.
+3. **Apply Transformation:**
+    -  `rapply` applies `shift_row` to each row index of the input grid.
+    -  `last` is used to select the final output grid from the results.
+
+**Version 5:** (using list comprehension)
+
+```python
+def program(I):
+  target_color = leastcolor(I)
+  O = canvas(mostcolor(I), shape(I))
+  [(O := paint(O, {(I[i][j], (height(I)-1 if i > height(I) // 2 else 0, width(I)-1 if j > width(I) // 2 else 0))})) for i in range(height(I)) for j in range(width(I)) if I[i][j] == target_color]
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Color:** Same as in previous versions.
+2. **List Comprehension:** This version uses a list comprehension to iterate through each cell of the input grid and apply the transformation if the cell's color matches the target color. The target position calculation and painting are similar to previous versions.
+
+These five versions demonstrate diverse approaches to implementing the desired transformation using the DSL, ranging from object-based processing to cell-by-cell manipulation and utilizing various DSL functions for iteration and data manipulation.

@@ -1,0 +1,116 @@
+## Transformation Analysis:
+
+**Input 0 to Output 0:**
+
+* Identify all objects (connected regions of the same digit) in the input.
+* For each object, recolor the inner 2x2 square (if it exists) to a different digit: 1 for the top object, 2 for the bottom object.
+
+**Input 1 to Output 1:**
+
+* Identify all objects in the input.
+* For each object, recolor the inner 2x2 square (if it exists) to a different digit: 2 for the top object, 1 for the bottom object. 
+
+## Program Versions:
+
+**Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F) 
+  def recolor_inner(obj):
+    if width(obj) >=2 and height(obj) >= 2: 
+      corner = (uppermost(obj)+1, leftmost(obj)+1) 
+      return recolor(1 if uppermost(obj) < len(I)//2 else 2, shift({corner}, (0,1)).union(shift({corner}, (1,0))).union(shift({corner}, (1,1)))) 
+    else:
+      return frozenset()
+  recolored_objs = mapply(recolor_inner, objs) 
+  O = I
+  for obj in recolored_objs:
+    O = paint(O, obj) 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objs = objects(I, T, F, F)` identifies all connected regions of the same digit.
+2. **Recolor Function:** `recolor_inner(obj)` checks if an object is at least 2x2. If so, it determines the top-left corner of the inner square and recolors it based on the object's vertical position (1 for top, 2 for bottom).
+3. **Apply Recoloring:**  `recolored_objs = mapply(recolor_inner, objs)` applies the recoloring function to each object.
+4. **Paint Objects:** The code iterates through `recolored_objs` and paints them onto a copy of the input grid (`O`).
+
+**Version 2:**
+
+```python
+def solve(I):
+  def process_object(obj):
+    if width(obj) >= 2 and height(obj) >= 2:
+      i, j = ulcorner(obj)
+      new_color = 1 if i < len(I) // 2 else 2
+      return recolor(new_color, {(i + 1, j + 1), (i + 1, j + 2), (i + 2, j + 1), (i + 2, j + 2)})
+    else:
+      return obj
+  O = paint(I, merge(apply(process_object, objects(I, T, F, F))))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Processing:**  `process_object(obj)` is similar to `recolor_inner` in Version 1. It identifies the inner 2x2 square and recolors based on the object's position.
+2. **One-Liner Transformation:** This version condenses the logic into a single line. `objects(I, T, F, F)` gets the objects, `apply(process_object, ...)` processes each object, `merge(...)` combines the results, and `paint(I, ...)` paints them onto the input grid.
+
+**Version 3:**
+
+```python
+def solve(I):
+  def recolor_if_big(obj):
+    return recolor(1 if uppermost(obj) < len(I)//2 else 2,  {(i+1, j+1) for i in range(height(obj)-2) for j in range(width(obj)-2)}) if height(obj) > 2 and width(obj) > 2 else frozenset()
+  return paint(I, merge(apply(recolor_if_big, objects(I, T, F, F))))
+```
+
+**Explanation:**
+
+1. **Simplified Recoloring:** `recolor_if_big(obj)`  directly calculates and recolors the inner square indices using nested loops within a set comprehension if the object is larger than 2x2.
+2. **Concise Transformation:** Similar to Version 2, this version combines object identification, processing, and painting into a single line for conciseness.
+
+**Version 4:**
+
+```python
+def solve(I):
+  def modify_obj(obj):
+    if len(obj) >= 4:  
+      ci, cj = centerofmass(obj) 
+      new_color = 1 if ci < len(I) // 2 else 2 
+      return recolor(new_color, {(ci, cj), (ci + 1, cj), (ci, cj + 1), (ci + 1, cj + 1)})
+    else:
+      return obj
+  new_objs = apply(modify_obj, objects(I, T, F, F)) 
+  return paint(I, merge(new_objs))
+```
+
+**Explanation:**
+
+1. **Center-Based Recoloring:** `modify_obj(obj)` checks if an object has at least 4 cells (implying at least 2x2). It calculates the center of mass and uses it to recolor a 2x2 area around the center based on the object's vertical position.
+2. **Clearer Object Handling:** This version separates the object modification and painting steps for better readability.
+
+**Version 5:**
+
+```python
+def solve(I):
+  def recolor_center(obj):
+    if all([height(obj) > 1, width(obj) > 1]):
+      center_i, center_j = centerofmass(obj)
+      color_to_use = 1 if center_i < len(I) // 2 else 2
+      return recolor(color_to_use, {(center_i, center_j), (center_i + 1, center_j), (center_i, center_j + 1), (center_i + 1, center_j + 1)})
+    else:
+      return obj
+  return paint(I, merge(apply(recolor_center, objects(I, T, F, F))))
+```
+
+**Explanation:**
+
+1. **Explicit Size Check:**  `recolor_center(obj)` explicitly checks both `height(obj) > 1` and `width(obj) > 1` for clarity. 
+2. **Descriptive Naming:** This version uses more descriptive names like `color_to_use` for improved readability.
+
+
+## Note:
+
+These are just five possible solutions; many other variations and approaches are possible within the DSL. The key is to understand the transformation logic and leverage the DSL functions effectively to achieve the desired result. 

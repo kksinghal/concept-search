@@ -1,0 +1,171 @@
+## Transformation Analysis:
+
+The transformation aims to identify the smallest and largest objects in the input grid (excluding the background color). Then, it selectively recolors the cells of these objects in the output grid.
+
+- **Smallest Object:**  Cells belonging to the smallest object are recolored with the value `2` in the output grid, but only if they are diagonally adjacent to the largest object. 
+- **Largest Object:** Cells belonging to the largest object are recolored with the value `2` in the output grid. 
+
+The remaining cells in the output grid retain their original values from the input grid.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify smallest and largest objects
+  objs = objects(I, T, F, T)
+  smallest = argmin(objs, size)
+  largest = argmax(objs, size)
+
+  # Create output grid
+  O = canvas(ZERO, shape(I))
+
+  # Recolor largest object
+  O = paint(O, recolor(TWO, largest))
+
+  # Recolor smallest object cells diagonally adjacent to largest object
+  for cell in smallest:
+    i, j = cell[1]
+    if any((i + di, j + dj) in toindices(largest) for di, dj in [(1, 1), (1, -1), (-1, 1), (-1, -1)]):
+      O = paint(O, recolor(TWO, {cell}))
+
+  # Combine with original grid
+  O = cellwise(I, O, fallback=ZERO)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** The code identifies all objects in the input grid (`I`) using `objects(I, T, F, T)`.
+2. **Find Smallest and Largest:**  It then determines the smallest and largest objects using `argmin(objs, size)` and `argmax(objs, size)`, respectively.
+3. **Initialize Output Grid:** An empty canvas (`O`) with the same dimensions as the input is created using `canvas(ZERO, shape(I))`.
+4. **Recolor Largest Object:** All cells belonging to the largest object are recolored with value `2` on the output grid using `paint(O, recolor(TWO, largest))`.
+5. **Recolor Smallest Object (Conditional):** The code iterates through each cell of the smallest object. For each cell, it checks if any of its diagonally adjacent cells belong to the largest object. If so, the cell is recolored with value `2` on the output grid. 
+6. **Combine with Original:** Finally, the code combines the output grid with the original input grid using `cellwise(I, O, fallback=ZERO)`. This keeps the original values for cells that were not part of the smallest or largest objects.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find smallest and largest objects
+  objs = objects(I, T, F, T)
+  smallest = argmin(objs, size)
+  largest = argmax(objs, size)
+
+  # Create a mask for diagonally adjacent cells to the largest object
+  mask = mapply(lambda loc: ineighbors(loc), toindices(largest))
+
+  # Recolor the smallest object if it intersects with the mask
+  recolored_smallest = branch(
+    len(intersection(toindices(smallest), mask)) > 0,
+    recolor(TWO, smallest),
+    smallest
+  )
+
+  # Combine and paint the objects
+  O = paint(canvas(ZERO, shape(I)), largest)
+  O = paint(O, recolored_smallest)
+  return cellwise(I, O, fallback=ZERO)
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Similar to version 1, the code begins by identifying the smallest and largest objects.
+2. **Create Diagonal Mask:** It creates a mask (`mask`) of indices representing all cells diagonally adjacent to the largest object using `ineighbors` and `mapply`.
+3. **Conditional Recoloring:** It checks if the smallest object intersects with the diagonal mask. If true, it recolors the smallest object with value `2`; otherwise, it keeps its original color.
+4. **Paint Objects:** It paints the largest object and the (potentially recolored) smallest object onto a blank canvas.
+5. **Combine with Original:** Similar to version 1, it combines the output with the original grid using `cellwise`.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Create a function to recolor an object based on its size and diagonal adjacency
+  def recolor_object(obj, largest):
+    is_smallest = size(obj) == size(argmin(objects(I, T, F, T), size))
+    is_adjacent = any(manhattan(obj, {cell}) == 2 for cell in largest)
+    return recolor(TWO, obj) if is_smallest and is_adjacent else obj
+  
+  # Find largest object
+  largest_obj = argmax(objects(I, T, F, T), size)
+
+  # Recolor all objects on a blank canvas
+  O = canvas(ZERO, shape(I))
+  for obj in objects(I, T, F, T):
+    O = paint(O, recolor_object(obj, largest_obj))
+    
+  return cellwise(I, O, fallback=ZERO)
+```
+
+**Explanation:**
+
+1. **Helper Function:** This version defines a helper function `recolor_object` that takes an object and the largest object as input. It recolors the object with value `2` if it's the smallest object and diagonally adjacent to the largest object.
+2. **Identify Largest Object:** It finds the largest object.
+3. **Iterate and Recolor:**  It iterates over all objects in the input, using the `recolor_object` function to determine their final colors on a blank canvas.
+4. **Combine with Original:**  Finally, it combines the result with the original grid using `cellwise`.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find the smallest and largest objects
+  objs = objects(I, T, F, T)
+  smallest = argmin(objs, size)
+  largest = argmax(objs, size)
+
+  # Create a function to check diagonal adjacency for a single cell
+  is_diagonally_adjacent = lambda cell: any((cell[0] + di, cell[1] + dj) in toindices(largest) for di, dj in [(1, 1), (1, -1), (-1, 1), (-1, -1)])
+
+  # Filter the smallest object to keep only diagonally adjacent cells
+  adjacent_smallest = sfilter(smallest, lambda cell: is_diagonally_adjacent(cell[1]))
+
+  # Paint the objects onto a blank canvas
+  O = paint(canvas(ZERO, shape(I)), recolor(TWO, largest))
+  O = paint(O, recolor(TWO, adjacent_smallest))
+  return cellwise(I, O, fallback=ZERO)
+```
+
+**Explanation:**
+
+1. **Identify Objects:** It identifies the smallest and largest objects.
+2. **Diagonal Adjacency Check:**  A lambda function `is_diagonally_adjacent` checks if a given cell is diagonally adjacent to the largest object.
+3. **Filter Smallest Object:** It filters the smallest object, keeping only cells that are diagonally adjacent to the largest object.
+4. **Paint Objects:** It paints the largest object and the filtered smallest object onto a blank canvas.
+5. **Combine with Original:** It combines the result with the original grid using `cellwise`.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Create a function to process objects based on size and adjacency
+  def process_object(obj, objs, largest):
+    if obj == largest:
+      return recolor(TWO, obj)
+    elif size(obj) == size(argmin(objs, size)) and manhattan(obj, largest) == 2:
+      return recolor(TWO, obj)
+    else:
+      return frozenset()
+
+  # Process all objects and combine the results
+  return cellwise(I, paint(canvas(ZERO, shape(I)), merge(apply(lambda obj: process_object(obj, objects(I, T, F, T), argmax(objects(I, T, F, T), size)), objects(I, T, F, T)))), fallback=ZERO)
+```
+
+**Explanation:**
+
+1. **Helper Function:** A helper function `process_object` takes an object, all objects, and the largest object as input. It recolors the largest object with value `2`. If the object is the smallest and has a Manhattan distance of 2 (diagonally adjacent) to the largest object, it also recolors it with value `2`. Otherwise, it returns an empty object.
+2. **Process and Combine:** The code applies the `process_object` function to all objects in the input, merges the results, and paints them onto a blank canvas.
+3. **Combine with Original:**  It combines the result with the original grid using `cellwise`. 
+
+These five versions demonstrate different approaches to solve the transformation, leveraging various DSL functions and logic to achieve the desired output.

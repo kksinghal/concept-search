@@ -1,0 +1,104 @@
+## Transformation Analysis
+
+**Input_0 to Output_0:** The transformation involves identifying each connected component of non-zero digits in the input grid.  For each component, a 3x3 square, centered on the original component's center of mass and filled with the digit '3', is painted onto the output grid.
+
+**Input_1 to Output_1:**  Similar to the previous transformation, but with two key differences:
+
+1. **Padding:** Before identifying connected components, the input grid is effectively padded with a single layer of zeros on all sides. This ensures that components touching the edges of the input grid are also expanded correctly. 
+2. **Shift:** The 3x3 squares, filled with the digit '3', are centered one cell up and one cell left from the original component's center of mass.
+
+## Code Generation
+
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Identify connected components (excluding background)
+  expanded_objs = set() 
+  for obj in objs:
+    center_i, center_j = centerofmass(obj) # Calculate the center of mass
+    for i in range(center_i - 1, center_i + 2): # Iterate over 3x3 square
+      for j in range(center_j - 1, center_j + 2):
+        if 0 <= i < height(I) and 0 <= j < width(I): # Check if within bounds
+          expanded_objs.add((THREE, (i, j)))
+  O = paint(I, frozenset(expanded_objs)) # Paint onto the original grid
+  return O 
+```
+**Explanation:**
+
+1.  **Identify components:** `objects(I, T, F, T)` identifies connected components in the grid, excluding the background.
+2.  **Calculate center and expand:** For each object, its center of mass is calculated using `centerofmass(obj)`.  A loop then iterates over a 3x3 square centered at this point.
+3.  **Paint:**  The coordinates of the 3x3 square are added to `expanded_objs`, which are then painted onto the original grid using `paint()`. 
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) 
+  expanded_objs = mapply(lambda obj: recolor(THREE, shift(backdrop(obj), (-1, -1))), objs)
+  O = paint(I, merge(expanded_objs)) 
+  return O
+```
+
+**Explanation:**
+
+1.  **Identify components:** Same as Version 1.
+2.  **Expand and shift:** For each object, `backdrop(obj)` creates a set of indices covering the object's bounding box. This box is then shifted up-left by one unit using `shift(..., (-1, -1))`. Finally, `recolor(THREE, ...)` sets all indices in the shifted box to 3.
+3.  **Paint:**  The expanded and shifted objects are merged and painted onto the original grid.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  padded_I = canvas(ZERO, (height(I) + 2, width(I) + 2)) # Create padded grid
+  padded_I = paint(padded_I, shift(asobject(I), (1, 1))) # Place I in center
+  objs = objects(padded_I, T, F, T)
+  expanded_objs = mapply(lambda obj: recolor(THREE, backdrop(obj)), objs)
+  O = paint(I, merge(sfilter(merge(expanded_objs), lambda cell: 1 <= cell[1][0] < height(I) + 1 and 1 <= cell[1][1] < width(I) + 1)))
+  return O
+```
+**Explanation:**
+
+1. **Padding:**  A new grid `padded_I`, larger than the input by one cell in each direction and filled with zeros, is created. The input grid is then painted onto the center of this padded grid.
+2. **Identify and Expand:** Same logic as in version 2, but on the padded grid.
+3. **Paint and Crop**: The expanded objects are filtered to remove the padding and are then painted onto the original input grid.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(ZERO, shape(I)) # Initialize output grid
+  objs = objects(I, T, F, T) 
+  for obj in objs:
+    center_i, center_j = centerofmass(obj)
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        new_i, new_j = center_i + di, center_j + dj
+        if 0 <= new_i < height(I) and 0 <= new_j < width(I):
+          O = fill(O, THREE, {(new_i, new_j)}) 
+  return O
+```
+**Explanation:**
+
+1.  **Initialize Output:** An empty output grid is created with the same dimensions as the input.
+2.  **Identify Components and Expand:** Similar to version 1, connected components are identified, and for each, a 3x3 square around the center of mass is considered.
+3. **Direct Filling:** Instead of using `paint`, the output grid `O` is directly modified using `fill` to place the digit '3' at the appropriate locations.
+
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  expanded_indices = mfilter(objs, lambda obj: shift(backdrop(obj), (-1, -1)))
+  O = fill(I, THREE, merge(expanded_indices))
+  return O
+```
+**Explanation:**
+
+1. **Identify Components:** Same as in previous versions.
+2. **Expand and Shift:** `mfilter` is used to both filter and merge. It applies `shift(backdrop(obj), (-1, -1))` to each object to get its expanded and shifted bounding box and merges all these boxes into a single set of indices.
+3. **Fill:** The output grid is created by filling the `expanded_indices` in the input grid `I` with the digit '3'.
+
+These five program versions demonstrate different approaches to achieve the same transformation.  They highlight the flexibility of the provided DSL and offer diverse solutions to the given problem. 

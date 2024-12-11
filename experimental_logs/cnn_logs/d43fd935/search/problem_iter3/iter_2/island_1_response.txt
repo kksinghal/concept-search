@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation seems to identify the leftmost cell of each distinct object (excluding the background) within each row. It then removes all other cells of that object from the row, essentially preserving only the leftmost pixel of each object in each row.
+
+**Let's analyze this behavior on each input-output pair:**
+
+* **Input_0/Output_0:**  Notice how in the 4th row, only the leftmost '3' and '1' are kept. Similar behavior is observed in other rows for other objects (e.g., only the leftmost '6' is preserved in rows 2, 7, 8, and 9).
+
+* **Input_1/Output_1:**  The same logic applies. For instance, in row 3, only the leftmost '7', '3', and '8' remain. 
+
+* **Input_2/Output_2:** This example further confirms the pattern. In the 7th and 8th rows, only the leftmost "3" of the "33" object is kept.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve the desired transformation:
+
+**Program Version 1: Using `fgpartition` and `leftmost`**
+
+```python
+def Program_to_be_generated(I):
+  new_I = canvas(mostcolor(I), shape(I)) # Create a canvas filled with background color
+  for obj in fgpartition(I): # Iterate over non-background objects
+    for i in range(height(I)): # Iterate over each row
+      leftmost_j = next((j for j in range(width(I)) if (i, j) in toindices(obj)), None) # Find leftmost j in the row belonging to the object
+      if leftmost_j is not None:
+        new_I = paint(new_I, {(color(obj), (i, leftmost_j))})  # Paint the leftmost cell
+  return new_I
+```
+
+**Explanation:**
+
+1. **Create a blank canvas:** We start by creating a new grid (`new_I`) filled with the background color, having the same dimensions as the input grid (`I`).
+2. **Iterate through objects:** We loop through each non-background object identified by `fgpartition(I)`.
+3. **Iterate through rows:** For each object, we iterate through every row of the grid.
+4. **Find leftmost cell:** In each row, we find the index (`leftmost_j`) of the leftmost cell belonging to the current object using `next` and a generator expression.
+5. **Paint the cell:** If `leftmost_j` is found (not None), we paint that cell on our canvas (`new_I`) with the object's color. 
+6. **Return the canvas:** Finally, we return the modified canvas, which now represents the desired output.
+
+**Program Version 2: Using `crop` and `extract`**
+
+```python
+def Program_to_be_generated(I):
+  new_I = canvas(mostcolor(I), shape(I))
+  for i in range(height(I)):
+    row_obj = toobject(asindices(crop(I, (i, 0), (1, width(I)))), I) # Object representing current row
+    for v in palette(row_obj) - {mostcolor(I)}: # Iterate over colors in the row (excluding background)
+      leftmost_cell = extract(row_obj, lambda x: x[0] == v and x[1][0] == i) # Extract leftmost cell of the color
+      new_I = paint(new_I, {leftmost_cell}) # Paint the cell
+  return new_I
+```
+
+**Explanation:**
+
+1. **Initialization:** We initialize a new grid (`new_I`) filled with the background color, having the same dimensions as the input grid (`I`).
+2. **Iterate through rows:** We loop through each row of the input grid.
+3. **Extract row object:** We use `crop` to isolate the current row, convert it to an object using `asindices` and `toobject`.
+4. **Iterate through colors:** For each non-background color in the row object, we use `extract` to find the leftmost cell with that color in the current row.
+5. **Paint the cell:** We paint the extracted leftmost cell onto our canvas (`new_I`).
+6. **Return the result:** Finally, we return the modified canvas.
+
+**Program Version 3: Leveraging `hsplit` and set operations**
+
+```python
+def Program_to_be_generated(I):
+  return vconcat(*[tuple(r[:len({v for v in r if v != mostcolor(I)})] + [mostcolor(I)] * (len(r) - len({v for v in r if v != mostcolor(I)}))) for r in hsplit(I, height(I))])
+```
+
+**Explanation:**
+
+This version uses a more compact approach leveraging list comprehensions and set operations:
+
+1. **Split into rows:** `hsplit(I, height(I))` divides the grid into individual rows.
+2. **Process each row:** The list comprehension iterates through each row `r`.
+3. **Identify unique foreground colors:** `{v for v in r if v != mostcolor(I)}` creates a set of unique non-background colors in the row.
+4. **Slice and fill:** The row is sliced up to the length of unique colors, effectively keeping only the leftmost occurrences. The remaining part of the row is filled with the background color.
+5. **Vertically concatenate:** `vconcat` joins the processed rows back into a grid.
+
+**Program Version 4:  Employing `index` and list manipulation**
+
+```python
+def Program_to_be_generated(I):
+  result = []
+  for i in range(height(I)):
+    row = list(I[i])
+    seen_colors = set()
+    j = 0
+    while j < len(row):
+      color = index(I, (i, j))
+      if color != mostcolor(I) and color not in seen_colors:
+        seen_colors.add(color)
+        j += 1
+      else:
+        del row[j]
+    result.append(tuple(row))
+  return tuple(result)
+```
+
+**Explanation:**
+
+1. **Iterate through rows:**  The code iterates through each row of the input grid.
+2. **Track seen colors:** For each row, it maintains a set (`seen_colors`) to track the unique colors encountered.
+3. **Iterate through cells:** It iterates through each cell in the row.
+4. **Check and delete:** If the current cell's color is not the background color and hasn't been encountered before, it's kept. Otherwise, the cell is deleted from the row.
+5. **Append to result:** The modified row is appended to the `result` list.
+6. **Return the modified grid:** Finally, the `result` list, now containing the modified rows, is converted to a tuple and returned. 
+
+**Program Version 5: Utilizing `apply` and `first` functions**
+
+```python
+def Program_to_be_generated(I):
+  return apply(lambda row: tuple(row[:next((j for j, v in enumerate(row) if v != mostcolor(I)), width(I))]), I)
+```
+
+**Explanation:**
+
+This version uses a more functional approach with `apply` and `lambda` functions:
+
+1. **Apply to each row:** The `apply` function applies a lambda function to each row of the input grid `I`.
+2. **Find the first non-background color:** Inside the lambda function, `next((j for j, v in enumerate(row) if v != mostcolor(I)), width(I))` finds the index of the first non-background color in the row or returns the width of the row if no such color is found.
+3. **Slice and return:** The row is then sliced up to the found index, effectively keeping only the elements before the first non-background color or the entire row if all elements are background colored. This sliced row is then returned.
+4. **Reconstruct the grid:** `apply` gathers the results of applying the lambda function to each row and constructs the final output grid. 
+
+These five versions demonstrate different approaches to achieve the same transformation, offering a diverse set of solutions. Remember to choose the version that best suits your needs and coding style. 

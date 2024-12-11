@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation relabels the digits in the input grid based on the size of the objects they form. Objects are defined as connected regions of the same digit, considering only direct (not diagonal) adjacency. 
+
+Here's how the relabeling works:
+
+- **Largest Object:** The largest object retains its original color.
+- **Second Largest Object:** The second largest object is relabeled to '1'.
+- **Remaining Objects:** All other objects are relabeled to '2'.
+
+Let's break down each input-output pair:
+
+**Input_0 / Output_0:**
+- The largest object (five '5's) remains unchanged.
+- The second largest object (three '5's) is relabeled to '1'.
+- The two remaining objects (two '5's each) are relabeled to '2'.
+
+**Input_1 / Output_1:**
+- The largest object (six '5's) remains unchanged.
+- The second largest object (four '5's) is relabeled to '1'.
+- The three remaining objects (two '5's each) are relabeled to '2'.
+
+**Input_2 / Output_2:**
+- The largest object (five '5's) remains unchanged.
+- The second largest object (four '5's) is relabeled to '1'.
+- The remaining objects (three '5's, two '5's, and one '5') are relabeled to '2'.
+
+## Program Versions:
+
+Here are five distinct program versions to achieve the desired transformation:
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = order(objects(I, T, F, T), size)
+  largest = first(objs)
+  second_largest = first(remove(largest, objs))
+  O = paint(paint(canvas(2, shape(I)), largest), second_largest)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, T, F, T)` identifies objects in the grid (`I`), considering only cells with the same value (`T`), direct neighbors (`F`), and excluding the background (`T`).
+2. **Order by Size:** `order(..., size)` orders the identified objects (`objs`) based on their size.
+3. **Extract Largest and Second Largest:** `first(objs)` retrieves the largest object, and `first(remove(largest, objs))` gets the second largest after removing the largest from the list.
+4. **Create Base Canvas:** `canvas(2, shape(I))` generates a canvas the same size as the input grid (`I`), filled with the value '2'.
+5. **Paint Largest and Second Largest:** The largest object is painted onto the canvas first, followed by the second largest, overwriting any '2's in their positions.
+
+**Program Version 2**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  sizes = apply(size, objs)
+  largest_size = maximum(sizes)
+  second_largest_size = maximum(remove(largest_size, sizes))
+  O = I
+  for obj in objs:
+    if size(obj) == largest_size:
+      O = paint(O, obj)
+    elif size(obj) == second_largest_size:
+      O = paint(O, recolor(1, obj))
+    else:
+      O = paint(O, recolor(2, obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Sizes:** Similar to version 1, objects are identified, and their sizes are calculated using `apply(size, objs)`.
+2. **Find Largest and Second Largest Sizes:**  `maximum(sizes)` finds the size of the largest object, and `maximum(remove(largest_size, sizes))` finds the second largest size.
+3. **Iterate and Recolor:** The program iterates through each object. If the object's size matches the largest size, it's painted directly onto the grid. If it matches the second largest size, it's recolored to '1' before painting. Otherwise, it's recolored to '2'.
+
+**Program Version 3**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  largest = argmax(objs, size)
+  remaining = remove(largest, objs)
+  second_largest = argmax(remaining, size)
+  O = I
+  for obj in objs:
+    if obj == largest:
+      O = paint(O, obj)
+    elif obj == second_largest:
+      O = paint(O, recolor(1, obj))
+    else:
+      O = paint(O, recolor(2, obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions, objects are identified.
+2. **Find Largest and Second Largest:** `argmax(objs, size)` finds the largest object itself (not just its size) using `size` as the comparison function.  `remove(largest, objs)` removes the largest object, and `argmax(remaining, size)` finds the second largest object.
+3. **Iterate and Recolor:**  The program iterates through each object. If the object is the largest, it's painted directly. If it's the second largest, it's recolored to '1' before painting. Otherwise, it's recolored to '2'.
+
+**Program Version 4**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  s = size
+  f = compose(s, lbind(contained, objs))
+  largest_size = valmax(I, f)
+  second_largest_size = valmax(remove(mostcommon(I), palette(I)), f)
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      v = I[i][j]
+      if f(v) == largest_size:
+        O = paint(O, {(v, (i, j))})
+      elif f(v) == second_largest_size:
+        O = paint(O, {(1, (i, j))})
+      else:
+        O = paint(O, {(2, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Define Functions:** Similar to previous versions, objects are identified.  `s` is an alias for the `size` function. `f` is defined to find the size of the object containing a specific value in the grid.
+2. **Find Largest and Second Largest Sizes:** `valmax(I, f)` finds the largest object size by applying `f` to each unique value in the grid.  `valmax(remove(mostcommon(I), palette(I)), f)` finds the second largest size by first removing the most common value (assumed to be the background) from the palette before applying `f`.
+3. **Iterate and Recolor:** The code iterates through each cell in the grid. For each cell, it determines the size of the object containing the cell's value. If the size matches the largest or second largest, it recolors the cell accordingly; otherwise, it recolors it to '2'.
+
+**Program Version 5**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  objs_by_size = {}
+  for obj in objs:
+    s = size(obj)
+    if s not in objs_by_size:
+      objs_by_size[s] = []
+    objs_by_size[s].append(obj)
+  sorted_sizes = sorted(objs_by_size.keys(), reverse=True)
+  largest_size = sorted_sizes[0]
+  second_largest_size = sorted_sizes[1]
+  O = I
+  for size, obj_list in objs_by_size.items():
+    for obj in obj_list:
+      if size == largest_size:
+        O = paint(O, obj)
+      elif size == second_largest_size:
+        O = paint(O, recolor(1, obj))
+      else:
+        O = paint(O, recolor(2, obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Group by Size:** Objects are identified and grouped by their sizes into the `objs_by_size` dictionary. 
+2. **Sort Sizes and Extract Top Two:** The sizes are sorted in descending order, and the largest and second largest sizes are extracted.
+3. **Iterate and Recolor:** The program iterates through each size group in the `objs_by_size` dictionary.  Objects within the largest size group are painted directly. Objects within the second largest size group are recolored to '1' before painting. All other objects are recolored to '2'. 

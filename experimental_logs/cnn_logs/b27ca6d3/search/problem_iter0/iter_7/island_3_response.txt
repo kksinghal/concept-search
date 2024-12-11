@@ -1,0 +1,99 @@
+## Transformation Analysis:
+
+The transformation aims to draw a horizontal line of '3's' extending one cell to the left and right of each non-zero cell in the input grid. 
+
+**Input_0:** Each '2' gets a horizontal line of three '3's' centered on it.  The existing '0's remain unchanged.
+
+**Input_1:**  The same logic applies. Each '2' gets a three-cell horizontal line of '3's'. The background '0's stay the same.
+
+## Program to be Generated (Five Versions)
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def paint_horizontal_line(index):
+    i, j = index
+    return frozenset({(i, j - 1), (i, j), (i, j + 1)})
+  non_zero_indices = ofcolor(I, ONE) | ofcolor(I, TWO)
+  line_indices = mapply(paint_horizontal_line, non_zero_indices)
+  return fill(I, THREE, merge(line_indices) & asindices(I))
+```
+
+**Explanation:**
+
+1. **`paint_horizontal_line(index)`:** This helper function takes a cell's index (i, j) and returns a set containing the indices of the three cells forming a horizontal line centered at (i, j).
+2. **`non_zero_indices`:**  This line identifies the indices of all cells in the input grid (`I`) that have a value of '1' or '2'. 
+3. **`line_indices`:**  We apply the `paint_horizontal_line` function to each non-zero index using `mapply`. This generates a set of sets, where each inner set contains the indices to be filled with '3's for a particular non-zero cell.
+4. **`merge(line_indices) & asindices(I)`:** This merges all the inner sets into a single set of indices. It then takes the intersection of this set with the valid indices of the grid (`asindices(I)`) to handle edge cases where the line might extend beyond the grid boundaries.
+5. **`fill(I, THREE, ...)`:** Finally, the `fill` function paints the value '3' at all the indices calculated in the previous step.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def expand_horizontal(obj):
+    i, j = centerofmass(obj)
+    return frozenset({(i, j - 1), (i, j), (i, j + 1)})
+  objects = fgpartition(I) 
+  expanded_objects = mapply(expand_horizontal, objects)
+  return fill(I, THREE, merge(expanded_objects) & asindices(I))
+```
+
+**Explanation:**
+
+1. **`expand_horizontal(obj)`:** This function takes an object (a set of cells with the same color) and returns a set containing the indices to draw a horizontal line across its center of mass.
+2. **`objects = fgpartition(I)`:** We partition the grid into objects, excluding the background.
+3. **`expanded_objects`:**  Applies `expand_horizontal` to each object, creating a set of indices for the lines.
+4. **`merge(...) & asindices(I)`:** Merges the indices and intersects with valid grid indices to stay within bounds.
+5. **`fill(...)`:** Fills the calculated indices with '3' on the input grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  return cellwise(I, upsample(replace(downscale(I, 2), ZERO, ONE), 2), THREE)
+```
+
+**Explanation:**
+
+1. **`downscale(I, 2)`:** Downscales the input grid by a factor of 2.
+2. **`replace(..., ZERO, ONE)`:**  Replaces all '0's in the downscaled grid with '1's.
+3. **`upscale(..., 2)`:** Upscales the modified grid back to the original size, resulting in a grid where the original non-zero cells are now blocks of '1's.
+4. **`cellwise(I, ..., THREE)`:** Performs a cellwise comparison between the original grid and the upscaled grid. If the cells match, it keeps the original value; otherwise, it sets the cell to '3'.
+
+**Program Version 4:** 
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  new_grid = [[THREE if any([I[i][max(0,j-1):min(j+2,w)].count(v) > 0 for v in (ONE,TWO)]) else c 
+               for j, c in enumerate(r)] for i, r in enumerate(I)]
+  return tuple(tuple(row) for row in new_grid)
+```
+
+**Explanation:**
+
+This version uses list comprehensions for a more direct approach:
+
+1. It iterates through each cell (i, j) of the input grid `I`.
+2. For each cell, it checks if a '1' or '2' exists within a 3-cell horizontal window centered at that cell (handling edge cases). 
+3. If a '1' or '2' is found, it sets the cell to '3'; otherwise, it retains the original value. 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def paint_line(indices):
+    return frozenset((i, j) for i, j in indices if 0 <= j < width(I))
+  non_zero = ofcolor(I, ONE) | ofcolor(I, TWO)
+  shifted_lines = mapply(lambda idx: paint_line({(idx[0], idx[1] + dj) for dj in (-1, 0, 1)}), non_zero)
+  return fill(I, THREE, merge(shifted_lines))
+```
+
+**Explanation:**
+
+1. **`paint_line(indices)`:** Takes a set of indices and filters out those that fall outside the grid's width.
+2. **`non_zero`:** Gets the indices of cells with values '1' or '2'.
+3. **`shifted_lines`:** For each non-zero index, it generates a horizontal line (3 cells) and filters invalid indices using `paint_line`.
+4. **`fill(...)`:** Paints the value '3' at all the calculated valid indices on the input grid. 

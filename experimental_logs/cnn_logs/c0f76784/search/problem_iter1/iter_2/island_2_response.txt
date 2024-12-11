@@ -1,0 +1,121 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects made of the digit '5' and then modifying the background cells around these objects. Two types of modifications are applied:
+
+1. **Inner Modification:** Cells directly adjacent (up, down, left, right) to the object but not part of the object are replaced with the digit '8'.
+2. **Outer Modification:**  Cells one step diagonally away from the object and not already modified are replaced with the digit '7'. Additionally, any cell directly adjacent to two different '5' objects that hasn't undergone the inner modification is also changed to '7'.
+
+**Let's illustrate with Input_0:**
+
+* **Object Detection:** Two objects are formed by the digit '5'. 
+* **Inner Modification:**  Cells directly around the top and bottom '5' objects are filled with '8'. 
+* **Outer Modification:** Cells diagonally adjacent to the '5' objects are filled with '7'. Additionally, the cell at (3,4) is changed to '7' as it's adjacent to both '5' objects and hasn't been modified to '8'.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Version 1:**
+
+```python
+def solve_e73095fd(I):
+  objs = objects(I, T, F, T) # Get all objects made of '5' (excluding background)
+  inner = mapply(lambda obj: difference(dneighbors(centerofmass(obj)), toindices(obj)), objs) # Cells directly adjacent to object
+  outer = mapply(lambda obj: difference(ineighbors(centerofmass(obj)), toindices(obj)), objs) # Cells diagonally adjacent
+  diag_neighbors = mapply(dneighbors, toindices(merge(objs))) # Get all direct neighbors of all object cells
+  double_neighbors = sfilter(diag_neighbors, lambda loc: size(sfilter(diag_neighbors, lambda loc2: loc == loc2)) > 1) # Find direct neighbors appearing more than once (adjacent to multiple objects)
+  true_outer = combine(outer, difference(double_neighbors, inner))
+  O = fill(I, EIGHT, inner)  
+  O = fill(O, SEVEN, true_outer)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection:**  Identifies objects formed by the digit '5', excluding the background, using `objects(I, T, F, T)`.
+2. **Inner Modification:**  `inner` identifies cells directly adjacent to each object using `dneighbors` and removes the object cells themselves using `difference`.  These cells are then filled with '8' using `fill`.
+3. **Outer Modification:** `outer` identifies cells diagonally adjacent to each object using `ineighbors` and removes object cells. `diag_neighbors` finds all direct neighbors of object cells.  `double_neighbors` filters for cells adjacent to multiple objects. `true_outer` combines diagonally adjacent cells with those identified as double neighbors (excluding already modified cells). Finally, these cells are filled with '7' using `fill`.
+
+**Version 2:**
+
+```python
+def solve_e73095fd(I):
+    objs = objects(I, T, F, T)
+    outer = frozenset()
+    for obj1 in objs:
+      for obj2 in objs:
+        if obj1 != obj2 and manhattan(obj1, obj2) == 2:
+          outer = combine(outer, intersection(dneighbors(centerofmass(obj1)), dneighbors(centerofmass(obj2))))
+    inner = mapply(lambda obj: difference(dneighbors(centerofmass(obj)), toindices(obj)), objs)
+    true_outer = combine(outer, mapply(lambda obj: difference(ineighbors(centerofmass(obj)), toindices(obj)), objs))
+    O = fill(I, EIGHT, inner)
+    O = fill(O, SEVEN, true_outer)
+    return O
+```
+
+**Explanation:**
+
+1. **Object Detection:** Same as Version 1.
+2. **Outer Modification (Part 1):** This version identifies cells adjacent to two different '5' objects first. It iterates through each pair of objects (`obj1`, `obj2`) and if their Manhattan distance is 2 (meaning they are diagonally adjacent), it finds the intersection of their direct neighbors using `intersection(dneighbors(centerofmass(obj1)), dneighbors(centerofmass(obj2)))`. This intersection represents the cell adjacent to both objects. 
+3. **Outer Modification (Part 2):** The rest of the outer modification proceeds similarly to Version 1, identifying diagonally adjacent cells and combining them with the previously identified 'double neighbor' cells.
+4. **Inner Modification:** Same as Version 1.
+
+**Version 3:**
+
+```python
+def solve_e73095fd(I):
+  objs = objects(I, T, F, T)
+  inner = mapply(lambda obj: inbox(toindices(obj)), objs) # Get cells inside the bounding box of each object
+  outer = mapply(lambda obj: outbox(toindices(obj)), objs) # Get cells in the outer layer of the bounding box
+  true_inner = difference(inner, toindices(merge(objs)))
+  true_outer = difference(outer, toindices(merge(objs)))
+  O = fill(I, EIGHT, true_inner)
+  O = fill(O, SEVEN, true_outer)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection:** Same as Version 1.
+2. **Inner Modification:** This version utilizes the `inbox` function to identify all cells within the bounding box of each object. Then, it removes the object cells themselves using `difference` to get the cells for inner modification.
+3. **Outer Modification:**  It employs the `outbox` function to select all cells in the outer layer of each object's bounding box. Again, it removes the object cells using `difference` to get the cells for outer modification.
+
+**Version 4:**
+
+```python
+def solve_e73095fd(I):
+    objs = objects(I, T, F, T)
+    expanded_objs = mapply(lambda obj: combine(toindices(obj), dneighbors(centerofmass(obj))), objs) # Expand each object by its direct neighbors
+    inner = difference(toindices(merge(expanded_objs)), toindices(merge(objs))) # Inner modification cells are those in expanded objects but not in original objects
+    outer = mapply(lambda obj: difference(ineighbors(centerofmass(obj)), toindices(obj)), objs) # Diagonal neighbors excluding object cells
+    O = fill(I, EIGHT, inner)
+    O = fill(O, SEVEN, outer)
+    return O
+```
+
+**Explanation:**
+
+1. **Object Detection:** Same as Version 1.
+2. **Inner Modification:** This version expands each object by including its directly neighboring cells using `dneighbors`.  The cells for inner modification are then determined by finding the difference between these expanded objects and the original objects.
+3. **Outer Modification:**  Same as Version 1.
+
+**Version 5:**
+
+```python
+def solve_e73095fd(I):
+  objs = objects(I, T, F, T)
+  all_neighbors = mapply(lambda obj: combine(dneighbors(centerofmass(obj)), ineighbors(centerofmass(obj))), objs) # Get both direct and diagonal neighbors
+  inner = difference(all_neighbors, mapply(lambda obj: ineighbors(centerofmass(obj)), objs))  # Inner cells are those that are direct neighbors but not diagonal
+  outer = difference(all_neighbors, inner) # Outer cells are the remaining neighbors after removing inner cells
+  O = fill(I, EIGHT, inner)
+  O = fill(I, SEVEN, outer)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection:** Same as Version 1.
+2. **Neighbor Identification:**  This version identifies both direct and diagonal neighbors of each object using `dneighbors` and `ineighbors`. 
+3. **Inner/Outer Separation:** It separates inner modification cells from outer ones by identifying cells that are direct neighbors but not diagonal neighbors. Remaining neighbors are classified as outer modification cells.
+
+These are five distinct ways to achieve the desired transformation using the provided DSL. Each version leverages different functions and logic, offering diverse solutions to the problem. 

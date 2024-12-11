@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation focuses on the largest object in the grid and recolors a horizontal or vertical strip within it, depending on its orientation. 
+
+* **Input_0 to Output_0:** The largest object is a vertical rectangle. A 3-cell wide vertical strip within the object is recolored, leaving one cell border on each side.
+* **Input_1 to Output_1:** The largest object is a horizontal rectangle. A 3-cell high horizontal strip within the object is recolored, leaving one cell border on the top and bottom.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)  # Find largest object
+  h, w = shape(obj)                      # Get object height and width
+  start = (uppermost(obj) + 1, leftmost(obj) + 1) # Start one row/col down/right
+  dims = (h - 2, 3) if h > w else (3, w - 2)     # 3xH or Wx3 inner strip
+  recolor_area = toindices(crop(canvas(ZERO, shape(obj)), start, dims))  # Area to recolor
+  O = fill(I, TWO, toindices(toobject(recolor_area, I))) # Recolor area
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the largest object:** We use `argmax(objects(I, T, F, F), size)` to find the largest object in the input grid.
+2. **Determine strip dimensions and position:** We calculate the object's `shape` and use it to define the `start` position and `dims` of the strip to recolor. This ensures a 1-cell border.
+3. **Create recoloring area:**  We create a blank canvas with the object's shape using `canvas` and then `crop` it to get the desired strip area. 
+4. **Recolor the grid:** We use `toobject` to map the recoloring area onto the input grid and then `fill` those indices with the value `TWO`. 
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  h, w = shape(obj)
+  recolor_area = (
+      crop(subgrid(obj, I), (1, 1), (h - 2, 3)) if h > w 
+      else crop(subgrid(obj, I), (1, 1), (3, w - 2))
+  ) 
+  O = fill(I, TWO, toindices(recolor_area))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the largest object and its subgrid:** Similar to version 1, we identify the largest object. Then, we extract the subgrid corresponding to this object using `subgrid`.
+2. **Determine strip dimensions and crop:**  We calculate the object's height and width to determine if it's taller or wider. Based on this, we `crop` the subgrid to get the appropriate strip with a 1-cell border. 
+3. **Recolor the grid:** We recolor the indices of the cropped strip within the original grid using `fill` with the value `TWO`.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  if portrait(obj):
+    O = fill(I, TWO, toindices(crop(subgrid(obj, I), (1, 1), (3, width(obj) - 2))))
+  else:
+    O = fill(I, TWO, toindices(crop(subgrid(obj, I), (1, 1), (height(obj) - 2, 3))))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the largest object and its orientation:**  We find the largest object and determine if it's a "portrait" (taller than wide) or "landscape" (wider than tall) using `portrait`.
+2. **Crop and recolor based on orientation:** Depending on the orientation, we extract the appropriate strip from the object's `subgrid` using `crop`. The strip dimensions ensure a 1-cell border. We then `fill` these indices with `TWO`. 
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  h, w = shape(obj)
+  inner_box = inbox(toindices(obj))
+  recolor_area = (
+      sfilter(inner_box, lambda loc: uppermost(obj) + 1 < loc[0] < lowermost(obj) - 1) if h > w
+      else sfilter(inner_box, lambda loc: leftmost(obj) + 1 < loc[1] < rightmost(obj) - 1)
+  )
+  O = fill(I, TWO, recolor_area)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the largest object and its inner box:** We find the largest object and calculate its `inbox`, which represents the indices of the inner rectangle excluding the border.
+2. **Filter inner box to get the strip:** We filter the `inner_box` based on the object's orientation (portrait or landscape) to select either a vertical or horizontal strip.
+3. **Recolor the grid:** We recolor the selected indices within the original grid using `fill` with the value `TWO`. 
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  h, w = shape(obj)
+  center_i, center_j = centerofmass(toindices(obj))
+  recolor_area = (
+      frozenset((i, j) for i in range(uppermost(obj) + 1, lowermost(obj)) for j in range(center_j - 1, center_j + 2)) if h > w
+      else frozenset((i, j) for i in range(center_i - 1, center_i + 2) for j in range(leftmost(obj) + 1, rightmost(obj)))
+  )
+  O = fill(I, TWO, recolor_area)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the largest object and its center:** We find the largest object and calculate its `centerofmass`, which provides the approximate center coordinates.
+2. **Construct the strip indices:** We build the strip indices directly based on the object's orientation and center. For vertical objects, we iterate over a 3-cell wide column centered at `center_j`. For horizontal objects, we iterate over a 3-cell high row centered at `center_i`.
+3. **Recolor the grid:** We recolor the constructed indices within the original grid using `fill` with the value `TWO`. 

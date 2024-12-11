@@ -1,0 +1,134 @@
+## Transformation Analysis:
+
+The transformation appears to involve identifying objects (groups of connected, non-background digits) and extending them horizontally or vertically to create rectangular blocks. The direction of extension (horizontal or vertical) and the size of the block seem to depend on the initial shape and position of the object within the grid.
+
+**Input_0 to Output_0:** The two single-cell objects are extended horizontally to the right edge of the grid, while the larger object remains unchanged.
+
+**Input_1 to Output_1:** The single-cell objects are extended vertically to the bottom edge of the grid. The two-cell object is extended horizontally to the right edge.
+
+**Input_2 to Output_2:** The single-cell objects are extended horizontally to the right edge.  The two-cell object is extended vertically to the bottom edge.
+
+
+## Program Versions:
+
+Here are five distinct program versions to achieve the described transformation, inspired by the provided `objects`, `fill`, `colorfilter`, `mapply`, and `box` functions.
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  bg = mostcolor(I)
+  for obj in objs:
+    ul = ulcorner(obj)
+    lr = lrcorner(obj)
+    if height(obj) == 1:
+      I = fill(I, color(obj), frozenset({(ul[0], j) for j in range(ul[1], len(I[0]))}))
+    elif width(obj) == 1:
+      I = fill(I, color(obj), frozenset({(i, ul[1]) for i in range(ul[0], len(I))}))
+    else:
+      if lr[0] - ul[0] > lr[1] - ul[1]:
+        I = fill(I, color(obj), frozenset({(i, j) for j in range(ul[1], len(I[0])) for i in range(ul[0], lr[0] + 1)}))
+      else:
+        I = fill(I, color(obj), frozenset({(i, j) for i in range(ul[0], len(I)) for j in range(ul[1], lr[1] + 1)}))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, T)` identifies all objects in the grid.
+2. **Iterate and Extend:** The program iterates through each object. 
+    - If the object is a horizontal line (`height(obj) == 1`), it's extended horizontally to the right edge.
+    - If the object is a vertical line (`width(obj) == 1`), it's extended vertically to the bottom edge.
+    - Otherwise, it compares the height and width of the object's bounding box and extends it in the direction of the larger dimension.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  bg = mostcolor(I)
+  for obj in objs:
+    if len(obj) == 1:
+      i, j = first(toindices(obj))
+      if any(I[k][j] != bg for k in range(i + 1, len(I))):
+        I = fill(I, color(obj), frozenset({(i, k) for k in range(j, len(I[0]))}))
+      else:
+        I = fill(I, color(obj), frozenset({(k, j) for k in range(i, len(I))}))
+    else:
+      ul = ulcorner(obj)
+      lr = lrcorner(obj)
+      if lr[0] - ul[0] > lr[1] - ul[1]:
+        I = fill(I, color(obj), frozenset({(i, j) for j in range(ul[1], len(I[0])) for i in range(ul[0], lr[0] + 1)}))
+      else:
+        I = fill(I, color(obj), frozenset({(i, j) for i in range(ul[0], len(I)) for j in range(ul[1], lr[1] + 1)}))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to Version 1.
+2. **Handle Single-Cell Objects:** Checks if an object has only one cell.
+    - If the object's cell has non-background cells below it, it's extended horizontally.
+    - Otherwise, it's extended vertically.
+3. **Handle Multi-Cell Objects:** Same logic as Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    direction = (1, 0) if width(obj) > height(obj) else (0, 1)
+    start = ulcorner(obj)
+    end = (len(I) - 1, len(I[0]) - 1) if direction == (1, 0) else (len(I) - 1, len(I[0]) - 1)
+    line = connect(start, end)
+    I = fill(I, color(obj), line & backdrop(obj))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions.
+2. **Determine Extension Direction:**  Determines whether to extend horizontally or vertically based on the object's dimensions.
+3. **Create Line and Fill:** Creates a line from the object's corner to the grid's edge in the determined direction and fills the intersection of this line and the object's bounding box.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  for value in palette(I) - {mostcolor(I)}:
+    obj = frozenset({(value, (i, j)) for i, row in enumerate(I) for j, v in enumerate(row) if v == value})
+    direction = (1, 0) if width(obj) > height(obj) else (0, 1)
+    start = ulcorner(obj)
+    end = (len(I) - 1, len(I[0]) - 1) if direction == (1, 0) else (len(I) - 1, len(I[0]) - 1)
+    line = connect(start, end)
+    I = fill(I, value, line & backdrop(obj))
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through Colors:** Iterates through each color in the grid (excluding the background).
+2. **Create Object and Extend:** Creates an object for the current color and extends it similarly to Version 3.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    if hline(obj) or (width(obj) > height(obj) and not vline(obj)):
+      I = fill(I, color(obj), backdrop(obj) & hfrontier(ulcorner(obj)))
+    else:
+      I = fill(I, color(obj), backdrop(obj) & vfrontier(ulcorner(obj)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Similar to previous versions.
+2. **Determine Extension Direction:** Uses `hline`, `vline`, and dimension comparison to decide the extension direction.
+3. **Fill Using Frontiers:** Fills the intersection of the object's bounding box and a horizontal or vertical frontier line originating from the object's corner, effectively extending the object.
+
+These five program versions offer diverse approaches to achieving the desired transformation within the provided DSL. Each utilizes different combinations of functions and logic, showcasing the flexibility and power of the language for expressing spatial reasoning tasks. 

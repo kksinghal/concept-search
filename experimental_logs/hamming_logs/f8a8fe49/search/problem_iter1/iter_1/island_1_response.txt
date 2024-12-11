@@ -1,0 +1,155 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects of a specific color (5 in this case) and moving them to the border of the grid.  The movement depends on the object's shape:
+
+* **Portrait Objects (height > width):** The object is moved to the right border, aligning its top with its original top position.
+* **Landscape Objects (width > height):** The object is moved to the bottom border, aligning its left edge with its original left position.
+* **Square Objects (height == width):**  These objects are treated as landscape objects and moved to the bottom border.
+
+All other objects remain in their original positions.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve_task(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, T, F, T):
+    if color(obj) == 5:
+      ul = ulcorner(obj)
+      if portrait(obj):
+        shift_amount = (0, width(I) - width(obj) - ul[1])
+      else:
+        shift_amount = (height(I) - height(obj) - ul[0], 0)
+      new_obj = shift(obj, shift_amount)
+      O = paint(O, new_obj)
+    else:
+      O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:**  Creates a blank canvas (`O`) of the same size as the input (`I`), filled with the most frequent color in the input.
+2. **Object Iteration:** Iterates through each object in the input grid.
+3. **Color Check:**  If the object's color is 5:
+    *  Calculates the shift amount based on object orientation (portrait or landscape/square) to move it to the corresponding border.
+    * Shifts the object to its new position.
+    * Paints the shifted object onto the canvas.
+4. **Other Objects:** If the object's color is not 5, it is painted directly onto the canvas in its original position.
+5. **Output:** Returns the transformed canvas.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve_task(I):
+  objs_to_move = colorfilter(objects(I, T, F, T), 5)
+  other_objs = difference(objects(I, T, F, T), objs_to_move)
+  moved_objs = mapply(lambda o: shift(o, (0, width(I) - width(o) - ulcorner(o)[1])) if portrait(o) else shift(o, (height(I) - height(o) - ulcorner(o)[0], 0)), objs_to_move)
+  O = paint(canvas(mostcolor(I), shape(I)), moved_objs)
+  O = paint(O, other_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Filtering:** Separates objects of color 5 (`objs_to_move`) from other objects (`other_objs`).
+2. **Moving:** Uses `mapply` to apply a lambda function to each object in `objs_to_move`:
+    * The lambda function calculates the shift amount based on the object's orientation and shifts the object to the border.
+3. **Painting:** 
+    *  Creates a blank canvas and paints the `moved_objs` onto it.
+    *  Paints the `other_objs` onto the canvas in their original positions.
+4. **Output:** Returns the transformed canvas.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve_task(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    if color(obj) == 5:
+      O = cover(O, obj)
+      if portrait(obj):
+        O = paint(O, shift(obj, (0, rightmost(I) - rightmost(obj))))
+      else:
+        O = paint(O, shift(obj, (lowermost(I) - lowermost(obj), 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Initializes the output grid (`O`) as a copy of the input grid (`I`).
+2. **Object Iteration:** Iterates through each object in the input.
+3. **Color Check & Movement:** If an object's color is 5:
+   *  Removes the object from the output grid using `cover`.
+   *  Calculates the shift amount to align the object with the right/bottom border based on its orientation.
+   *  Paints the shifted object back onto the output grid.
+4. **Output:** Returns the modified output grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve_task(I):
+  def move_to_border(obj):
+    if portrait(obj):
+      return shift(obj, (0, width(I) - width(obj) - ulcorner(obj)[1]))
+    else:
+      return shift(obj, (height(I) - height(obj) - ulcorner(obj)[0], 0))
+
+  objs = objects(I, T, F, T)
+  colored_objs = colorfilter(objs, 5)
+  other_objs = difference(objs, colored_objs)
+  moved_objs = apply(move_to_border, colored_objs)
+  O = paint(canvas(mostcolor(I), shape(I)), moved_objs)
+  O = paint(O, other_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **`move_to_border` function:** Defines a helper function that takes an object as input and returns the shifted object based on its orientation.
+2. **Object Processing:**
+   *  Extracts all objects from the input grid.
+   *  Filters objects of color 5 (`colored_objs`).
+   *  Separates remaining objects (`other_objs`).
+   *  Applies the `move_to_border` function to each colored object to move them to their respective borders.
+3. **Painting:** Creates a blank canvas and paints the moved colored objects and the other objects onto it. 
+4. **Output:** Returns the final transformed grid.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve_task(I):
+  def reposition_object(obj, grid):
+    if color(obj) != 5:
+      return obj
+    ul = ulcorner(obj)
+    if portrait(obj):
+      return shift(obj, (0, width(grid) - width(obj) - ul[1]))
+    else:
+      return shift(obj, (height(grid) - height(obj) - ul[0], 0))
+
+  new_objs = apply(lambda obj: reposition_object(obj, I), objects(I, T, F, T))
+  O = paint(canvas(mostcolor(I), shape(I)), new_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **`reposition_object` Function:** Defines a helper function that takes an object and the grid as input:
+    * If the object's color is not 5, it returns the object unchanged.
+    * If the object's color is 5, it calculates the shift amount and returns the shifted object to align with the appropriate border.
+2. **Object Repositioning:**
+    *  Applies the `reposition_object` function to each object in the input grid.
+3. **Canvas Painting:** Creates a blank canvas and paints all the repositioned objects onto it.
+4. **Output:** Returns the final transformed grid. 

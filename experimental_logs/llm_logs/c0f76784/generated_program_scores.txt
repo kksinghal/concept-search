@@ -1,0 +1,650 @@
+47.0, tensor(0.2445), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. If the top shape is wider than it is tall, color it orange. If it is taller than it is wide, color it light blue. Do the same for the bottom shape. Color all other shapes yellow. 
+:: def aecffhggibceejfajgibdebcjceabaab(I):
+  objs = objects(I, T, F, T)  # Get all objects except background
+  top_obj = argmax(objs, uppermost) # Find the topmost object
+  bottom_obj = argmin(objs, uppermost) # Find the bottommost object
+  other_objs = difference(objs, {top_obj, bottom_obj}) # Find the other objects
+  
+  # Recolor based on shape
+  I = paint(cover(I, top_obj), recolor(8 if width(top_obj) > height(top_obj) else 7, top_obj))
+  I = paint(cover(I, bottom_obj), recolor(7 if width(bottom_obj) > height(bottom_obj) else 8, bottom_obj))
+  for obj in other_objs:
+    I = paint(cover(I, obj), recolor(6, obj))
+  return I 
+ 
+23.0, tensor(0.4726), Description: If a gray square is part of a vertical object (i.e., it has gray squares above and below it), and it is in the top third of the grid, color it orange. If it is in the bottom third of the grid, color it light blue. If it is in the middle row, color the gray square above it yellow. If a gray square is part of a horizontal object (i.e., it has gray squares to the left and right of it), and it is in the left third of the grid, color it orange. If it is in the right third of the grid, color it light blue. If it is in the middle column, color the gray square to its right yellow. 
+:: def iafgfaejfbdcebfcbddddfjadafadedi(I):
+  h, w = len(I), len(I[0])
+  O = [[v for v in r] for r in I] # Creating a copy of the grid I 
+
+  def recolor_cell(i, j):
+    if I[i][j] == 5:
+      if i > 0 and I[i-1][j] == 5 and i < h-1 and I[i+1][j] == 5: # vertical object
+        if i < 3:
+          O[i][j] = 8 
+        elif i >= h - 3:
+          O[i][j] = 7
+        if i == h // 2:
+          O[i-1][j] = 6
+      if j > 0 and I[i][j-1] == 5 and j < w-1 and I[i][j+1] == 5: # horizontal object
+        if j < 3:
+          O[i][j] = 8
+        elif j >= w - 3:
+          O[i][j] = 7
+        if j == w // 2:
+          O[i][j+1] = 6
+  
+  for i in range(h):
+    for j in range(w):
+      recolor_cell(i, j)
+        
+  return tuple(tuple(row) for row in O) 
+ 
+24.0, tensor(0.4726), Description: If a gray square is part of a vertical object (i.e., it has gray squares above and below it), and it is in the top third of the grid, color it orange. If it is in the bottom third of the grid, color it light blue. If it is in the middle row, color the gray square above it yellow. If a gray square is part of a horizontal object (i.e., it has gray squares to the left and right of it), and it is in the left third of the grid, color it orange. If it is in the right third of the grid, color it light blue. If it is in the middle column, color the gray square to its right yellow. 
+:: def ccacdeedfcegeedeibeabdjdadfjjaja(I):
+    objs = objects(I, True, False, True)  # Extract objects (5s)
+
+    def recolor_logic(obj):
+        if height(obj) > width(obj):  # Vertical object
+            centerline = frozenset((uppermost(obj) + i, leftmost(obj)) for i in range(height(obj)))
+        else:  # Horizontal object
+            centerline = frozenset((uppermost(obj), leftmost(obj) + j) for j in range(width(obj)))
+
+        top_part = frozenset((i,j) for i,j in centerline if i < uppermost(obj) + 3)
+        bottom_part = frozenset((i,j) for i,j in centerline if i >=  uppermost(obj) + height(obj) - 2)
+        middle_point =  (uppermost(obj) + height(obj) // 2, leftmost(obj) + width(obj) // 2)
+
+        return recolor(8, top_part), recolor(7, bottom_part), recolor(6, {middle_point})
+
+    recolored_objs = apply(recolor_logic, objs)
+    O = I
+    for obj_parts in recolored_objs:
+        for obj_part in obj_parts:
+            O = paint(O, obj_part)
+    return O
+ 
+47.0, tensor(0.4726), Description: If a gray square is part of a vertical object (i.e., it has gray squares above and below it), and it is in the top third of the grid, color it orange. If it is in the bottom third of the grid, color it light blue. If it is in the middle row, color the gray square above it yellow. If a gray square is part of a horizontal object (i.e., it has gray squares to the left and right of it), and it is in the left third of the grid, color it orange. If it is in the right third of the grid, color it light blue. If it is in the middle column, color the gray square to its right yellow. 
+:: def ehfaebbadcjaeafdajdjgdgdhhegggdb(I):
+    objs = objects(I, True, False, True)  # Extract objects (5s)
+    O = I
+    for obj in objs:
+      h = height(obj)
+      w = width(obj)
+      for v, (i, j) in obj:
+        if h > w:  # Vertical object
+          if i < uppermost(obj) + 3:
+            O = paint(O, {(8, (i, j))})
+          elif i >= uppermost(obj) + h - 2:
+            O = paint(O, {(7, (i, j))})
+          if i == uppermost(obj) + h // 2 - 1 and j == leftmost(obj) + w // 2:
+            O = paint(O, {(6, (i, j))})
+        else:  # Horizontal object
+          if j < leftmost(obj) + 3:
+            O = paint(O, {(8, (i, j))})
+          elif j >= leftmost(obj) + w - 2:
+            O = paint(O, {(7, (i, j))})
+          if j == leftmost(obj) + w // 2 + 1 and i == uppermost(obj) + h // 2:
+            O = paint(O, {(6, (i, j))})
+    return O
+ 
+24.0, tensor(0.0451), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), and it is in the top third of the grid, color it orange. If it is in the bottom third of the grid, color it light blue. If it is in the middle row or column, color the gray square above it or to its right yellow. If the gray square is a single square, color the surrounding area orange. 
+:: def caffcabaiffeeaheaeecfaafaeheecfc(I):
+    objs = objects(I, T, F, T)  # Identify objects, treat diagonals separately
+    filled = I
+    for obj in objs:
+        if color(obj) == 5:
+            corner = ulcorner(obj)
+            filled = fill(filled, 6, {corner})  # Place '6' at the upper-left corner
+            if height(obj) > 2 and width(obj) > 2:
+                filled = fill(filled, 7, shift(inbox(obj), (1, 1)))  # Fill inner area with '7'
+            else:
+                filled = fill(filled, 8, delta(obj))  # Fill surrounding area with '8'
+    O = filled
+    return O
+ 
+4.666666666666667, tensor(0.0452), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the center of mass of the object yellow. If the object is taller than it is wide, color the entire object light blue. If the object is wider than it is tall, color the surrounding area orange. 
+:: def ifjcefddgiaeeebfjfadfbgfhadjideb(I):
+    objs = objects(I, T, F, T)
+    filled = I
+    for obj in objs:
+        if color(obj) == 5:
+            center_cell = centerofmass(obj)
+            filled = fill(filled, 6, {center_cell})  # Place '6' at the center of mass
+            if height(obj) > width(obj):  
+                filled = fill(filled, 7, obj)  # Fill entire object with '7' if taller
+            else:
+                filled = fill(filled, 8, delta(obj))  # Fill surrounding area with '8' if wider
+    O = filled
+    return O
+ 
+47.0, tensor(0.0500), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the first cell of the object yellow. If the object is adjacent to the top-left corner of the grid, color the rest of the object orange. Otherwise, color the rest of the object light blue. 
+:: def dbacaedgfhhaecicajadabedgfbdcbfi(I):
+    objs = objects(I, T, F, T)
+    filled = I
+    for obj in objs:
+        if color(obj) == 5:
+            filled = fill(filled, 6, {first(obj)[1]}) # Fill '6' at first cell of the object
+            if adjacent(obj, {(0, 0)}):  # Check adjacency to top-left corner
+                filled = fill(filled, 8, obj - {first(obj)[1]}) 
+            else:
+                filled = fill(filled, 7, obj - {first(obj)[1]})
+    O = filled
+    return O
+ 
+47.0, tensor(0.0611), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the upper-left corner of the object yellow. If the sum of the row and column indices of the upper-left corner is even, color the rest of the object light blue. Otherwise, color the rest of the object orange. 
+:: def hfieeagifjfjedcdafdfcibaajejhadh(I):
+    objs = objects(I, T, F, T)
+    filled = I
+    for obj in objs:
+        if color(obj) == 5:
+            upper_left = ulcorner(obj)
+            filled = fill(filled, 6, {upper_left})
+            if even(upper_left[0] + upper_left[1]): # Check if sum of corner indices is even
+                filled = fill(filled, 7, obj - {upper_left})  
+            else:
+                filled = fill(filled, 8, obj - {upper_left})  
+    O = filled
+    return O
+ 
+47.0, tensor(0.0606), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the bottom-right corner of the object yellow. If the object has more than two adjacent objects of a different color, color the rest of the object light blue. Otherwise, color the rest of the object orange. 
+:: def dcdbhjbhfefaegecadfhdiedfafbghea(I):
+    objs = objects(I, T, F, T)
+    filled = I
+    for obj in objs:
+        if color(obj) == 5:
+            bottom_right = lrcorner(obj)
+            filled = fill(filled, 6, {bottom_right})
+            adjacent_objs = sfilter(objs, lambda x: adjacent(x, obj) and color(x) != 5)
+            if len(adjacent_objs) > 2: # Check number of adjacent objects of different color 
+                filled = fill(filled, 7, obj - {bottom_right})
+            else:
+                filled = fill(filled, 8, obj - {bottom_right})  
+    O = filled
+    return O
+ 
+113.66666666666667, tensor(1.5546), Description: If a black square is part of a vertical or horizontal object (i.e., it has black squares above and below or to the left and right of it), and it is in the bottom two rows of the grid, color the two squares above it light blue and the two squares below it orange. If it is in the right two columns of the grid, color the two squares to its left orange and the two squares to its right light blue. If it is in the middle row or column, color the square to its right yellow. If the black square is a single square, color the two squares above it orange and the two squares below it light blue. 
+:: def deceeicdihebefheifebdbicgiabafei(I):
+  objs = objects(I, True, False, False)
+  for obj in objs:
+    if len(obj) > 1:
+      c = color(obj)
+      bottom = lowermost(obj)
+      right = rightmost(obj)
+      if bottom < len(I) - 2:
+        I = fill(I, 7, shift(toindices(obj), (1, 0)))
+        I = fill(I, 8, shift(toindices(obj), (2, 0)))
+      elif right < len(I[0]) - 2:
+        I = fill(I, 8, shift(toindices(obj), (0, 1)))
+        I = fill(I, 6, {(bottom - 1, right + 1)})
+        I = fill(I, 7, shift(toindices(obj) - {(bottom - 1, right)}, (0, 1)))
+      else:
+        I = fill(I, 8, shift(toindices(obj), (-1, 0)))
+        I = fill(I, 7, shift(toindices(obj), (-2, 0)))
+  O = I
+  return O
+ 
+23.333333333333332, tensor(0.0471), Description: If a black square is part of a vertical or horizontal object (i.e., it has black squares above and below or to the left and right of it), color the square above it orange.  All other squares remain the same color. 
+:: def gbeffhdfdbdfeegajffhccccfhccgbjb(I):
+  objs = objects(I, T, F, F) 
+  recolored_objs = set()
+  for obj in objs:
+    top_row = min(i for v, (i, j) in obj)
+    recolored_obj = frozenset({(8 if i == top_row + 1 else v, (i, j)) for v, (i, j) in obj}) 
+    recolored_objs.add(recolored_obj)
+  O = paint(I, merge(recolored_objs))
+  return O
+ 
+39.0, tensor(0.2445), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. If the top shape is wider than it is tall, color it orange. If it is taller than it is wide, color it light blue. Do the same for the bottom shape. Color all other shapes yellow. 
+:: def ciaaijdfbjhbegceiabfeeafbieiaiah(I):
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, uppermost)
+  bottom_obj = argmin(objs, uppermost)
+
+  I = paint(cover(I, top_obj), recolor(8 if width(top_obj) > height(top_obj) else 7, top_obj))
+  I = paint(cover(I, bottom_obj), recolor(7 if width(bottom_obj) > height(bottom_obj) else 8, bottom_obj))
+  return I
+ 
+41.666666666666664, tensor(0.2445), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. If the top shape is wider than it is tall, color it orange. If it is taller than it is wide, color it light blue. Do the same for the bottom shape. Color all other shapes yellow. 
+:: def afbiibabgddaefcibdfedjaggdbaddad(I):
+  for i, obj in enumerate(objects(I, T, F, T)):
+    if i == 0:  
+      top_obj = obj
+    elif i == 1:
+      bottom_obj = obj
+  I = paint(cover(I, top_obj), recolor(8 if width(top_obj) > height(top_obj) else 7, top_obj))
+  I = paint(cover(I, bottom_obj), recolor(7 if width(bottom_obj) > height(bottom_obj) else 8, bottom_obj))
+  return I
+ 
+39.0, tensor(0.2445), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. If the top shape is wider than it is tall, color it orange. If it is taller than it is wide, color it light blue. Do the same for the bottom shape. Color all other shapes yellow. 
+:: def bedafcbdfebeeabbbehaccfjheeeebai(I):
+  def modify_object(obj):
+    fill_value = 8 if width(obj) > height(obj) else 7
+    return recolor(fill_value, obj)
+
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, uppermost)
+  bottom_obj = argmin(objs, uppermost)
+
+  I = paint(cover(I, top_obj), modify_object(top_obj))
+  I = paint(cover(I, bottom_obj), modify_object(bottom_obj))
+  return I
+ 
+39.0, tensor(0.4726), Description: If a gray square is part of a vertical object (i.e., it has gray squares above and below it), and it is in the top third of the grid, color it orange. If it is in the bottom third of the grid, color it light blue. If it is in the middle row, color the gray square above it yellow. If a gray square is part of a horizontal object (i.e., it has gray squares to the left and right of it), and it is in the left third of the grid, color it orange. If it is in the right third of the grid, color it light blue. If it is in the middle column, color the gray square to its right yellow. 
+:: def bdaffaifadgeedgbjehbdiifaacdcdab(I):
+  O = I
+  for obj in objects(I, True, False, True):
+    top_left = ulcorner(obj)
+    h = height(obj)
+    w = width(obj)
+    if h > w: # Vertical
+      O = fill(O, 8, product(interval(top_left[0], top_left[0] + 3, 1), interval(top_left[1], top_left[1] + w, 1)))
+      O = fill(O, 7, product(interval(top_left[0] + h - 2, top_left[0] + h, 1), interval(top_left[1], top_left[1] + w, 1)))
+      O = fill(O, 6, {(top_left[0] + h // 2 - 1, top_left[1] + w // 2)})
+    else: # Horizontal
+      O = fill(O, 8, product(interval(top_left[0], top_left[0] + h, 1), interval(top_left[1], top_left[1] + 3, 1)))
+      O = fill(O, 7, product(interval(top_left[0], top_left[0] + h, 1), interval(top_left[1] + w - 2, top_left[1] + w, 1)))
+      O = fill(O, 6, {(top_left[0] + h // 2, top_left[1] + w // 2 + 1)})
+  return O
+ 
+9.666666666666666, tensor(0.0426), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the upper-left corner of the object yellow. If the object is larger than 2x2, color the inner area light blue. Otherwise, color the surrounding area orange. 
+:: def ddbjcffdfbeeefgbjaibaaahddifagai(I):
+    objs = objects(I, T, F, T)
+    filled = I
+    for obj in objs:
+        if color(obj) == 5:
+            corner = (uppermost(obj) + 1, leftmost(obj) + 1)
+            filled = fill(filled, 6, {corner})
+            if height(obj) > 2 and width(obj) > 2:
+                filled = fill(filled, 7, inbox(obj)) 
+            else:
+                filled = fill(filled, 8, delta(obj))
+    O = filled
+    return O
+ 
+10.0, tensor(0.0399), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the square to the right and below the upper-left corner of the object yellow. If the object has more than 4 squares, color the inner area light blue. Otherwise, color the surrounding area orange. 
+:: def cchadedeaabdegbdigecgegafeffggcc(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if color(obj) == 5:
+      O = fill(O, 6, {(uppermost(obj) + 1, leftmost(obj) + 1)})
+      if height(obj) * width(obj) > 4:
+        O = underfill(O, 7,  inbox(obj))
+      else:
+        O = underfill(O, 8, delta(obj))
+  return O
+ 
+35.0, tensor(0.0399), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the square to the right and below the upper-left corner of the object yellow. If the object has more than 4 squares, color the inner area light blue. Otherwise, color the surrounding area orange. 
+:: def gddabahbcfbiegieaahjihcficbiibhh(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 5:
+        obj = extract(objects(I, T, F, T), lambda x: (i,j) in toindices(x))
+        O = fill(O, 6, {(i+1, j+1)})
+        if len(obj) > 4:
+          O = underfill(O, 7, inbox(obj))
+        else:
+          O = underfill(O, 8, delta(obj))
+  return O
+ 
+13.666666666666666, tensor(0.2771), Description: If a gray square is part of a horizontal line, color the three squares to the right of it orange. If a gray square is part of a vertical line, color the three squares below it light blue. All other squares remain the same color. 
+:: def gfbbcffaidehedcjbeechaeaeabededb(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for obj in objs:
+    if color(obj) == 5:
+      h, w = shape(obj)
+      if h == 1:  # Horizontal line
+        I = fill(I, 8, shift(crop(toindices(obj), (0, (w//2)-1), (1, 3)), (0, 0)))
+      elif w == 1: # Vertical line
+        I = fill(I, 7, shift(crop(toindices(obj), ((h//2)-1, 0), (3, 1)), (0, 0)))
+  O = I
+  return O
+ 
+19.0, tensor(0.2421), Description: If a black square is part of a vertical or horizontal object (i.e., it has black squares above and below or to the left and right of it), color the square above it orange. If the square is part of a vertical object, color the square below it light blue. If the square is part of a horizontal object, color the square to its right light blue. All other squares remain the same color. 
+:: def becfiebfaaceecffiebcfbfefhiahcbb(I):
+  objs = objects(I, T, F, F)
+  modified_objs = set()
+  color_map = {5: 8, 8: 7} # Define color mapping
+  current_color = 5
+  for obj in objs:
+    top_row = uppermost(obj)
+    second_row_indices = frozenset((i, j) for v, (i, j) in obj if i == top_row + 1)
+    modified_obj = frozenset(
+        (color_map.get(v, v), (i, j)) if (i, j) in second_row_indices else (v, (i, j)) 
+        for v, (i, j) in obj
+    )
+    modified_objs.add(modified_obj)
+    current_color = color_map.get(current_color, current_color) # Update color for next object
+  O = paint(I, merge(modified_objs))
+  return O
+ 
+23.666666666666668, tensor(0.0267), Description: If a black square is part of a vertical or horizontal object (i.e., it has black squares above and below or to the left and right of it), color the square above it orange. If the object is the first object in the list of objects, color the square above it orange. If the object is the second object in the list of objects, color the square above it light blue. All other squares remain the same color. 
+:: def ccjcjgbfcbbgefagiccfiidabieedjhh(I):
+  objs = objects(I, T, F, F)
+  modified_objs = set()
+  for i, obj in enumerate(objs):
+    new_color = 8 if i % 2 == 0 else 7 # Alternate color based on object index
+    top_row = uppermost(obj)
+    modified_obj = frozenset(
+        (new_color, (i, j)) if i == top_row + 1 else (v, (i, j)) 
+        for v, (i, j) in obj
+    )
+    modified_objs.add(modified_obj)
+  O = paint(I, merge(modified_objs))
+  return O
+ 
+27.333333333333332, tensor(0.1867), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. Draw a horizontal line through the center of the top shape using orange if the shape is wider than it is tall, or light blue if it is taller than it is wide. Do the same for the bottom shape. All other squares remain the same color. 
+:: def cdbfdgbabfgheeggifeaaehbdjiibeji(I):
+  def draw_line(I, obj):
+    i, j = centerofmass(obj)
+    if width(obj) > height(obj):
+      return fill(I, 8, {(i, k) for k in range(len(I[0]))})
+    else:
+      return fill(I, 7, {(k, j) for k in range(len(I))})
+
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, uppermost)
+  bottom_obj = argmin(objs, uppermost)
+
+  I = draw_line(I, top_obj)
+  I = draw_line(I, bottom_obj)
+  return I
+ 
+46.333333333333336, tensor(0.0468), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the square to the right and below the upper-left corner of the object yellow. If the object has at least one adjacent object of a different color, color the rest of the object orange. Otherwise, color the rest of the object light blue. 
+:: def bjdheiffaeagefadjdabhiedfeebfhbe(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if color(obj) == 5:
+      target_cell = (uppermost(obj) + 1, leftmost(obj) + 1) 
+      O = fill(O, 6, {target_cell})
+      if any(adjacent(obj, other_obj) and color(other_obj) != 5 for other_obj in objs):
+        O = fill(O, 8, obj - {target_cell})
+      else:
+        O = fill(O, 7, obj - {target_cell})
+  return O
+ 
+22.333333333333332, tensor(0.0441), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the square to the right and below the upper-left corner of the object yellow. If the object has at least one adjacent object of a different color, color the rest of the object orange. Otherwise, color the rest of the object light blue.  The output should be the grid with the last modified object. 
+:: def cdacebdgdbbfecgeaffcbahecbaacgcd(I):
+  def modify_object(obj):
+    target_cell = (uppermost(obj) + 1, leftmost(obj) + 1)
+    fill_color = 8 if any(adjacent(obj, other_obj) and color(other_obj) != 5 
+                            for other_obj in objs) else 7
+    return fill(fill(I, 6, {target_cell}), fill_color, obj - {target_cell})
+
+  objs = objects(I, T, F, T)
+  O = I if len(objs) == 0 else last(sorted((modify_object(obj) for obj in objs), key=lambda g: sum(r.count(6) for r in g)))
+  return O 
+ 
+47.0, tensor(0.0468), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the square to the right and below the upper-left corner of the object yellow. If the object has at least one adjacent object of a different color, color the rest of the object orange. Otherwise, color the rest of the object light blue. 
+:: def bbheghbgfggdedefadedbachgejchdib(I):
+    objs = objects(I, T, F, T)
+    O = I
+    for i, row in enumerate(I):
+        for j, value in enumerate(row):
+            if value == 5:
+                current_cell = (i, j)
+                obj = next((obj for obj in objs if contained(current_cell, toindices(obj))), None)
+                if obj is not None:
+                    target_cell = (uppermost(obj) + 1, leftmost(obj) + 1)
+                    if current_cell == target_cell:
+                        O = fill(O, 6, {current_cell})
+                    else:
+                        fill_color = 8 if any(adjacent(obj, other_obj) and color(other_obj) != 5 for other_obj in objs) else 7
+                        O = fill(O, fill_color, {current_cell})
+    return O
+ 
+28.333333333333332, tensor(0.6081), Description: If a gray square is part of a horizontal line (i.e., it has gray squares to the left and right of it), color the gray square to its right orange. If a gray square is part of a vertical line (i.e., it has gray squares above and below it), color the gray square above it light blue. All other squares remain the same color. 
+:: def ijfhhbbehcegegedbbfheabbbafdgieb(I):
+  h, w = shape(I)
+  for i in range(h):
+    for j in range(w-2):
+      if all(I[i][j+k] == 5 for k in range(3)):
+        I = fill(I, 8, {(i, j+1)})
+  for i in range(h-2):
+    for j in range(w):
+      if all(I[i+k][j] == 5 for k in range(3)):
+        I = fill(I, 7, {(i+1, j)})
+  O = I
+  return O
+ 
+24.0, tensor(0.1900), Description: If a gray square is part of a vertical object (i.e., it has gray squares above and below it), color the three squares to the right of it orange, the three squares below it light blue, and the square to the right of the middle square yellow. If a gray square is part of a horizontal object (i.e., it has gray squares to the left and right of it), color the three squares below it light blue, the three squares to the right of it orange, and the square below the middle square yellow. All other squares remain the same color. 
+:: def jcjgdcbfieedefdiifdebajbdbbjehjb(I):
+  O = I  
+  for obj in objects(I, True, False, True):
+    h = height(obj)
+    w = width(obj)
+    ul = ulcorner(obj)
+    if h > w:
+      O = fill(O, 8, {(i, ul[1] + w) for i in range(ul[0], min(ul[0] + 3, ul[0] + h))})
+      O = fill(O, 7, {(i, ul[1] + w) for i in range(max(ul[0] + h - 2, ul[0]), ul[0] + h)})
+      O = fill(O, 6, {(ul[0] + h // 2, ul[1] + w // 2)}) 
+    else: 
+      O = fill(O, 8, {(ul[0] + h, j) for j in range(ul[1], min(ul[1] + 3, ul[1] + w))})
+      O = fill(O, 7, {(ul[0] + h, j) for j in range(max(ul[1] + w - 2, ul[1]), ul[1] + w)})
+      O = fill(O, 6, {(ul[0] + h // 2, ul[1] + w // 2)})
+  return O
+ 
+57.333333333333336, tensor(0.0731), Description: The input grid has a background color and one or more gray shapes. The output grid should have the same background color as the input grid. For each gray shape in the input grid:
+
+* If the shape is taller than it is wide, color the three squares to the right of it orange, the three squares below it light blue, and the square to the right of the middle square yellow.
+* If the shape is wider than it is tall, color the three squares below it light blue, the three squares to the right of it orange, and the square below the middle square yellow. 
+:: def ieebadaeibadebafajdaegbgehefaddg(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, True, False, True):
+    h = height(obj)
+    w = width(obj)
+    ul = ulcorner(obj)
+    center_i, center_j = ul[0] + h // 2, ul[1] + w // 2
+    if h > w:  
+      O = paint(O, recolor(8, {(i, ul[1] + w) for i in range(ul[0], min(ul[0] + 3, ul[0] + h))}))
+      O = paint(O, recolor(7, {(i, ul[1] + w) for i in range(max(ul[0] + h - 2, ul[0]), ul[0] + h)}))
+      O = paint(O, recolor(6, {(center_i, center_j)}))
+    else:
+      O = paint(O, recolor(8, {(ul[0] + h, j) for j in range(ul[1], min(ul[1] + 3, ul[1] + w))}))
+      O = paint(O, recolor(7, {(ul[0] + h, j) for j in range(max(ul[1] + w - 2, ul[1]), ul[1] + w)}))
+      O = paint(O, recolor(6, {(center_i, center_j)}))
+  return O
+ 
+33.666666666666664, tensor(0.7571), Description: If a gray square is part of a horizontal line (i.e., it has gray squares to the left and right of it), color the two squares to its right orange. If a gray square is part of a vertical line (i.e., it has gray squares above and below it), color the two squares above it light blue. All other squares remain the same color. 
+:: def fddgbdfegbcjedgjiebgagjdcadbiihb(I):
+  for i in interval(0, height(I), 1):
+    for j in interval(0, width(I) - 2, 1):
+      if all(I[i][j+k] == 5 for k in range(3)):
+        I = fill(I, 8, {(i, j+1), (i, j+2)})
+  for i in interval(0, height(I) - 2, 1):
+    for j in interval(0, width(I), 1):
+      if all(I[i+k][j] == 5 for k in range(3)):
+        I = fill(I, 7, {(i+1, j), (i+2, j)})
+  O = I
+  return O
+ 
+36.333333333333336, tensor(0.6081), Description: If a gray square is part of a horizontal line (i.e., it has gray squares to the left and right of it), color the gray square to its right orange. If a gray square is part of a vertical line (i.e., it has gray squares above and below it), color the gray square above it light blue. All other squares remain the same color. 
+:: def afjccbidgbaaedcfbfhdcghdcaheaifc(I):
+  indices = asindices(I)
+  hline_indices = frozenset((i, j + 1) for i, j in indices if {(i, j), (i, j+1), (i, j+2)}.issubset(indices) and all(I[i][j+k] == 5 for k in range(3)))
+  vline_indices = frozenset((i + 1, j) for i, j in indices if {(i, j), (i+1, j), (i+2, j)}.issubset(indices) and all(I[i+k][j] == 5 for k in range(3)))
+  I = fill(I, 8, hline_indices)
+  I = fill(I, 7, vline_indices)
+  O = I
+  return O
+ 
+34.333333333333336, tensor(0.7571), Description: If a gray square is part of a horizontal line (i.e., it has gray squares to the left and right of it), color the two squares to its right orange. If a gray square is part of a vertical line (i.e., it has gray squares above and below it), color the two squares above it light blue. All other squares remain the same color. 
+:: def gfafjdadddbieifaabddfafdadbfjjfg(I):
+  for i, j in asindices(I):
+    if j < width(I) - 2 and all(index(I, (i, j + k)) == 5 for k in range(3)):
+      I = fill(I, 8, {(i, j + 1), (i, j + 2)})
+    if i < height(I) - 2 and all(index(I, (i + k, j)) == 5 for k in range(3)):
+      I = fill(I, 7, {(i + 1, j), (i + 2, j)})
+  O = I
+  return O
+ 
+19.0, tensor(0.1897), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. Draw a horizontal line through the center of the top shape using light blue if the shape is wider than it is tall, or orange if it is taller than it is wide. Do the same for the bottom shape. All other squares remain the same color. 
+:: def cefcjfbbddbbeadfaadabefafbecgchf(I):
+  def modify_object(obj):
+    line_color = 7 if width(obj) > height(obj) else 8
+    center_i, center_j = centerofmass(obj)
+    line = frozenset({(center_i, j) for j in range(width(obj))}) 
+    return recolor(line_color, toobject(line, I))
+
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, uppermost)
+  bottom_obj = argmin(objs, uppermost)
+
+  I = paint(I, modify_object(top_obj))
+  I = paint(I, modify_object(bottom_obj))
+  return I
+ 
+15.666666666666666, tensor(0.1897), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. Draw a horizontal line through the center of the top shape using light blue if the shape is wider than it is tall, or orange if it is taller than it is wide. Do the same for the bottom shape. All other squares remain the same color. 
+:: def afebfjhfcgjeefjjjjdbacafehcajaba(I):
+    def draw_line(obj, color):
+        start_j = leftmost(obj)
+        end_j = rightmost(obj) + 1
+        center_i = centerofmass(obj)[0]
+        return frozenset((center_i, j) for j in range(start_j, end_j))
+
+    objs = objects(I, T, F, T)
+    top = argmax(objs, uppermost)
+    bottom = argmin(objs, uppermost)
+
+    top_color = 7 if width(top) > height(top) else 8
+    bottom_color = 7 if width(bottom) > height(bottom) else 8
+
+    I = fill(I, top_color, draw_line(top, top_color))
+    I = fill(I, bottom_color, draw_line(bottom, bottom_color))
+    return I
+ 
+13.666666666666666, tensor(0.0729), Description: The input grid has three colored shapes: a top shape, a bottom shape, and one or more other shapes. Draw a horizontal line through the center of the top shape using the same color as the shape. Do the same for the bottom shape. All other squares remain the same color. 
+:: def fhbhahdafaejedgiacdeibabcgabedaa(I):
+  def line_type(obj):
+    return lambda loc: frozenset((loc[0], j) for j in range(leftmost(obj), rightmost(obj) + 1))
+
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, uppermost)
+  bottom_obj = argmin(objs, uppermost)
+
+  I = paint(I, toobject(line_type(top_obj)(centerofmass(top_obj)), I))
+  I = paint(I, toobject(line_type(bottom_obj)(centerofmass(bottom_obj)), I))
+  return I 
+ 
+40.333333333333336, tensor(0.0700), Description: If a gray square is part of a vertical object (i.e., it has gray squares above and below it), color the top three squares of the object orange and the bottom two squares light blue. If a gray square is part of a horizontal object (i.e., it has gray squares to the left and right of it), color the left three squares orange and the right two squares light blue. Color the center square of each object yellow. 
+:: def debehhadeaehefabicbeffceeffcdggc(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, True, False, True):
+    h = height(obj)
+    w = width(obj)
+    ul = ulcorner(obj)
+    for i in range(h):
+      for j in range(w):
+        if h > w:
+          if i < 3:
+            O = paint(O, {(8, (ul[0] + i, ul[1] + j))}) 
+          if h - i <= 2:
+            O = paint(O, {(7, (ul[0] + i, ul[1] + j))})
+        else:
+          if j < 3: 
+            O = paint(O, {(8, (ul[0] + i, ul[1] + j))})
+          if w - j <= 2:
+            O = paint(O, {(7, (ul[0] + i, ul[1] + j))})
+    O = paint(O, {(6, (ul[0] + h // 2, ul[1] + w // 2))}) 
+  return O
+ 
+253.33333333333334, tensor(0.0406), Description: If a gray square is part of a vertical or horizontal object (i.e., it has gray squares above and below or to the left and right of it), color the upper-left corner of the object yellow. If the object is 2x2 or smaller, color the surrounding area orange. Otherwise, color the inner area light blue. 
+:: def bcafebbddffdeiadifefjbbdcejfacje(I):
+  def transform_object(obj):
+    O = fill(I, 6, {ulcorner(obj)})
+    return fill(O, 8, delta(obj)) if height(obj) <= 2 or width(obj) <= 2 else fill(O, 7, inbox(obj))
+
+  return mapply(transform_object, [obj for obj in objects(I, T, F, T) if color(obj) == 5])
+ 
+26.666666666666668, tensor(0.4372), Description: If a gray square is part of a horizontal line (i.e., it has gray squares to the left and right of it), and it is not adjacent to another object above it, color the gray square to its right orange. If a gray square is part of a vertical line (i.e., it has gray squares above and below it), and it is not adjacent to another object to its left, color the gray square above it light blue. All other squares remain the same color. 
+:: def jefbageiaaefeahdjdgjdihdddjeaahe(I):
+  for i in range(height(I) - 2):
+    for j in range(width(I) - 2):
+      if all(I[i][j+k] == 5 for k in range(3)) and any(I[i-1][j+l] != 5 for l in range(3)):
+        I = fill(I, 8, {(i, j+1)})
+      if all(I[i+k][j] == 5 for k in range(3)) and any(I[i+l][j-1] != 5 for l in range(3)):
+        I = fill(I, 7, {(i+1, j)})
+  O = I
+  return O
+ 
+24.0, tensor(0.4372), Description: If a gray square is part of a horizontal line (i.e., it has gray squares to the left and right of it), and it is not adjacent to another object above it, color the gray square to its right orange. If a gray square is part of a vertical line (i.e., it has gray squares above and below it), and it is not adjacent to another object to its left, color the gray square above it light blue. All other squares remain the same color. 
+:: def dhaciabdabaaeeebifjehfcfbgfgcdgf(I):
+  h = height(I)
+  w = width(I)
+  O = canvas(0, (h, w))
+  for i in range(h):
+    for j in range(w):
+      if i > 0 and i < h - 1 and j < w - 2 and all(I[i][j+k] == 5 for k in range(3)) and any(I[i-1][j+l] != 5 for l in range(3)):
+        O = fill(O, 8, {(i, j+1)})
+      if j > 0 and j < w - 1 and i < h - 2 and all(I[i+k][j] == 5 for k in range(3)) and any(I[i+l][j-1] != 5 for l in range(3)):
+        O = fill(O, 7, {(i+1, j)})
+      else:
+        O = fill(O, I[i][j], {(i, j)})
+  return O
+ 
+10.333333333333334, tensor(0.2343), Description: The input grid contains multiple colored shapes. Identify the two largest shapes and color their inner borders. The inner border of the largest shape should be orange, and the inner border of the second largest shape should be light blue. If any of the remaining shapes have a single-cell inner border, color that cell yellow. All other squares remain the same color. 
+:: def fdcgcijfdbajebccifeffdhfegjdihbd(I):
+  # Find all objects in the input grid, excluding the background
+  objs = objects(I, T, T, T)
+
+  # Sort objects by their size in descending order
+  sorted_objs = order(objs, size)
+
+  # Get the largest and second largest objects
+  largest_obj = first(sorted_objs)
+  second_largest_obj = first(remove(largest_obj, sorted_objs))
+
+  # Find the inner borders of the objects
+  inner_border_largest = delta(toindices(largest_obj)) & asindices(I)
+  inner_border_second_largest = delta(toindices(second_largest_obj)) & asindices(I)
+
+  # Recolor the inner borders based on their size and position
+  I = fill(I, 8, inner_border_largest)
+  I = fill(I, 7, inner_border_second_largest)
+
+  # Find and recolor single-cell inner borders
+  for obj in objs:
+    if size(delta(toindices(obj)) & asindices(I)) == 1:
+      I = fill(I, 6, delta(toindices(obj)) & asindices(I))
+
+  O = I
+  return O 
+ 
+36.333333333333336, tensor(0.2343), Description: The input grid contains multiple colored shapes. Identify the two largest shapes and color their inner borders. The inner border of the largest shape should be orange, and the inner border of the second largest shape should be light blue. If any of the remaining shapes have a single-cell inner border, color that cell yellow. All other squares remain the same color. 
+:: def fhiadbffjcfgeieajffbccffahfbcbcf(I):
+  def recolor_border(grid, obj, color):
+    border = set()
+    for v, (i, j) in obj:
+      for ni, nj in neighbors((i, j)):
+        if 0 <= ni < len(grid) and 0 <= nj < len(grid[0]) and grid[ni][nj] != v:
+          border.add((i, j))
+    return fill(grid, color, frozenset(border))
+
+  objs = order(objects(I, T, T, T), size)
+  I = recolor_border(I, first(objs), 8)
+  I = recolor_border(I, first(remove(first(objs), objs)), 7)
+
+  for obj in objs:
+    if size(delta(toindices(obj)) & asindices(I)) == 1:
+      I = recolor_border(I, obj, 6)
+
+  return I
+ 
+0.0, tensor(0.2343), Description: The input grid contains multiple colored shapes. Identify the two largest shapes and color their inner borders. The inner border of the largest shape should be orange, and the inner border of the second largest shape should be light blue. If any of the remaining shapes have a single-cell inner border, color that cell yellow. All other squares remain the same color. 
+:: def bffaaecajafcefdcicbfagjdadaiefdh(I):
+  objs = sorted(objects(I, T, T, T), key=size, reverse=True)
+
+  def recolor_if_single_cell_border(grid, obj, color):
+    border = delta(toindices(obj)) & asindices(grid)
+    return fill(grid, color, border) if size(border) == 1 else grid
+
+  I = fill(I, 8, delta(toindices(objs[0])) & asindices(I))
+  I = fill(I, 7, delta(toindices(objs[1])) & asindices(I))
+
+  for obj in objs:
+    I = recolor_if_single_cell_border(I, obj, 6)
+
+  return I
+ 

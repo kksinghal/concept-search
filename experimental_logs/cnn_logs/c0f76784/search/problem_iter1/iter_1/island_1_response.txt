@@ -1,0 +1,148 @@
+## Transformation Analysis:
+
+The transformation involves recoloring specific regions within objects based on their orientation and relative position within the grid.
+
+* **Horizontal Objects:** The right half of horizontally oriented objects (width > height) is recolored.
+* **Vertical Objects:**  The bottom half of vertically oriented objects (height > width) is recolored.
+* **Square Objects:** Square objects remain unchanged. 
+* **Recoloring Scheme:**  
+    * The right half of horizontal objects is recolored to '8'.
+    * The bottom half of vertical objects is recolored to '7'.
+    * An additional recoloring to '6' occurs on a single cell within the recolored region of each object. This cell appears to be consistently offset from the center of the object, suggesting a positional rule.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  recolored_objs = set()
+  for obj in objs:
+    if width(obj) > height(obj):
+      recolored_objs.add(recolor(8, sfilter(toindices(obj), lambda ij: ij[1] > leftmost(obj) + width(obj) // 2)))
+    elif height(obj) > width(obj):
+      recolored_objs.add(recolor(7, sfilter(toindices(obj), lambda ij: ij[0] > uppermost(obj) + height(obj) // 2)))
+    else:
+      recolored_objs.add(obj) 
+  recolored_grid = I
+  for obj in recolored_objs:
+    recolored_grid = paint(recolored_grid, obj)
+  O = fill(recolored_grid, 6, {(uppermost(obj) + height(obj) // 2 + 1, leftmost(obj) + width(obj) // 2) for obj in recolored_objs if height(obj) != width(obj)})
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies all connected objects in the input grid `I`.
+2. **Iterate and Recolor:** The code iterates through each object:
+   - **Horizontal Objects:** `width(obj) > height(obj)` identifies horizontal objects. `recolor(8, ...)` recolors the right half to '8'.
+   - **Vertical Objects:**  `height(obj) > width(obj)` identifies vertical objects. `recolor(7, ...)` recolors the bottom half to '7'.
+   - **Square Objects:**  Square objects are left unchanged.
+3. **Paint Recolored Objects:** `paint(recolored_grid, obj)` paints the modified objects onto a copy of the input grid.
+4. **Final Recoloring:**  `fill(recolored_grid, 6, ...)` recolors a single cell within each modified object to '6' based on the calculated offset from the object's center. 
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if index(I, (i, j)) != mostcolor(I):
+        obj = extract(objects(I, T, F, F), lambda obj: (i, j) in toindices(obj))
+        if width(obj) > height(obj):
+          if j > leftmost(obj) + width(obj) // 2:
+            O = paint(O, recolor(8, {(i, j)}))
+        elif height(obj) > width(obj):
+          if i > uppermost(obj) + height(obj) // 2:
+            O = paint(O, recolor(7, {(i, j)}))
+        if i == uppermost(obj) + height(obj) // 2 + 1 and j == leftmost(obj) + width(obj) // 2 and height(obj) != width(obj):
+          O = paint(O, recolor(6, {(i, j)}))
+  return O 
+```
+
+**Explanation:**
+
+1. **Iterate Through Cells:** This version iterates through each cell of the grid.
+2. **Identify Object:** For each non-background cell, `extract(...)` finds the object to which the cell belongs.
+3. **Conditional Recoloring:**  Similar to version 1, recoloring is applied based on the object's orientation and the cell's position within the object.
+4. **Direct Grid Modification:**  Instead of creating a new grid, this version directly modifies the input grid `I` using `paint(O, recolor(..., {(i, j)}))`.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h_objs = sfilter(objects(I, T, F, F), lambda obj: width(obj) > height(obj))
+  v_objs = sfilter(objects(I, T, F, F), lambda obj: height(obj) > width(obj))
+  O = fill(I, 8, merge(apply(lambda obj: sfilter(toindices(obj), lambda ij: ij[1] > leftmost(obj) + width(obj) // 2), h_objs)))
+  O = fill(O, 7, merge(apply(lambda obj: sfilter(toindices(obj), lambda ij: ij[0] > uppermost(obj) + height(obj) // 2), v_objs)))
+  O = fill(O, 6, {(uppermost(obj) + height(obj) // 2 + 1, leftmost(obj) + width(obj) // 2) for obj in h_objs | v_objs})
+  return O
+```
+
+**Explanation:**
+
+1. **Separate Objects by Orientation:**  This version first separates horizontal and vertical objects using `sfilter`.
+2. **Apply Recoloring:**  It applies `fill`  to recolor the appropriate halves of the objects in a single step.
+3. **Combined Final Recoloring:**  The final recoloring to '6' is applied to a set of indices calculated for both horizontal and vertical objects.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, F):
+    if width(obj) > height(obj):
+      O = underpaint(O, recolor(8, sfilter(toindices(obj), lambda ij: ij[1] > leftmost(obj) + width(obj) // 2)))
+    elif height(obj) > width(obj):
+      O = underpaint(O, recolor(7, sfilter(toindices(obj), lambda ij: ij[0] > uppermost(obj) + height(obj) // 2)))
+    if height(obj) != width(obj):
+      O = paint(O, recolor(6, {(uppermost(obj) + height(obj) // 2 + 1, leftmost(obj) + width(obj) // 2)})) 
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Recolor with `underpaint`:** This version directly modifies the input grid `I` using `underpaint`.  This ensures that only cells with the background color are recolored.
+2. **Combined Final Recoloring:** Similar to version 3, the final recoloring to '6' is applied within the loop.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_half(obj, value, condition):
+    return recolor(value, sfilter(toindices(obj), condition))
+  
+  recolored_objs = set()
+  for obj in objects(I, T, F, F):
+    if width(obj) > height(obj):
+      recolored_objs.add(recolor_half(obj, 8, lambda ij: ij[1] > leftmost(obj) + width(obj) // 2))
+    elif height(obj) > width(obj):
+      recolored_objs.add(recolor_half(obj, 7, lambda ij: ij[0] > uppermost(obj) + height(obj) // 2))
+    else:
+      recolored_objs.add(obj)
+
+  O = I
+  for obj in recolored_objs:
+    O = paint(O, obj)
+  
+  O = fill(O, 6, {(uppermost(obj) + height(obj) // 2 + 1, leftmost(obj) + width(obj) // 2) for obj in recolored_objs if height(obj) != width(obj)})
+  return O
+```
+
+**Explanation:**
+
+1. **Helper Function:** This version introduces a helper function `recolor_half` to encapsulate the logic for recoloring half of an object. This improves code readability. 
+2. **Recoloring Logic:** The core recoloring logic remains similar to previous versions.
+3. **Separate Painting:**  Similar to version 1, objects are recolored first, and then the modified objects are painted onto the grid. 
+
+These five versions demonstrate different approaches to implementing the described transformation using the provided DSL. Each version leverages a distinct combination of functions and logic, showcasing the flexibility and expressiveness of the DSL. 

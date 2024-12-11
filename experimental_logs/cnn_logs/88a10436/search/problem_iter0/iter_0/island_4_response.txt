@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation consistently involves identifying specific objects based on their unique color values and rotating them 90 degrees counterclockwise. The objects maintain their original position relative to the grid's center.
+
+**Input_0:** 
+- The object composed of '1's and '3' is rotated 90 degrees counterclockwise around its center.
+- The object composed of '2' remains unchanged as a 90-degree rotation would not alter its appearance. 
+
+**Input_1:**
+- The object composed of '1's and '2's is rotated 90 degrees counterclockwise around its center.
+- The '6' remains unchanged.
+
+**Input_2:**
+- The object composed of '3's and '1' is rotated 90 degrees counterclockwise around its center.
+- The object composed of '2's remains unchanged. 
+
+## Code Generation:
+
+Here are five distinct program versions using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, F, F, F)
+  rot_objs = frozenset({rot270(toobject(obj, I)) if len(obj) > 1 else obj for obj in objs})
+  O = paint(canvas(ZERO, shape(I)), merge(rot_objs))
+  return O
+```
+
+**Explanation:**
+1. **Identify Objects:**  `objects(I, F, F, F)` extracts all objects from the grid, regardless of their color uniqueness, connectedness, or background status.
+2. **Rotate Multi-cell Objects:**  Iterate through each object. If an object has more than one cell, rotate it 270 degrees counterclockwise (`rot270`) after converting it to a grid (`toobject`). Single-cell objects remain unchanged.
+3. **Paint Rotated Objects:** Create a blank canvas (`canvas`) with the same dimensions as the input grid, filled with zeros. Paint the rotated objects onto this canvas using `paint`.
+4. **Return Output:** The resulting grid `O` is the transformed output.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+    objs = fgpartition(I)
+    pivot = centerofmass(asindices(I))
+    O = canvas(ZERO, shape(I))
+    for obj in objs:
+        if len(obj) > 1:
+            O = paint(O, shift(rot270(obj), subtract(pivot, centerofmass(obj))))
+        else:
+            O = paint(O, obj)
+    return O 
+```
+
+**Explanation:**
+1. **Identify Objects (Excluding Background):**  `fgpartition(I)` identifies objects in the grid, excluding the background color. 
+2. **Calculate Pivot:**  `centerofmass(asindices(I))` determines the center point of the grid, which acts as the pivot for rotation.
+3. **Iterate and Rotate:** Iterate through each object. If an object has multiple cells, rotate it 270 degrees counterclockwise (`rot270`). Then, calculate the offset needed to reposition the object correctly after rotation using the difference between the grid's center (`pivot`) and the object's center of mass (`centerofmass(obj)`). Shift the object by this offset using `shift`.
+4. **Paint Objects:** Paint each object (rotated or not) onto a blank canvas (`canvas`) initialized with zeros.
+5. **Return Output:**  `O` represents the final transformed grid.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  objs = objects(I, F, F, F)
+  rot_objs = set()
+  for obj in objs:
+    if len(obj) > 1:
+      c = centerofmass(obj)
+      shifted_obj = shift(obj, subtract(ORIGIN, c))
+      rot_obj = rot270(shifted_obj)
+      rot_objs.add(shift(rot_obj, c))
+    else:
+      rot_objs.add(obj)
+  O = paint(canvas(ZERO, shape(I)), merge(rot_objs))
+  return O
+```
+
+**Explanation:**
+1. **Identify Objects:**  Similar to Version 1, `objects(I, F, F, F)` extracts all objects.
+2. **Rotate Around Center of Mass:** For each multi-cell object:
+   - Find its center of mass (`centerofmass`).
+   - Shift the object so its center of mass aligns with the origin (`ORIGIN`).
+   - Rotate the shifted object 270 degrees counterclockwise.
+   - Shift the rotated object back to its original position relative to the center of mass.
+3. **Combine and Paint:** Combine all objects (rotated and unchanged) and paint them onto a blank canvas.
+4. **Return Output:**  The transformed grid `O` is returned.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    O = canvas(ZERO, shape(I))
+    for obj in objects(I, F, F, F):
+        if len(obj) > 1:
+            ul = ulcorner(obj)
+            shifted_obj = shift(obj, subtract(ORIGIN, ul))
+            rot_obj = rot270(shifted_obj)
+            O = paint(O, shift(rot_obj, ul))
+        else:
+            O = paint(O, obj)
+    return O
+```
+
+**Explanation:**
+1. **Initialize Canvas:** Create a blank canvas (`canvas`) of the same size as the input, filled with zeros.
+2. **Iterate and Rotate:** Loop through each object in the input grid. 
+   - If an object has more than one cell:
+     - Calculate the coordinates of its upper-left corner (`ulcorner`).
+     - Shift the object so that its upper-left corner aligns with the origin. 
+     - Rotate the shifted object 270 degrees counterclockwise.
+     - Shift the rotated object back to its original position by adding the original upper-left corner coordinates.
+     - Paint the rotated object onto the canvas.
+   - If an object has only one cell, paint it directly onto the canvas without rotation.
+3. **Return Output:** The final transformed grid `O` is returned.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  O = I
+  for obj in objects(I, F, F, F):
+    if len(obj) > 1:
+      O = cover(O, obj)
+      O = paint(O, shift(rot270(obj), subtract(centerofmass(asindices(I)), centerofmass(obj))))
+  return O
+```
+
+**Explanation:**
+1. **Direct Modification:** Instead of creating a separate canvas, this version modifies the input grid (`I`) directly.
+2. **Iterate, Cover, and Rotate:** For each multi-cell object:
+    - "Erase" the original object from the grid using `cover`.
+    - Calculate the offset required to center the rotated object based on the grid's center of mass and the object's center of mass.
+    - Rotate the object counterclockwise and shift it by the calculated offset.
+    - Paint the rotated and shifted object onto the grid.
+3. **Return Modified Input:**  Return the modified input grid `O` as the output.
+
+These five program versions demonstrate different approaches to achieve the same transformation, highlighting the flexibility and expressive power of the provided DSL. 

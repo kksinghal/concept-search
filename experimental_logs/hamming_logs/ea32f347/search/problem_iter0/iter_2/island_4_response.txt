@@ -1,0 +1,144 @@
+## Transformation Analysis:
+
+The transformation recolors the input grid based on object size and proximity to the center. 
+
+* **Object Identification:** The transformation identifies distinct objects within the grid. An object is defined as a group of connected, non-zero cells with the same value. Connectivity is determined horizontally and vertically, not diagonally.
+* **Size-based Ordering:** Within each color group, objects are ordered based on their size (number of cells). Larger objects come first.
+* **Proximity-based Ordering:**  If multiple objects of the same color have the same size, they are ordered based on their Manhattan distance to the center of the grid. Objects closer to the center come first.
+* **Recoloring:**
+    * The largest object of each color is recolored to '1'.
+    * The second largest object of each color is recolored to '2'.
+    * The third largest object of each color is recolored to '4'.
+    *  And so on, with the recoloring pattern being '1', '2', '4'.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions using the provided DSL:
+
+**Version 1**
+
+```python
+def program_v1(grid):
+  objs = objects(grid, univalued=True, diagonal=False, without_bg=True)
+  new_grid = canvas(0, shape(grid))
+  center_grid = centerofmass(asindices(grid))
+  for color in palette(grid) - {0}:
+    colored_objs = sorted(colorfilter(objs, color), key=lambda obj: (-size(obj), manhattan(obj, center_grid)))
+    for i, obj in enumerate(colored_objs):
+      new_grid = paint(new_grid, recolor(2**i if i else 1, obj))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(grid, univalued=True, diagonal=False, without_bg=True)` extracts objects from the grid.
+2. **Create Canvas:** `canvas(0, shape(grid))` initializes a new grid filled with zeros, having the same dimensions as the input.
+3. **Find Center:** `centerofmass(asindices(grid))` calculates the center point of the grid.
+4. **Iterate Colors:**  Iterate through each unique color in the grid (excluding the background color '0').
+5. **Sort Objects:** `sorted(colorfilter(objs, color), key=lambda obj: (-size(obj), manhattan(obj, center_grid)))` sorts objects of the current color based on size (descending) and Manhattan distance to the center (ascending).
+6. **Recolor and Paint:** Iterate through the sorted objects and recolor them based on their position in the sorted list using the pattern '1', '2', '4', ... . The `paint` function applies the recoloring to the new grid.
+
+**Version 2**
+
+```python
+def program_v2(grid):
+  objs = fgpartition(grid)
+  new_grid = canvas(0, shape(grid))
+  center = centerofmass(asindices(grid))
+  for i, obj in enumerate(sorted(objs, key=lambda obj: (-size(obj), manhattan(obj, center)))):
+    new_grid = paint(new_grid, recolor(2**i if i else 1, obj))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Partition Objects:** `fgpartition(grid)` divides the grid into objects based on color, excluding the background.
+2. **Create Canvas and Find Center:** Similar to Version 1.
+3. **Sort All Objects:**  Sorts all objects based on size (descending) and Manhattan distance to the center (ascending).
+4. **Recolor and Paint:**  Iterates through the sorted objects, recoloring them based on their position and applying the changes to the new grid.
+
+**Version 3**
+
+```python
+def program_v3(grid):
+    center = centerofmass(asindices(grid))
+    def sort_key(obj):
+        return -size(obj), manhattan(obj, center)
+    new_grid = canvas(0, shape(grid))
+    for color in palette(grid) - {0}:
+        objs = sorted((obj for obj in objects(grid, univalued=True, diagonal=False, without_bg=True) if color == first(obj)[0]), key=sort_key)
+        for i, obj in enumerate(objs):
+            new_grid = paint(new_grid, recolor(1 if i==0 else 2**(i), obj))
+    return new_grid
+```
+
+**Explanation:**
+
+1. **Define `sort_key` function:** This function takes an object as input and returns a tuple containing its negative size and Manhattan distance to the center, which is used for sorting.
+2. **Create Canvas and Find Center:** Similar to Version 1.
+3. **Iterate Colors:**  Iterate through each unique color in the grid (excluding the background color '0').
+4. **Filter and Sort Objects:** Filters objects of the current color and sorts them based on the `sort_key` function.
+5. **Recolor and Paint:** Similar to Version 1.
+
+**Version 4**
+
+```python
+def program_v4(grid):
+    new_grid = canvas(0, shape(grid))
+    center = (len(grid) // 2, len(grid[0]) // 2)
+    for color in set(c for row in grid for c in row if c != 0):
+        objs = sorted([obj for obj in objects(grid, univalued=True, diagonal=False, without_bg=True) if color in [v for v, _ in obj]], key=lambda obj: (-len(obj), sum(abs(i - center[0]) + abs(j - center[1]) for _, (i, j) in obj)))
+        for i, obj in enumerate(objs):
+            new_color = 1 if i == 0 else 2**i
+            new_grid = paint(new_grid, recolor(new_color, obj)) 
+    return new_grid
+```
+
+**Explanation:**
+
+1. **Create Canvas:** Similar to Version 1.
+2. **Find Center:** Calculates the center point of the grid directly.
+3. **Iterate Colors:** Iterates through each unique color in the grid (excluding the background color '0').
+4. **Filter and Sort Objects:**  Filters objects containing the current color and sorts them based on size (descending) and a custom distance calculation (ascending) based on the sum of Manhattan distances of all cells in the object to the center.
+5. **Recolor and Paint:** Similar to Version 1.
+
+**Version 5**
+
+```python
+def program_v5(grid):
+  center = div(add(ulcorner(asindices(grid)), lrcorner(asindices(grid))), 2)
+  def key(x):
+    return (-size(x), manhattan(x, center))
+  return paint(
+    canvas(0, shape(grid)),
+    merge(
+      apply(
+        lambda obj: recolor(
+          (1, 2, 4)[i],
+          obj
+        ),
+        enumerate(
+          sorted(
+            colorfilter(
+              objects(grid, univalued=T, diagonal=F, without_bg=T),
+              color
+            ),
+            key=key
+          )
+        )
+      ) for color in palette(grid) - {0}
+    )
+  )
+```
+
+**Explanation:**
+
+1. **Calculate Center:** `center = div(add(ulcorner(asindices(grid)), lrcorner(asindices(grid))), 2)` computes the center point of the grid.
+2. **Define `key` function:** Similar to Version 3.
+3. **Paint Canvas:**  Creates a new canvas and paints it with the transformed objects.
+4. **Merge Objects:** Merges the transformed objects for each color into a single set.
+5. **Apply Recoloring:** Applies the recoloring function to each object based on its index in the sorted list.
+6. **Sort and Filter:**  Sorts and filters the objects based on color, size (descending), and Manhattan distance to the center (ascending).
+7. **Extract Objects:**  `objects(grid, univalued=T, diagonal=F, without_bg=T)` extracts objects from the grid.
+
+These five versions demonstrate different approaches to achieve the same transformation, utilizing various DSL functions and logic. Each version provides a unique solution while adhering to the specified constraints.

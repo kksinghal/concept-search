@@ -1,0 +1,181 @@
+## Transformation Analysis:
+
+The transformation focuses on the largest object in the grid and aims to draw a horizontal or vertical strip of '2's within its boundaries, depending on the object's shape. Here's a breakdown:
+
+**Input_0 to Output_0:**
+
+1. **Identify largest object:** The largest object consists of '5's.
+2. **Determine strip orientation:**  The object is wider than tall, so a horizontal strip is drawn.
+3. **Strip dimensions:** The strip has a width of 3 cells and spans the width of the object minus the leftmost and rightmost columns.
+4. **Strip placement:** The strip is placed one row below the top row of the object.
+
+**Input_1 to Output_1:**
+
+1. **Identify largest object:**  The largest object consists of '5's.
+2. **Determine strip orientation:** The object is taller than wide, so a vertical strip is drawn.
+3. **Strip dimensions:** The strip has a height of 3 cells and spans the height of the object minus the top and bottom rows.
+4. **Strip placement:** The strip is placed one column to the right of the leftmost column of the object. 
+
+
+## Program Versions:
+
+Here are five distinct versions of the "Program_to_be_generated":
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size) # Find the largest object
+  h, w = shape(obj) # Get the object's height and width
+
+  # Define strip dimensions based on object's shape
+  strip_h = 3 if w >= h else h - 2
+  strip_w = w - 2 if w >= h else 3
+
+  # Calculate the strip's starting position 
+  start_i = uppermost(obj) + 1 if strip_h == 3 else uppermost(obj) + 1
+  start_j = leftmost(obj) + 1 if strip_w == 3 else leftmost(obj) + 1
+
+  # Create a strip object using a canvas and shift it into position
+  strip = toobject(shift(crop(canvas(ZERO, (strip_h, strip_w)), ORIGIN, (strip_h, strip_w)), (start_i, start_j)), I)
+
+  # Fill the strip area with '2's
+  O = fill(I, TWO, toindices(strip))
+  return O
+```
+
+**Explanation:**
+
+- This version leverages `canvas` and `crop` to create a strip object directly.
+- It determines the strip's dimensions and position based on the object's shape.
+- The strip is then shifted into place and painted onto the grid. 
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size) # Find the largest object
+  h, w = shape(obj) # Get the object's dimensions
+
+  # Define a lambda function to create a horizontal strip of indices
+  hstrip = lambda obj: toindices(crop(canvas(ZERO, (1, w - 2)), ORIGIN, (1, w - 2)))
+  # Define a lambda function to create a vertical strip of indices
+  vstrip = lambda obj: toindices(crop(canvas(ZERO, (h - 2, 1)), ORIGIN, (h - 2, 1)))
+
+  # Choose the appropriate strip function based on the object's shape
+  strip_func = hstrip if w >= h else vstrip
+
+  # Create the strip object by shifting the strip indices and converting to object
+  strip = toobject(shift(strip_func(obj), (uppermost(obj) + 1, leftmost(obj) + 1)), I)
+
+  # Create the complete strip by combining three shifted copies of the initial strip
+  frame = combine(strip, shift(strip, (1, 0)))
+  frame = combine(frame, shift(strip, (2, 0))) if w >= h else combine(frame, shift(strip, (0, 2)))
+  
+  # Fill the strip area with '2's
+  O = fill(I, TWO, toindices(frame))
+  return O 
+```
+
+**Explanation:**
+
+- This version utilizes lambda functions `hstrip` and `vstrip` to encapsulate the logic for creating horizontal and vertical strip indices.
+- It chooses the appropriate lambda function based on the object's dimensions.
+- It then combines shifted copies of the initial strip to create a strip of the desired length.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  h, w = shape(obj)
+
+  # Create a mask for areas outside the strip
+  outer_mask = toindices(crop(canvas(ZERO, (h, w)), ORIGIN, (1, w)))  # Top row
+  outer_mask = combine(outer_mask, toindices(crop(canvas(ZERO, (h, w)), (h - 1, 0), (1, w))))  # Bottom row
+  outer_mask = combine(outer_mask, toindices(crop(canvas(ZERO, (h, w)), (1, 0), (h - 2, 1))))  # Left column
+  if h > w:
+    outer_mask = combine(outer_mask, toindices(crop(canvas(ZERO, (h, w)), (1, w - 1), (h - 2, 1))))  # Right column
+
+  # Invert the mask to select the strip area
+  strip_mask = difference(backdrop(obj), outer_mask)
+
+  # Fill the strip area with '2's
+  O = fill(I, TWO, strip_mask)
+  return O
+```
+
+**Explanation:**
+
+- This version employs a masking approach. It first creates a mask representing areas outside the desired strip.
+-  Then, it subtracts this mask from the object's backdrop to get the strip's indices.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  h, w = shape(obj)
+  
+  # Define a lambda function to create a strip of given dimensions at (1, 1)
+  create_strip = lambda h, w: toobject(shift(crop(canvas(ZERO, (h, w)), ORIGIN, (h, w)), (1, 1)), I)
+
+  # Create corner, horizontal and vertical strip objects 
+  corner = create_strip(1, 1)
+  hstrip = create_strip(1, w - 2)
+  vstrip = create_strip(h - 2, 1)
+
+  # Position the strips based on the object's shape and combine them
+  top_strip = shift(hstrip if w >= h else vstrip, ulcorner(obj))
+  bottom_strip = shift(hstrip if w >= h else vstrip, llcorner(obj))
+  left_strip = shift(vstrip if h > w else hstrip, ulcorner(obj))
+  right_strip = shift(vstrip if h > w else hstrip, urcorner(obj))
+
+  # Create corners and combine them with strips to get the frame
+  corners = combine(shift(corner, ulcorner(obj)), shift(corner, urcorner(obj)))
+  corners = combine(corners, shift(corner, llcorner(obj)))
+  corners = combine(corners, shift(corner, lrcorner(obj)))
+  frame = combine(corners, top_strip)
+  frame = combine(frame, bottom_strip)
+  frame = combine(frame, left_strip)
+  frame = combine(frame, right_strip)
+
+  # Fill the frame area with '2's
+  O = fill(I, TWO, toindices(frame))
+  return O
+```
+
+**Explanation:**
+
+- This version focuses on building the frame by combining corner and strip elements.
+- It uses a lambda function `create_strip` for creating both horizontal and vertical strips.
+- This approach might be less efficient but showcases a different way to construct the final object.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, F), size)
+  h, w = shape(obj)
+
+  # Calculate strip dimensions based on the object's shape
+  strip_h = 3 if w >= h else h - 2
+  strip_w = w - 2 if w >= h else 3
+
+  # Determine the strip's starting position 
+  start_i = uppermost(obj) + 1 if strip_h == 3 else uppermost(obj) + 1
+  start_j = leftmost(obj) + 1 if strip_w == 3 else leftmost(obj) + 1
+
+  # Create the strip's indices directly based on dimensions and position
+  strip_indices = frozenset((i, j) for i in range(start_i, start_i + strip_h) for j in range(start_j, start_j + strip_w))
+
+  # Fill the strip area with '2's
+  O = fill(I, TWO, strip_indices)
+  return O
+```
+
+**Explanation:**
+
+- This version simplifies the process by directly calculating the strip's indices based on its dimensions and starting position.
+- It avoids creating intermediate objects, making it potentially more efficient. 

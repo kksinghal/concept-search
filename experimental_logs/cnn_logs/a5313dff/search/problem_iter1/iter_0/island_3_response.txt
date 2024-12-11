@@ -1,0 +1,122 @@
+## Transformation Analysis:
+
+The task is to identify the transformation applied to the input grids to achieve the desired output grids.  Here's a breakdown of the pattern:
+
+**The transformation involves identifying the 'outer' perimeter of each object in the input grid and filling it with the value '1'.**
+
+* **Input_0:**  The '2' object's perimeter gets a '1' border.
+* **Input_1:** Both '2' objects (horizontal and vertical) get '1' borders. 
+* **Input_2:** All '2' objects receive a '1' border. 
+
+Essentially, imagine taking each distinct object in the grid and drawing a tight bounding box around it. Any cell directly outside of this bounding box but touching it gets filled with a '1'.
+
+## Code Generation:
+
+### Program Version 1:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    for i, j in delta(toindices(obj)):
+      if any((i + di, j + dj) in toindices(obj) for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+        O = fill(O, ONE, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` starts with the output grid (`O`) being the same as the input grid (`I`).
+2. **Iterate through Objects:** `for obj in objects(I, T, F, T):` finds all distinct objects in the grid (excluding the background).
+3. **Iterate through Delta:** `for i, j in delta(toindices(obj)):` iterates through each cell (`i`, `j`) directly bordering the current object. 
+4. **Check for Adjacency:** The `if` condition verifies if the current delta cell is adjacent (up, down, left, right) to any cell of the object. 
+5. **Fill if Adjacent:** If adjacent, `O = fill(O, ONE, {(i, j)})` fills that delta cell in the output grid with '1'.
+6. **Return Output:** Finally, the modified grid `O` is returned.
+
+### Program Version 2:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  fill_indices = set()
+  for obj in objs:
+    for cell in toindices(obj):
+      fill_indices.update((cell[0] + di, cell[1] + dj) for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)])
+  return underfill(I, ONE, frozenset(fill_indices) & delta(merge(toindices(obj) for obj in objs)))
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objs = objects(I, T, F, T)` gets all objects (not background).
+2. **Find Potential Fill Indices:** `fill_indices` stores indices potentially needing a '1'. It iterates through each cell of each object and adds the indices directly around it.
+3. **Refine Fill Indices:**  The `return` statement does the filling but with a refined set of indices.  It takes the intersection (`&`) of the `fill_indices` with the delta of all objects merged. This ensures only valid perimeter cells are filled.
+
+### Program Version 3:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+    O = I
+    for obj in objects(I, T, F, T):
+        bbox = backdrop(toindices(obj))
+        for i, j in bbox:
+            if (i, j) not in toindices(obj) and any(((i + di, j + dj) in toindices(obj)) for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+                O = fill(O, ONE, {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **Initialize and Iterate:** Similar to previous versions, it initializes the output grid and iterates through objects.
+2. **Bounding Box:** `bbox = backdrop(toindices(obj))` calculates the bounding box of the current object.
+3. **Check within Bounding Box:** It iterates through each cell in the `bbox` and checks if the cell is NOT part of the object itself but is adjacent to an object cell.
+4. **Fill if Condition Met:** If the conditions are met, it fills that cell in the output grid with '1'. 
+
+### Program Version 4:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    for dx in [-1, 1]:
+      O = underfill(O, ONE, shift(toindices(obj), (dx, 0)))
+    for dy in [-1, 1]:
+      O = underfill(O, ONE, shift(toindices(obj), (0, dy)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization and Iteration:** Similar structure as before.
+2. **Shifted Overlaying:** Instead of checking adjacency explicitly, this version cleverly uses `shift` to create 'shifted' versions of the object's indices (up, down, left, right).
+3. **Underfill:** It then uses `underfill` to fill the shifted indices with '1'. `underfill` ensures that only background cells are affected, effectively creating the perimeter. 
+
+### Program Version 5:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    outline = set()
+    for obj in objs:
+        for i, j in toindices(obj):
+            for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                ni, nj = i + di, j + dj
+                if (ni, nj) not in toindices(obj) and index(I, (ni, nj)) != color(obj):  # Check if it's a valid outer cell
+                    outline.add((ni, nj))
+    return fill(I, ONE, frozenset(outline))
+```
+
+**Explanation:**
+
+1. **Get Objects and Initialize:**  It retrieves the objects and initializes an empty set `outline` to store the indices that will form the outline. 
+2. **Iterate and Check:** It iterates through each cell of each object and checks its four neighboring cells (up, down, left, right). For each neighbor, it verifies:
+    *  **Not in Object:** The neighbor is not part of the current object.
+    *  **Different Color:** The neighbor has a different color than the current object (to ensure it's part of the background or a different object).
+3. **Add to Outline:** If both conditions are met, the neighbor's index is added to the `outline` set.
+4. **Fill the Outline:** Finally, it uses `fill` to color the cells in the `outline` set with the value '1' on the input grid `I` and returns the modified grid.
+
+These five program versions showcase different approaches to achieve the desired transformation in the given DSL. Each version leverages different combinations of functions and logic, making them distinct solutions to the problem. 

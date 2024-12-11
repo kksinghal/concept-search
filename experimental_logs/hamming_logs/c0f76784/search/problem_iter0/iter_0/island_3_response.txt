@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation taking place in each example involves recoloring specific cells within each object based on their position relative to the object's center. Let's break down the pattern:
+
+* **Central Column:** The column containing the object's center remains unchanged.
+* **Columns Left of Center:**  Moving leftward from the center, each column is recolored sequentially with a new color (6, then 7, etc.).
+* **Columns Right of Center:** Moving rightward from the center, each column is recolored sequentially with a new color (8, then 9, etc.).
+
+**Example:**
+
+In Output_0, the top-right object (all 5s) has its central column unchanged. To the left, the adjacent column becomes 8, and to the right, the adjacent column becomes 8.
+
+## Code Generation:
+
+Here are five distinct program versions to achieve this transformation:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  new_objs = set()
+  for obj in objs:
+    center_j = centerofmass(obj)[1]
+    new_obj = set()
+    for v, (i, j) in obj:
+      if j < center_j:
+        new_obj.add((6 + center_j - j - 1, (i, j)))
+      elif j > center_j:
+        new_obj.add((8 + j - center_j - 1, (i, j)))
+      else:
+        new_obj.add((v, (i, j)))
+    new_objs.add(frozenset(new_obj))
+  O = paint(I, merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `fgpartition(I)` separates the input grid into distinct objects, excluding the background.
+2. **Iterate Objects:**  The code iterates through each object (`obj`).
+3. **Find Center:** `centerofmass(obj)[1]` calculates the column index (`j`) of the object's center.
+4. **Recolor Logic:**  
+    - `j < center_j`:  For columns left of the center, recolor using `6 + center_j - j - 1`.
+    - `j > center_j`:  For columns right of the center, recolor using `8 + j - center_j - 1`.
+    - `j == center_j`: Keep the original color.
+5. **Rebuild Grid:** The modified objects are merged (`merge`) and painted back onto the input grid (`paint`).
+
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  recolored_objs = set()
+  for obj in objs:
+    center_col = centerofmass(obj)[1]
+    left_part = sfilter(obj, lambda cell: cell[1][1] < center_col)
+    right_part = sfilter(obj, lambda cell: cell[1][1] > center_col)
+    recolored_left =  frozenset({(6 + center_col - j - 1, (i, j)) for v, (i, j) in left_part})
+    recolored_right = frozenset({(8 + j - center_col - 1, (i, j)) for v, (i, j) in right_part})
+    recolored_objs.add(frozenset(recolored_left | obj | recolored_right))
+  O = paint(I, merge(recolored_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Object & Center Identification:** Similar to Version 1.
+2. **Split Object:**  The object is split into three parts: left of center (`left_part`), right of center (`right_part`), and the central column (implicitly kept unchanged).
+3. **Recolor Parts:** The `recolored_left` and `recolored_right` sets apply the color logic using set comprehension.
+4. **Recombine and Paint:**  The recolored parts are combined with the original central column and painted onto the grid.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+    objs = fgpartition(I)
+    O = I
+    for obj in objs:
+        center_j = centerofmass(obj)[1]
+        for dj in range(1, width(obj)):
+            if center_j - dj >= 0:
+                O = fill(O, 6 + dj - 1, shift(toindices(obj), (0, -dj)))
+            if center_j + dj < len(I[0]):
+                O = fill(O, 8 + dj - 1, shift(toindices(obj), (0, dj))) 
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions.
+2. **Iterate Columns:**  Instead of recoloring individual cells, this version iterates through columns (`dj`) outward from the center.
+3. **Fill Columns:**  `shift(toindices(obj), (0, -dj))` and `shift(toindices(obj), (0, dj))` calculate the indices of columns to the left and right of the center, respectively. `fill` is used to recolor these columns.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  def recolor_object(obj):
+    c = centerofmass(obj)[1]
+    return frozenset(
+      (6 + c - j - 1 if j < c else 8 + j - c - 1 if j > c else v, (i, j))
+      for v, (i, j) in obj
+    )
+  O = paint(I, merge(apply(recolor_object, fgpartition(I))))
+  return O
+```
+
+**Explanation:**
+
+1. **`recolor_object` Function:** This version defines a helper function to encapsulate the recoloring logic for a single object. It uses a nested conditional expression within a set comprehension for conciseness.
+2. **Apply and Paint:** `apply` applies `recolor_object` to each object, and the results are merged and painted back onto the grid.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  def process_row(i, row):
+    for obj in sfilter(fgpartition(row), lambda o: len(o) > 1):
+      center_j = centerofmass(obj)[1]
+      for j in range(len(row)):
+        if (v, (0, j)) in obj:
+          if j < center_j:
+            row = fill(row, 6 + center_j - j - 1, {(0, j)})
+          elif j > center_j:
+            row = fill(row, 8 + j - center_j - 1, {(0, j)})
+    return row
+  O = tuple(process_row(i, row) for i, row in enumerate(I))
+  return O
+```
+
+**Explanation:**
+
+1. **Row-wise Processing:** This version processes the grid row by row.
+2. **`process_row` Function:**  This function identifies objects within a row, finds the object center's column index, and recolors cells based on their position relative to the center.
+3. **Apply to Rows:** `process_row` is applied to each row, and the modified rows are combined to form the output grid. 

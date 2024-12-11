@@ -1,0 +1,111 @@
+## Transformation Analysis:
+
+The transformation involves recoloring all `1`s in the input grid to `3`s, but only if they are located in the top half of the grid or touching the midline. The bottom half of the grid retains its original values.
+
+**Detailed Analysis:**
+
+- **Input_0:** All `1`s in the top half and those on the midline are transformed to `3`s.  `1`s strictly below the midline remain unchanged.
+- **Input_1:**  The logic applies similarly to Input_0.  Note the 'isolated' `1` on the midline remains a `1` in the output.
+- **Input_2:** This input reinforces the observation that the transformation only affects `1`s, other values like the `0`s are untouched.
+
+
+## Program_to_be_generated:
+
+### Version 1: Object-Based Approach
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False) # Identify all connected objects in the grid.
+  h = height(I) # Get the height of the input grid.
+  top_objs = sfilter(objs, lambda obj: uppermost(obj) < h // 2)  # Select objects entirely above the midline.
+  midline_objs = sfilter(objs, lambda obj: uppermost(obj) < h // 2 and lowermost(obj) >= h//2) # Select objects intersecting the midline.
+  all_objs_to_recolor = combine(top_objs, midline_objs) # Combine the objects above the midline and those touching it.
+  recolored_objs = recolor(THREE, merge(all_objs_to_recolor)) # Recolor the combined objects to '3'.
+  return paint(canvas(ZERO, shape(I)), recolored_objs)  # Paint the recolored objects onto a blank canvas and return the result.
+
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, univalued=True, diagonal=False, without_bg=False)` finds all connected regions of `1`s.
+2. **Filter Objects:** `sfilter` is used to select objects based on their position relative to the midline.
+3. **Recolor and Paint:** The selected objects are recolored to `3` using `recolor` and then painted onto a blank canvas using `paint`.
+
+### Version 2:  Iterative Approach with Conditional Recoloring
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0]) 
+  O = canvas(ZERO, (h, w)) # Create a blank canvas of the same size as the input.
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == ONE and i <= h // 2:  # Check for '1's on or above the midline.
+        O = fill(O, THREE, ((i, j),)) # If found, fill the corresponding cell in the output with '3'.
+      else:
+        O = fill(O, I[i][j], ((i, j),)) # Otherwise, copy the value from the input grid.
+  return O
+
+```
+
+**Explanation:**
+
+1. **Canvas Creation:** A blank canvas `O` is created with the same dimensions as the input grid `I`.
+2. **Iterative Recoloring:**  The code iterates through each cell of the input grid. 
+   - If the cell contains a `1` and its row index `i` is less than or equal to the midline `h // 2`, it's recolored to `3` in the output grid.
+   - Otherwise, the original value from the input grid is copied to the output.
+
+### Version 3:  Using `replace` and Partial Restoration
+
+```python
+def Program_to_be_generated(I):
+    O = replace(I, ONE, THREE)  # First, replace all occurrences of '1' with '3'.
+    h = height(I) 
+    for i in range(h // 2 + 1, h): # Iterate through rows strictly below the midline.
+      for j in range(len(I[0])):
+        if I[i][j] == ONE: # If the original value was '1'...
+            O = fill(O, ONE, ((i,j),)) # ...restore it in the output.
+    return O
+
+```
+
+**Explanation:**
+
+1. **Global Replacement:** `replace(I, ONE, THREE)` efficiently replaces all `1`s with `3`s in the input grid `I`, creating a temporary output `O`.
+2. **Selective Restoration:**  The code then iterates only through the bottom half of the grid (rows strictly below the midline). If the original value at a cell was `1`, it's restored from `3` back to `1`.
+
+### Version 4: Combining `objects` and `replace`
+
+```python
+def Program_to_be_generated(I):
+    h = height(I)
+    objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+    bottom_objs = sfilter(objs, lambda obj: uppermost(obj) >= h // 2) # Find objects entirely in the bottom half.
+    O = replace(I, ONE, THREE)  # Replace all '1's with '3's.
+    for obj in bottom_objs:
+        O = paint(O, recolor(ONE, obj)) # Paint the original '1's back onto the bottom objects.
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Bottom Objects:** `objects` identifies connected regions of `1`s, and `sfilter` selects those fully within the bottom half.
+2. **Global Replacement:** Similar to Version 3, `replace(I, ONE, THREE)` changes all `1`s to `3`s.
+3. **Targeted Restoration:**  The code iterates through the `bottom_objs`. For each object, its color is changed back to `1` using `recolor`, and then it's painted onto the output grid `O`, effectively restoring the `1`s in the bottom half.
+
+
+### Version 5: Leveraging Symmetry and `hmirror`
+
+```python
+def Program_to_be_generated(I):
+    h = height(I)
+    top_half = I[:h//2]  # Extract the top half of the grid.
+    bottom_half = I[h//2:] # Extract the bottom half.
+    transformed_top = replace(top_half, ONE, THREE) # Apply the transformation only to the top half.
+    return vconcat(transformed_top, bottom_half) # Concatenate the transformed top half with the original bottom half.
+
+```
+
+**Explanation:**
+
+1. **Split and Transform:** The input grid `I` is split horizontally into `top_half` and `bottom_half`. Only the `top_half` undergoes the transformation using `replace`. 
+2. **Recombine:**  The transformed `top_half` is then vertically concatenated with the original `bottom_half` using `vconcat` to produce the final output. 

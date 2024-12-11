@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation involves these steps:
+
+1. **Frame the Objects:** A frame with color '6' is drawn around all non-background objects in the input grid. This frame outlines the bounding box of each object.
+2. **Direct Outline:** The cells directly adjacent (up, down, left, right) to the object but within the frame are filled with color '4'.
+3. **Diagonal Outline:**  The cells diagonally adjacent to the object but within the frame are filled with color '1'. 
+
+Let's analyze each input-output pair:
+
+* **Input_0/Output_0:** The transformation is applied to the digit '8' and '3', adding the frame and outlines as described. The digit '2' is untouched as it's already adjacent to the grid border.
+* **Input_1/Output_1:** Similar to Input_0, a frame and outlines are added to the digit '3'.
+* **Input_2/Output_2:**  The digit '3' gets a frame and both outlines. The digit '2' only gets a diagonal outline below it as it's already touching the grid border on other sides.
+* **Input_3/Output_3:**  The digit '8' gets a frame and both outlines.
+
+## Code Generation:
+
+Here are five different versions of the "Program_to_be_generated" using the DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  result = paint(canvas(0, shape(I)), fgpartition(I)) # Initialize with objects
+  for obj in fgpartition(I):
+    result = paint(result, recolor(4, intersection(dneighbors(toindices(obj)), delta(toindices(obj))))) # Direct outline
+    result = paint(result, recolor(1, intersection(ineighbors(toindices(obj)), delta(toindices(obj))))) # Diagonal outline
+  return paint(result, recolor(6, outbox(asindices(I))))  # Draw the frame 
+```
+
+**Explanation:**
+
+1. **Initialization:** The program starts by creating a blank canvas of the same size as the input and paints the existing objects onto it.
+2. **Direct Outline:**  For each object, the `dneighbors` function finds the directly adjacent cells. The `intersection` with `delta` ensures only cells within the object's bounding box but not part of the object are selected. These cells are recolored to '4'.
+3. **Diagonal Outline:** Similar to the direct outline, `ineighbors` finds diagonally adjacent cells, and the same logic is applied to recolor them to '1'.
+4. **Frame:** Finally, the `outbox` function is used to find the cells forming the frame, which are recolored to '6'.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  result = paint(canvas(0, shape(I)), fgpartition(I)) # Initialize with objects
+  for obj in fgpartition(I):
+    for d in [(0, 1), (0, -1), (1, 0), (-1, 0)]:  # Loop over direct neighbor offsets
+      result = underfill(result, 4, shift(toindices(obj), d) - toindices(obj)) 
+    for d in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:  # Loop over diagonal neighbor offsets
+      result = underfill(result, 1, shift(toindices(obj), d) - toindices(obj)) 
+  return paint(result, recolor(6, outbox(asindices(I))))  # Draw the frame 
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **Direct Outline:** This version iterates through each direct neighbor offset and shifts the object's indices accordingly. The difference with the original object's indices gives the outline cells, which are then `underfill`ed with '4'.
+3. **Diagonal Outline:** The same logic is applied for diagonal neighbors, using diagonal offsets and `underfill`ing with '1'.
+4. **Frame:** Same as Version 1. 
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  result = paint(canvas(0, shape(I)), fgpartition(I)) # Initialize with objects
+  for obj in fgpartition(I):
+    result = underfill(result, 4, mfilter(lambda d: shift(toindices(obj), d) - toindices(obj), [(0, 1), (0, -1), (1, 0), (-1, 0)]))  # Direct outline 
+    result = underfill(result, 1, mfilter(lambda d: shift(toindices(obj), d) - toindices(obj), [(1, 1), (1, -1), (-1, 1), (-1, -1)])) # Diagonal outline
+  return paint(result, recolor(6, outbox(asindices(I))))  # Draw the frame 
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **Direct Outline:**  This version uses the `mfilter` function to achieve the same result as the loop in Version 2. It iterates through the direct neighbor offsets and applies a lambda function to calculate the difference between shifted and original object indices, effectively finding the outline cells and underfilling them with '4'. 
+3. **Diagonal Outline:** Same logic as the direct outline, but with diagonal offsets and underfilling with '1'.
+4. **Frame:** Same as Version 1. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+  result = paint(canvas(0, shape(I)), objs) # Initialize with objects
+  for obj in objs:
+    result = paint(result, recolor(4, merge([shift(toindices(obj), d) - toindices(obj) for d in [(0, 1), (0, -1), (1, 0), (-1, 0)]]))) # Direct outline 
+    result = paint(result, recolor(1, merge([shift(toindices(obj), d) - toindices(obj) for d in [(1, 1), (1, -1), (-1, 1), (-1, -1)]]))) # Diagonal outline 
+  return paint(result, recolor(6, outbox(asindices(I))))  # Draw the frame 
+```
+
+**Explanation:** 
+
+1. **Initialization:** Same as Version 1.
+2. **Direct Outline:**  Similar to Version 2, it iterates through direct neighbor offsets but utilizes list comprehension and the `merge` function to combine the shifted indices. The resulting outline cells are then recolored to '4'.
+3. **Diagonal Outline:**  Same logic as the direct outline, but with diagonal offsets and recoloring to '1'.
+4. **Frame:** Same as Version 1.
+
+**Program Version 5:**
+
+```python
+def outline_with_color(obj, value, directions):
+  return recolor(value, merge([shift(toindices(obj), d) - toindices(obj) for d in directions]))
+
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+  result = paint(canvas(0, shape(I)), objs) # Initialize with objects
+  for obj in objs:
+    result = paint(result, outline_with_color(obj, 4, [(0, 1), (0, -1), (1, 0), (-1, 0)])) # Direct outline
+    result = paint(result, outline_with_color(obj, 1, [(1, 1), (1, -1), (-1, 1), (-1, -1)])) # Diagonal outline
+  return paint(result, recolor(6, outbox(asindices(I))))  # Draw the frame
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **`outline_with_color` Function:** This version introduces a helper function to encapsulate the outline generation logic. It takes the object, desired color, and a list of directions as input and returns the outline cells recolored accordingly. 
+3. **Direct and Diagonal Outlines:** The main program now uses the `outline_with_color` function to generate both outlines, simplifying the code and improving readability.
+4. **Frame:** Same as Version 1.
+
+These five versions demonstrate different approaches to achieving the same transformation using the DSL, showcasing the flexibility and expressiveness of the provided functions.

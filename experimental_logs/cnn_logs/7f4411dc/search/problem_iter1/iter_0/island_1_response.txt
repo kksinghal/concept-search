@@ -1,0 +1,96 @@
+## Transformation Analysis:
+
+The transformation aims to remove single-pixel "objects" from the input grid, effectively "filling in" any isolated pixels with the background color. 
+
+* **Input_0:** The isolated '7' pixels are removed, leaving only the connected groups of '7's.
+* **Input_1:** The isolated '6' pixels are removed, leaving only the connected groups of '6's.
+* **Input_2:** The isolated '5' pixels are removed, leaving only the connected groups of '5's.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)  # Extract all objects, not diagonally connected, without background
+  filtered_objs = sfilter(objs, lambda obj: size(obj) > 1) # Keep objects larger than one cell
+  return paint(cover(I, merge(objs)), merge(filtered_objs)) # Paint filtered objects onto a cleaned grid
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, T, F, T)` identifies all distinct objects in the input grid `I`. We use `T, F, T` to specify that objects are defined by connected pixels of the same color (not diagonally), and we want to exclude the background color. 
+2. **Filter Objects:** `sfilter(objs, lambda obj: size(obj) > 1)` filters the extracted objects, keeping only those with more than one cell (i.e., not isolated pixels).
+3. **Clean Grid:**  `cover(I, merge(objs))` creates a clean grid by replacing all object pixels with the background color.
+4. **Paint Filtered Objects:** `paint(..., merge(filtered_objs))` paints the filtered objects (those larger than one cell) onto the clean grid, effectively removing the single-pixel objects.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  single_pixels = mfilter(objects(I, T, F, T), lambda obj: size(obj) == 1) # Identify single-pixel objects
+  return cover(I, single_pixels) # Cover the single-pixel objects with background color
+```
+
+**Explanation:**
+
+1. **Identify Single Pixels:**  `objects(I, T, F, T)` extracts objects as before. Then, `mfilter(..., lambda obj: size(obj) == 1)` filters and merges the objects, keeping only the indices of single-pixel objects.
+2. **Cover Single Pixels:** `cover(I, single_pixels)`  replaces the pixels at the identified single-pixel indices with the background color, effectively removing them.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+    objs = objects(I, T, F, T) # Extract objects
+    return paint(canvas(mostcommon(I), shape(I)), merge(sfilter(objs, lambda obj: size(obj) > 1)))
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Extract objects from the input grid as before.
+2. **Create Blank Canvas:** `canvas(mostcommon(I), shape(I))` generates a blank grid filled with the background color and having the same dimensions as the input.
+3. **Filter Objects and Paint:** Filter the objects to keep only those larger than one cell. Then `paint` these filtered objects onto the blank canvas. 
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  return fill(I, mostcommon(I), merge(mfilter(objects(I, T, F, T), lambda obj: size(obj) == 1)))
+```
+
+**Explanation:**
+
+1. **Identify Single Pixel Indices:** This part is identical to version 2, identifying the indices of all single-pixel objects.
+2. **Fill with Background:** `fill(I, mostcommon(I), ...)` directly fills the identified single-pixel indices in the input grid `I` with the background color (`mostcommon(I)`), achieving the desired removal.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  def is_isolated(obj):
+    return all(manhattan(obj, other_obj) > 1 for other_obj in objects(I, T, F, T) if other_obj != obj)
+  isolated_pixels = merge(sfilter(objects(I, T, F, T), is_isolated))
+  return cover(I, isolated_pixels)
+```
+
+**Explanation:**
+
+1. **Identify Isolated Pixels:**
+   - `objects(I, T, F, T)`: Extract objects as in previous versions.
+   - `is_isolated(obj)`: A helper function that checks if an object `obj` is isolated by calculating its Manhattan distance to all other objects. If the distance is always greater than 1, it's considered isolated.
+   - `sfilter(objects(...), is_isolated)`: Filter the objects to keep only the isolated ones.
+   - `merge(...)`: Merge the isolated objects into a single set of indices.
+2. **Cover Isolated Pixels:** `cover(I, isolated_pixels)` replaces the isolated pixels with the background color. 

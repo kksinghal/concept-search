@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation involves identifying the bottom-most row of each distinct object (considering diagonals for object formation) in the input grid. Then, the leftmost and rightmost cells of this bottom row are colored with value '4'. 
+
+Let's break down the transformation for each input-output pair:
+
+**Input_0:** 
+- Two objects are detected: one with value '6' and the other with value '0' (background). 
+- For object '6', the bottom row has indices (3,4), (3,5), (3,6) and (3,7). The leftmost and rightmost cells are (3,4) and (3,7), which are changed to '4' in the output.
+
+**Input_1:**
+-  Similar to Input_0, we have one object with value '3'.
+-  The bottom row's leftmost and rightmost cells are (1,0) and (1,4), modified to '4' in the output.
+
+**Input_2:**
+-  Two objects are present with values '8' and '6'.
+-  For object '8', the bottom row's extremes are (2,0) and (2,3), which are changed to '4' in the output.
+-  For object '6', the bottom row's extremes are (3,4) and (3,6), also modified to '4'.
+
+
+## Program Versions:
+
+Here are five distinct program versions using the provided DSL to achieve this transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def bottom_extremes(obj):
+    bottom_row = lowermost(obj)
+    return {(bottom_row, j) for i, j in toindices(obj) if i == bottom_row}
+
+  objs = objects(I, T, T, T)
+  bottom_cells = mapply(bottom_extremes, objs)
+  left_right = frozenset({(i, min(j for i, j in indices)) for indices in bottom_cells} | {(i, max(j for i, j in indices)) for indices in bottom_cells})
+  return fill(I, 4, merge(left_right))
+```
+
+**Explanation:**
+
+1. **`bottom_extremes(obj)`:** This function takes an object as input and returns a set containing the indices of the leftmost and rightmost cells on its bottom row.
+2. **`objects(I, T, T, T)`:** This identifies all the objects in the grid.
+3. **`mapply(bottom_extremes, objs)`:**  Applies `bottom_extremes` to each object and merges the results, providing a set of all bottom row extremes.
+4. **`left_right = ...`:**  This line finds the leftmost and rightmost indices from the `bottom_cells` set for each row and merges them.
+5. **`fill(I, 4, merge(left_right))`:** Finally, it fills the grid `I` with value '4' at the identified leftmost and rightmost indices.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def bottom_corners(obj):
+    bottom_row = lowermost(toindices(obj))
+    left_col = leftmost(obj)
+    right_col = rightmost(obj)
+    return {(bottom_row, left_col), (bottom_row, right_col)}
+
+  objs = objects(I, T, T, T)
+  corners = merge(apply(bottom_corners, objs))
+  return fill(I, 4, corners)
+```
+
+**Explanation:**
+
+1. **`bottom_corners(obj)`:** This function directly identifies the leftmost and rightmost bottom corner indices of a given object.
+2. **`apply(bottom_corners, objs)`:** Applies `bottom_corners` to each object in the grid.
+3. **`merge(...)`:** Merges the corner indices from all objects into a single set. 
+4. **`fill(I, 4, corners)`:** Fills the grid with '4' at the identified corner indices.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def get_bottom_edge(obj):
+    bottom_row = lowermost(obj)
+    return {(i, j) for v, (i, j) in obj if i == bottom_row}
+  
+  def get_extremes(indices):
+    return {(min(indices, key=lambda x: x[1])), (max(indices, key=lambda x: x[1]))}
+
+  objs = objects(I, T, T, T)
+  bottom_edges = mapply(get_bottom_edge, objs)
+  extremes = merge(apply(get_extremes, bottom_edges))
+  return fill(I, 4, extremes)
+```
+
+**Explanation:**
+
+1. **`get_bottom_edge(obj)`:** This function returns all indices on the bottom edge of the object.
+2. **`get_extremes(indices)`:** This function takes a set of indices and returns the leftmost and rightmost ones.
+3. The program applies these functions sequentially, first getting all bottom edges, then extracting the extremes, and finally filling those positions with '4'. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    def bottom_indices(obj):
+        bottom_row = lowermost(obj)
+        return {(bottom_row, j) for v, (i, j) in obj if i == bottom_row}
+
+    def extremes(indices):
+        sorted_indices = sorted(indices, key=lambda x: x[1])
+        return {sorted_indices[0], sorted_indices[-1]}
+
+    objs = objects(I, T, T, T)
+    bottom_cells = mapply(bottom_indices, objs)
+    extreme_indices = frozenset({point for indices in bottom_cells for point in extremes(indices)})
+    return fill(I, 4, merge(extreme_indices))
+
+```
+**Explanation:**
+
+1. **`bottom_indices(obj)`**:  Identifies and returns a set of indices for the bottom row of a given object.
+2. **`extremes(indices)`**:  Sorts the indices of a set by their column value (x-coordinate) and returns a set containing the first and last indices, representing the leftmost and rightmost points.
+3. This version uses nested loops within set comprehensions to apply `extremes` to the `bottom_cells` set, effectively finding the extreme left and right indices for each object's bottom row.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def bottom_edge(obj):
+    bottom_row = lowermost(obj)
+    return frozenset((i, j) for v, (i, j) in obj if i == bottom_row)
+
+  def leftmost_rightmost(indices):
+    return frozenset({min(indices, key=lambda x: x[1]), max(indices, key=lambda x: x[1])})
+
+  objs = objects(I, T, T, T)
+  extremes = frozenset({point for obj in objs for point in leftmost_rightmost(bottom_edge(obj))})
+  return fill(I, 4, extremes)
+
+```
+**Explanation:**
+
+1. **`bottom_edge(obj)`**:  Finds and returns a frozenset of indices that constitute the bottom edge of a given object. 
+2. **`leftmost_rightmost(indices)`**: Determines and returns a frozenset containing the indices of the leftmost and rightmost points from a given set of indices.
+3. It then uses nested set comprehensions to apply both functions (`bottom_edge` and `leftmost_rightmost`) to each object in the grid, generating a set (`extremes`) containing the leftmost and rightmost indices of each object's bottom row.
+4.  Finally, it utilizes the `fill` function to modify the input grid (`I`) by placing the value `4` at each index present in the `extremes` set.
+
+**Note:** All versions achieve the desired outcome by applying similar logic with different function combinations. Each version utilizes unique strategies and function calls within the DSL to achieve the specified transformation. 

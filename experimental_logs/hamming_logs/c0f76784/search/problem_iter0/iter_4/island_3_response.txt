@@ -1,0 +1,168 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects in the input grid and recoloring their cells based on the cell's position relative to the object's center of mass along the horizontal axis.
+
+* **Left of Center:** Cells to the left of the object's center of mass are recolored to **8**.
+* **Right of Center:** Cells to the right of the object's center of mass are recolored to **7**.
+* **Center:** The cell at the object's center of mass retains its original color.
+
+**Example:**
+
+In Input_0, the top-left 5x5 square is an object. Its center of mass is at column index 9 (zero-based indexing).  All cells of this object with column index less than 9 are recolored to 8, and those with a column index greater than 9 are recolored to 7. The cell at (1, 9) retains its original color, 5.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def process_object(obj):
+    center_j = centerofmass(obj)[1]
+    return frozenset(
+        (8 if j < center_j else 7 if j > center_j else v, (i, j))
+        for v, (i, j) in obj
+    )
+
+  recolored_objects = frozenset(
+      process_object(obj)
+      for obj in fgpartition(I)
+  )
+  O = paint(canvas(mostcolor(I), shape(I)), merge(recolored_objects))
+  return O
+```
+
+**Explanation:**
+
+1. **`process_object(obj)`:** This function takes an object as input and calculates its center of mass's column index (`center_j`). Then, it iterates through each cell of the object, recoloring it to 8 if it's left of `center_j`, 7 if it's right, and keeping the original color if it's at `center_j`.
+2. **`fgpartition(I)`:** This function partitions the input grid into foreground objects, excluding the background.
+3. **`recolored_objects`:**  This set stores the recolored objects obtained by applying `process_object` to each object from `fgpartition(I)`.
+4. **`canvas(mostcolor(I), shape(I))`:** This creates a blank canvas with the same dimensions as the input grid, filled with the background color.
+5. **`paint(..., merge(recolored_objects))`:** Finally, the recolored objects are merged and painted onto the canvas, generating the output grid.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_cell(v, i, j, center_j):
+    return (8 if j < center_j else 7 if j > center_j else v, (i, j))
+
+  def process_row(row, i, obj_map, center_j_map):
+    return tuple(
+        recolor_cell(v, i, j, center_j_map[(i, j)])
+        for j, v in enumerate(row)
+        if (i, j) in obj_map
+    )
+
+  obj_map = {
+      (i, j) for obj in fgpartition(I) for v, (i, j) in obj
+  }
+  center_j_map = {
+      (i, j): centerofmass(obj)[1]
+      for obj in fgpartition(I)
+      for v, (i, j) in obj
+  }
+  O = tuple(process_row(r, i, obj_map, center_j_map) for i, r in enumerate(I))
+  return O
+```
+
+**Explanation:**
+
+1. **`recolor_cell(v, i, j, center_j)`:** Similar to `process_object` in Version 1, this function recolors a single cell based on its position relative to `center_j`.
+2. **`process_row(row, i, obj_map, center_j_map)`:** This function processes a single row, recoloring only the cells belonging to a foreground object.
+3. **`obj_map`:** This set stores the indices of all cells belonging to foreground objects.
+4. **`center_j_map`:** This dictionary maps each cell index from `obj_map` to the corresponding object's center of mass's column index.
+5. **Final loop:**  The program iterates through each row, applying `process_row` to recolor the cells and ultimately generate the output grid.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def shift_object(obj, center_j):
+    return frozenset(
+        (v, (i, j - center_j))
+        for v, (i, j) in obj
+    )
+
+  def recolor_cell(v, j):
+    return 8 if j < 0 else 7 if j > 0 else v
+
+  recolored_objects = frozenset(
+      frozenset(
+        (recolor_cell(v, j), (i, j + center_j)) 
+        for v, (i, j) in shift_object(obj, center_j)
+      )
+      for obj, center_j in ((obj, centerofmass(obj)[1]) for obj in fgpartition(I)) 
+  )
+  O = paint(canvas(mostcolor(I), shape(I)), merge(recolored_objects))
+  return O
+```
+
+**Explanation:**
+
+This version utilizes a shift-recolor-unshift approach for improved efficiency:
+
+1.  **`shift_object(obj, center_j)`:** This function shifts the object horizontally so that its center of mass aligns with the vertical axis (j=0).
+2.  **`recolor_cell(v, j)`:** This function simplifies the recoloring logic as the center is now at j=0.
+3.  **Nested comprehensions:**  The nested comprehensions efficiently shift, recolor, and unshift each object before painting it onto the canvas.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in fgpartition(I):
+    center_j = centerofmass(obj)[1]
+    for v, (i, j) in obj:
+      if j < center_j:
+        O = fill(O, 8, {(i, j)})
+      elif j > center_j:
+        O = fill(O, 7, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+This version uses an iterative approach for clarity:
+
+1. **Initialize Output:** Creates a canvas `O` representing the output, filled with the background color.
+2. **Iterate Objects:** Iterates through each foreground object `obj`.
+3. **Calculate Center:** Calculates the horizontal center of mass `center_j` for the current object.
+4. **Recolor Cells:** For each cell in the object, recolors it based on its position relative to `center_j` directly on the output canvas `O`.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def process_cell(i, j, grid):
+    for obj in fgpartition(grid):
+      if (i, j) in toindices(obj):
+        center_j = centerofmass(obj)[1]
+        return 8 if j < center_j else 7 if j > center_j else grid[i][j]
+    return grid[i][j]
+
+  O = tuple(
+    tuple(process_cell(i, j, I) for j in range(len(I[0])))
+    for i in range(len(I))
+  )
+  return O
+```
+
+**Explanation:**
+
+This version employs a cell-centric approach:
+
+1. **`process_cell(i, j, grid)`:** This function processes a single cell at coordinates `(i, j)` in the given `grid`. It iterates through all objects to find the object containing the cell. If found, it recolors the cell based on its position relative to the object's center of mass; otherwise, it keeps the original cell color.
+2. **Nested Comprehensions:**  The nested comprehensions iterate through each cell of the input grid `I`, applying the `process_cell` function and constructing the final output grid `O`.
+
+These five versions offer distinct approaches to achieve the same transformation, leveraging various DSL functions and demonstrating the flexibility of the programming language. Each version comes with its own set of tradeoffs in terms of readability, efficiency, and complexity.

@@ -1,0 +1,99 @@
+## Transformation Analysis:
+
+The transformation modifies the largest object (ignoring background) in the grid by changing the color of its inner cells to `2`. 
+* **Inner cells** are defined as cells having at least one layer of same-colored cells surrounding them in all directions (horizontally and vertically).  
+
+**Input_0:**
+- The largest object consists of `5`s. 
+- The transformation fills a rectangular region inside this object with `2`s, leaving a one-cell border of `5`s. 
+
+**Input_1:**
+- The largest object again consists of `5`s.
+- Similarly, the transformation fills the inner region of this object with `2`s.
+
+## Code Generation:
+
+Here are five distinct program versions achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  start = add(ulcorner(obj), (TWO, TWO))
+  dims = subtract(shape(obj), (FOUR, FOUR))
+  return fill(I, TWO, toindices(crop(I, start, dims))) 
+```
+
+**Explanation:**
+1. **Identify the Largest Object:**  `obj = argmax(objects(I, T, F, T), size)` finds the largest object in the grid, excluding the background.
+2. **Calculate Inner Region:** 
+    - `start = add(ulcorner(obj), (TWO, TWO))` determines the upper-left corner of the inner region by adding (2,2) to the object's upper-left corner.
+    - `dims = subtract(shape(obj), (FOUR, FOUR))` calculates the dimensions (height, width) of the inner region, effectively shrinking the object by two cells from each side.
+3. **Fill Inner Region:** `return fill(I, TWO, toindices(crop(I, start, dims)))` fills the calculated inner region (obtained by cropping the original grid) with the value `2`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  inner_box =  difference(backdrop(obj), box(obj)) 
+  return fill(I, TWO, intersection(toindices(obj), inner_box))
+```
+
+**Explanation:**
+1. **Identify Largest Object:** Same as version 1.
+2. **Define Inner Region:**
+   - `backdrop(obj)` gets all indices within the bounding box of the object.
+   - `box(obj)` gets indices forming the outline of the object.
+   - `difference(backdrop(obj), box(obj))` calculates the inner region by removing the outline indices from the bounding box indices.
+3. **Fill Inner Region:** `return fill(I, TWO, intersection(toindices(obj), inner_box))` fills the cells that are both part of the object and the calculated inner region with `2`.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  return underfill(fill(I, THREE, inbox(obj)), TWO, obj)
+```
+
+**Explanation:**
+1. **Identify Largest Object:** Same as previous versions.
+2. **Mark Inner Region:** `fill(I, THREE, inbox(obj))` temporarily fills the "inbox" of the object (the region one cell inside from the border) with a distinct value, `3`. 
+3. **Fill Original Cells:** `underfill(..., TWO, obj)` then fills all cells belonging to the original object with `2`, but only if they were previously marked with the temporary value (`3`). This ensures only the inner region is modified. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  shifted_in = shift(obj, (ONE, ONE))
+  shifted_out = shift(obj, (-ONE, -ONE))
+  return fill(I, TWO, intersection(toindices(shifted_in), toindices(shifted_out)))
+```
+
+**Explanation:**
+1. **Identify Largest Object:** Same as previous versions.
+2. **Calculate Shifted Regions:** 
+    - `shifted_in = shift(obj, (ONE, ONE))` shifts the object one cell diagonally down and right.
+    - `shifted_out = shift(obj, (-ONE, -ONE))` shifts the object diagonally up and left.
+3. **Find Inner Region:** `intersection(toindices(shifted_in), toindices(shifted_out))` finds the intersection of these shifted objects, which corresponds to the inner region. 
+4. **Fill Inner Region:** `return fill(I, TWO, ...)` fills the identified inner region with `2`.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  h, w = shape(obj)
+  inner_region = frozenset((i,j) for i in range(uppermost(obj) + 2, uppermost(obj) + h - 2) 
+                              for j in range(leftmost(obj) + 2, leftmost(obj) + w - 2))
+  return fill(I, TWO, inner_region)
+```
+
+**Explanation:**
+1. **Identify Largest Object:** Same as previous versions.
+2. **Directly Calculate Inner Region:**
+    - `h, w = shape(obj)` gets the height and width of the object.
+    - `inner_region = frozenset(...)` directly calculates the indices of the inner region by iterating over a range defined by the object's boundaries, leaving a two-cell border.
+3. **Fill Inner Region:** `return fill(I, TWO, inner_region)` fills the calculated `inner_region` with the value `2`. 

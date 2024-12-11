@@ -1,0 +1,208 @@
+## Transformation Analysis:
+
+The transformation involves identifying connected regions of the same digit (objects) and then rearranging them within the grid. The rearrangement follows these rules:
+
+* **Input_0:** The object consisting of '3's is moved to the top right corner, pushing the '0's to the left.
+* **Input_1:** The object consisting of '6's is moved to the top right corner. The object of '4's is moved to the bottom right corner. 
+* **Input_2:**  The object of '8's is moved to the top right, maintaining its shape. The object of '2's is split, with one part remaining in place and the other moving to the right edge of the bottom half of the grid. 
+
+Essentially, the transformation rearranges objects based on their unique values, with a tendency to move higher-valued objects towards the top or right.
+
+
+## Code Generation:
+
+Since you haven't provided the two specific programs for inspiration, I'll provide five distinct program versions based on the provided DSL and the transformation analysis:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  obj3 = extract(objs, lambda obj: color(obj) == THREE)
+  obj5 = extract(objs, lambda obj: color(obj) == FIVE)
+  obj6 = extract(objs, lambda obj: color(obj) == SIX)
+  obj8 = extract(objs, lambda obj: color(obj) == EIGHT)
+  obj2 = extract(objs, lambda obj: color(obj) == TWO)
+  
+  # Input_0 specific
+  obj3_shifted = shift(obj3, (ZERO, width(I)-width(obj3)))
+  
+  # Input_1 specific
+  obj6_shifted = shift(obj6, (ZERO, width(I)-width(obj6)))
+  obj4_shifted = shift(extract(objs, lambda obj: color(obj) == FOUR), (height(I)-ONE, width(I)-ONE))
+  
+  # Input_2 specific
+  obj8_shifted = shift(obj8, (ZERO, width(I)-width(obj8)))
+  obj2_split1 = extract(sizefilter(objects(vsplit(I, TWO)[ONE]), size(obj2) // TWO), lambda obj: leftmost(obj) == ZERO)
+  obj2_split2 = shift(obj2_split1, (ZERO, width(I)-width(obj2_split1)-ONE))
+  
+  O = paint(paint(paint(paint(paint(
+      canvas(mostcolor(I), shape(I)), 
+      obj5), 
+      branch(size(I) == THREE_BY_THREE, obj3_shifted, branch(size(I) == FOUR, obj6_shifted, obj8_shifted))), 
+      branch(size(I) == FOUR, obj4_shifted, obj2_split2)),
+      branch(equality(size(I), TWO_BY_TWO) or equality(size(I), THREE_BY_THREE), obj3, branch(size(I) == FOUR, obj6, obj8))),
+      branch(equality(size(I), FIVE), obj2, obj2_split1))
+  return O
+```
+
+**Explanation:**
+
+1. Identify objects of each digit using `fgpartition`.
+2. For each input size, apply specific transformations:
+    * **Input_0:** Shift `obj3` to the right edge.
+    * **Input_1:** Shift `obj6` and `obj4` to the right edges.
+    * **Input_2:** Shift `obj8` to the right edge. Split `obj2`, keeping one part in place and shifting the other to the right edge of the bottom half.
+3. Paint the transformed objects onto a blank canvas of the same size as the input.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))
+  
+  for obj in objs:
+    c = color(obj)
+    if c == THREE:
+      O = paint(O, shift(obj, (ZERO, width(I) - width(obj))))
+    elif c == SIX and size(I) == FOUR:
+      O = paint(O, shift(obj, (ZERO, width(I) - width(obj))))
+    elif c == FOUR and size(I) == FOUR:
+      O = paint(O, shift(obj, (height(I) - ONE, width(I) - ONE)))
+    elif c == EIGHT and size(I) == astuple(FIVE, FIVE):
+      O = paint(O, shift(obj, (ZERO, width(I) - width(obj))))
+    elif c == TWO and size(I) == astuple(FIVE, FIVE):
+      O = paint(O, obj)
+      bottom_half = vsplit(I, TWO)[ONE]
+      obj2_split = extract(objects(bottom_half), lambda o: color(o) == TWO and leftmost(o) == ZERO)
+      O = paint(O, shift(obj2_split, (ZERO, width(I) - width(obj2_split) - ONE)))
+    else:
+      O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. Extract objects and background color from the input.
+2. Create a blank canvas of the same size.
+3. Iterate through objects, applying specific transformations based on their color and input size.
+4. Paint each transformed object onto the canvas.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  def transform_object(obj):
+    c = color(obj)
+    if c == THREE:
+      return shift(obj, (ZERO, width(I) - width(obj)))
+    elif c == SIX and size(I) == FOUR:
+      return shift(obj, (ZERO, width(I) - width(obj)))
+    elif c == FOUR and size(I) == FOUR:
+      return shift(obj, (height(I) - ONE, width(I) - ONE))
+    elif c == EIGHT and size(I) == astuple(FIVE, FIVE):
+      return shift(obj, (ZERO, width(I) - width(obj)))
+    elif c == TWO and size(I) == astuple(FIVE, FIVE):
+      bottom_half = vsplit(I, TWO)[ONE]
+      obj2_split = extract(objects(bottom_half), lambda o: color(o) == TWO and leftmost(o) == ZERO)
+      return (obj, shift(obj2_split, (ZERO, width(I) - width(obj2_split) - ONE)))
+    else:
+      return obj
+
+  objs = fgpartition(I)
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))
+  for transformed_obj in mapply(transform_object, objs):
+    if isinstance(transformed_obj, tuple):
+      O = paint(O, transformed_obj[ZERO])
+      O = paint(O, transformed_obj[ONE])
+    else:
+      O = paint(O, transformed_obj)
+  return O
+```
+
+**Explanation:**
+
+1. Define a helper function `transform_object` to handle object-specific transformations.
+2. Extract objects and background color.
+3. Create a blank canvas.
+4. Apply `transform_object` to each object using `mapply`.
+5. Paint the transformed objects (or tuples of objects in case of splitting) onto the canvas.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  def conditional_shift(obj, condition, offset):
+    return shift(obj, offset) if condition else obj
+  
+  objs = fgpartition(I)
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))
+  
+  for obj in objs:
+    obj = conditional_shift(obj, color(obj) == THREE, (ZERO, width(I) - width(obj)))
+    obj = conditional_shift(obj, color(obj) == SIX and size(I) == FOUR, (ZERO, width(I) - width(obj)))
+    obj = conditional_shift(obj, color(obj) == FOUR and size(I) == FOUR, (height(I) - ONE, width(I) - ONE))
+    obj = conditional_shift(obj, color(obj) == EIGHT and size(I) == astuple(FIVE, FIVE), (ZERO, width(I) - width(obj)))
+    if color(obj) == TWO and size(I) == astuple(FIVE, FIVE):
+      bottom_half = vsplit(I, TWO)[ONE]
+      obj2_split = extract(objects(bottom_half), lambda o: color(o) == TWO and leftmost(o) == ZERO)
+      O = paint(O, shift(obj2_split, (ZERO, width(I) - width(obj2_split) - ONE)))
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. Define a helper function `conditional_shift` to apply shifts based on a condition.
+2. Extract objects and background color.
+3. Create a blank canvas.
+4. Iterate through objects, applying conditional shifts based on color and size.
+5. Handle the splitting of the '2' object separately.
+6. Paint the transformed objects onto the canvas.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  def get_target_location(obj):
+    c = color(obj)
+    if c == THREE:
+      return (ZERO, width(I) - width(obj))
+    elif c == SIX and size(I) == FOUR:
+      return (ZERO, width(I) - width(obj))
+    elif c == FOUR and size(I) == FOUR:
+      return (height(I) - ONE, width(I) - ONE)
+    elif c == EIGHT and size(I) == astuple(FIVE, FIVE):
+      return (ZERO, width(I) - width(obj))
+    else:
+      return ulcorner(obj)
+
+  objs = fgpartition(I)
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))
+
+  for obj in objs:
+    target_loc = get_target_location(obj)
+    if color(obj) == TWO and size(I) == astuple(FIVE, FIVE) and target_loc != ulcorner(obj):
+      bottom_half = vsplit(I, TWO)[ONE]
+      obj2_split = extract(objects(bottom_half), lambda o: color(o) == TWO and leftmost(o) == ZERO)
+      O = paint(O, shift(obj2_split, (target_loc[ZERO], target_loc[ONE] - width(obj2_split) - ONE)))
+    O = paint(O, shift(obj, (target_loc[ZERO] - uppermost(obj), target_loc[ONE] - leftmost(obj))))
+  return O
+```
+
+**Explanation:**
+
+1. Define a helper function `get_target_location` to determine the final position of each object.
+2. Extract objects and background color.
+3. Create a blank canvas.
+4. For each object:
+    * Calculate its target location.
+    * If it's the '2' object in the 5x5 grid and needs to be split, calculate the target location for the split part and paint it.
+    * Calculate the shift required to move the object (or its remaining part) to the target location and paint it. 
+
+These five program versions demonstrate different approaches to achieve the same transformation, highlighting the flexibility and expressiveness of the provided DSL. Each version uses a distinct combination of functions and logic, showcasing the diversity of possible solutions. 

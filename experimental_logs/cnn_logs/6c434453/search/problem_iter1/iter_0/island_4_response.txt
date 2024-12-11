@@ -1,0 +1,187 @@
+## Transformation Analysis:
+
+**Input 0 to Output 0:**
+
+1. **Identify Target Objects:**  The program needs to identify the two largest objects in the input grid (both made of '1's). 
+2. **Recolor and Shift:** The largest object should be recolored to '2' and shifted one cell downwards. The second largest object should be recolored to '2' and shifted one cell to the right.
+
+**Input 1 to Output 1:**
+
+This transformation follows the same logic as the previous one:
+
+1. **Identify Target Objects:** Find the two largest objects (composed of '1's).
+2. **Recolor and Shift:** The largest object is recolored to '2' and moved one cell to the right. The second largest object is recolored to '2' and shifted one cell upwards.
+
+## Program Versions:
+
+Here are five distinct versions of the program to achieve the desired transformations:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  # Find the two largest objects
+  objs = objects(I, T, F, T) 
+  largest = argmax(objs, size)
+  second_largest = argmax(difference(objs, {largest}), size)
+
+  # Recolor the objects
+  largest = recolor(TWO, largest)
+  second_largest = recolor(TWO, second_largest)
+
+  # Determine shift direction based on relative position
+  direction = position(largest, second_largest)
+
+  # Apply the shift
+  largest = shift(largest, direction) 
+
+  # Paint the objects onto a blank canvas
+  O = paint(canvas(ZERO, shape(I)), largest)
+  O = paint(O, second_largest)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  We use `objects` to extract foreground objects and then `argmax` with `size` to find the two largest.
+2. **Recolor:**  Both target objects are recolored to '2' using `recolor`.
+3. **Determine Shift:**  The `position` function calculates the relative position of the two objects, guiding the shift direction.
+4. **Shift and Paint:** The largest object is shifted using `shift`. Finally, a blank canvas is created using `canvas` and both objects are painted onto it using `paint`.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  # Find objects and their sizes
+  objs = objects(I, T, F, T)
+  obj_sizes = apply(size, objs)
+  
+  # Get indices of the two largest objects 
+  largest_idx = argmax(range(len(objs)), lambda i: obj_sizes[i])
+  objs_without_largest = remove(totuple(objs)[largest_idx], objs)
+  second_largest_idx = argmax(range(len(objs_without_largest)), lambda i: size(totuple(objs_without_largest)[i]))
+
+  # Extract the two largest objects
+  largest = totuple(objs)[largest_idx]
+  second_largest = totuple(objs_without_largest)[second_largest_idx]
+
+  # Recolor and shift based on object ordering
+  if largest_idx < second_largest_idx:
+    largest = shift(recolor(TWO, largest), (ZERO, ONE))
+    second_largest = shift(recolor(TWO, second_largest), (ONE, ZERO))
+  else:
+    largest = shift(recolor(TWO, largest), (ONE, ZERO))
+    second_largest = shift(recolor(TWO, second_largest), (ZERO, ONE))
+
+  # Paint the objects onto the input grid
+  O = paint(cover(I, largest), largest)
+  O = paint(O, second_largest)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Analysis:** This version focuses on analyzing object sizes and their order to determine shift direction implicitly.
+2. **Index Manipulation:** Instead of using `position`, we find the indices of the largest objects within the `objs` tuple.
+3. **Conditional Shift:** The relative order of the largest objects in the original tuple determines the shifting direction. This avoids using the `position` function.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  # Extract the two largest objects
+  objs = objects(I, T, F, T)
+  largest = argmax(objs, size)
+  second_largest = argmax(difference(objs, {largest}), size)
+
+  # Calculate centers of mass for shifting
+  center_largest = centerofmass(largest)
+  center_second_largest = centerofmass(second_largest)
+
+  # Determine shift direction based on centers of mass
+  direction = (sign(center_largest[0] - center_second_largest[0]), 
+               sign(center_largest[1] - center_second_largest[1]))
+
+  # Recolor and apply the shift
+  largest = shift(recolor(TWO, largest), direction)
+
+  # Paint the objects onto a blank canvas
+  O = paint(canvas(ZERO, shape(I)), largest)
+  O = paint(O, recolor(TWO, second_largest))
+  return O 
+```
+
+**Explanation:**
+
+1. **Center of Mass:**  This version leverages the `centerofmass` function to determine the relative positions of objects.
+2. **Directional Shift:** The shift direction is calculated by comparing the x and y coordinates of the centers of mass.
+3. **Simplified Logic:**  By utilizing center of mass, the code avoids explicit comparisons of object indices. 
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  # Find the two largest objects (assuming no ties in size)
+  objs = objects(I, T, F, T)
+  obj_list = sorted(objs, key=size, reverse=True)
+  largest = obj_list[0]
+  second_largest = obj_list[1]
+  
+  # Recolor both objects to '2'
+  largest = recolor(TWO, largest)
+  second_largest = recolor(TWO, second_largest)
+
+  # Define possible shift directions
+  shifts = ((0, 1), (1, 0), (0, -1), (-1, 0))
+
+  # Find the shift that maximizes the distance between the objects
+  best_shift = max(shifts, key=lambda s: manhattan(shift(largest, s), second_largest))
+  largest = shift(largest, best_shift)
+
+  # Paint the shifted objects onto a blank canvas
+  O = paint(canvas(ZERO, shape(I)), largest)
+  O = paint(O, second_largest)
+  return O
+```
+
+**Explanation:**
+
+1. **Sorting by Size:** We use Python's built-in `sorted` function to directly obtain the two largest objects, simplifying object extraction.
+2. **Distance Maximization:** Instead of directly calculating the relative position, we iterate through possible shift directions and choose the one that maximizes the Manhattan distance between the objects after shifting.
+3. **Clean Shifting:** This approach avoids explicit checks for relative object positions, resulting in cleaner code.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  # Find objects, sort by size, and extract the largest two
+  objs = objects(I, T, F, T)
+  sorted_objs = order(objs, size)
+  largest = last(sorted_objs)
+  second_largest = first(remove(largest, sorted_objs))
+
+  # Determine the shift direction based on object corners
+  if uppermost(largest) < uppermost(second_largest): 
+    largest_shift = (ONE, ZERO)
+    second_largest_shift = (ZERO, ONE)
+  else:
+    largest_shift = (ZERO, ONE)
+    second_largest_shift = (ONE, ZERO)
+
+  # Recolor and apply the shifts
+  largest = shift(recolor(TWO, largest), largest_shift)
+  second_largest = shift(recolor(TWO, second_largest), second_largest_shift)
+
+  # Paint the objects onto a blank canvas
+  O = paint(canvas(ZERO, shape(I)), largest)
+  O = paint(O, second_largest)
+  return O
+```
+
+**Explanation:**
+
+1. **Ordered Objects:**  This version utilizes the `order` function to sort objects by size, simplifying the identification of the target objects.
+2. **Corner Comparison:**  Instead of using `position` or `centerofmass`, we compare the uppermost row indices of the two objects to decide the shifting direction. This relies on the observation that the shift direction depends on the vertical arrangement of the objects.
+3. **Direct Shifting:** By directly comparing corner positions, we can determine the shifts without needing intermediate calculations or iterations. 
+
+These five versions offer diverse approaches to solving the given transformation, showcasing flexibility in using the DSL and demonstrating creative problem-solving. Each version provides a distinct method for object identification, shift direction determination, and object manipulation, fulfilling the requirement for significant differences in logic and DSL function combinations. 

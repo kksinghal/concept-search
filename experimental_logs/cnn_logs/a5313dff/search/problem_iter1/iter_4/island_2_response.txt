@@ -1,0 +1,160 @@
+## Transformation Analysis:
+
+The transformation aims to outline objects within the input grid, highlighting cells directly bordering the object with the value '1'.  Let's break down the specific logic for each input-output pair:
+
+**Input_0:**
+
+* **Object:** A single object formed by the digit '2'.
+* **Transformation:** The program should identify the outer boundary of the '2' object and fill those cells with '1'. Cells within the object and the background remain unchanged.
+
+**Input_1:**
+
+* **Objects:** Two objects, one formed by '2' and another by a disconnected '2'.
+* **Transformation:** The program needs to identify both '2' objects independently. The outline logic applied in Input_0 should be applied to both objects separately.
+
+**Input_2:**
+
+* **Objects:**  Multiple disconnected '2' objects of varying sizes.
+* **Transformation:**  The program should generalize the outline logic to all '2' objects regardless of their size, shape, or connection. The background and the interior of each object should remain unaffected.
+
+
+## Program Version 1
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    outline = mfilter(delta(toindices(obj)), lambda cell: 1 <= size(intersection(neighbors(cell), toindices(obj))) <= 3)
+    O = underfill(O, ONE, toindices(outline)) 
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` initializes the output grid `O` as a copy of the input grid `I`.
+2. **Object Iteration:** `for obj in objects(I, T, T, T):` iterates over each object found in the input grid `I`. `objects(I, T, T, T)` detects objects considering connected cells diagonally and excluding the background.
+3. **Outline Identification:**
+   - `delta(toindices(obj))` gets the cells surrounding the object (`obj`).
+   - `mfilter(...)` filters these surrounding cells (`cell`) based on the condition: `1 <= size(intersection(neighbors(cell), toindices(obj))) <= 3`. This condition ensures we only select cells that are adjacent to 1, 2, or 3 object cells (part of the outline).
+4. **Outline Filling:** `O = underfill(O, ONE, toindices(outline))` fills the `outline` cells with the value `ONE` (which is 1) in the output grid `O` while leaving existing non-background colors untouched.
+5. **Return Output:** `return O` returns the modified grid containing the outlined objects.
+
+
+## Program Version 2
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I)) 
+  for obj in objects(I, T, T, T):
+    O = paint(O, obj) 
+    outline = mfilter(neighbors(toindices(obj)), lambda c: index(I, c) == mostcolor(I))
+    O = underfill(O, ONE, toindices(outline))
+  return O
+```
+
+**Explanation:**
+
+1. **Canvas Initialization:**  `O = canvas(mostcolor(I), shape(I))` creates an output grid `O` filled with the background color of the input grid (`mostcolor(I)`) and having the same dimensions (`shape(I)`).
+2. **Object Iteration & Painting:** 
+   - `for obj in objects(I, T, T, T):` iterates over each object in the input grid.
+   - `O = paint(O, obj)` paints each detected object directly onto the canvas `O`.
+3. **Outline Finding:** 
+   - `neighbors(toindices(obj))` gets all neighboring cells of the current object.
+   - `mfilter(...)` keeps only those neighbors (`c`) whose value in the input grid `I` (`index(I, c)`) is equal to the background color (`mostcolor(I)`). This identifies outline cells.
+4. **Outline Drawing:** `O = underfill(O, ONE, toindices(outline))` colors the identified `outline` cells on the canvas `O` with `ONE` (value 1), ensuring they overwrite the background color.
+5. **Output:** `return O` returns the canvas, now populated with objects and their outlines.
+
+
+## Program Version 3
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    border_cells = difference(box(toindices(obj)), toindices(obj))
+    outline = mfilter(border_cells, lambda cell: size(intersection(dneighbors(cell), toindices(obj))) > 0)
+    O = underfill(O, ONE, toindices(outline))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` creates the output grid `O` as a copy of input `I`.
+2. **Object Iteration:**  `for obj in objects(I, T, T, T):` iterates through each object in the grid, considering diagonal connections and excluding background.
+3. **Border Cell Identification:**
+   - `box(toindices(obj))` creates a set of indices representing the bounding box around the object.
+   - `border_cells = difference(..., toindices(obj))` removes the object's own cells from the bounding box, leaving only the immediate surrounding cells.
+4. **Outline Filtering:** 
+   - `mfilter(border_cells, ...)` filters the `border_cells` based on the provided lambda function.
+   - `lambda cell: size(intersection(dneighbors(cell), toindices(obj))) > 0` checks if a border cell has at least one directly adjacent neighbor belonging to the object. If so, it's part of the outline.
+5. **Outline Drawing:** `O = underfill(O, ONE, toindices(outline))` replaces the background color within the `outline` cells with `ONE` (value 1) in the output grid.
+6. **Output:** `return O` returns the modified grid.
+
+
+## Program Version 4
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    outline = set()
+    for cell in toindices(obj):
+      for n in neighbors(cell):
+        if n not in toindices(obj) and 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]):
+          outline.add(n)
+    O = underfill(O, ONE, toindices(frozenset(outline)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` copies the input grid `I` to the output `O`.
+2. **Object Loop:** `for obj in objects(I, T, T, T):` iterates through each object found in the input.
+3. **Outline Cell Search:**
+   - `outline = set()`: Initializes an empty set to store the outline indices.
+   - `for cell in toindices(obj):`:  Iterates through each cell belonging to the current object.
+   - `for n in neighbors(cell):`:  For each object cell, it checks its neighboring cells (`n`).
+   - `if n not in toindices(obj) and 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]):`: This condition ensures the neighbor is not part of the object, and it lies within the grid boundaries. If true, it's added to the `outline` set.
+4. **Outline Filling:** `O = underfill(O, ONE, toindices(frozenset(outline)))` fills the identified `outline` cells with `ONE` (1) in the output grid `O` only if those cells are the background color.
+5. **Output:** `return O` returns the modified grid.
+
+
+## Program Version 5
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    outline = set()
+    for (i, j) in toindices(obj):
+      for (di, dj) in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1)]:
+        ni, nj = i + di, j + dj
+        if (ni, nj) not in toindices(obj) and 0 <= ni < len(I) and 0 <= nj < len(I[0]):
+          outline.add((ni, nj))
+    O = underfill(O, ONE, frozenset(outline))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` creates the output grid `O` as a copy of the input `I`.
+2. **Object Iteration:**  `for obj in objects(I, T, T, T):` iterates over each object in the input grid, considering diagonal connections.
+3. **Outline Identification:**
+   - `outline = set()`: Initializes an empty set to store outline cell indices.
+   - `for (i, j) in toindices(obj):`:  Iterates over each cell belonging to the current object.
+   - The inner loop iterates through all eight possible neighbor directions using `(di, dj)`.
+   - `if (ni, nj) not in toindices(obj) and 0 <= ni < len(I) and 0 <= nj < len(I[0]):`: This condition verifies that the neighboring cell is not part of the object itself and falls within the grid boundaries. If true, it's considered an outline cell and added to the `outline` set.
+4. **Outline Filling:** `O = underfill(O, ONE, frozenset(outline))` fills the identified `outline` cells with the value `ONE` (which is 1) in the output grid `O`, without changing the existing non-background colors.
+5. **Output:**  `return O` returns the modified grid. 
+
+Each of these program versions utilizes different DSL functions and logic to achieve the same outcome: outlining objects in the input grid. They demonstrate the flexibility and expressiveness of the provided DSL for spatial reasoning tasks. 

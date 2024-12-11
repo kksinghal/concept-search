@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as **"Vertical Stacking with Center Alignment"**:
+
+1. **Object Identification:** Each distinct digit in the input grid represents a unique object. The background is considered the most frequent digit.
+2. **Vertical Stacking:**  Objects are "stacked" vertically, eliminating empty space between them.
+3. **Center Alignment:**  Each stacked object is horizontally centered within the grid.
+
+**Let's break down each example:**
+
+* **Input_0:** The '3' objects are stacked and centered, as are the '7' objects. The '2' object is placed above the center '3'.
+* **Input_1:** Similar to Input_0, the '7's are stacked and centered, as are the '3's. The '1' and '2' are positioned above the '7's.
+* **Input_2:** The '3's are stacked and centered. The '7's are stacked and centered. The '1' and '2' are placed above the central '7'.
+
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" using the provided DSL:
+
+
+### Program Version 1:
+
+```python
+def program_v1(I):
+  objs = fgpartition(I)
+  grid = canvas(mostcolor(I), shape(I))
+  for obj in objs:
+    w = width(obj)
+    shifted_obj = shift(obj, (0, width(grid) // 2 - w // 2 - w % 2)) # Center the object
+    shifted_obj = shift(shifted_obj, (-42, 0)) # Shift far up
+    while any(0 <= i + 1 < height(I) and index(grid, (i + 1, j)) == mostcolor(I) for _, (i, j) in shifted_obj):
+      shifted_obj = shift(shifted_obj, DOWN)
+    grid = paint(grid, shifted_obj)
+  return grid
+```
+
+**Explanation:**
+
+1.  **Isolate Objects:**  `fgpartition(I)` identifies objects based on unique digits (excluding background).
+2.  **Initialize Canvas:**  `canvas(mostcolor(I), shape(I))` creates an empty grid of the same size as the input, filled with the background color.
+3.  **Iterate and Position:** For each object:
+    *   `width(obj)` calculates the width of the object.
+    *   `shift(obj, (0, width(grid) // 2 - w // 2 - w % 2))` centers the object horizontally.
+    *   `shift(shifted_obj, (-42, 0))` shifts the object far off the top of the grid.
+    *   The `while` loop moves the object down until it encounters another object or the bottom of the grid.
+    *   `paint(grid, shifted_obj)` paints the object onto the canvas.
+4.  **Return Grid:**  The function returns the transformed grid.
+
+
+### Program Version 2:
+
+```python
+def program_v2(I):
+  objs = sorted(fgpartition(I), key=lambda obj: centerofmass(obj)[1])  # Sort objects by horizontal center
+  grid = canvas(mostcolor(I), shape(I))
+  y = 0
+  for obj in objs:
+    w = width(obj)
+    shifted_obj = shift(obj, (0, width(grid) // 2 - w // 2 - w % 2)) # Center the object
+    shifted_obj = shift(shifted_obj, (-y, 0))  
+    grid = paint(grid, shifted_obj)
+    y += height(obj)
+  return grid
+```
+
+**Explanation:**
+
+1.  **Sort Objects:** `sorted(fgpartition(I), key=lambda obj: centerofmass(obj)[1])` sorts the objects based on their horizontal center of mass, ensuring a consistent stacking order from left to right.
+2.  **Initialize Canvas and Counter:** Similar to Version 1, it initializes an empty canvas. Additionally, `y = 0` is initialized to track the next available vertical position for stacking.
+3.  **Iterate, Position, and Stack:** For each object:
+    *   Similar to Version 1, it centers the object horizontally.
+    *   `shift(shifted_obj, (-y, 0))` positions the object at the current `y` coordinate.
+    *   `grid = paint(grid, shifted_obj)` paints the object onto the canvas.
+    *   `y += height(obj)` updates the `y` coordinate for the next object to be stacked on top.
+4.  **Return Grid:** It returns the transformed grid.
+
+### Program Version 3: 
+
+```python
+def program_v3(I):
+    objs = fgpartition(I)
+    grid = canvas(mostcolor(I), shape(I))
+    offset = (0,0)
+    for obj in objs:
+        grid = paint(grid, shift(obj, offset))
+        offset = (offset[0] + height(obj), width(grid) // 2 - width(obj) // 2 - width(obj) % 2 )
+    return grid
+```
+
+**Explanation:** 
+
+1.  **Object and Canvas Initialization:** Similar to previous versions.
+2.  **Iterative Painting and Offset Update:** This version iterates through the objects and directly paints them onto the canvas.
+    *   `grid = paint(grid, shift(obj, offset))` paints the current object with a calculated offset.
+    *   `offset = (offset[0] + height(obj), width(grid) // 2 - width(obj) // 2 - width(obj) % 2)` updates the offset for the next object. The vertical offset (`offset[0]`) is incremented by the height of the current object to ensure stacking. The horizontal offset (`offset[1]`) is calculated to center the next object.
+
+### Program Version 4:
+
+```python
+def program_v4(I):
+    objs = list(fgpartition(I))
+    grid = canvas(mostcolor(I), shape(I))
+    height_sum = 0
+    for i in range(len(objs)):
+        obj = objs[i]
+        w = width(obj)
+        objs[i] = shift(obj, (0, width(grid) // 2 - w // 2 - w % 2)) # Center the object
+        objs[i] = shift(objs[i], (-height_sum, 0))
+        height_sum += height(obj)
+    return paint(grid, merge(objs))
+```
+
+**Explanation:**
+
+1.  **Initialization:** Like before, it identifies objects and creates an empty canvas. It also initializes `height_sum` to track the cumulative height of stacked objects.
+2.  **Pre-position Objects:** Instead of painting objects one by one, it first pre-positions all objects:
+    *   It iterates through the `objs` list, centering and vertically stacking each object based on the current `height_sum`.
+3.  **Paint Merged Objects:**  Finally, it merges all pre-positioned objects using `merge(objs)` and paints them onto the canvas in a single step using `paint(grid, merge(objs))`.
+
+### Program Version 5: 
+
+```python
+def program_v5(I):
+  objs = fgpartition(I)
+  grid = canvas(mostcolor(I), shape(I))
+  for i, obj in enumerate(objs):
+    grid = paint(
+        grid,
+        shift(obj, (-sum(height(o) for k, o in enumerate(objs) if k < i), width(grid) // 2 - width(obj) // 2 - width(obj) % 2))
+    )
+  return grid
+```
+
+**Explanation:**
+
+1.  **Object and Canvas Initialization:** Similar to previous versions.
+2.  **Iterative Painting with Dynamic Offset:** This version dynamically calculates the vertical offset for each object within the `paint` function. 
+    *   `-sum(height(o) for k, o in enumerate(objs) if k < i)` calculates the vertical offset as the sum of heights of all objects processed before the current object. 
+    *   The horizontal offset is calculated for centering, similar to previous versions.
+
+## Conclusion:
+
+These five program versions demonstrate distinct approaches to achieve the "Vertical Stacking with Center Alignment" transformation using the DSL. They highlight the flexibility and expressive power of the DSL for defining spatial transformations in a concise and readable manner. 

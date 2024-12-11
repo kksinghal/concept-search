@@ -1,0 +1,151 @@
+## Transformation Analysis:
+
+The transformation focuses on identifying the non-background object in the input grid and drawing a 'T' shape centered around its center of mass. The 'T' is drawn using the first non-background color, except for the bottom cell which uses the second non-background color.
+
+**Input 0:**
+
+* The non-background object is a single cell with the value '7'.
+* A 'T' shape is drawn centered at this cell's location (10, 10).
+* The 'T' is primarily filled with the value '1' (the first non-background color).
+* The bottom cell of the 'T' is filled with the value '2' (the second non-background color).
+
+**Input 1:**
+
+* The input is entirely background.
+* A 'T' shape is drawn centered at the default location (10, 10).
+* The 'T' follows the same coloring scheme as Input 0.
+
+**Input 2:**
+
+* The non-background object is a single cell with the value '3'.
+* A 'T' shape is drawn centered at this cell's location (11, 7).
+* The 'T' follows the same coloring scheme as Input 0, using '7' and '2' for the primary and bottom cells.
+
+
+## Program_to_be_generated:
+
+**### Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  non_bg_obj = extract(fgpartition(I), lambda obj: True)
+  center_i, center_j = centerofmass(non_bg_obj) if non_bg_obj else (10, 10)
+  T_shape = {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1), 
+           (center_i, center_j), (center_i + 1, center_j)}
+  colors = totuple(palette(I) - {mostcolor(I)})
+  fill_color_1 = colors[0] if len(colors) > 0 else 1
+  fill_color_2 = colors[1] if len(colors) > 1 else 2
+  return fill(fill(fill(canvas(mostcolor(I), shape(I)), fill_color_1, T_shape),
+                  fill_color_2, {(center_i + 1, center_j)}),
+              mostcolor(I), asindices(I) - T_shape - {(center_i + 1, center_j)})
+```
+
+**Explanation:**
+
+1. **Identify the non-background object and its center:**
+   - `non_bg_obj = extract(fgpartition(I), lambda obj: True)`: Extracts the first non-background object found in the input grid.
+   - `center_i, center_j = centerofmass(non_bg_obj) if non_bg_obj else (10, 10)`: Calculates the center of mass of the object, defaulting to (10, 10) if no object is found.
+
+2. **Define the 'T' shape:**
+   - `T_shape = {…}`: Hardcodes the relative indices of the 'T' shape based on the calculated center.
+
+3. **Determine fill colors:**
+   - `colors = totuple(palette(I) - {mostcolor(I)})`: Extracts non-background colors from the input.
+   - `fill_color_1 = colors[0] if len(colors) > 0 else 1`: Selects the first non-background color or defaults to '1'.
+   - `fill_color_2 = colors[1] if len(colors) > 1 else 2`: Selects the second non-background color or defaults to '2'.
+
+4. **Construct and return the output grid:**
+   - `canvas(mostcolor(I), shape(I))`: Creates a canvas filled with the background color and the same size as the input.
+   - `fill(…, fill_color_1, T_shape)`: Fills the 'T' shape on the canvas with `fill_color_1`.
+   - `fill(…, fill_color_2, {(center_i + 1, center_j)})`: Fills the bottom cell of the 'T' with `fill_color_2`.
+   - `fill(…, mostcolor(I), asindices(I) - T_shape - {(center_i + 1, center_j)})`: Fills any remaining cells within the grid boundaries with the background color.
+
+**### Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  non_bg_indices = mfilter(fgpartition(I), lambda obj: True)
+  center_i, center_j = centerofmass(non_bg_indices) if non_bg_indices else (10, 10)
+  T_top = connect((center_i - 1, center_j - 1), (center_i - 1, center_j + 1))
+  T_stem = connect((center_i, center_j), (center_i + 1, center_j))
+  color1 = first(palette(I) - {mostcolor(I)}, 1)
+  color2 = first(palette(I) - {mostcolor(I), color1}, 2)
+  return fill(fill(canvas(mostcolor(I), shape(I)), color1, T_top | T_stem),
+              color2, {(center_i + 1, center_j)})
+```
+
+**Explanation:**
+
+1. **Find non-background indices and center:** Similar to version 1, but uses `mfilter` to get all non-background indices.
+2. **Construct 'T' shape using lines:**
+   - `T_top = connect((center_i - 1, center_j - 1), (center_i - 1, center_j + 1))`: Draws the top horizontal line of the 'T'.
+   - `T_stem = connect((center_i, center_j), (center_i + 1, center_j))`: Draws the vertical line of the 'T'.
+3. **Determine fill colors:** Similar to version 1, but uses `first` for more concise color selection.
+4. **Construct output grid:**
+   - `canvas(…), shape(I))`: Creates a background-filled canvas.
+   - `fill(…, color1, T_top | T_stem)`: Draws the top and stem of the 'T' with `color1`.
+   - `fill(…, color2, {(center_i + 1, center_j)})`:  Fills the bottom cell of the 'T' with `color2`.
+
+**### Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(fgpartition(I), lambda obj: len(obj)) if fgpartition(I) else {(1, (10, 10))}
+  ci, cj = centerofmass(obj)
+  T_shape = {(ci - 1, cj - 1), (ci - 1, cj), (ci - 1, cj + 1), (ci, cj), (ci + 1, cj)}
+  colors = list(palette(I) - {mostcolor(I)})
+  c1 = colors[0] if colors else 1
+  c2 = colors[1] if len(colors) > 1 else 2
+  return fill(fill(canvas(mostcolor(I), shape(I)), c1, T_shape), c2, {(ci + 1, cj)})
+```
+
+**Explanation:**
+
+1. **Find the largest non-background object:** Uses `argmax` to find the largest object by its number of cells. Defaults to a dummy object at (10, 10) if no object is found.
+2. **Define the 'T' shape:** Similar to version 1.
+3. **Determine fill colors:** Similar to version 1 but uses list indexing.
+4. **Construct output grid:** Similar to version 1.
+
+**### Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    obj = next(iter(fgpartition(I)), {(1, (10, 10))}) 
+    ci, cj = centerofmass(obj)
+    T = {(ci-1,cj-1), (ci-1,cj), (ci-1,cj+1), (ci, cj), (ci+1, cj)}
+    colors = list(palette(I) - {mostcolor(I)})
+    c1 = colors[0] if colors else 1
+    c2 = colors[1] if len(colors) > 1 else 2
+    return paint(fill(canvas(mostcolor(I), shape(I)), c1, T), {(c2, (ci + 1, cj))})
+```
+
+**Explanation:**
+
+1. **Get any non-background object:** Uses `next(iter(…))` to get any non-background object. Defaults to a dummy object if none are found.
+2. **Define the 'T' shape:** Similar to previous versions.
+3. **Determine fill colors:** Similar to previous versions.
+4. **Construct output grid:** Similar to previous versions, but uses `paint` to directly place the `c2` colored cell instead of filling it.
+
+**### Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  non_bg = mfilter(objects(I, False, False, True), lambda obj: True)
+  center_i, center_j = centerofmass(non_bg) if non_bg else (10, 10)
+  top_left = (center_i - 1, center_j - 1)
+  T = {(top_left[0] + i, top_left[1] + j) for i in range(3) for j in (0, 1, 2) if i != 2 or j == 1}
+  colors = sorted(palette(I) - {mostcolor(I)})
+  c1, c2 = (colors + [1, 2])[:2]
+  return fill(fill(canvas(mostcolor(I), shape(I)), c1, T), c2, {(center_i + 1, center_j)})
+```
+
+**Explanation:**
+
+1. **Find non-background cells:** Uses `objects` to extract all non-background cells directly.
+2. **Calculate center and top-left corner:** Similar to previous versions, but additionally calculates the top-left corner of the 'T'.
+3. **Generate 'T' shape programmatically:** Uses set comprehension to dynamically generate the 'T' indices based on the top-left corner.
+4. **Determine fill colors:** Similar to previous versions but uses `sorted` to ensure consistent color selection.
+5. **Construct output grid:** Similar to previous versions.
+
+
+Each version presents a slightly different approach to achieving the same transformation, utilizing diverse DSL functions and logic.

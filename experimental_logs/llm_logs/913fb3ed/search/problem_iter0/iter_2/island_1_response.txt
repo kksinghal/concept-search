@@ -1,0 +1,195 @@
+## Transformation Analysis:
+
+The transformation takes the smallest non-zero digit in the input grid and creates a 3x3 square centered on that digit's location. The square is filled with the value '4'. The original digit within the square retains its value.  Additionally, the square is surrounded by a border of '6's, except where a '4' from the square is adjacent. Finally, digits '1' and '2' are placed relative to the original digit's position.
+
+Here's a breakdown for each input-output pair:
+
+**Pair 0:**  The smallest digit is '2'. A 3x3 square of '4's is centered around the '2', with the '2' itself unchanged. A border of '6's surrounds this square.  The digits '1' and '2' are placed one cell diagonally down and to the right of the original '2'.
+
+**Pair 1:**  Similar to pair 0, but with a '3' as the smallest digit.
+
+**Pair 2:**  The smallest digit is '2'. Notice how the '6' border adjusts to accommodate the existing '3' digit.
+
+**Pair 3:** Similar to previous pairs, illustrating the transformation on a simple input. 
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program "Program_to_be_generated":
+
+**Version 1:  Direct Approach**
+
+```python
+def Program_to_be_generated(I):
+  # Find the smallest non-zero color
+  min_color = min(palette(I) - {0})
+
+  # Find the location of the smallest color
+  min_loc = first(ofcolor(I, min_color))
+
+  # Create a 3x3 square patch centered at min_loc
+  square_patch = frozenset((min_loc[0] + i - 1, min_loc[1] + j - 1) for i in range(3) for j in range(3))
+
+  # Create the border patch
+  border_patch = outbox(square_patch) - square_patch
+
+  # Fill the grid with '4's at the square patch locations
+  O = fill(I, 4, square_patch)
+
+  # Fill the grid with '6's at the border patch locations
+  O = fill(O, 6, border_patch)
+
+  # Place the '1' and '2' relative to the min_loc
+  O = fill(O, 1, frozenset({(min_loc[0] + 2, min_loc[1] + 2)}))
+  O = fill(O, 2, frozenset({(min_loc[0] + 2, min_loc[1] + 1)}))
+  
+  return O
+```
+
+**Explanation:**
+
+1. **Find Key Elements:** Identifies the smallest non-zero color and its location on the grid.
+2. **Construct Patches:** Defines the 3x3 square and its surrounding border as separate patches.
+3. **Fill Grid:** Overwrites the grid with the desired values ('4' for the square, '6' for the border), leaving the original minimum color untouched within the square.
+4. **Place Additional Digits:** Inserts '1' and '2' at their calculated positions relative to the minimum color.
+
+
+**Version 2:  Object-Based Approach**
+
+```python
+def Program_to_be_generated(I):
+  # Find the object containing the smallest color
+  min_obj = argmin(objects(I, False, False, True), lambda obj: color(obj))
+
+  # Determine the offset to center the 3x3 square
+  offset = subtract((1, 1), ulcorner(min_obj))
+
+  # Create a 3x3 square object
+  square_obj = recolor(4, shift(asindices(canvas(0, (3, 3))), offset))
+
+  # Create the border object
+  border_obj = recolor(6, difference(outbox(square_obj), toindices(square_obj)))
+
+  # Combine the objects and paint them onto the grid
+  O = paint(I, combine(square_obj, border_obj))
+
+  # Place the '1' and '2'
+  min_loc = first(toindices(min_obj))
+  O = fill(O, 1, frozenset({(min_loc[0] + 2, min_loc[1] + 2)}))
+  O = fill(O, 2, frozenset({(min_loc[0] + 2, min_loc[1] + 1)}))
+
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** Locates the object containing the smallest non-zero color.
+2. **Calculate Offset:** Determines the shift required to center the 3x3 square around the target object.
+3. **Object Construction:**  Generates the square and border as objects with their respective colors.
+4. **Grid Painting:**  Paints these objects directly onto the input grid, preserving the original color within the square.
+5. **Final Placement:** Adds '1' and '2' based on the target object's location.
+
+
+**Version 3: Using `dneighbors` for Border Generation**
+
+```python
+def Program_to_be_generated(I):
+  # Find smallest non-zero color
+  c = min(palette(I) - {0})
+
+  # Find location
+  loc = first(ofcolor(I, c))
+
+  # Create 3x3 square indices
+  square_ind = frozenset((loc[0] + i - 1, loc[1] + j - 1) for i in range(3) for j in range(3))
+
+  # Generate border indices using dneigbors
+  border_ind = frozenset(n for p in square_ind for n in dneighbors(p) if n not in square_ind and 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]))
+
+  # Fill grid
+  O = fill(I, 4, square_ind) 
+  O = fill(O, 6, border_ind)
+  O = fill(O, 1, frozenset({(loc[0] + 2, loc[1] + 2)}))
+  O = fill(O, 2, frozenset({(loc[0] + 2, loc[1] + 1)}))
+  return O
+```
+
+**Explanation:**
+
+1. **Find Key Elements:**  Same as previous versions.
+2. **Square Indices:**  Generates indices for the 3x3 square.
+3. **Border with `dneighbors`:**  Utilizes the `dneighbors` function to efficiently find indices adjacent to the square, forming the border. 
+4. **Fill Grid:**  Similar to previous versions.
+
+
+**Version 4: Leveraging `crop` and `hconcat`/`vconcat`**
+
+```python
+def Program_to_be_generated(I):
+  c = min(palette(I) - {0})
+  loc = first(ofcolor(I, c))
+
+  # Create top, middle, and bottom rows of the output
+  top = hconcat(canvas(6, (1, 3)), canvas(0, (1, len(I[0]) - 3)))
+  mid = hconcat( (6,), (4, 4, 4), (0,) * (len(I[0]) - 5))
+  bot = hconcat(canvas(6, (1, 3)), canvas(0, (1, len(I[0]) - 3)))
+
+  # Adjust middle row to include existing elements and '1', '2'
+  mid = fill(mid, I[loc[0]][loc[1]], frozenset({(1, 1)}))
+  mid = fill(mid, 1, frozenset({(1, 3)}))
+  mid = fill(mid, 2, frozenset({(1, 2)}))
+
+  # Concatenate rows based on the location of the smallest color
+  if loc[0] == 0:
+    O = vconcat(mid, bot, I[2:])
+  elif loc[0] == len(I) - 1:
+    O = vconcat(I[:-2], top, mid)
+  else:
+    O = vconcat(I[:loc[0] - 1], top, mid, bot, I[loc[0] + 2:])
+
+  return O
+```
+
+**Explanation:**
+
+1. **Row Construction:**  Directly builds the top, middle, and bottom rows of the final output grid.
+2. **Middle Row Adjustment:**  Inserts the original element, '1', and '2' into the middle row. 
+3. **Conditional Concatenation:** Concatenates the rows based on the smallest color's row position to ensure correct placement within the final grid.
+
+
+**Version 5: Combining `shift` and `paint` for Efficiency**
+
+```python
+def Program_to_be_generated(I):
+  c = min(palette(I) - {0})
+  loc = first(ofcolor(I, c))
+
+  # Create a base 3x3 square object
+  square = recolor(4, asindices(canvas(0, (3, 3))))
+
+  # Shift the square to be centered around the target location
+  shifted_square = shift(square, subtract(loc, (1, 1)))
+
+  # Create a border object directly around the shifted square
+  border = recolor(6, difference(outbox(shifted_square), toindices(shifted_square)))
+
+  # Paint the square and border onto a copy of the input grid
+  O = paint(paint(I, shifted_square), border)
+
+  # Place the '1' and '2'
+  O = fill(O, 1, frozenset({(loc[0] + 2, loc[1] + 2)}))
+  O = fill(O, 2, frozenset({(loc[0] + 2, loc[1] + 1)}))
+
+  return O
+```
+
+**Explanation:**
+
+1. **Base Object:** Generates a base 3x3 square object.
+2. **Shift for Centering:** Calculates the necessary shift to center the square around the target location and applies it.
+3. **Direct Border Generation:** Constructs the border object directly around the already shifted square for efficiency.
+4. **Combined Painting:** Paints both the shifted square and its border onto the grid in one step.
+5. **Final Placement:**  Same as previous versions.
+
+
+These five versions utilize distinct approaches and combinations of DSL functions to achieve the same transformation, showcasing diverse solutions with varying levels of efficiency and complexity. 

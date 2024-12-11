@@ -1,0 +1,171 @@
+## Transformation Analysis:
+
+The transformation for all three input-output pairs follows the same logic:
+
+1. **Identify Objects:** The transformation targets objects formed by connected groups of non-zero digits (considering only horizontal and vertical adjacency, not diagonal).
+
+2. **Move Objects:** Each object is moved to a new position based on its color:
+    - **Color 2:** Objects with the color '2' remain in their original position.
+    - **Color 5:** Objects with the color '5' are moved downwards until they encounter the top of another object (or the bottom of the grid).
+
+3. **Overlapping:** If a moving object (color '5') overlaps with an existing object (of any color) during its downward movement, no special handling is applied - the moving object simply occupies the overlapping cells.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    moved_objs = set()
+    for obj in objs:
+        if color(obj) == 5:
+            new_obj = obj
+            while True:
+                down_obj = shift(new_obj, DOWN)
+                if any(intersection(toindices(down_obj), toindices(other_obj)) for other_obj in objs | moved_objs if other_obj != obj):
+                    break
+                new_obj = down_obj
+            moved_objs.add(new_obj)
+        else:
+            moved_objs.add(obj)
+    O = paint(canvas(ZERO, shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts objects from the input grid `I`. 
+2. **Iterate Objects:** The code iterates through each object (`obj`) in the `objs` set.
+3. **Move Color 5:** If the `color(obj)` is 5, it enters a loop (`while True`) that repeatedly shifts the object downwards (`shift(new_obj, DOWN)`).
+    - **Collision Detection:**  The `any(...)` part checks for collisions with other objects in both original positions (`objs`) and already moved positions (`moved_objs`).
+    - **Break on Collision:** If a collision is detected (`intersection(...)`), the loop breaks.
+4. **Store Objects:** Moved or stationary objects (`new_obj`) are added to the `moved_objs` set.
+5. **Generate Output:** A blank canvas (`canvas(ZERO, shape(I))`) is created, and all objects from `moved_objs` are painted onto it using `paint`.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    grid = canvas(ZERO, shape(I))
+    for obj in objs:
+        if color(obj) == 2:
+            grid = paint(grid, obj)
+    for obj in objs:
+        if color(obj) == 5:
+            new_obj = obj
+            while True:
+                down_obj = shift(new_obj, DOWN)
+                if any(index(grid, loc) != 0 for loc in toindices(down_obj)):
+                    break
+                new_obj = down_obj
+            grid = paint(grid, new_obj)
+    O = grid
+    return O
+```
+
+**Explanation:**
+
+- This version prioritizes painting color '2' objects first to simplify collision detection for color '5' objects.
+- It directly paints objects onto the `grid` instead of using a separate `moved_objs` set.
+- Collision detection is simplified by checking for non-zero values (`index(grid, loc) != 0`) on the `grid` instead of comparing object indices.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs2 = colorfilter(objects(I, T, F, T), 2) 
+    objs5 = colorfilter(objects(I, T, F, T), 5)
+    grid = paint(canvas(ZERO, shape(I)), objs2)
+    for obj in objs5:
+        for k in range(height(I)):
+            down_obj = shift(obj, (k, 0))
+            if any(index(grid, loc) != 0 for loc in toindices(down_obj)):
+                grid = paint(grid, shift(down_obj, (-1, 0)))
+                break
+    O = grid
+    return O
+```
+
+**Explanation:**
+
+- This version pre-filters objects by color (`colorfilter`) for more efficient processing.
+- It uses a `for` loop with a predefined range (`height(I)`) to control the downward movement of color '5' objects, stopping either at the grid boundary or upon collision.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    new_objs = set()
+    for obj in objs:
+        if color(obj) == 5:
+            bottom_edge = lowermost(obj)
+            collision = False
+            for other_obj in objs:
+                if other_obj != obj and color(other_obj) != 0 and hmatching(obj, other_obj):
+                   if uppermost(other_obj) > bottom_edge:
+                       bottom_edge = uppermost(other_obj) - 1
+                       collision = True
+                       break
+            if collision:
+               new_objs.add(shift(obj, (bottom_edge - lowermost(obj), 0))) 
+            else:
+               new_objs.add(obj)
+        else:
+            new_objs.add(obj)
+    O = paint(canvas(ZERO, shape(I)), merge(new_objs))
+    return O
+
+```
+
+**Explanation:**
+
+- This version focuses on finding the final position of each color '5' object before moving it.
+- For each color '5' object, it iterates through other objects to find potential collision points and calculates the final `bottom_edge` position.
+- It then directly shifts the object to its calculated `bottom_edge` in one step.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  new_objs = set()
+  for obj in objs:
+    c = color(obj)
+    if c == 5:
+      target_y = lowermost(obj)
+      for i in range(lowermost(obj) + 1, height(I)):
+        collision = False
+        shifted_obj = shift(obj, (i - lowermost(obj), 0))
+        for other_obj in objs:
+          if other_obj != obj and any((i, j) in toindices(other_obj) for i, j in toindices(shifted_obj)):
+            collision = True
+            break
+        if collision:
+          break
+        target_y = i
+      new_objs.add(shift(obj, (target_y - lowermost(obj), 0)))
+    else:
+      new_objs.add(obj)
+  O = paint(canvas(ZERO, shape(I)), merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+- This version employs a different approach by iterating over potential target rows for each color '5' object.
+- It shifts the object to each target row and checks for collisions with other objects.
+- If no collision is detected, it updates the `target_y` to the current row.
+- Once a collision occurs or the grid boundary is reached, the object is moved to the final `target_y` position.

@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected groups of the same digit) in the input grid and drawing a horizontal line above and below each object, but only extending it over the background (digit '0'). The line is drawn using the digit '3'.
+
+**Input_0:**
+
+*  There are five '2' objects.
+*  Horizontal lines are drawn above and below each '2' object, stopping at the edges of other '2' objects or the grid boundary.
+
+**Input_1:**
+
+* The same logic is applied. 
+* Notice how lines wrap around objects and do not intersect other non-zero digits.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  return underfill(I, THREE, 
+                   merge(
+                       mapply(lambda obj: 
+                              (connect((uppermost(obj)-1, leftmost(obj)), (uppermost(obj)-1, rightmost(obj))) | 
+                               connect((lowermost(obj)+1, leftmost(obj)), (lowermost(obj)+1, rightmost(obj)))), 
+                              objs))) 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, True)`**: Identifies connected objects of the same digit (excluding the background '0').
+2. **`mapply(lambda obj: ... , objs)`**:  For each object:
+    *   **`(uppermost(obj)-1, leftmost(obj)), (uppermost(obj)-1, rightmost(obj))`**:  Gets the coordinates of the top-left and top-right corners of the line above the object.
+    *  **`(lowermost(obj)+1, leftmost(obj)), (lowermost(obj)+1, rightmost(obj))`**: Gets the coordinates of the bottom-left and bottom-right corners of the line below the object.
+    *  **`connect(..., ...)`**:  Draws a line (as a set of indices) between each pair of corners.
+    * **`... | ...`**: Combines the top and bottom lines.
+3. **`merge(...)`**:  Combines the lines of all objects.
+4. **`underfill(I, THREE, ...)`**: Fills the input grid (`I`) with '3' at the indices of the combined lines, but only if the original value at that index is '0' (background).
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  return paint(I, 
+                 merge(
+                     mapply(lambda obj:
+                            recolor(THREE, 
+                                    (sfilter(
+                                        shift(
+                                            box(
+                                                toindices(obj)), (1, 0)), lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0])) |
+                                     sfilter(
+                                         shift(
+                                             box(
+                                                 toindices(obj)), (-1, 0)), lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0])))), 
+                            objs))) 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, True)`**: Identifies objects as in Version 1.
+2.  **`mapply(lambda obj: ... , objs)`**: For each object:
+    *   **`toindices(obj)`**: Converts the object to a set of its cell indices.
+    *   **`box(...)`**: Gets the indices of the cells forming the outer boundary of the object.
+    *   **`shift(..., (1, 0))`** and **`shift(..., (-1, 0))`**: Shifts the box down and up by one row, respectively.
+    *  **`sfilter(..., lambda loc: ...)`**:  Keeps only the shifted box indices that are within the grid boundaries.
+    *  **`... | ...`**: Combines the indices of the upper and lower shifted boxes.
+    *   **`recolor(THREE, ...)`**:  Sets the color of all the resulting indices to '3'.
+3. **`merge(...)`**: Combines the lines from all objects.
+4. **`paint(I, ...)`**: Paints the '3' lines onto the input grid.
+
+
+**Program Version 3:** 
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  edges = merge(mapply(lambda obj: (
+      shoot((uppermost(obj)-1, leftmost(obj)), (0, 1)) | 
+      shoot((lowermost(obj)+1, leftmost(obj)), (0, 1))), objs))
+  return underfill(I, THREE, edges) 
+```
+
+**Explanation:** 
+
+1. **`objs = objects(I, True, False, True)`**:  Identifies objects as before.
+2. **`mapply(lambda obj: ... , objs)`**:  For each object:
+    *   **`(uppermost(obj)-1, leftmost(obj))`**:  Gets the coordinate above the top-left corner of the object.
+    *   **`(lowermost(obj)+1, leftmost(obj))`**: Gets the coordinate below the bottom-left corner of the object.
+    *   **`shoot(..., (0, 1))`**:  Shoots a horizontal line (towards the right) from each of these starting points.
+    *   **`... | ... `**:  Combines the top and bottom lines.
+3. **`merge(...)`**: Combines all the lines from all objects.
+4. **`underfill(I, THREE, ...)`**: Fills the input grid with '3' at the line indices, but only where the original value is '0'.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  expanded_outlines = mapply(lambda obj: outbox(obj), objs)
+  top_bottom_edges = mapply(lambda indices:
+                        sfilter(indices, lambda loc: loc[1] == leftmost(indices) or loc[1] == rightmost(indices)), 
+                        expanded_outlines) 
+  return underfill(I, THREE, merge(top_bottom_edges))
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, True)`**:  Identifies objects as before.
+2. **`expanded_outlines = mapply(lambda obj: outbox(obj), objs)`**: For each object, it gets the indices of its 'outbox', which is a rectangle one cell larger than the object on all sides.
+3. **`top_bottom_edges = mapply(lambda indices: ... , expanded_outlines)`**: For each expanded outline:
+    * **`sfilter(indices, lambda loc: ...)`**:  Keeps only the indices that are on the top or bottom edges of the expanded outline (i.e., the leftmost and rightmost indices in each outline). 
+4. **`merge(top_bottom_edges)`**:  Combines the top and bottom edge indices from all objects.
+5. **`underfill(I, THREE, ...)`**: Fills the input grid with '3' at the combined edge indices, but only where the original value is '0'.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, True, False, True)
+    lines = mapply(lambda obj: 
+                    (connect((uppermost(obj) - 1, leftmost(obj)), (uppermost(obj) - 1, rightmost(obj))) | 
+                    connect((lowermost(obj) + 1, leftmost(obj)), (lowermost(obj) + 1, rightmost(obj)))),
+                    objs)
+    filtered_lines = sfilter(lines, lambda index: 0 <= index[0] < len(I) and 0 <= index[1] < len(I[0]))
+    return underfill(I, THREE, merge(filtered_lines))
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, True)`**:  Identifies objects as before.
+2. **`mapply(lambda obj: ..., objs)`**:  Similar to Version 1, draws horizontal lines above and below each object using `connect` and combines them with `|`.
+3. **`filtered_lines = sfilter(lines, lambda index: ...)`**: Filters the combined lines to ensure all indices are within the grid's boundaries.
+4. **`underfill(I, THREE, merge(filtered_lines))`**: Similar to Version 1, fills the grid with '3' at the filtered line indices, but only on the background.
+
+
+These five versions showcase different approaches to achieving the same transformation, demonstrating a deeper understanding of the DSL and problem-solving abilities.

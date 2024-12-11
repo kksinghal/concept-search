@@ -1,0 +1,150 @@
+## Transformation Analysis:
+
+The transformation involves extending specific objects horizontally to the right edge of the grid. The extension's color depends on the object's original color.
+
+**Input_0 -> Output_0:**
+
+* The object with color `1` at the top is extended to the right edge using the least frequent color in the grid (excluding `0`), which is `9`.
+* The objects with color `6` are not extended.
+
+**Input_1 -> Output_1:**
+
+* The objects with color `7` are extended to the right edge using the same color `7`. 
+* The object with color `8` at the top right corner is extended downwards and then to the left edge using the same color `8`.
+
+**Input_2 -> Output_2:**
+
+* The objects with color `1` are extended to the right edge using the least frequent color in the grid (excluding `0`), which is `9`. 
+* The objects with color `3` are not extended.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  # Identify objects and non-zero colors
+  objs = objects(I, F, F, T)
+  non_zero_colors = difference(palette(I), {0})
+
+  # Function to extend object to the right edge with a specific color
+  def extend_right(obj, color):
+    rightmost_j = rightmost(obj)
+    extension = frozenset({(color, (i, j)) for i, j in product(range(uppermost(obj), lowermost(obj) + 1), range(rightmost_j + 1, width(I)))})
+    return paint(I, recolor(color, extension))
+
+  # Extend objects based on color
+  for obj in objs:
+    if color(obj) == 1:
+      I = extend_right(obj, leastcommon(non_zero_colors))
+    elif color(obj) == 7:
+      I = extend_right(obj, 7)
+
+  O = I
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects and Colors:**  Identifies objects (excluding background) and a set of non-zero colors present in the grid.
+2. **`extend_right` Function:** Defines a function that extends a given object to the right edge of the grid using a specified color.
+3. **Iterate and Extend:** Iterates through each object, extending those with color `1` using the least frequent non-zero color and those with color `7` using color `7` itself.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  # Identify objects and background color
+  objs = objects(I, F, F, T)
+  bg_color = mostcommon(I)
+
+  for obj in objs:
+    target_color = color(obj)
+    if target_color == 1:
+      target_color = leastcolor(difference(palette(I), {bg_color}))
+    I = paint(I, recolor(target_color, frozenset({(target_color, (i, j)) for i, j in product(range(uppermost(obj), lowermost(obj) + 1), range(rightmost(obj) + 1, width(I)))})))
+
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Background:**  Identifies objects and the background color.
+2. **Iterate and Extend:**  Iterates through each object and dynamically determines the extension color. If the object's color is `1`, it uses the least frequent color (excluding background). Otherwise, it uses the object's own color. 
+3. **Direct Painting:** Directly paints the extension onto the grid without using an intermediate `extend_right` function. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  def extend_object(obj, fill_color):
+    right_edge = width(I)
+    return frozenset({(fill_color, (i, j)) 
+                      for i in range(uppermost(obj), lowermost(obj) + 1) 
+                      for j in range(rightmost(obj) + 1, right_edge)})
+
+  for obj in objects(I, F, F, T):
+    if color(obj) == 1:
+      fill_color = leastcolor(difference(palette(I), {0}))
+      I = paint(I, extend_object(obj, fill_color))
+    elif color(obj) == 7:
+      I = paint(I, extend_object(obj, 7)) 
+  return I
+```
+
+**Explanation:**
+
+1. **`extend_object` Function:** Defines a function to calculate the extension area based on an object and a fill color.
+2. **Iterate and Extend:** Iterates over each object, applying the extension logic based on its color. It determines the least frequent non-zero color for objects with color `1`.
+3. **Direct Painting:**  Uses the calculated extension area from `extend_object` to directly paint onto the grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+    for v in palette(I) - {0}:
+        obj = extract(objects(I, F, F, T), lambda obj: color(obj) == v)
+        if v == 1:
+            fill_color = leastcolor(difference(palette(I), {0}))
+        else:
+            fill_color = v
+        extension = frozenset({(fill_color, (i, j)) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(rightmost(obj) + 1, width(I))})
+        I = paint(I, extension)
+    return I
+```
+
+**Explanation:**
+
+1. **Iterate over Colors:** Iterates directly over the palette of the input grid (excluding the background color `0`).
+2. **Extract Object:**  For each color, extracts the corresponding object from the grid.
+3. **Determine Fill Color:** Dynamically decides the fill color based on the object's color (`leastcolor` for `1`, otherwise the object's color).
+4. **Extend and Paint:** Calculates the extension area and paints it onto the grid.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, F, F, T)
+    for obj in objs:
+        c = color(obj)
+        extension = frozenset({(c if c == 7 else leastcolor(difference(palette(I), {0})), (i, j)) 
+                             for i in range(uppermost(obj), lowermost(obj) + 1) 
+                             for j in range(rightmost(obj) + 1, width(I))})
+        I = paint(I, extension)
+    return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identifies objects in the grid.
+2. **Iterate and Extend:** For each object, calculates the extension area and dynamically determines the fill color within the set comprehension. If the object's color is `7`, it uses `7`; otherwise, it uses the least frequent non-zero color.
+3. **Direct Painting:** Directly paints the calculated extension onto the grid. 

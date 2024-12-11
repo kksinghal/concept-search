@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects formed by digits 1, 2, and 3 and "dropping" them vertically within the grid. This "dropping" means moving the object downwards until it hits either the bottom of the grid or another object. 
+
+Let's analyze each input-output pair:
+
+**Input_0 -> Output_0:**
+
+* The objects formed by digits 1, 2, and 3 are moved downwards.
+* The 3-shaped object at the top falls to the fourth row. 
+* The vertical line of 3s remains in place as it hits the 2.
+* The 7-shaped object falls to the bottom.
+* The single 1 remains in place.
+
+**Input_1 -> Output_1:**
+
+* The 7-shaped object at the top remains in place.
+* The 3 and 2 on the bottom row fall, with the 3 coming to rest on top of the 2.
+
+**Input_2 -> Output_2:**
+
+* The single 3 at the top remains in place.
+* The horizontally arranged 3s at the bottom fall, with the 2 and 3 coming to rest on top of the bottom 3.
+* The 7 and 1 pair falls, with the 7 coming to rest on the row above the horizontally arranged 3s. 
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  new_grid = paint(canvas(0, shape(I)), merge(objects(I, False, False, True)) - target_objs)
+  for obj in target_objs:
+    for i in range(height(I) - 1, uppermost(obj) - 1, -1):
+      if all(index(new_grid, (i, j)) == 0 for i, j in toindices(shift(obj, (i - uppermost(obj), 0)))):
+        new_grid = paint(new_grid, shift(obj, (i - uppermost(obj), 0)))
+        break
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** `target_objs` stores objects containing digits 1, 2, or 3 (excluding background) using `mfilter` and `objects`.
+2. **Initialize New Grid:** `new_grid` is initialized with background color using `canvas` and then painted with non-target objects.
+3. **Iterate and Drop:**  The program iterates through each `obj` in `target_objs`. For each object, it iterates downwards from the bottom of the grid (`height(I) - 1`) to the object's current position (`uppermost(obj) - 1`).  It checks if shifting the object down to that row (`shift(obj, (i - uppermost(obj), 0))`) results in a collision with existing non-zero cells in `new_grid`. If no collision, it paints the shifted object onto `new_grid` and breaks the inner loop to move to the next object.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def drop_obj(obj, grid):
+    for i in range(1, height(grid)):
+      if uppermost(obj) == height(grid) - i or any(index(grid, (k + 1, j)) != 0 for k, j in toindices(obj)):
+        return shift(obj, (-(i - 1), 0))
+      obj = shift(obj, (1, 0))
+    return obj
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: color(obj) in {1, 2, 3})
+  new_grid = paint(canvas(0, shape(I)), merge(objects(I, False, False, True)) - target_objs)
+  for obj in target_objs:
+    new_grid = paint(new_grid, drop_obj(obj, new_grid))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`drop_obj` Function:** This function takes an object and the grid as input. It iterates downwards, checking for collisions. If a collision occurs or the bottom is reached, it shifts the object back up one step and returns it.
+2. **Main Logic:** Similar to Version 1, it identifies target objects and initializes the new grid. Then, for each target object, it uses the `drop_obj` function to find its final position and paints it onto the `new_grid`.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def find_landing(obj, grid):
+    landing = uppermost(obj)
+    for i in range(uppermost(obj) + 1, height(grid)):
+      if any(index(grid, (i, j)) != 0 for i, j in toindices(shift(obj, (i - uppermost(obj), 0)))):
+        break
+      landing = i
+    return landing
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  new_grid = paint(canvas(0, shape(I)), merge(objects(I, False, False, True)) - target_objs)
+  for obj in target_objs:
+    landing_row = find_landing(obj, new_grid)
+    new_grid = paint(new_grid, shift(obj, (landing_row - uppermost(obj), 0)))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`find_landing` Function:** This function determines the final row (`landing`) where the object will land by iterating downwards and checking for collisions.
+2. **Main Logic:**  The logic mirrors the previous versions, but instead of incrementally shifting the object, it first finds the final `landing_row` using `find_landing` and then paints the object directly at that position.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def gravity(obj, grid):
+    while uppermost(obj) < height(grid) - 1 and all(index(grid, (i + 1, j)) == 0 for i, j in toindices(obj)):
+      obj = shift(obj, (1, 0))
+    return obj
+  target_objs = sorted(mfilter(objects(I, False, False, True), lambda obj: color(obj) in {1, 2, 3}), key=uppermost)
+  new_grid = paint(canvas(0, shape(I)), merge(objects(I, False, False, True)) - target_objs)
+  for obj in target_objs:
+    new_grid = paint(new_grid, gravity(obj, new_grid))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`gravity` Function:**  This function simulates gravity by continuously shifting the object downwards until it collides with another object or reaches the bottom of the grid.
+2. **Main Logic:** This version sorts the `target_objs` by their `uppermost` row to ensure objects are dropped in the correct order. It uses the `gravity` function to determine the final position of each object and paint it on `new_grid`.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def can_fall(obj, grid):
+    return uppermost(obj) < height(grid) - 1 and all(index(grid, (i + 1, j)) == 0 for i, j in toindices(obj))
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  new_grid = paint(canvas(0, shape(I)), merge(objects(I, False, False, True)) - target_objs)
+  for obj in target_objs:
+    while can_fall(obj, new_grid):
+      obj = shift(obj, (1, 0))
+    new_grid = paint(new_grid, obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`can_fall` Function:**  Checks if an object can fall further down without collision.
+2. **Main Logic:**  Similar to other versions, it identifies target objects and initializes the new grid. It then iterates through each target object and repeatedly shifts it down using a `while` loop as long as `can_fall` returns True. Finally, it paints the object in its final position.
+
+These five versions provide different implementations of the same fundamental logic. Each version utilizes a distinct combination of DSL functions and approaches the problem with a slightly different strategy, showcasing the flexibility and power of the DSL. 

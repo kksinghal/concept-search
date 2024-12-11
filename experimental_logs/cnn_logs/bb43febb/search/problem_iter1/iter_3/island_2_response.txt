@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation focuses on the largest object in the grid (excluding the background color 0). It then identifies a band within this object, either two rows or two columns wide, depending on the object's orientation.  This band is then filled with the color '2'.
+
+* **Horizontal Object:** The band covers the second and third columns of the object, excluding the first and last columns.
+* **Vertical Object:** The band covers the second and third rows of the object, excluding the first and last rows.
+
+
+## Program Version 1
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  start = add(ulcorner(obj), (ONE, ONE) if width(obj) > height(obj) else (ZERO, ONE))
+  dims = (TWO, width(obj) - TWO) if width(obj) > height(obj) else (height(obj) - TWO, TWO)
+  return fill(I, TWO, toindices(crop(I, start, dims)))
+```
+
+**Explanation:**
+
+1. **Identify Largest Object:** `argmax(objects(I, T, F, T), size)` finds the largest object in the grid (excluding the background).
+2. **Calculate Band Starting Point:** 
+   - `start` is calculated based on the object's orientation:
+     - Horizontal: `(uppermost_row + 1, leftmost_column + 1)`
+     - Vertical: `(uppermost_row, leftmost_column + 1)`
+3. **Calculate Band Dimensions:**
+   - `dims` represent the band's height and width:
+     - Horizontal: `(2, object_width - 2)`
+     - Vertical: `(object_height - 2, 2)`
+4. **Fill the Band:** 
+   - `crop(I, start, dims)` extracts the band region from the grid.
+   - `fill(I, TWO, toindices(...))` fills this region with the color '2'.
+
+## Program Version 2
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  if width(obj) > height(obj):
+    I = vconcat(I[:uppermost(obj) + 1],
+               fill(I[uppermost(obj) + 1:uppermost(obj) + 3], TWO, asindices(I[uppermost(obj) + 1:uppermost(obj) + 3])),
+               I[uppermost(obj) + 3:])
+  else:
+    I = hconcat(
+        [r[:leftmost(obj) + 1] for r in I],
+        [[TWO if leftmost(obj) + 1 <= j <= leftmost(obj) + 2 else v for j, v in enumerate(r)] for r in I],
+        [r[leftmost(obj) + 3:] for r in I]
+    )
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Largest Object and Orientation:** Same as Version 1.
+2. **Horizontal Object:**
+   - `vconcat` vertically concatenates three parts:
+     - The grid above the band.
+     - The band filled with '2' using `fill` and `asindices`.
+     - The grid below the band.
+3. **Vertical Object:**
+   - `hconcat` horizontally concatenates three parts:
+     -  Each row's section before the band.
+     -  Each row's section within the band, filled with '2'.
+     -  Each row's section after the band.
+
+## Program Version 3
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  orientation = 'horizontal' if width(obj) > height(obj) else 'vertical'
+  band_slice = (slice(uppermost(obj) + 1, uppermost(obj) + 3), slice(None)) if orientation == 'horizontal' else (slice(None), slice(leftmost(obj) + 1, leftmost(obj) + 3))
+  I_filled = [[TWO if (orientation == 'horizontal' and band_slice[0].start <= i <= band_slice[0].stop - 1) or (orientation == 'vertical' and band_slice[1].start <= j <= band_slice[1].stop - 1) else I[i][j] for j in range(len(I[0]))] for i in range(len(I))]
+  return tuple(tuple(row) for row in I_filled)
+```
+
+**Explanation:**
+
+1. **Identify Object and Orientation:** Similar to previous versions.
+2. **Define Band Slice:**
+   - `band_slice` uses `slice` objects to represent the band's row and column ranges based on the orientation.
+3. **Fill Band with List Comprehension:**
+   - Uses nested list comprehension to iterate over grid cells.
+   - Fills cells within the `band_slice` with '2', otherwise keeps original value.
+4. **Convert Back to Tuple:** Converts the modified list back to a tuple.
+
+
+## Program Version 4
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  if width(obj) > height(obj):
+    band =  frozenset((i, j) for i in range(uppermost(obj) + 1, uppermost(obj) + 3) for j in range(len(I[0])))
+  else:
+    band = frozenset((i, j) for j in range(leftmost(obj) + 1, leftmost(obj) + 3) for i in range(len(I)))
+  return fill(I, TWO, band)
+```
+
+**Explanation:**
+
+1. **Identify Object and Orientation:** Similar to previous versions.
+2. **Construct Band Indices:**
+   - `band` is created as a set of cell indices representing the band, calculated based on the object's orientation.
+3. **Fill Band:**
+   - `fill(I, TWO, band)` directly fills the grid cells at the specified `band` indices with '2'.
+
+## Program Version 5
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    obj = argmax(objects(I, T, F, T), size)
+    if width(obj) > height(obj):
+        I = tuple(tuple(2 if uppermost(obj) + 1 <= i <= uppermost(obj) + 2 else v for i, v in enumerate(row)) for row in I)
+    else:
+        I = tuple(tuple(2 if leftmost(obj) + 1 <= j <= leftmost(obj) + 2 else v for j, v in enumerate(row)) for row in I)
+    return I
+```
+
+**Explanation:**
+
+1. **Identify Object and Orientation:** Similar to previous versions.
+2. **Iterate and Modify Rows/Columns:**
+   - Uses nested tuple comprehension to iterate over rows and cells.
+   - Directly modifies cell values within the band based on row/column index comparison.
+3. **Return Modified Grid:** Returns the modified grid as a tuple.
+
+
+Each program version achieves the desired transformation but with different approaches to calculating the band's location and filling it with '2'. This showcases the flexibility and expressiveness of the provided DSL.

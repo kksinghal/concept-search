@@ -1,0 +1,150 @@
+## Transformation Analysis:
+
+The transformation focuses on the interaction between two distinct objects in the input grid, aiming to enclose one object within a frame constructed from the other.
+
+* **Object Selection:** The transformation identifies two key objects based on their unique color values, excluding the background (color 0).
+* **Framing:** The larger object (in terms of area) is selected as the 'frame,' while the smaller object becomes the 'target.'
+* **Recoloring & Filling:** 
+    * The 'target' object is recolored to a new color (7). 
+    *  A frame-like structure is created within the 'frame' object using a different color (8), effectively enclosing a region slightly larger than the 'target' object.
+* **Conditional Highlighting:** If the 'frame' and 'target' objects are directly adjacent (Manhattan distance of 1), a single cell at their closest point of contact is highlighted with a distinct color (6).
+
+
+## Program_to_be_generated:
+
+### Program Version 1:
+
+```python
+def solve(I):
+    objs = sorted(objects(I, T, F, T), key=size)
+    if len(objs) != 2:
+        return I
+    large_obj = objs[1] 
+    small_obj = objs[0]
+    I = paint(I, recolor(7, small_obj))
+    I = underfill(I, 8, shift(crop(canvas(1, shape(large_obj)), (1, 1), (height(large_obj)-2, width(large_obj)-2)), ulcorner(large_obj)))
+    if manhattan(small_obj, large_obj) == 1:
+        I = fill(I, 6, intersection(neighbors(center(small_obj)), toindices(large_obj))) 
+    return I
+```
+
+**Explanation:**
+
+1. **Object Identification:** The code first identifies all objects in the input grid `I` using `objects(I, T, F, T)` and sorts them by size using `sorted(objects(...), key=size)`. The two objects are assigned to `large_obj` and `small_obj` based on their size ranking.
+2. **Target Recoloring:** `paint(I, recolor(7, small_obj))` recolors the `small_obj` to color 7.
+3. **Frame Creation:**  
+    * `canvas(1, shape(large_obj))` creates a grid the same size as the `large_obj` filled with color 1.
+    * `crop(...)` extracts a subgrid from the canvas, leaving a one-cell border.
+    * `shift(...)` positions this subgrid at the upper-left corner of the `large_obj`.
+    * `underfill(I, 8, ...)` fills the corresponding area within the input grid `I` with color 8, effectively creating the frame.
+4. **Adjacency Check:** 
+    * `manhattan(small_obj, large_obj) == 1` checks if the objects are adjacent.
+    * If true, `fill(I, 6, intersection(neighbors(center(small_obj)), toindices(large_obj)))` highlights the connecting cell:
+       *  `neighbors(center(small_obj))` finds the indices around the `small_obj`'s center.
+       *  `intersection(..., toindices(large_obj))` finds the common index between the neighbors and the `large_obj` indices.
+       *  `fill(I, 6, ...)` colors this intersection cell with color 6.
+5. **Output:** The modified grid `I` is returned as output.
+
+
+### Program Version 2:
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  if len(objs) != 2:
+    return I
+  obj1, obj2 = sorted(objs, key=size)
+  I = paint(I, recolor(7, obj1))
+  I = underfill(I, 8, delta(inbox(obj2)))
+  if adjacent(obj1, obj2):
+    I = fill(I, 6, intersection(toindices(obj1), dneighbors(center(obj2))))
+  return I
+```
+
+**Explanation:**
+
+This version takes a slightly different approach to frame creation:
+
+* Instead of creating a canvas and cropping, it utilizes `inbox(obj2)` to get the indices inside the bounding box of the `large_obj`. 
+* `delta(...)` then selects only the indices forming the border of this box.
+* The rest of the logic remains similar to version 1.
+
+
+### Program Version 3:
+
+```python
+def solve(I):
+  objs = sorted(objects(I, T, F, T), key=size)
+  if len(objs) != 2:
+    return I
+  small, large = objs
+  I = paint(I, recolor(7, small))
+  frame = toobject(delta(crop(canvas(1, shape(large)), (1, 1), subtract(shape(large), (2, 2)))), I)
+  I = underpaint(I, recolor(8, frame))
+  if manhattan(small, large) == 1:
+    I = fill(I, 6, next(iter(intersection(toindices(small), dneighbors(center(large))))))
+  return I
+```
+
+**Explanation:**
+
+This version optimizes frame creation further:
+
+* It directly calculates the dimensions of the inner frame using `subtract(shape(large), (2, 2))`.
+*  `toobject(...)` is used to efficiently create the frame object directly from the calculated indices.
+* `underpaint(...)` ensures coloring only happens on background cells.
+
+
+### Program Version 4:
+
+```python
+def solve(I):
+  objs = sorted(objects(I, T, F, T), key=size)
+  if len(objs) != 2:
+    return I
+  small_obj, large_obj = objs
+  I = paint(I, recolor(7, small_obj))
+  large_shape = shape(large_obj)
+  frame_indices = {(i, j) for i in range(1, large_shape[0] - 1) for j in range(1, large_shape[1] - 1)}
+  frame_indices = shift(frame_indices, ulcorner(large_obj))
+  I = underfill(I, 8, frame_indices)
+  if adjacent(small_obj, large_obj):
+    I = fill(I, 6, first(intersection(dneighbors(center(small_obj)), toindices(large_obj))))
+  return I
+
+```
+
+**Explanation:**
+
+This version aims for a more direct approach to calculating frame indices:
+
+* It iterates through the `large_obj`'s shape to directly identify the inner frame indices.
+* `shift(...)` then positions the frame correctly within the grid.
+
+
+### Program Version 5:
+
+```python
+def solve(I):
+    objs = sorted(objects(I, T, F, T), key=size)
+    if len(objs) != 2:
+        return I
+    small_obj, large_obj = objs
+    I = paint(I, recolor(7, small_obj))
+    frame = toindices(shift(crop(canvas(1, shape(large_obj)), (1, 1), subtract(shape(large_obj), 2)), ulcorner(large_obj)))
+    I = underfill(I, 8, frame)
+    if adjacent(small_obj, large_obj):
+        connection_point = first(intersection(dneighbors(center(small_obj)), toindices(large_obj)))
+        I = fill(I, 6, connection_point)
+    return I
+```
+
+**Explanation:**
+
+This version combines elements from previous versions for a concise solution:
+
+* It leverages `crop`, `canvas`, and `shift` for efficient frame creation, similar to version 3.
+* It uses `first(...)` to directly access the connection point, improving readability.
+
+
+These five program versions demonstrate different approaches to achieve the same transformation, showcasing the flexibility and diverse problem-solving capabilities possible within the provided DSL.

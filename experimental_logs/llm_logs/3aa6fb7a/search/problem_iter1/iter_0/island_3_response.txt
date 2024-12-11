@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation involves identifying specific cells within objects based on their spatial relationship to the object's boundaries and changing the value of those cells to '1'. 
+
+**Input_0 to Output_0:**
+
+* The top-leftmost '8' within the object is changed to '1'.
+
+**Input_1 to Output_1:**
+
+* The top-leftmost '8' within each disconnected part of the object is changed to '1'.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    new_objs = set()
+    for obj in objs:
+        topmost_i = uppermost(obj)
+        leftmost_j = leftmost(obj)
+        for v, (i, j) in obj:
+            if i == topmost_i and j == leftmost_j:
+                new_objs.add((1, (i, j)))
+            else:
+                new_objs.add((v, (i, j)))
+    O = paint(canvas(0, shape(I)), frozenset(new_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify objects:**  The code first identifies all objects in the input grid `I` using the `objects` function.
+2. **Find top-leftmost cell:** For each object, it determines the topmost row (`topmost_i`) and leftmost column (`leftmost_j`) indices.
+3. **Change cell value:** It iterates through each cell of the object. If the cell's indices match `topmost_i` and `leftmost_j`, its value is changed to '1'. Otherwise, the cell remains unchanged.
+4. **Paint objects:** Finally, the modified objects are painted onto a blank canvas of the same size as the input grid.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    corner = ulcorner(obj)
+    O = fill(O, 1, {corner})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through objects:** This version directly iterates through each object in the input grid.
+2. **Find the upper-left corner:**  It uses `ulcorner` to find the upper-left corner index of the current object.
+3. **Fill with '1':**  The `fill` function replaces the value at the corner index with '1' directly on the input grid `I`, which is simultaneously assigned to the output grid `O`.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  def modify_object(obj):
+    corner = ulcorner(obj)
+    return frozenset({(1, corner)} | {(v, (i, j)) for v, (i, j) in obj if (i, j) != corner})
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  new_objs = apply(modify_object, objs)
+  O = paint(canvas(0, shape(I)), merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Define helper function:** This version uses a helper function `modify_object` to encapsulate the logic of changing the top-left corner cell to '1'.
+2. **Apply to objects:** The `apply` function applies `modify_object` to each object identified in the input grid.
+3. **Paint modified objects:** The modified objects are then merged and painted onto a blank canvas to generate the output.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  def is_corner(index, obj):
+    return index == ulcorner(obj)
+
+  def modify_cell(v, i, obj):
+    return (1, (i)) if is_corner(i, obj) else (v, (i))
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  new_objs = frozenset({frozenset(modify_cell(v, i, obj) for v, i in obj) for obj in objs})
+  O = paint(canvas(0, shape(I)), new_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Define helper functions:** This version defines two helper functions, `is_corner` to check if an index is the upper-left corner of an object and `modify_cell` to conditionally change the cell value based on its index.
+2. **Apply modifications:** It uses nested set comprehensions to apply the modifications to each cell within each object.
+3. **Paint objects:** The modified objects are painted onto a blank canvas to create the output grid.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  def top_left_filter(obj):
+    corner = ulcorner(obj)
+    return lambda v, i: (i == corner)
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  new_objs = set()
+  for obj in objs:
+    corner_filter = top_left_filter(obj)
+    new_obj = frozenset(
+      {(1, i) if corner_filter(v, i) else (v, i) for v, i in obj}
+    )
+    new_objs.add(new_obj)
+  O = paint(canvas(0, shape(I)), frozenset(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Define `top_left_filter`:**  This helper function generates a lambda function that checks if a cell's index matches the object's upper-left corner.
+2. **Apply filter:**  The code iterates through objects and uses the generated `corner_filter` to conditionally change cell values within each object.
+3. **Construct output:** The modified objects are then used to generate the output grid.
+
+
+Each version uses a slightly different approach and combination of DSL functions to achieve the same transformation, demonstrating the flexibility and expressiveness of the DSL. 

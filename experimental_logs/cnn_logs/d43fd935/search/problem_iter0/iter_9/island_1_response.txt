@@ -1,0 +1,118 @@
+## Transformation Analysis:
+
+The transformation involves extending objects horizontally towards their closest background pixel located within their bounding box. 
+
+**Input_0:** The '1' objects extend rightward until they hit the bounding box edge. The '3' object extends leftward until it hits a '1', which is part of its bounding box. The '6' objects remain unchanged as they are already touching their bounding boxes.
+
+**Input_1:** The '7' and '8' objects extend towards their closest background pixels, respecting the bounding box constraint. 
+
+**Input_2:** The '1' object at the top extends rightward. The '1' object at the bottom extends leftward. The '3' object remains unchanged.
+
+
+## Program_to_be_generated:
+
+
+### **Program Version 1**
+
+**Code:**
+
+```python
+def extend_to_closest_bg(I):
+  for obj in fgpartition(I):
+    bg = difference(backdrop(obj), toindices(obj))
+    if bg:
+      closest_bg = argmin(bg, lambda x: manhattan({x}, obj))
+      direction = sign(subtract(closest_bg, center(obj))) # Determine direction
+      path = shoot(center(obj), direction) # Extend in that direction
+      I = underfill(I, color(obj), intersection(path, backdrop(obj))) # Fill only within bounding box
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through objects:**  The code iterates through each non-background object in the grid.
+2. **Find closest background:** For each object, it determines the background pixel within its bounding box closest to the object's center.
+3. **Determine direction:** Calculate the direction vector from the object's center to the closest background pixel.
+4. **Create path:** Generate a line (path) extending from the object's center in the determined direction.
+5. **Fill within bounding box:** Fill the path with the object's color, but only within the object's bounding box.
+
+
+### **Program Version 2**
+
+**Code:**
+
+```python
+def extend_horizontally_to_bg(I):
+  for obj in fgpartition(I):
+    for (i, j) in toindices(obj):
+      left_edge = leftmost(obj)
+      right_edge = rightmost(obj)
+      if i == uppermost(obj): # Only extend from the top row
+        if j > 0 and I[i][j-1] == 0:
+          I = underfill(I, color(obj), {(i, k) for k in range(left_edge, j)})
+        if j < len(I[0]) - 1 and I[i][j+1] == 0:
+          I = underfill(I, color(obj), {(i, k) for k in range(j + 1, right_edge + 1)})
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through objects and cells:** The code iterates through each object and then each cell within the object.
+2. **Check top row and adjacent background:** For cells in the top row, it checks if the left or right adjacent cell is background.
+3. **Fill horizontally:** If a background cell is found, it fills the row from the object's edge to that background cell.
+
+### **Program Version 3**
+
+**Code:**
+
+```python
+def extend_to_edge(I):
+  for obj in fgpartition(I):
+    bg = difference(backdrop(obj), toindices(obj))
+    if bg:
+      target = argmin(bg, lambda x: abs(x[1] - center(obj)[1])) # Closest in terms of column
+      path = connect(center(obj), target)
+      I = underfill(I, color(obj), intersection(path, backdrop(obj)))
+  return I
+```
+
+**Explanation:**
+
+This version focuses on horizontal extension by finding the closest background pixel in terms of column distance.
+
+### **Program Version 4**
+
+**Code:**
+
+```python
+def extend_from_center(I):
+  for obj in fgpartition(I):
+    center_cell = center(obj)
+    left_path = {(center_cell[0], j) for j in range(center_cell[1], -1, -1)}
+    right_path = {(center_cell[0], j) for j in range(center_cell[1], len(I[0]))}
+    I = underfill(I, color(obj), intersection(left_path, backdrop(obj)))
+    I = underfill(I, color(obj), intersection(right_path, backdrop(obj)))
+  return I
+```
+
+**Explanation:**
+
+This version simplifies the logic by extending lines from the center of each object horizontally towards both edges of the bounding box.
+
+### **Program Version 5**
+
+**Code:**
+
+```python
+def fill_horizontal_gaps(I):
+  for obj in fgpartition(I):
+    for row in range(uppermost(obj), lowermost(obj) + 1):
+      for col in range(leftmost(obj), rightmost(obj)):
+        if I[row][col] == mostcolor(I) and (row, col) in backdrop(obj):
+          I = underfill(I, color(obj), {(row, col)})
+  return I
+```
+
+**Explanation:**
+
+This version directly iterates through each cell within an object's bounding box and fills any background pixels encountered. This implicitly extends the object horizontally.

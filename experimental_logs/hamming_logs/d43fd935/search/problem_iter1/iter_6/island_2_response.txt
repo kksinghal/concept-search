@@ -1,0 +1,192 @@
+## Transformation Analysis:
+
+The transformation involves identifying the smallest object in the input grid (excluding the background) and then extending that object horizontally and vertically until it encounters a different object or the edge of the grid. Let's analyze each input-output pair:
+
+**Input_0 / Output_0:**
+
+* The smallest object is the single '1' cell.
+* This cell is extended rightward, filling with '1's until it reaches the existing object of '3's.
+* The '1' object also extends upward, but encounters no other objects.
+
+**Input_1 / Output_1:**
+
+*  The smallest object is any of the single '7' cells.
+* These cells extend to form a connected line, filling empty spaces with '7's.
+* The line extends both left and right until reaching other objects ('3's and '8's).
+
+**Input_2 / Output_2:**
+
+* The smallest objects are the '1' cells.
+* They expand to form connected lines both horizontally and vertically.
+* Expansion stops when encountering '3's or the grid edge.
+
+## Code Generation:
+
+Here are five distinct program versions to achieve this transformation:
+
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  # Find smallest object and its color
+  min_obj = argmin(objects(I, T, F, T), size)
+  target_color = color(min_obj)
+
+  # Initialize output with smallest object
+  O = paint(canvas(mostcolor(I), shape(I)), min_obj)
+
+  # Function to check if expansion is allowed at a location
+  is_expandable = lambda x: index(O, x) == mostcolor(I) and any(adjacent({x}, toindices(obj)) for obj in objects(I, T, F, T) if color(obj) == target_color)
+
+  # Expand the object
+  for _ in range(max(height(I), width(I))):
+    for i, j in toindices(min_obj):
+      O = fill(O, target_color, sfilter(neighbors((i, j)), is_expandable))
+
+  return O
+```
+
+**Explanation:**
+
+1. **Find smallest object:**  Identifies the smallest object and its color.
+2. **Initialize output:** Creates an output grid filled with the background color and paints the smallest object onto it.
+3. **Define `is_expandable` function:**  This function checks if a location on the grid is eligible for expansion. It checks if the location is currently background color and if it's adjacent to any cell of the same color as the smallest object.
+4. **Expand the object:** Iterates through the grid multiple times (enough to cover the maximum possible expansion). For each cell of the smallest object, it tries to expand to its neighbors if they are eligible according to the `is_expandable` function.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  min_obj = argmin(objects(I, T, F, T), size)
+  target_color = color(min_obj)
+  O = paint(canvas(mostcolor(I), shape(I)), min_obj)
+
+  for i, j in toindices(min_obj):
+    # Horizontal Expansion
+    for direction in [LEFT, RIGHT]:
+      current = (i, j)
+      while True:
+        next_cell = add(current, direction)
+        if index(I, next_cell) == target_color or index(O, next_cell) != mostcolor(I) or next_cell not in backdrop(I):
+          break
+        O = paint(O, {(target_color, next_cell)})
+        current = next_cell
+
+    # Vertical Expansion
+    for direction in [UP, DOWN]:
+      current = (i, j)
+      while True:
+        next_cell = add(current, direction)
+        if index(I, next_cell) == target_color or index(O, next_cell) != mostcolor(I) or next_cell not in backdrop(I):
+          break
+        O = paint(O, {(target_color, next_cell)})
+        current = next_cell
+
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to Version 1, this version starts by finding the smallest object, its color, and creating an output grid.
+2. **Iterate and Expand:**  It then iterates through each cell of the smallest object and attempts to expand it horizontally and vertically.
+3. **Directional Expansion:** For each direction (left, right, up, down), it continues expanding from the current cell until one of the following conditions is met:
+    * The next cell in the direction already belongs to an object of the target color.
+    * The next cell is not a background color in the output grid (meaning it has already been filled).
+    * The next cell is outside the grid boundaries.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  # Find the smallest object
+  min_obj = argmin(objects(I, T, F, T), size)
+  target_color = color(min_obj)
+
+  # Create a set of all locations belonging to the target color
+  target_locations = toindices(min_obj)
+
+  # Expand the target locations
+  changed = True
+  while changed:
+    changed = False
+    for loc in target_locations:
+      for n in neighbors(loc):
+        if n not in target_locations and index(I, n) != target_color and index(I, n) != mostcolor(I):
+          target_locations = target_locations | {n}
+          changed = True
+          break
+
+  # Create the output grid
+  O = paint(canvas(mostcolor(I), shape(I)), {(target_color, loc) for loc in target_locations})
+  return O
+```
+
+**Explanation:**
+
+1. **Find Target Locations:** Identifies all locations initially occupied by the smallest object.
+2. **Iterative Expansion:** Employs a `while` loop that continues as long as changes are made to the `target_locations` set.
+3. **Neighbor Expansion:** Within the loop, it iterates through each target location and checks its neighbors.  A neighbor is added to the `target_locations` set if:
+    * It's not already part of the target locations.
+    * It's not the target color in the input grid (meaning it's not part of another object of the same color).
+    * It's not the background color in the input grid.
+4. **Generate Output:**  Finally, it creates the output grid, filling all the identified `target_locations` with the target color. 
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  # Find the smallest object and its color
+  min_obj = argmin(objects(I, T, F, T), size)
+  target_color = color(min_obj)
+  
+  # Function to check if a location is expandable
+  is_expandable = lambda x: index(I, x) == mostcolor(I) and manhattan({x}, toindices(min_obj)) <= max(height(I), width(I))
+
+  # Expand the object in all directions
+  expanded_obj = toindices(min_obj)
+  for loc in toindices(min_obj):
+    expanded_obj = expanded_obj | sfilter(shoot(loc, (1, 0)), is_expandable)
+    expanded_obj = expanded_obj | sfilter(shoot(loc, (-1, 0)), is_expandable)
+    expanded_obj = expanded_obj | sfilter(shoot(loc, (0, 1)), is_expandable)
+    expanded_obj = expanded_obj | sfilter(shoot(loc, (0, -1)), is_expandable)
+
+  # Create the output grid
+  O = paint(canvas(mostcolor(I), shape(I)), {(target_color, loc) for loc in expanded_obj})
+  return O
+```
+
+**Explanation:**
+
+1. **Find Smallest Object:** Similar to previous versions, it finds the smallest object and its color.
+2. **Define `is_expandable` function:** This function checks if a cell should be included in the expanded object. It checks if the cell has the background color and if its Manhattan distance to the smallest object is within the maximum possible expansion range.
+3. **Expand Using `shoot` function:** It uses the `shoot` function to cast "rays" in four cardinal directions from each cell of the smallest object. It filters the points on these rays using the `is_expandable` function to include only valid expansion points.
+4. **Generate Output:** Finally, it creates the output grid by painting the expanded object onto a canvas filled with the background color.
+
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  min_obj = argmin(objects(I, T, F, T), size)
+  target_color = color(min_obj)
+  O = paint(canvas(mostcolor(I), shape(I)), min_obj)
+
+  for _ in range(max(height(I), width(I))):
+    for i, j in asindices(I):
+      if index(O, (i, j)) == target_color:
+        for (ni, nj) in neighbors((i, j)):
+          if index(I, (ni, nj)) == mostcolor(I) and index(O, (ni, nj)) == mostcolor(I):
+            O = paint(O, {(target_color, (ni, nj))})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize Output:** Similar to previous versions, it identifies the smallest object, its color, and creates an output grid initialized with the background color and the smallest object painted on it.
+2. **Iterative Expansion:** It then iterates through the grid multiple times to allow for expansion. 
+3. **Neighbor-based Expansion:** For each cell in the grid:
+    * If the cell is of the target color in the output grid, it checks its neighbors.
+    * If a neighbor is a background color in both the input and output grids, it's considered an expandable location and is painted with the target color in the output grid. 
+
+Each of these program versions offers a different approach to achieving the same transformation, showcasing the flexibility and diversity possible within the provided DSL.

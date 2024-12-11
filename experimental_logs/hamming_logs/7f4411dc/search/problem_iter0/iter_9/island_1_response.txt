@@ -1,0 +1,115 @@
+## Transformation Analysis:
+
+The transformation applied to all input grids is the removal of singleton objects, defined as single-cell objects not directly adjacent (horizontally or vertically) to any other object. 
+
+**Input_0:** The lone '7' cells scattered around the main '7' object are removed.
+
+**Input_1:** All the lone '6' cells are removed, leaving only the connected '6' objects intact.
+
+**Input_2:** No change, as there are no singleton objects in the input grid. 
+
+## Program_to_be_generated:
+
+Here are five distinct code versions using the DSL to achieve the desired transformation:
+
+**Program Version 1**
+```python
+def Program_to_be_generated(I):
+  """
+  Finds and removes singleton objects that are not adjacent to any other object.
+  """
+  objs = objects(I, T, F, F)
+  singletons = frozenset(obj for obj in objs if size(obj) == 1 and all(not adjacent(obj, other) for other in objs - {obj}))
+  O = cover(I, merge(apply(toindices, singletons)))
+  return O
+```
+
+**Explanation:**
+1. **Identify all objects:** `objs = objects(I, T, F, F)` identifies all connected objects in the grid.
+2. **Find singletons:** The code iterates through each object (`obj`) in `objs`. For each `obj`, it checks:
+   - If it's a single cell: `size(obj) == 1`
+   - If it's not adjacent to any other object: `all(not adjacent(obj, other) for other in objs - {obj})`
+   If both conditions are true, the object is considered a singleton.
+3. **Remove singletons:** The `cover` function is used to replace the singletons with the background color, effectively removing them.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies singletons by comparing with a shifted grid and removes them.
+  """
+  shifted_right = paint(canvas(mostcolor(I), shape(I)), shift(asobject(I), RIGHT))
+  shifted_down = paint(canvas(mostcolor(I), shape(I)), shift(asobject(I), DOWN))
+  combined_shifted = cellwise(shifted_right, shifted_down, mostcolor(I))
+  O = cellwise(I, combined_shifted, mostcolor(I))
+  return O
+```
+
+**Explanation:**
+
+1. **Create shifted grids:** Two new grids are created, one shifted right (`shifted_right`) and one shifted down (`shifted_down`) from the original. Both are initially filled with the background color.
+2. **Combine shifted grids:** These shifted grids are combined using `cellwise`. Any cell matching in both shifted grids will retain its value in the combined grid (`combined_shifted`); otherwise, it's filled with the background color.
+3. **Identify singletons:** The original grid is compared with `combined_shifted` using `cellwise`. Singleton cells will have a different value in the original grid and be replaced by the background color in the output grid.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses a combination of dilation and erosion to remove singleton objects.
+  """
+  dilated = paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda ind: toobject(dneighbors(ind), I), asindices(I))))
+  O = cellwise(I, dilated, mostcolor(I))
+  return O
+```
+
+**Explanation:**
+
+1. **Dilation:** The code dilates the objects in the input grid by one pixel using `dneighbors`. It essentially finds all the background cells directly adjacent to any object cell.
+2. **Erosion:**  The dilated grid is compared to the original grid using `cellwise`.  If a cell is part of an object in the original grid but background in the dilated grid, it's identified as a singleton and removed (replaced by the background color).
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Iterates through all cells and checks for singleton condition.
+  """
+  h, w = shape(I)
+  O = canvas(mostcolor(I), (h, w))
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != mostcolor(I) and all(I[i+di][j+dj] == mostcolor(I) for di, dj in [(1, 0), (-1, 0), (0, 1), (0, -1)] if 0 <= i+di < h and 0 <= j+dj < w):
+        O = fill(O, mostcolor(I), ((i, j),))
+      else:
+        O = fill(O, I[i][j], ((i, j),))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through cells:** This version iterates through each cell in the grid.
+2. **Check for singleton:** For each cell, it checks if it's not a background color and if all its direct neighbors are background colors. If these conditions are met, the cell is considered a singleton.
+3. **Remove singletons:** Singleton cells are filled with the background color in the output grid.
+
+**Program Version 5**
+```python
+def Program_to_be_generated(I):
+  """
+  Leverages the `objects` function with the 'univalued' parameter to identify singletons.
+  """
+  all_objs = objects(I, T, F, F)
+  singletons = objects(I, F, F, F) - objects(I, T, F, F)
+  O = paint(canvas(mostcolor(I), shape(I)), merge(all_objs - singletons))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify all objects:**  `all_objs = objects(I, T, F, F)` identifies all connected components (objects) in the input grid.
+2. **Identify single-color objects:** `singletons = objects(I, F, F, F)` identifies all connected components where each component consists of cells with the same color (including single-cell components).
+3. **Find singleton objects:** By subtracting the sets (`singletons - all_objs`), we obtain the set of singleton objects.
+4. **Remove singletons:** The code paints the non-singleton objects onto a canvas filled with the background color.
+
+These five program versions demonstrate different approaches to achieving the same goal using the provided DSL, highlighting the flexibility and power of this domain-specific language for image processing tasks. 

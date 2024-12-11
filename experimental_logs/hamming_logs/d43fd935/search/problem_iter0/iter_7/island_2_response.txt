@@ -1,0 +1,187 @@
+## Transformation Analysis:
+
+The transformation in all these examples can be described as extending objects horizontally to the right to connect with the rightmost occurrence of the same color on the same row. However, the extension should only occur if the rightmost occurrence is to the right of the current object.
+
+**Input 0:**
+
+* The '3' object is extended right to connect with the '1'. 
+* The '6' objects are extended right to connect with the rightmost '6' on their respective rows.
+
+**Input 1:**
+
+* The top '7' object is unchanged.
+* The second '7' object extends right to connect with the bottom '7'.
+* The '8' objects extend right to connect with the rightmost '8' on their rows.
+
+**Input 2:**
+
+* All '1' objects are extended to the right to connect with the rightmost '1' on their respective rows.
+* The '3' object remains unchanged. 
+
+## Program Versions:
+
+Here are five distinct program versions to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(grid: Grid) -> Grid:
+  """
+  Extends objects to the right to connect with the rightmost instance of their color on the same row.
+  """
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for obj in fgpartition(grid):
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      occurrences_in_row = frozenset((i, j) for j in range(width(grid)) if index(grid, (i, j)) == color(obj))
+      if occurrences_in_row:
+        rightmost_occurrence = lrcorner(occurrences_in_row)
+        if rightmost_occurrence[1] > rightmost(obj):
+          new_grid = fill(new_grid, color(obj), {(i, k) for k in range(leftmost(obj), rightmost_occurrence[1] + 1)})
+        else:
+          new_grid = paint(new_grid, obj)
+      else:
+        new_grid = paint(new_grid, obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialize:** Create a new grid filled with the background color using `canvas`.
+2. **Iterate Objects:** Iterate over each object in the input grid using `fgpartition`.
+3. **Iterate Rows:** For each row of an object:
+   - Find all occurrences of the object's color in that row using `index`.
+   - If occurrences exist:
+     - Get the rightmost occurrence using `lrcorner`.
+     - If the rightmost occurrence is to the right of the current object:
+       - Fill the new grid with the object's color from the object's leftmost point to the rightmost occurrence using `fill`.
+     - Otherwise, paint the object as it is using `paint`.
+   - If no occurrences exist, paint the object as it is.
+4. **Return:** Return the transformed grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(grid: Grid) -> Grid:
+  """
+  Iterates through rows, extending objects to the rightmost occurrence of their color.
+  """
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for i in range(height(grid)):
+    for j in range(width(grid)):
+      current_color = index(grid, (i, j))
+      if current_color != mostcolor(grid):
+        rightmost_j = max([k for k in range(width(grid)) if index(grid, (i, k)) == current_color], default=j)
+        new_grid = fill(new_grid, current_color, {(i, k) for k in range(j, rightmost_j + 1)})
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialize:** Create a new grid filled with the background color.
+2. **Iterate Rows & Cells:** Iterate through each cell in the grid row-wise.
+3. **Extend Objects:** For each non-background color:
+   - Find the rightmost occurrence of that color in the same row.
+   - Fill the new grid with the color from the current cell to the rightmost occurrence.
+4. **Return:** Return the transformed grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(grid: Grid) -> Grid:
+  """
+  Uses a helper function to find the extension range for each object.
+  """
+  def get_extension_range(obj: Object, grid: Grid) -> Indices:
+    """Returns the indices to fill for extending the object."""
+    extension = set()
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      rightmost_j = max([j for j in range(width(grid)) if index(grid, (i, j)) == color(obj)], default=rightmost(obj))
+      if rightmost_j > rightmost(obj):
+        extension.update((i, k) for k in range(rightmost(obj) + 1, rightmost_j + 1))
+    return frozenset(extension)
+
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for obj in fgpartition(grid):
+    new_grid = fill(new_grid, color(obj), get_extension_range(obj, grid))
+    new_grid = paint(new_grid, obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialize:** Create a new grid filled with the background color.
+2. **`get_extension_range` function:** 
+   - Takes an object and the grid as input.
+   - Calculates the indices that need to be filled to extend the object to the rightmost occurrence on each row.
+3. **Iterate Objects:** Iterate through each object in the input grid.
+4. **Extend & Paint:**
+   - Get the extension range using `get_extension_range`.
+   - Fill the new grid with the object's color at the extension range.
+   - Paint the original object onto the new grid.
+5. **Return:** Return the transformed grid.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(grid: Grid) -> Grid:
+  """
+  Uses apply and a lambda function to extend objects.
+  """
+  def extend_object_right(obj: Object, grid: Grid) -> Object:
+    """Extends an object to the rightmost occurrence of its color on the same row."""
+    new_obj = set(obj)
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      rightmost_j = max([j for j in range(width(grid)) if index(grid, (i, j)) == color(obj)], default=rightmost(obj))
+      if rightmost_j > rightmost(obj):
+        new_obj.update((color(obj), (i, k)) for k in range(rightmost(obj) + 1, rightmost_j + 1))
+    return frozenset(new_obj)
+
+  return paint(grid, merge(apply(lambda obj: extend_object_right(obj, grid), fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **`extend_object_right` function:**
+   - Takes an object and the grid as input.
+   - Calculates the indices to extend the object to the rightmost occurrence of its color on each row.
+   - Returns the extended object.
+2. **Apply & Merge:**
+   - Use `apply` to apply the `extend_object_right` function to each object in the input grid.
+   - Use `merge` to combine the extended objects.
+3. **Paint:** Paint the merged, extended objects onto the original grid.
+4. **Return:** Return the transformed grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(grid: Grid) -> Grid:
+  """
+  Leverages horizontal mirroring to simplify finding the rightmost occurrences.
+  """
+  mirrored_grid = hmirror(grid)
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for obj in fgpartition(grid):
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      leftmost_mirrored_j = min([j for j in range(width(mirrored_grid)) if index(mirrored_grid, (i, j)) == color(obj)], default=leftmost(obj))
+      rightmost_j = width(grid) - leftmost_mirrored_j - 1
+      if rightmost_j > rightmost(obj):
+        new_grid = fill(new_grid, color(obj), {(i, k) for k in range(rightmost(obj) + 1, rightmost_j + 1)})
+    new_grid = paint(new_grid, obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Mirroring:** Create a horizontally mirrored version of the input grid using `hmirror`.
+2. **Initialize:** Create a new grid filled with the background color.
+3. **Iterate Objects & Rows:** Iterate through each object and its rows.
+4. **Find Rightmost Occurrence:**
+   - Find the leftmost occurrence of the object's color in the mirrored grid on the same row.
+   - Calculate the corresponding rightmost index in the original grid.
+5. **Extend Object:**
+   - If the calculated rightmost index is greater than the current object's rightmost index:
+     - Fill the new grid with the object's color from the object's rightmost point to the calculated rightmost index.
+6. **Paint Original Object:** Paint the original object onto the new grid.
+7. **Return:** Return the transformed grid. 
+
+These five program versions demonstrate different approaches to solve the given transformation task, utilizing various DSL functions and logic. Each version should produce the desired output for the provided inputs.

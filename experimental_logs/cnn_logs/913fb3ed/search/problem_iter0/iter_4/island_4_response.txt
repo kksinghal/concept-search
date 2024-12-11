@@ -1,0 +1,160 @@
+## Transformation Analysis:
+
+The transformation seems to identify objects (connected regions of the same digit) in the input grid and creates a frame around them in the output grid. The frame color depends on the original object's position relative to the center of the input grid:
+
+* **Objects above the center:** Framed with 6
+* **Objects below the center:** Framed with 1
+* **Objects centered vertically:** Framed with 4
+
+Let's analyze the Input-Output pairs to understand the specific frame placement:
+
+**Pair 0:**
+- 8 (above center) is framed with 6.
+- 3 & 2 (below center) are framed with 1.
+
+**Pair 1:**
+- 3 (above center) is framed with 6.
+
+**Pair 2:**
+- 3 (above center) is framed with 6.
+- 2 (below center) is framed with 1.
+
+**Pair 3:**
+- 8 (centered vertically) is framed with 4.
+
+The frame is always 1 unit thick and directly surrounds the object.
+
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    center_i =  divide(size(I),TWO)
+    framed_objs = frozenset()
+    for obj in objs:
+      obj_center = centerofmass(obj)
+      if obj_center[0] < center_i:
+        frame_color = 6
+      elif obj_center[0] > center_i:
+        frame_color = 1
+      else:
+        frame_color = 4
+      frame = box(toindices(obj)) 
+      framed_obj = recolor(frame_color, frame)
+      framed_objs = combine(framed_objs, framed_obj)
+    O = underpaint(I, framed_objs)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` identifies all objects in the input grid `I`.
+2. **Determine Frame Color:**  For each object, we find its center of mass and compare its row index with the grid's center row index to determine the frame color.
+3. **Create Frame:** `box(toindices(obj))` creates the frame indices around each object.
+4. **Color Frame:** `recolor(frame_color, frame)` colors the frame with the determined color.
+5. **Combine Frames:** All framed objects are combined into a single set.
+6. **Paint Frames:** `underpaint(I, framed_objs)` paints the frames onto the original grid, only overwriting background cells.
+
+
+**Program Version 2:**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    center_i =  divide(size(I),TWO)
+    O = I
+    for obj in objs:
+        obj_center = centerofmass(obj)
+        frame_color = branch(obj_center[0] < center_i, 6, branch(obj_center[0] > center_i, 1, 4))
+        frame = delta(toindices(obj))
+        O = fill(O, frame_color, frame)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects & Initialize:** Similar to Version 1, we identify objects and get the grid's center row index.
+2. **Iterate and Update Grid:** We iterate through each object and directly modify the grid `O`.
+3. **Determine Frame Color:** Using nested `branch` functions, we determine the frame color based on the object's vertical position relative to the center.
+4. **Create Frame:** `delta(toindices(obj))` calculates the frame indices (bounding box minus the object itself).
+5. **Fill Frame:** `fill(O, frame_color, frame)` fills the frame on the grid `O` with the determined color.
+
+
+**Program Version 3:**
+
+```python
+def solve(I):
+    objs_above = sfilter(objects(I, T, F, T), lambda obj: centerofmass(obj)[0] < divide(size(I), TWO))
+    objs_below = sfilter(objects(I, T, F, T), lambda obj: centerofmass(obj)[0] > divide(size(I), TWO))
+    objs_center = sfilter(objects(I, T, F, T), lambda obj: centerofmass(obj)[0] == divide(size(I), TWO))
+    
+    frame_above = mapply(lambda obj: recolor(6, delta(toindices(obj))), objs_above)
+    frame_below = mapply(lambda obj: recolor(1, delta(toindices(obj))), objs_below)
+    frame_center = mapply(lambda obj: recolor(4, delta(toindices(obj))), objs_center)
+
+    O = underpaint(I, frame_above)
+    O = underpaint(O, frame_below)
+    O = underpaint(O, frame_center)
+    return O
+```
+
+**Explanation:**
+
+1. **Categorize Objects:** This version first categorizes objects into three groups: above center, below center, and vertically centered.
+2. **Create Frames:** For each group, we create frames with their corresponding colors (6, 1, and 4) using `recolor` and `delta`.
+3. **Paint Frames:** We paint the frames onto the original grid in three separate steps using `underpaint`.
+
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    h = height(I)
+    objs = objects(I, T, F, T)
+    framed =  I
+    for obj in objs:
+        c = centerofmass(obj)[0]
+        f = branch(c < h // 2, 6, branch(c > h // 2, 1, 4))
+        framed = fill(framed, f, outbox(toindices(obj)))
+    O = cellwise(I, framed, ZERO)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identify all objects in the grid.
+2. **Iterate and Fill:**  For each object:
+    - Determine the frame color based on vertical position relative to the grid's center.
+    - Use `outbox` to get the indices surrounding the object.
+    - Fill the frame with the determined color using `fill`.
+3. **Combine with Original:** Use `cellwise` to merge the framed grid with the original, prioritizing the original's values.
+
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  c = centerofmass(asindices(I))
+  f = lambda o: branch(centerofmass(o)[0] < c[0], 6, branch(centerofmass(o)[0] > c[0], 1, 4))
+  g = lambda o: recolor(f(o), delta(toindices(o)))
+  O = underpaint(I, merge(apply(g, objs)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Center:**  Identify objects and calculate the grid's center of mass.
+2. **Define Helper Functions:** 
+    - `f`: Determines the frame color based on an object's vertical position relative to the center.
+    - `g`: Generates a framed object by applying `f` for color and `delta` for frame indices.
+3. **Apply and Combine:**
+    - Apply `g` to each object to generate framed versions.
+    - Merge all framed objects.
+    - Paint the merged framed objects onto the original grid using `underpaint`.
+
+
+These five versions demonstrate distinct approaches to achieve the same transformation, highlighting the flexibility and expressiveness of the DSL. They showcase different function combinations and logic flow, offering diverse solutions to the given problem. 

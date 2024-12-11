@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as follows:
+
+1. **Upscaling:** The input grid is upscaled by a factor of (5, 3) if the input is taller than it is wide (portrait), and (5, 5) otherwise (landscape).
+2. **Conditional Filling:** If the color '2' exists in the input grid:
+    - **Portrait Orientation:** A 2x3 block of '3's is added to the bottom right of the upscaled '2' object.
+    - **Landscape Orientation:** A 3x3 block of '3's is added to the top center of the upscaled '2' object.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  factor = (5, 3) if portrait(I) else (5, 5)
+  O = upscale(I, factor)
+  if 2 in palette(I):
+    obj = extract(partition(I), lambda o: color(o) == 2)
+    if portrait(I):
+      O = fill(O, 3, shift(
+        {(0, 0), (0, 1), (1, 0), (1, 1)},
+        (lowermost(obj) * factor[0] + factor[0] - 2, rightmost(obj) * factor[1] - 2)
+      ))
+    else:
+      O = fill(O, 3, shift(
+        {(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)},
+        (uppermost(obj) * factor[0], rightmost(obj) * factor[1] - 3)
+      ))
+  return O
+```
+
+**Explanation:**
+
+1. **Upscaling:** The entire input grid `I` is upscaled using the `upscale` function with the appropriate factor.
+2. **Object Detection:** The `partition` function identifies objects based on color. The `extract` function then finds the object with color '2'.
+3. **Conditional Filling:** Based on the orientation, a pre-defined set of indices representing the 2x2 or 3x3 block is shifted to the correct position relative to the '2' object and filled with '3's using the `fill` function.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  factor = (5, 3) if portrait(I) else (5, 5)
+  O = canvas(0, multiply(shape(I), factor))
+  for obj in partition(I):
+    O = paint(O, upscale(obj, factor))
+    if color(obj) == 2:
+      corner = (lowermost(obj), rightmost(obj)) if portrait(I) else (uppermost(obj), rightmost(obj))
+      block_shape = (2, 3) if portrait(I) else (3, 3)
+      block = canvas(3, block_shape)
+      offset = subtract(multiply(corner, factor), subtract(shape(block), (1, 1)))
+      O = paint(O, shift(asobject(block), offset))
+  return O
+```
+
+**Explanation:**
+
+1. **Canvas Creation:** An empty canvas `O` is created with the dimensions of the upscaled grid.
+2. **Object Iteration:** The program iterates through each object identified by `partition`.
+3. **Upscaling and Painting:** Each object is upscaled and painted onto the canvas.
+4. **Conditional Block Addition:** If the object's color is '2', a block of '3's is created using `canvas`.  The block's position is calculated relative to the '2' object's corner and then painted onto the canvas.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  h, w = shape(I)
+  factor = (5, 3) if h > w else (5, 5)
+  O = canvas(0, (h * factor[0], w * factor[1]))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      O = fill(O, val, {(i * factor[0] + k, j * factor[1] + l) for k in range(factor[0]) for l in range(factor[1])})
+      if val == 2:
+        if h > w:
+          O = fill(O, 3, {(h * factor[0] - 2 + k, w * factor[1] - 2 + l) for k in range(2) for l in range(2)})
+        else:
+          O = fill(O, 3, {(k, w * factor[1] - 3 + l) for k in range(3) for l in range(3)})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterative Upscaling:** This version iterates through the input grid cell by cell and directly fills the corresponding upscaled region on the output canvas.
+2. **Inline Conditional Filling:** If a cell with value '2' is encountered, the corresponding block of '3's is directly filled onto the output canvas based on the orientation.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  factor = (5, 3) if portrait(I) else (5, 5)
+  O = upscale(replace(I, 2, 0), factor)
+  if 2 in palette(I):
+    obj = extract(partition(I), lambda o: color(o) == 2)
+    corner = lrcorner(obj) if portrait(I) else ulcorner(obj)
+    block_offset = subtract(multiply(corner, factor), (1, 2) if portrait(I) else (0, 3))
+    block = {(0, 0), (0, 1), (1, 0), (1, 1)} if portrait(I) else {(i, j) for i in range(3) for j in range(3)}
+    O = fill(O, 3, shift(block, block_offset))
+  return O
+```
+
+**Explanation:**
+
+1. **Upscale without '2':** The input grid is first modified to replace all '2's with '0's before upscaling. This simplifies the conditional filling later.
+2. **Conditional Block Placement:** If '2' exists in the original input, the '3' block is placed based on the location of the '2' object and the grid orientation.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  factor = (5, 3) if portrait(I) else (5, 5)
+  O = canvas(0, multiply(shape(I), factor))
+  for i, row in enumerate(upscale(I, factor)):
+    for j, val in enumerate(row):
+      O = fill(O, val, {(i, j)})
+      if val == 2 and ((portrait(I) and i == len(O) - 2 and j == len(row) - 2) or (not portrait(I) and i == 0 and j == len(row) - 3)):
+        block_shape = (2, 2) if portrait(I) else (3, 3)
+        block = {(k, l) for k in range(block_shape[0]) for l in range(block_shape[1])}
+        O = fill(O, 3, shift(block, (i, j)))
+  return O
+```
+
+**Explanation:**
+
+1. **Upscaled Iteration:** This version iterates directly over the upscaled grid.
+2. **In-place Block Addition:** During iteration, if a '2' is encountered at the specific location where the block should be added (determined based on orientation), the block is filled directly.
+
+These are five distinct versions of the "Program_to_be_generated", each with a different approach to solving the given transformation task using the provided DSL functions. 

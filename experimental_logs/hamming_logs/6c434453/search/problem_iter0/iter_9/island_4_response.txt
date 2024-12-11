@@ -1,0 +1,145 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:** The transformation identifies the largest object composed of '1's. Then, it recolors all '1's that are directly above or below this largest object to '2'. The original '1's in the largest object remain unchanged.
+
+**Input_1 to Output_1:** Similar to the previous transformation, the largest object of '1's is identified. This time, however, the transformation recolors all '1's to the left and right of the largest object to '2'. Again, the original '1's in the largest object are preserved.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find largest object
+  objs = objects(I, T, F, F)
+  largest_obj = argmax(objs, size)
+
+  # Find indices above and below the largest object
+  target_indices = mapply(lambda loc: vfrontier(loc) - toindices(largest_obj), toindices(largest_obj))
+
+  # Recolor the target indices to '2'
+  return paint(I, recolor(2, toobject(target_indices, I))) 
+```
+
+**Explanation:**
+
+1. **Identify Largest Object:** The code first identifies the largest object in the grid using `objects` and `argmax`.
+2. **Find Target Indices:** For each cell in the largest object, it uses `vfrontier` to get all indices in the same column. Then, it removes the indices belonging to the largest object itself using set difference (`-`). Finally, it merges the results from all cells using `mapply`.
+3. **Recolor:** The `toobject` function converts the target indices back to an object using the original grid values. Finally, `paint` applies the recoloring to the input grid.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find the largest object
+  objs = objects(I, T, F, F)
+  largest_obj = argmax(objs, size)
+
+  # Find the bounding box of the largest object
+  bbox = backdrop(largest_obj)
+
+  # Define a function to check if an index is directly above or below the largest object
+  def is_above_below(ij):
+    return ij in bbox and ij not in toindices(largest_obj) and (ij[1] in {j for _, (i, j) in largest_obj})
+
+  # Recolor the target indices
+  return paint(I, recolor(2, mfilter(asindices(I), is_above_below)))
+```
+
+**Explanation:**
+
+1. **Largest Object and Bounding Box:** Similar to version 1, this code finds the largest object and its bounding box using `backdrop`.
+2. **Check Above/Below:** A helper function `is_above_below` checks if a given index is within the bounding box, not part of the largest object, and shares the same column as any cell in the largest object.
+3. **Recolor:** It uses `mfilter` to apply the `is_above_below` condition to all indices in the grid and recolors the matching ones to '2'.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find the largest object
+  objs = objects(I, T, F, F)
+  largest = argmax(objs, size)
+  
+  # Determine whether to recolor vertically or horizontally
+  if portrait(largest):
+    recolor_direction = lambda loc: hfrontier(loc)
+  else:
+    recolor_direction = lambda loc: vfrontier(loc)
+
+  # Recolor the grid
+  return paint(I, recolor(2, mapply(lambda loc: sfilter(recolor_direction(loc), lambda ij: index(I, ij) == 1) - toindices(largest), toindices(largest))))
+```
+
+**Explanation:**
+
+1. **Largest Object and Orientation:** This version finds the largest object and determines if it's taller than it is wide (`portrait`). This dictates whether to recolor vertically or horizontally.
+2. **Dynamic Recoloring:**  Based on the orientation, a lambda function `recolor_direction` is defined to return either a horizontal or vertical line of indices.
+3. **Filter and Recolor:** The code then filters the line to keep only indices with value '1', removes indices belonging to the largest object, and recolors the remaining indices to '2'.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find the largest object
+  objs = objects(I, T, F, F)
+  largest = argmax(objs, size)
+
+  # Calculate the center column/row of the largest object
+  center_j = centerofmass(largest)[1]
+  center_i = centerofmass(largest)[0]
+
+  # Recolor based on relative position to the center
+  return paint(I, recolor(2, mfilter(asindices(I), lambda ij: (ij[1] == center_j and abs(ij[0] - center_i) <= height(largest) // 2) if portrait(largest) else (ij[0] == center_i and abs(ij[1] - center_j) <= width(largest) // 2)))) 
+```
+
+**Explanation:**
+
+1. **Largest Object and Center:**  Finds the largest object and calculates its center coordinates.
+2. **Conditional Recoloring:**  Depending on whether the largest object is taller or wider, it uses a lambda function within `mfilter` to recolor indices. 
+    - If taller, it recolors indices in the same column as the center, within a vertical range defined by the object's height.
+    - If wider, it recolors indices in the same row as the center, within a horizontal range defined by the object's width.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  # Find all objects
+  objs = objects(I, True, False, False)
+
+  # Find the largest object
+  largest = argmax(objs, size)
+
+  # Calculate distances from the center for each object
+  distances = apply(lambda obj: manhattan(largest, obj), objs)
+
+  # Find objects directly adjacent to the largest
+  adjacent_objs = sfilter(objs, lambda obj: distances[totuple(objs).index(obj)] == 1)
+
+  # Recolor adjacent objects based on orientation of the largest object
+  if portrait(largest):
+    recolor_objs = sfilter(adjacent_objs, lambda obj: any(hmatching(obj, {(0,0)}), toindices(obj)))
+  else:
+    recolor_objs = sfilter(adjacent_objs, lambda obj: any(vmatching(obj, {(0,0)}), toindices(obj)))
+
+  # Recolor the target objects to '2'
+  return paint(I, recolor(2, recolor_objs))
+```
+
+**Explanation:**
+
+1. **Objects and Distances:**  The code identifies all objects and calculates their Manhattan distances to the largest object.
+2. **Adjacent Objects:** It filters for objects that are directly adjacent to the largest object (distance of 1).
+3. **Orientation-Based Recoloring:**  Depending on the largest object's orientation, it further filters the adjacent objects. It keeps objects that share at least one row (if largest is taller) or one column (if largest is wider) with the largest object.
+4. **Recolor:**  Finally, it recolors the selected adjacent objects to '2'.
+
+
+These five versions provide distinct approaches to achieve the target transformation, utilizing different DSL functions and logic. Each version offers a unique perspective on how to analyze the input and arrive at the desired output.

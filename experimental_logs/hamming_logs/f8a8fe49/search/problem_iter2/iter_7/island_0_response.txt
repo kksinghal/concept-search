@@ -1,0 +1,162 @@
+## Transformation Analysis:
+
+The transformation repositions the '5' objects based on the location and dimensions of the '2' object:
+
+- **Horizontal Placement:**  The '5' objects are split and placed on either side of the '2' object. 
+    - If a '5' object was initially on the left half of the grid, it is moved to the left of the '2' object.
+    - If a '5' object was initially on the right half of the grid, it is moved to the right of the '2' object.
+- **Vertical Placement:** The '5' objects are arranged vertically to align with the top and bottom edges of the '2' object, extending outwards.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_to_be_generated(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))  # Extract '2' object
+  five = first(colorfilter(objects(I, T, F, T), 5)) # Extract one '5' object
+  c = center(two)  # Center of the '2' object
+  left_five = shift(five, (c[0] - uppermost(five), c[1] - leftmost(five) - width(five))) # Move to the left
+  right_five = shift(five, (c[0] - uppermost(five), c[1] - leftmost(five) + width(two))) # Move to the right
+  pattern =  merge(
+      rapply(lambda offset: shift(left_five, add((0, 0), offset)), 
+             [(i, 0) for i in range(-(uppermost(two) + 1), len(I) - uppermost(two))]) +  # Vertical repetition on left
+      rapply(lambda offset: shift(right_five, add((0, 0), offset)),
+             [(i, 0) for i in range(-(uppermost(two) + 1), len(I) - uppermost(two))])  # Vertical repetition on right
+  )
+  return paint(cover(I, ofcolor(I, 5)), pattern)  # Clear old '5's, paint new pattern
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extract the '2' object and one '5' object.
+2. **Calculate Positions:** Determine the target positions for the '5' objects based on the '2' object's center and dimensions.
+3. **Create Pattern:** Generate the final pattern by shifting and vertically repeating the '5' objects on both sides of the '2' object.
+4. **Paint Pattern:** Clear the original '5' objects and paint the new pattern onto the grid.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_to_be_generated(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  c = center(two)
+  pattern =  merge(
+    mapply(lambda five: 
+           rapply(lambda offset: shift(five, add((c[0] - uppermost(five), c[1] - leftmost(five) - width(five)), offset)), 
+                  [(i, 0) for i in range(-(uppermost(two) + 1), len(I) - uppermost(two))]), # Vertical repetition
+           sfilter(fives, lambda obj: leftmost(obj) < len(I[0]) // 2)) + # Left side '5's
+    mapply(lambda five: 
+           rapply(lambda offset: shift(five, add((c[0] - uppermost(five), c[1] - leftmost(five) + width(two)), offset)), 
+                  [(i, 0) for i in range(-(uppermost(two) + 1), len(I) - uppermost(two))]), # Vertical repetition
+           sfilter(fives, lambda obj: leftmost(obj) >= len(I[0]) // 2)) # Right side '5's
+  )
+  return paint(cover(I, ofcolor(I, 5)), pattern)
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extract the '2' object and all '5' objects.
+2. **Filter '5' Objects:** Separate '5' objects into those initially on the left and right halves of the grid.
+3. **Calculate Positions:** Determine target positions based on the '2' object's center and dimensions.
+4. **Create Pattern:** Generate the pattern by shifting and vertically repeating the filtered '5' objects on their respective sides.
+5. **Paint Pattern:** Clear the original '5' objects and paint the new pattern onto the grid.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_to_be_generated(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  five = first(colorfilter(objects(I, T, F, T), 5))
+  c = center(two)
+  h_offset = -uppermost(five) + c[0]
+  pattern = merge(
+    rapply(
+      lambda offset: shift(five, (h_offset, c[1] - leftmost(five) - width(five) + offset)),
+      range(0, len(I[0]) // 2 - c[1] + width(five))  # Left spread
+    ) |
+    rapply(
+      lambda offset: shift(five, (h_offset, c[1] - leftmost(five) + width(two) + offset)),
+      range(0, len(I[0]) - (c[1] + width(two)))  # Right spread
+    )
+  )
+  return paint(cover(I, ofcolor(I, 5)), pattern)
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extract the '2' object and one '5' object.
+2. **Calculate Offsets:** Calculate horizontal and vertical offsets for the '5' objects.
+3. **Create Pattern:**  Generate the pattern by shifting and horizontally repeating the '5' object on both sides of the '2' object.
+4. **Paint Pattern:** Clear the original '5' objects and paint the new pattern onto the grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_to_be_generated(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  c2 = center(two)
+  pattern = merge(
+    mapply(lambda five: 
+           shift(five, (c2[0] - uppermost(five), 
+                        c2[1] - leftmost(five) - width(five) 
+                        if leftmost(five) < len(I[0]) // 2 else c2[1] - leftmost(five) + width(two))), 
+           fives)
+  )
+  v_tiled = merge(
+    rapply(lambda offset: shift(pattern, add((0, 0), offset)),
+           [(i, 0) for i in range(-(uppermost(two) + 1), len(I) - uppermost(two))])
+  )
+  return paint(cover(I, ofcolor(I, 5)), v_tiled)
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extract the '2' object and all '5' objects.
+2. **Horizontally Position '5's:**  Position each '5' object to the left or right of the '2' object based on its initial horizontal position.
+3. **Create Horizontal Pattern:** Create the base horizontal pattern with correctly positioned '5' objects.
+4. **Vertically Tile Pattern:** Vertically repeat the horizontal pattern to cover the desired area.
+5. **Paint Pattern:** Clear the original '5' objects and paint the tiled pattern onto the grid.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_to_be_generated(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  five = first(colorfilter(objects(I, T, F, T), 5))
+  c2 = center(two)
+  h_offset = -uppermost(five) + c2[0]
+  left_pattern =  merge(
+    rapply(
+      lambda offset: shift(five, (h_offset, c2[1] - leftmost(five) - width(five) + offset)),
+      range(0, c2[1] - leftmost(five))
+    ) 
+  )
+  right_pattern = merge(
+      rapply(
+          lambda offset: shift(five, (h_offset, c2[1] - leftmost(five) + width(two) + offset)),
+          range(0, len(I[0]) - (c2[1] + width(two)))
+      )
+  )
+  pattern = left_pattern | right_pattern
+  return paint(cover(I, ofcolor(I, 5)), pattern)
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extract the '2' object and one '5' object.
+2. **Calculate Offsets:** Calculate the horizontal offset for the '5' objects.
+3. **Create Left and Right Patterns:** Generate separate patterns for the left and right sides of the '2' object by shifting and repeating the '5' object.
+4. **Combine Patterns:** Combine the left and right patterns into a single pattern.
+5. **Paint Pattern:** Clear the original '5' objects and paint the combined pattern onto the grid.

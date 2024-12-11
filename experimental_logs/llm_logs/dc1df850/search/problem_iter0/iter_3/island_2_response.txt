@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the grid and expanding their presence by a single layer of '1's around their perimeter, except when bordering the grid edge. 
+
+**Input 0:**
+- Objects: A '2' shape, and a single '6'.
+- Transformation: The '2' shape and the '6' are both surrounded by a layer of '1's. Notice that the '1's don't extend beyond the existing grid boundaries.
+
+**Input 1:**
+- Objects: Individual digits '2', '3', and '8'.
+- Transformation: Each digit is individually enveloped in a layer of '1's, again respecting the grid boundaries.
+
+**Input 2:**
+- Objects: A single '2' digit.
+- Transformation: The '2' is surrounded by '1's, staying within the grid confines.
+
+## Code Generation:
+
+Here are five distinct versions of "Program_to_be_generated" using the DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)  # Extract objects
+  bg = mostcolor(I)  # Identify background color
+  result = canvas(bg, shape(I))  # Create output canvas
+  for obj in objs:
+    halo = mfilter(
+        prapply(
+            lambda loc, d: branch(  # Check if neighbor is within grid and background
+                both(
+                    contained((loc[0] + d[0], loc[1] + d[1]), asindices(I)),
+                    equality(bg, index(I, (loc[0] + d[0], loc[1] + d[1])))),
+                (loc[0] + d[0], loc[1] + d[1]),  # Neighbor coordinate
+                None),
+            toindices(obj),
+            [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Neighboring directions
+        ),
+        identity  # Keep valid neighbors
+    )
+    result = paint(result, obj) # Paint the object on the result
+    result = fill(result, ONE, halo)  # Fill halo with '1's
+  return result
+```
+
+**Explanation:**
+
+1. **Object and Background Identification:**  It identifies the objects within the input grid (`objs`) and the background color (`bg`).
+2. **Canvas Creation:** An output grid (`result`) is initialized with the background color and the input grid's dimensions.
+3. **Halo Generation:** For each object, it generates a "halo" - a set of indices representing cells adjacent to the object that are within the grid boundaries and have the background color.
+4. **Painting and Filling:** The object is painted onto the `result` grid, and then the halo is filled with '1's.
+
+**Program Version 2:** (This program is inspired by the Program A and addresses the error faced in Program A)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  bg = mostcolor(I)
+  result = canvas(bg, shape(I))
+  for obj in objs:
+    halo = set(toindices(obj))  # Initialize halo as a set
+    for _ in range(1):  # Adjust border thickness here
+        halo =  halo.union(mapply(lambda loc: sfilter(dneighbors(loc), lambda x: index(I,x)==bg), halo))
+    result = fill(result, ONE, frozenset(halo.difference(toindices(obj))))  # Convert halo to frozenset before using fill()
+    result = paint(result, obj)
+  return result
+```
+
+**Explanation:**
+1. **Initialization:** It identifies objects, background, and creates a result canvas similar to Version 1.
+2. **Set-based Halo:** It initializes the `halo` as a Python `set` for efficient set operations. 
+3. **Iterative Dilation:**  The halo is expanded iteratively. In each iteration, for every cell in the halo, it checks the directly neighboring cells. If a neighbor is within the grid, has the background color, and is not already in the halo, it's added to the halo.
+4. **Painting and Filling:** It paints the object and fills the halo with '1's. However, before using `fill`, it converts the `halo` from a Python `set` back to a `frozenset`, ensuring compatibility with DSL functions.
+
+**Program Version 3:** 
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  bg = mostcolor(I)
+  result = canvas(bg, shape(I))
+  for obj in objs:
+    halo = delta(obj).intersection(asindices(I))  # Find the halo directly
+    result = paint(result, obj)
+    result = fill(result, ONE, halo)
+  return result 
+```
+
+**Explanation:**
+
+1. **Direct Halo Calculation:**  It directly calculates the "halo" using `delta(obj).intersection(asindices(I))`. This leverages the `delta` function to find cells in the object's bounding box but not part of the object and intersects it with grid indices to ensure only valid grid cells are considered.
+2. **Painting and Filling:** It paints the object and fills the halo similar to previous versions.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, False, False, True)
+    bg = mostcolor(I)
+    result = canvas(ZERO, shape(I)) # Initialize with 0s
+    for obj in objs:
+        result = underpaint(result, recolor(ONE, obj)) # Directly underpaint with 1s
+        result = underpaint(result, obj) # Underpaint the object
+    return result
+```
+
+**Explanation:**
+
+1. **Initialization with Zeros:**  It initializes the result canvas with '0's instead of the background color.
+2. **Direct Underpainting:** It uses `underpaint` twice within the loop:
+    - First, to paint a halo of '1's around each object, exploiting the fact that the canvas starts with '0's.
+    - Second, to paint the original object over the halo, ensuring its color remains unchanged.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  bg = mostcolor(I)
+  result = canvas(bg, shape(I))
+  for obj in objs:
+    shifted_objs = mapply(lambda d: shift(obj, d), [(0, 1), (0, -1), (1, 0), (-1, 0)])
+    halo = mfilter(shifted_objs, lambda shifted_obj: len(intersection(toindices(shifted_obj), asindices(I))) > 0 and len(intersection(toindices(shifted_obj), toindices(objs))) == 0)
+    result = paint(result, obj)
+    for halo_obj in halo:
+      result = underpaint(result, halo_obj)
+    return result
+```
+
+**Explanation:**
+1. **Shifting for Halo:**  It generates shifted copies of the object in all four directions to represent potential halo locations.
+2. **Filtering Valid Shifted Objects:** It keeps only those shifted objects that satisfy two conditions: 
+    - They overlap with the grid (`asindices(I)`)—ensuring they are within the grid boundaries.
+    - They don't overlap with any object's indices (`toindices(objs)`)—ensuring the halo is painted only around objects and not within them. 
+3. **Painting:** It paints the original object onto the canvas.
+4. **Underpainting Halo:**  It iterates through the filtered shifted objects (representing the halo) and uses `underpaint` to paint '1's only in those locations on the canvas.

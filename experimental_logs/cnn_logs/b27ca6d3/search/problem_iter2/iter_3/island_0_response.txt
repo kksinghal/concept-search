@@ -1,0 +1,116 @@
+## Transformation Analysis:
+
+**Input 0 - Output 0:** The program identifies the "outline" of each object, defined as the cells within the object's bounding box that are adjacent to the background color. It then replaces the color of these outline cells with the value 2. 
+
+**Input 1 - Output 1:**  This transformation follows the same logic as Input 0 - Output 0, applying the outline replacement to the objects in Input 1.
+
+## Program to be Generated:
+
+Here are five distinct versions of the program to achieve the desired transformation:
+
+**Version 1 (Using `delta`):**
+
+```python
+def program_v1(I):
+  objs = objects(I, True, False, False) 
+  modified_objs = mapply(lambda obj: delta(toindices(obj)), objs) 
+  O = I
+  for obj in modified_objs:
+    O = fill(O, 2, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, False)`:**  Identifies all connected objects in the input grid `I`.
+2. **`modified_objs = mapply(lambda obj: delta(toindices(obj)), objs)`:**  For each object, it calculates the delta, which represents the outline cells, and stores them in `modified_objs`.
+3. **`O = I`:** Initializes the output grid `O` as a copy of the input grid.
+4. **`for obj in modified_objs: O = fill(O, 2, obj)`:** Iterates through each outline in `modified_objs` and fills the corresponding cells in the output grid `O` with the value 2.
+
+
+**Version 2 (Using `sfilter` and `backdrop`):**
+
+```python
+def program_v2(I):
+  objs = objects(I, True, False, False)
+  outlines = mapply(lambda obj: sfilter(backdrop(toindices(obj)), lambda ind: index(I, ind) == mostcolor(I)), objs)
+  O = I
+  for outline in outlines:
+    O = fill(O, 2, outline)
+  return O 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, False)`:**  Identifies all connected objects in the input grid `I`.
+2. **`outlines = mapply(...)`:** This line calculates the outline for each object:
+    - **`backdrop(toindices(obj))`:** Gets all cells within the bounding box of the object.
+    - **`sfilter(..., lambda ind: index(I, ind) == mostcolor(I))`:** Filters the bounding box cells to keep only those with the background color.
+3. **`O = I`:** Initializes the output grid `O` as a copy of the input grid.
+4. **`for outline in outlines: O = fill(O, 2, outline)`:** Iterates through each outline and fills the corresponding cells in the output grid `O` with the value 2.
+
+
+**Version 3 (Iterative Approach):**
+
+```python
+def program_v3(I):
+  h, w = len(I), len(I[0])
+  O = [[I[i][j] for j in range(w)] for i in range(h)]
+  for i in range(1, h - 1):
+    for j in range(1, w - 1):
+      if I[i][j] != mostcolor(I) and any(I[ni][nj] == mostcolor(I) for ni, nj in [(i-1,j), (i+1,j), (i,j-1), (i,j+1)]):
+        O[i][j] = 2
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a copy of the input grid `I` as a nested list `O`.
+2. **Iterating through Cells:** Loops through each cell of the grid, excluding the border cells.
+3. **Checking for Outline:** If a cell is not the background color and has at least one neighbor that is the background color, it's considered an outline cell.
+4. **Marking Outlines:** Marks outline cells by setting their value in the output grid `O` to 2.
+5. **Returning Grid:** Returns the modified grid `O` as a tuple of tuples.
+
+
+**Version 4 (Using `dneighbors`):**
+
+```python
+def program_v4(I):
+  O = I
+  for i in range(1, height(I) - 1):
+    for j in range(1, width(I) - 1):
+      if index(I, (i, j)) != mostcolor(I) and any(index(I, n) == mostcolor(I) for n in dneighbors((i, j))):
+        O = fill(O, 2, {(i, j)}) 
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Initializes the output grid `O` as a copy of the input grid `I`.
+2. **Iterating through Cells:** Loops through each cell (excluding border cells) of the input grid `I`.
+3. **Checking for Outline (using `dneighbors`):** 
+   - It checks if the current cell's color is different from the background color (`index(I, (i, j)) != mostcolor(I)`).
+   - It then uses `dneighbors((i, j))` to get the directly adjacent neighbors of the current cell. 
+   - The `any(...)` function checks if at least one of these neighbors has the background color.
+4. **Marking Outlines:** If a cell is not the background color and has at least one directly adjacent neighbor that is the background color, it's marked as an outline cell by setting its value to 2 in the output grid `O` using `fill(O, 2, {(i, j)})`.
+
+
+**Version 5 (Functional Approach):**
+
+```python
+def program_v5(I):
+  is_outline = lambda i, j: index(I, (i, j)) != mostcolor(I) and any(index(I, n) == mostcolor(I) for n in dneighbors((i, j)))
+  indices = product(interval(1, height(I) - 1, 1), interval(1, width(I) - 1, 1))
+  outline_indices = sfilter(indices, lambda ind: is_outline(ind[0], ind[1]))
+  return fill(I, 2, outline_indices)
+```
+
+**Explanation:**
+
+1. **`is_outline = lambda ...`:**  Defines a lambda function `is_outline` to determine if a cell at index (i, j) is an outline cell. It uses the same logic as Version 4, checking if the cell is not the background color and has at least one directly adjacent neighbor with the background color.
+2. **`indices = ...`:**  Generates all possible indices (excluding border cells) within the input grid using `product` and `interval`.
+3. **`outline_indices = ...`:**  Filters the `indices` to keep only those that are outline cells using `sfilter` and the `is_outline` function. 
+4. **`return fill(I, 2, outline_indices)`:**  Fills the cells at the `outline_indices` in the input grid `I` with the value 2 and returns the resulting grid.
+
+
+These five versions demonstrate different ways to achieve the same outline detection and replacement task using the provided DSL. They showcase various programming paradigms, including iterative, functional, and a combination of both, providing diverse solutions for the given problem. 

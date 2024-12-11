@@ -1,0 +1,148 @@
+## Transformation Analysis:
+
+The transformation in both examples involves the following steps:
+
+1. **Upscaling:** The input grid is upscaled by a factor of 2, meaning each cell in the input grid is replaced by a 2x2 block of cells with the same value in the output grid.
+
+2. **Horizontal Line Filling:** Horizontal lines of value '3' are drawn between pairs of '2's in each row. 
+
+    * **Example:** In the input row `0 0 2 0 0 0 0 2 0`, there are two '2's. In the output, a line of '3's is drawn between the corresponding upscaled '2' blocks: `0 0 0 0 0 0 0 3 2 2 3 0 0 0 0 2 0 0`.
+
+3. **Conditional Overwriting:** The '3' lines are drawn in a way that they only overwrite '0's from the upscaled grid. Existing '2's from the upscaling step are preserved. 
+
+Let's break down the code generation process:
+
+## Program Version 1: 
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = upscale(I, 2) 
+  for i, row in enumerate(I):
+    for j in range(len(row) - 1):
+      if row[j] == 2 and row[j + 1] != 2:
+        try:
+          next_two = next(k for k in range(j + 2, len(row)) if row[k] == 2)
+          O = fill(O, 3, {(2 * i, l) for l in range(2 * j + 2, 2 * next_two)})
+        except StopIteration:
+          O = fill(O, 3, {(2 * i, l) for l in range(2 * j + 2, len(O[0]))})
+  return O
+```
+
+**Explanation:**
+
+1. **Upscaling:** `O = upscale(I, 2)` creates the upscaled grid `O` from the input `I`.
+2. **Iterating and Filling:**  
+    * The code iterates through each row and each cell of the input grid.
+    * `if row[j] == 2 and row[j + 1] != 2` checks if a '2' is found and the next element is not '2' to start drawing the '3' line.
+    *  `next_two` finds the next '2' in the row, marking the end of the '3' line. 
+    * `fill` function draws the line of '3's in the `O` grid. The starting point is shifted by 2 to avoid overwriting the first '2'.
+    * `StopIteration` handles cases where a '2' doesn't have a matching '2' in the same row.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = upscale(I, 2)
+  for i, row in enumerate(I):
+    twos = [j for j, x in enumerate(row) if x == 2]
+    for k in range(len(twos) - 1):
+      start = 2 * twos[k] + 2
+      end = 2 * twos[k + 1]
+      O = fill(O, 3, {(2 * i, l) for l in range(start, end)})
+  return O
+```
+
+**Explanation:**
+
+1. **Upscaling:** Similar to version 1.
+2. **Finding '2' Positions:** `twos = [j for j, x in enumerate(row) if x == 2]` creates a list `twos` containing the indices of all '2's in each row. 
+3. **Direct Filling:**
+    * The code iterates through the `twos` list.
+    *  `start` and `end` are calculated to determine the starting and ending positions of the '3' line. 
+    *  `fill` draws the '3' line directly between the upscaled positions of consecutive '2's.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, (len(I) * 2, len(I[0]) * 2))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      O = paint(O, {(val, (2 * i, 2 * j)), (val, (2 * i + 1, 2 * j)), (val, (2 * i, 2 * j + 1)), (val, (2 * i + 1, 2 * j + 1))})
+      if val == 2:
+        try:
+          next_two_j = next(k for k in range(j + 1, len(row)) if row[k] == 2)
+          O = fill(O, 3, {(2 * i, l) for l in range(2 * j + 2, 2 * next_two_j)})
+        except StopIteration:
+          pass
+  return O
+```
+
+**Explanation:**
+
+1. **Blank Canvas:** This version initializes an empty canvas `O` of the required size filled with '0's. 
+2. **Upscaling via Painting:**
+    * It iterates through each cell of the input grid.
+    * For each cell, it paints a 2x2 block with the cell's value onto the canvas. This effectively replicates the upscaling behavior.
+3. **Line Drawing:**  This part is similar to version 1, drawing '3' lines between upscaled '2's.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = upscale(I, 2)
+  for i, row in enumerate(O):
+    for j in range(len(row) - 2):
+      if row[j] == 0 and row[j + 2] == 0 and any(row[k] == 2 for k in range(j + 1, j + 2)):
+        O = fill(O, 3, {(i, j + 1)})
+  return O
+```
+
+**Explanation:**
+
+1. **Upscaling:** Same as previous versions.
+2. **Filling Gaps:** 
+   *  This version iterates through each cell of the upscaled grid `O`.
+   * `if row[j] == 0 and row[j + 2] == 0 and any(row[k] == 2 for k in range(j + 1, j + 2))`: This condition checks if a cell is '0', the cell two positions ahead is also '0', and there's at least one '2' in between. This identifies the gaps between upscaled '2' blocks. 
+   * `fill(O, 3, {(i, j + 1)})` fills the identified gap with a '3'.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = upscale(I, 2)
+  for i, row in enumerate(I):
+    start = None
+    for j, val in enumerate(row):
+      if val == 2:
+        if start is not None:
+          O = fill(O, 3, {(2 * i, l) for l in range(start + 2, 2 * j)})
+          start = None
+        else:
+          start = 2 * j
+  return O
+```
+
+**Explanation:**
+
+1. **Upscaling:** Same as previous versions.
+2. **Tracking and Filling:**
+   * `start`: A variable to keep track of the starting position of a '3' line.
+   * The code iterates through each cell of the input.
+   * When a '2' is encountered:
+      * If `start` is not `None`, it means a previous '2' was encountered. The code draws a '3' line from the previous '2' position (`start + 2`) to the current '2' position, and resets `start` to `None`.
+      * If `start` is `None`, it means this is the first '2' of a pair, so `start` is set to its position.
+
+
+These are five distinct code versions to accomplish the transformation using the provided DSL. Each version utilizes different logic and function combinations to achieve the same output. 

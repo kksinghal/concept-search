@@ -1,0 +1,127 @@
+## Transformation Analysis:
+
+The transformation fills the inner cavities of connected components (objects) in the input grid with the value '1'. The connected components are determined considering only direct neighbors (no diagonals). 
+
+Let's break it down for each example:
+
+**Input 0:** 
+* The '2's form a single connected component with a cavity in the middle.
+* The transformation fills this cavity with '1's.
+
+**Input 1:**
+* There are two connected components formed by '2's.
+* The larger component has a cavity that is filled with '1's.
+* The smaller component (single '2' at the top) remains unchanged as it has no inner cavity.
+
+**Input 2:**
+* Again, there are two connected components formed by '2's.
+* Both components have inner cavities that are filled with '1's.
+
+## Program to be Generated:
+
+Here are five distinct versions of the program to achieve this transformation:
+
+**Program Version 1:**
+
+```python
+def solve_539a4f51(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True) 
+  filled_indices = frozenset()
+  for obj in objs:
+    bbox = backdrop(obj)
+    for i, j in bbox:
+      if (i, j) not in toindices(obj) and all((i + di, j + dj) not in toindices(obj) for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if (i + di, j + dj) in bbox):
+        filled_indices = insert((i, j), filled_indices)
+  O = fill(I, 1, filled_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, univalued=True, diagonal=False, without_bg=True)` extracts connected components ('2's in this case).
+2. **Iterate Objects:** The code iterates through each identified object.
+3. **Bounding Box:** `backdrop(obj)` calculates the bounding box of the current object.
+4. **Check Cavity:**  For each cell within the bounding box:
+   - It checks if the cell is not part of the object (`(i, j) not in toindices(obj)`).
+   - It verifies if all its direct neighbors are also not part of the object, ensuring it's an enclosed cavity.
+5. **Fill Cavity:** If a cell meets the cavity conditions, its index is added to `filled_indices`.
+6. **Apply Filling:** Finally,  `fill(I, 1, filled_indices)` fills all the identified cavity indices with '1' in the input grid `I`.
+
+**Program Version 2:**
+
+```python
+def solve_539a4f51(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavity_indices = mapply(lambda obj: backdrop(obj) - toindices(obj), objs)
+  cavity_indices = sfilter(cavity_indices, lambda loc: all((i + di, j + dj) not in toindices(obj) for obj in objs for i, j in [loc] for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if (i + di, j + dj) in backdrop(obj)))
+  O = fill(I, 1, cavity_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Extract Potential Cavities:** `mapply` applies a lambda function to each object to find the difference between its bounding box and its actual indices, giving potential cavity indices.
+3. **Filter Cavities:** `sfilter` refines the cavity indices by checking if all their direct neighbors are outside any object's indices.
+4. **Apply Filling:** Same as Version 1.
+
+**Program Version 3:**
+
+```python
+def solve_539a4f51(I):
+  def is_cavity(loc, obj):
+    return loc not in toindices(obj) and all((i + di, j + dj) not in toindices(obj) for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if (i + di, j + dj) in backdrop(obj))
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavity_indices = mfilter(lambda obj: frozenset(loc for loc in backdrop(obj) if is_cavity(loc, obj)), objs)
+  O = fill(I, 1, cavity_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Helper Function:** `is_cavity` checks if a given location is within an object's cavity.
+3. **Find Cavities:** `mfilter` applies the `is_cavity` function to each location within each object's backdrop to identify cavity indices.
+4. **Apply Filling:** Same as Version 1.
+
+**Program Version 4:**
+
+```python
+def solve_539a4f51(I):
+  def is_boundary(loc, obj):
+    return loc in toindices(obj) and any((i + di, j + dj) not in toindices(obj) for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if 0 <= i + di < len(I) and 0 <= j + dj < len(I[0]))
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  boundary_indices = mfilter(lambda obj: frozenset(loc for loc in toindices(obj) if is_boundary(loc, obj)), objs)
+  cavity_indices = mfilter(lambda loc: all(loc not in dneighbors(b_loc) for b_loc in boundary_indices), asindices(I))
+  O = fill(I, 1, cavity_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Helper Function:** `is_boundary` checks if a given location is on the boundary of an object.
+3. **Find Boundaries:** `mfilter` identifies the boundary cells of each object.
+4. **Find Cavities:** `mfilter` identifies cavity indices by finding cells not directly neighboring any boundary cell.
+5. **Apply Filling:** Same as Version 1.
+
+**Program Version 5:**
+
+```python
+def solve_539a4f51(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavities = mfilter(lambda obj: sfilter(lambda loc: all((i + di, j + dj) not in toindices(obj) for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if (i + di, j + dj) in backdrop(obj)), difference(backdrop(obj), toindices(obj))), objs)
+  O = fill(I, 1, cavities)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Find Cavities:**  Uses nested `mfilter` and `sfilter` to directly identify cavity indices within the difference between the object's bounding box and its actual indices, checking for the enclosed condition.
+3. **Apply Filling:** Same as Version 1.
+
+
+These five versions showcase different approaches to solving the problem using the provided DSL, utilizing various function combinations and logic structures.

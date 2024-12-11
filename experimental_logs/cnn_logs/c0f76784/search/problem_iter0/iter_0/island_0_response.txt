@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves identifying specific patterns within the input grids and recoloring them according to a consistent rule. Let's analyze each input-output pair:
+
+**Pair 0:**
+
+- The program identifies all squares formed by the digit '0' that are adjacent to the digit '5'. 
+- These squares are then filled with the digit '8'.
+- Additionally, squares formed by the digit '0' that are one cell away (diagonally or orthogonally) from the digit '5' are filled with the digit '7'.
+
+**Pair 1:**
+
+- Similar to Pair 0, squares of '0' adjacent to '5' are filled with '8'.
+- However, squares of '0' one cell away from '5' are filled with '7' **only if they are positioned below** the '5' digit.
+
+**Pair 2:**
+
+- This pair follows the same logic as Pair 1, highlighting the consistency of the transformation rule.
+
+## Code Generation:
+
+Based on the analysis, the following programs aim to achieve the desired transformation. They build upon the concepts of object identification, filtering by shape and relative position, and grid manipulation.
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)  # Extract objects, excluding background
+  fives = toindices(extract(objs, matcher(color, 5))) # Find all '5' cells
+  squares = sfilter(objs, square)  # Extract square objects
+
+  # Find adjacent squares
+  adj_squares = mfilter(squares, lambda sq: any(manhattan({ind}, toindices(sq)) == 1 for ind in fives))
+  
+  # Find diagonally/orthogonally adjacent squares below 5s
+  below_squares = mfilter(squares, lambda sq: any((i > fives_i) and (manhattan({(fives_i, fives_j)}, toindices(sq)) == 1) for fives_i, fives_j in fives for i, j in toindices(sq))) 
+
+  O = fill(I, 8, merge(adj_squares)) # Fill adjacent squares with 8
+  O = fill(O, 7, merge(below_squares)) # Fill below squares with 7
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Identifies objects in the grid, excluding the background.
+2. **Find '5' Cells:**  Locates all cells containing the digit '5'.
+3. **Extract Squares:**  Filters out objects that are squares.
+4. **Identify Adjacent Squares:**  Finds squares directly adjacent to cells with '5'.
+5. **Identify Below Squares:**  Finds squares one cell away from '5' that are below it.
+6. **Fill Grid:** Fills the identified adjacent squares with '8' and below squares with '7'.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  fives = toindices(extract(objs, matcher(color, 5)))
+  squares = sfilter(objs, lambda obj: square(obj) and color(obj) == 0) # Find squares of '0'
+
+  # Lambda function to check if a square is adjacent to a '5' 
+  is_adjacent = lambda sq: any(manhattan({ind}, toindices(sq)) == 1 for ind in fives)
+  
+  # Lambda function to check if a square is below a '5'
+  is_below = lambda sq: any((i > fives_i) and (manhattan({(fives_i, fives_j)}, toindices(sq)) == 1) for fives_i, fives_j in fives for i, j in toindices(sq))
+
+  O = fill(I, 8, merge(sfilter(squares, is_adjacent))) # Fill adjacent '0' squares with 8
+  O = fill(O, 7, merge(sfilter(squares, is_below))) # Fill below '0' squares with 7
+  return O
+```
+
+**Explanation:**
+
+- This version streamlines the logic by directly identifying squares of '0' and using lambda functions for more concise adjacency and below checks. 
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  fives = ofcolor(I, 5) # Get indices of all '5's directly
+  squares =  mfilter(objects(I, T, F, T), lambda obj: square(obj) and color(obj) == 0)
+  
+  adj_squares = mfilter(squares, lambda sq: any(dneighbors(ind) & toindices(sq) for ind in fives)) # Use dneighbors for direct adjacency check
+  below_squares = mfilter(squares, lambda sq: any((i > fives_i) and (manhattan({(fives_i, fives_j)}, toindices(sq)) == 1) for fives_i, fives_j in fives for i, j in toindices(sq)))  
+
+  O = paint(I, recolor(8, merge(adj_squares)))  # Use paint and recolor for filling
+  O = paint(O, recolor(7, merge(below_squares))) 
+  return O
+```
+
+**Explanation:**
+
+- This version optimizes by using `ofcolor` to directly get '5' indices and `dneighbors` for a more efficient direct adjacency check. It also utilizes `paint` and `recolor` for a different approach to grid manipulation. 
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    fives = ofcolor(I, 5)
+    objs = objects(I, T, F, T)
+    
+    # Define a function to check conditions and return the appropriate fill value
+    def check_and_fill(obj):
+        if not square(obj) or color(obj) != 0: 
+            return None
+        if any(manhattan({ind}, toindices(obj)) == 1 for ind in fives):
+            return 8
+        if any((i > fives_i) and (manhattan({(fives_i, fives_j)}, toindices(obj)) == 1) for fives_i, fives_j in fives for i, j in toindices(obj)):
+            return 7
+        return None
+
+    # Apply the function to each object and fill the grid
+    O = I
+    for obj in objs:
+        fill_value = check_and_fill(obj)
+        if fill_value is not None:
+            O = fill(O, fill_value, toindices(obj))
+    return O 
+```
+
+**Explanation:**
+
+- This version encapsulates the condition checks and fill value logic within the  `check_and_fill` function, improving code readability. It iterates through each object and applies the function to determine the appropriate fill value.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  fives = ofcolor(I, 5)
+  
+  # Create a grid of the same size as the input, initialized with 0s
+  O = canvas(0, shape(I)) 
+
+  # Iterate through each '5' location
+  for i, j in fives:
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        new_i, new_j = i + di, j + dj
+        # Check if the new location is within the grid bounds
+        if 0 <= new_i < len(I) and 0 <= new_j < len(I[0]) and I[new_i][new_j] == 0:
+          # Fill based on relative position to the '5'
+          if di == dj == 0 or abs(di) == abs(dj) == 1:
+              O[new_i][new_j] = 8
+          elif di == 1:
+              O[new_i][new_j] = 7
+  return O
+```
+
+**Explanation:**
+
+- This version takes a different approach by creating a new output grid initialized with 0s. It then iterates through the locations of '5's and fills the surrounding cells based on their relative position. This eliminates the need for object extraction and filtering, potentially improving efficiency.
+
+These are just a few examples of how the program can be implemented. You can experiment with different combinations of functions and logic to find the most efficient and elegant solution. 

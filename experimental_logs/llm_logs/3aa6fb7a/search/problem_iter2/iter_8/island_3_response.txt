@@ -1,0 +1,111 @@
+## Transformation Analysis:
+
+The transformation involves identifying the objects with color '8' and '1', moving them to specific locations on a 7x7 canvas filled with '0'. 
+
+* **Object '8' Placement:**  Object '8' is consistently shifted one unit down and four units to the right from its original position in both examples.
+* **Object '1' Placement:** Object '1' placement varies based on the input grid's height.
+    * If the input grid has a height other than 10, Object '1' is shifted three units down and three units to the right.
+    * If the input grid has a height of 10, Object '1' is shifted four units down and four units to the right.
+
+## Program_to_be_generated:
+
+**Version 1 (Inspired by Program_A's object extraction and Program_B's conditional logic)**
+
+```python
+def Program_to_be_generated(I):
+  obj_8 = extract(objects(I, T, F, T), lambda obj: color(obj) == 8)
+  obj_1 = extract(objects(I, T, F, T), lambda obj: color(obj) == 1)
+  output_grid = canvas(0, (7, 7))
+  output_grid = paint(output_grid, shift(obj_8, (1, 4)))
+  output_grid = paint(output_grid, shift(obj_1, (3, 3) if len(I) != 10 else (4, 4)))
+  return output_grid
+```
+
+**Explanation:**
+
+1. **Object Extraction:**  Extracts objects '8' and '1' from the input grid 'I' using `objects` and `extract` functions.
+2. **Canvas Creation:** Creates a 7x7 canvas filled with '0' using the `canvas` function.
+3. **Object '8' Placement:** Shifts object '8' by (1, 4) and paints it onto the canvas.
+4. **Conditional Object '1' Placement:** Checks the height of the input grid 'I'. If the height is not 10, object '1' is shifted by (3, 3), else by (4, 4) before being painted onto the canvas.
+
+**Version 2 (Focus on shifting relative to the object's upper-left corner)**
+
+```python
+def Program_to_be_generated(I):
+  obj_8 = extract(partition(I), lambda obj: color(obj) == 8)
+  obj_1 = extract(partition(I), lambda obj: color(obj) == 1)
+  output_grid = canvas(0, (7, 7))
+  output_grid = paint(output_grid, shift(obj_8, subtract((1, 4), ulcorner(obj_8))))
+  output_grid = paint(output_grid, shift(obj_1, subtract((3, 3) if len(I) != 10 else (4, 4), ulcorner(obj_1))))
+  return output_grid
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Extracts objects '8' and '1' from the input grid 'I' using `partition` and `extract` functions.
+2. **Canvas Creation:** Creates a 7x7 canvas filled with '0'.
+3. **Relative Shifting:** Calculates the shift amount for each object by subtracting the object's upper-left corner coordinates (`ulcorner`) from the desired position ((1, 4) for '8', and (3, 3) or (4, 4) for '1' based on input height).
+4. **Painting:**  Shifts and paints the objects onto the canvas.
+
+**Version 3 (Functional approach with `apply`)**
+
+```python
+def Program_to_be_generated(I):
+  shift_8 = lambda p: shift(p, (1, 4))
+  shift_1 = lambda p: shift(p, (3, 3) if len(I) != 10 else (4, 4))
+  return paint(
+    paint(
+      canvas(0, (7, 7)),
+      apply(shift_8, extract(partition(I), lambda obj: color(obj) == 8))
+    ),
+    apply(shift_1, extract(partition(I), lambda obj: color(obj) == 1))
+  )
+```
+
+**Explanation:**
+
+1. **Shift Functions:** Defines two lambda functions, `shift_8` and `shift_1`, to encapsulate the shifting logic for objects '8' and '1' respectively.
+2. **Nested Painting:**  Creates the canvas and then uses nested `paint` calls to apply the shifts and paint the objects. The `apply` function applies the shift functions to the extracted objects.
+
+**Version 4 (Using `rapply` for shift application)**
+
+```python
+def Program_to_be_generated(I):
+  shifts = (lambda p: shift(p, (1, 4)), lambda p: shift(p, (3, 3) if len(I) != 10 else (4, 4)))
+  return paint(
+    paint(
+      canvas(0, (7, 7)),
+      rapply(shifts, extract(partition(I), lambda obj: color(obj) == 8))[0]
+    ),
+    rapply(shifts, extract(partition(I), lambda obj: color(obj) == 1))[1]
+  )
+```
+
+**Explanation:**
+
+1. **Shifts Tuple:** Creates a tuple `shifts` containing the shift functions.
+2. **`rapply` for Shifts:** Uses `rapply` to apply each shift function in the `shifts` tuple to the extracted objects. 
+3. **Indexed Painting:** Accesses the shifted objects from the `rapply` result using indexing and then paints them onto the canvas. 
+
+**Version 5 (Utilizing `fork` for parallel shift application)**
+
+```python
+def Program_to_be_generated(I):
+  shift_amount = (3, 3) if len(I) != 10 else (4, 4)
+  return paint(
+    paint(
+      canvas(0, (7, 7)), 
+      fork(shift, identity, rbind(subtract, (1, 4)))(extract(partition(I), lambda obj: color(obj) == 8))
+    ),
+    fork(shift, identity, rbind(subtract, shift_amount))(extract(partition(I), lambda obj: color(obj) == 1))
+  ) 
+```
+
+**Explanation:**
+
+1. **Conditional Shift Amount:**  Determines the shift amount for object '1' based on the input grid's height.
+2. **`fork` for Parallel Shifts:** Uses `fork` to apply `shift` function with different arguments to the extracted objects. 
+    * For object '8', `identity` returns the object itself and `rbind(subtract, (1, 4))` calculates the shift amount relative to (1, 4).
+    * For object '1', the same logic applies with the calculated `shift_amount`.
+
+These five versions showcase different ways to achieve the same transformation using various DSL functions, demonstrating the flexibility and expressiveness of the provided DSL.

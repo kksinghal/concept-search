@@ -1,0 +1,127 @@
+## Transformation Analysis:
+
+**Input 0 - Output 0:** All objects made of '1's that are above the highest object containing a '1' are recolored to '3'. 
+
+**Input 1 - Output 1:**  All objects made of '1's that are above the highest object containing a '1' are recolored to '3', except for the object directly above it.
+
+**Input 2 - Output 2:** All '1's are replaced with '3's, except for the '1's that form a horizontal line directly below an object made of '3's. 
+
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Finds the highest object with '1', recolors objects above it, 
+  except for the one directly above if it contains a '1'.
+  """
+  highest_one_obj = argmax(objects(I, True, False, True), lambda obj: uppermost(obj) if 1 in {v for v, _ in obj} else -1) 
+  line = uppermost(highest_one_obj)
+  above_objects = sfilter(objects(I, True, False, True), lambda obj: uppermost(obj) < line and 1 in {v for v, _ in obj})
+  if above_objects:
+    above_objects = remove(argmax(above_objects, lambda obj: uppermost(obj)), above_objects)
+  O = paint(I, recolor(3, merge(above_objects)))
+  return O
+```
+
+**Explanation:**
+
+1. **Find the highest object with '1':**  We find this object using `argmax` with a custom function that prioritizes objects containing '1' and uses `uppermost` to find the highest. 
+2. **Identify objects above:**  We use `sfilter` to select objects that are both above the highest '1' object and contain a '1'.
+3. **Exclude the object directly above:** We use `remove` to potentially exclude the object directly above the highest '1' object from being recolored. 
+4. **Recolor and paint:**  We recolor the remaining objects to '3' and paint them onto the original grid.
+
+**Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Iterates through rows, recoloring objects based on the presence of '1's 
+  and a flag indicating whether the highest '1' object has been passed.
+  """
+  h = height(I)
+  found_one = False
+  O = I
+  for i in range(h):
+    row_objs = sfilter(objects(crop(I, (i, 0), (1, width(I))), True, False, True), lambda obj: 1 in {v for v, _ in obj})
+    if row_objs:
+      if not found_one:
+        found_one = True
+      else:
+        O = paint(O, recolor(3, merge(row_objs)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through rows:**  We loop through each row of the grid.
+2. **Check for '1' objects:** For each row, we extract objects and check if they contain a '1'.
+3. **Flag and recolor:** We use a flag (`found_one`) to track if we've passed the highest object with a '1'. If we have and encounter another '1' object, we recolor it to '3'.
+
+**Version 3 (Focus on preserving '1's below '3's):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies '1's below '3's and preserves them, recoloring 
+  all other '1's to '3'.
+  """
+  ones_below_threes = set()
+  for obj in objects(I, True, False, True):
+    if 3 in {v for v, _ in obj}:
+      for i, j in toindices(obj):
+        if 0 <= i + 1 < height(I) and I[i + 1][j] == 1:
+          ones_below_threes.add((i + 1, j))
+  O = replace(I, 1, 3)
+  O = paint(O, recolor(1, frozenset((O[i][j], (i, j)) for i, j in ones_below_threes)))
+  return O
+```
+
+**Explanation:**
+
+1. **Find '1's below '3's:** Iterate through objects and store the indices of '1's directly below '3's.
+2. **Replace all '1's:**  Recolor all '1's to '3'.
+3. **Restore '1's below '3's:** Paint the preserved '1' indices back onto the grid.
+
+**Version 4 (Building on replacing '1's):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Replaces all '1's with '3's and then uses the presence 
+  of '3's to determine which '3's should be reverted back to '1's. 
+  """
+  O = replace(I, 1, 3)
+  for i in range(1, height(O)):
+    for j in range(width(O)):
+      if O[i][j] == 3 and O[i - 1][j] == 3:
+        O = paint(O, recolor(1, {(3, (i, j))}))
+  return O
+```
+
+**Explanation:**
+
+1. **Replace all '1's:** Recolor all '1's to '3'.
+2. **Revert specific '3's:**  Iterate through the grid, and if a '3' is found directly below another '3', revert it back to '1'.
+
+**Version 5 (Using `cellwise` for direct comparison):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Creates a shifted version of the input grid and uses 
+  'cellwise' to compare and selectively recolor based on '1's and '3's. 
+  """
+  shifted_I = paint(canvas(0, shape(I)), shift(asobject(I), (1, 0)))
+  O = cellwise(I, shifted_I, 0)
+  O = replace(O, 1, 3)
+  return O
+```
+
+**Explanation:**
+
+1. **Create shifted grid:** Generate a shifted version of the input grid, moving all elements down by one row.
+2. **Cellwise comparison:** Use `cellwise` to compare the original and shifted grids. Cells that match will retain their original value, while mismatches will become '0'.
+3. **Recolor remaining '1's:** Finally, replace all remaining '1's with '3's. 

@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+**Input 0 to Output 0:**
+
+* The transformation targets the lower '4' object. 
+* The outer border of this object is unchanged.
+* The inner area is filled with a pattern: alternating horizontal lines of '4' and '2'.
+
+**Input 1 to Output 1:**
+
+*  The transformation targets the lower '4' object.
+* The outer border of this object remains unchanged.
+* The inner area is filled with a pattern: a horizontal line of '4' on top, followed by a horizontal line of '1', and then the remaining area filled with '4'. 
+
+## Program to be Generated:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  objs = colorfilter(objects(I, T, F, T), FOUR)
+  O = I
+  for i, obj in enumerate(objs):
+    if uppermost(obj) > len(I) // 2:  # Target the lower object
+      inner_indices = difference(backdrop(obj), box(obj))
+      for j, index in enumerate(inner_indices):
+        O = fill(O, FOUR if j % 2 == 0 else TWO, {index}) # Alternate 4 and 2
+  return O
+```
+
+**Explanation:**
+
+1. **Identify '4' Objects:**  Finds all objects composed of '4'.
+2. **Target Lower Object:**  Focuses on the object located in the bottom half of the grid.
+3. **Get Inner Indices:**  Calculates the indices within the object but excluding its border.
+4. **Fill with Alternating Pattern:** Iterates through inner indices and fills them with alternating '4' and '2' values.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  O = I
+  for obj in colorfilter(objects(I, T, F, T), FOUR):
+    if lrcorner(obj)[0] > len(I) // 2: # Target lower object based on corner
+      O = fill(O, FOUR, difference(backdrop(obj), box(obj))) # Fill with 4s
+      for j in range(uppermost(obj) + 2, lowermost(obj)): # Fill middle row with 2s
+        O = fill(O, TWO, {(j, leftmost(obj) + 1)}) 
+  return O
+```
+
+**Explanation:**
+
+1. **Find Lower '4' Object:**  Identifies the '4' object whose lower-right corner lies below the grid's midpoint.
+2. **Fill Inner Area:**  Fills the entire inner area of the target object with '4'.
+3. **Overwrite Middle Row:** Draws a horizontal line of '2' across the middle row of the object's inner area.
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  O = I
+  lower_obj = extract(colorfilter(objects(I, T, F, T), FOUR), lambda obj: lrcorner(obj)[0] > len(I) // 2)
+  if lower_obj:
+    inner_grid = crop(I, (uppermost(lower_obj) + 1, leftmost(lower_obj) + 1), (height(lower_obj) - 2, width(lower_obj) - 2))
+    filled_grid = tuple(tuple(FOUR if i % 2 == 0 else TWO for j in range(len(inner_grid[0]))) for i in range(len(inner_grid)))
+    O = paint(O, toobject(backdrop(lower_obj), fill(canvas(ZERO, shape(I)), ONE, difference(backdrop(lower_obj), box(lower_obj)))))
+    O = paint(O, toobject(shift(backdrop(lower_obj), (1, 1)), filled_grid))
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Lower Object:**  Directly extracts the lower '4' object from the input grid.
+2. **Create Inner Pattern Grid:** Generates a new grid representing the desired alternating '4' and '2' pattern for the inner area.
+3. **Clear Inner Area:** Clears the inner area of the lower object in the original grid, preparing it for the pattern.
+4. **Paint Pattern:** Overlays the generated pattern grid onto the cleared inner area.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  target_color = FOUR
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if color(obj) == target_color and lowermost(obj) >= len(I) // 2:
+      for i in range(uppermost(obj) + 1, lowermost(obj)):
+        for j in range(leftmost(obj) + 1, rightmost(obj)):
+          if (i - uppermost(obj)) % 2 == 0:
+            O = fill(O, target_color, {(i, j)})
+          else:
+            O = fill(O, TWO, {(i, j)})
+  return O 
+```
+
+**Explanation:**
+
+1. **Locate Target Object:** Iterates through objects, identifying the one with color '4' located in the bottom half.
+2. **Iterate and Fill:** Scans the inner area row by row. On even-indexed rows, it fills with '4', and on odd-indexed rows, it fills with '2'.
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  O = I
+  for obj in colorfilter(objects(I, T, F, T), FOUR):
+    top = uppermost(obj) 
+    bottom = lowermost(obj)
+    left = leftmost(obj)
+    right = rightmost(obj)
+    if bottom >= len(I) // 2:
+      for i in range(top + 1, bottom):
+        for j in range(left + 1, right):
+          O = fill(O, FOUR if (i - top) % 2 == 1 else TWO, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and Check Lower Object:** Similar to previous versions, it locates the '4' object in the bottom half.
+2. **Iterate and Fill:**  Uses a loop to traverse the inner area. The fill color ('4' or '2') is determined based on the row index's parity relative to the object's top row.
+
+Each version provides a distinct approach to achieving the same transformation, demonstrating flexibility in using the DSL's functions. 

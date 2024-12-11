@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation aims to **thin** the objects within the input grid by removing cells in a repeating pattern. 
+
+* **Horizontal Objects:** For objects wider than they are tall, every other column within the object is thinned, leaving only the outermost columns intact.
+* **Vertical Objects:** For objects taller than they are wide, every other row within the object is thinned, leaving only the outermost rows intact.
+
+Let's analyze this with the provided input-output examples:
+
+**Input_0 -> Output_0:**
+
+* The '8' object (horizontal) is thinned to leave the leftmost and rightmost columns intact.
+* The '3' object (horizontal) is thinned similarly. 
+* The '6' object (horizontal) follows the same pattern.
+* The '7' object (vertical) is thinned to leave the top and bottom rows intact.
+
+**Input_1 -> Output_1:**
+
+* The '2' object (horizontal) is thinned, leaving the leftmost and rightmost columns intact.
+
+**Input_2 -> Output_2:**
+
+* The '5' object (horizontal) is thinned.
+* The '4' object (vertical) is thinned. 
+
+## Program Versions:
+
+Here are five distinct program versions using the provided DSL to achieve this thinning transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    thinned_objs = frozenset({
+        branch(
+            portrait(obj), 
+            sfilter(obj, lambda c: c[1][0] % 2 == uppermost(obj) % 2), 
+            sfilter(obj, lambda c: c[1][1] % 2 == leftmost(obj) % 2)
+        ) for obj in objs
+    })
+    O = paint(fill(I, mostcolor(I), asindices(I)), merge(thinned_objs))
+    return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, T, T, T)` extracts objects from the input grid (`I`), considering connected cells with the same value (univalued), excluding diagonal connections, and ignoring the background color.
+2. **Thin Objects:**  The program iterates through each object (`obj`):
+    - `portrait(obj)` checks if the object is taller than wide (vertical).
+    - If True (vertical): `sfilter` keeps cells where the row index (`c[1][0]`) has the same parity (even/odd) as the uppermost row index of the object. This keeps every other row.
+    - If False (horizontal): `sfilter` keeps cells where the column index (`c[1][1]`) has the same parity as the leftmost column index, keeping every other column.
+3. **Reconstruct Grid:** 
+   - `fill(I, mostcolor(I), asindices(I))` creates a blank canvas filled with the background color.
+   - `paint` draws the thinned objects onto the canvas.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    objs = partition(I)
+    thinned_objs = mapply(
+        lambda obj: branch(
+            portrait(obj),
+            sfilter(obj, lambda c: c[1][0] % 2 == 0), 
+            sfilter(obj, lambda c: c[1][1] % 2 == 0)
+        ), 
+        objs
+    )
+    O = paint(fill(I, mostcolor(I), asindices(I)), thinned_objs)
+    return O
+```
+
+**Explanation:**
+
+1. **Partition Grid:**  `partition(I)` groups cells with the same value into separate objects.
+2. **Thin Objects:** Similar to Version 1, it iterates through objects and uses `sfilter` to keep every other row for vertical objects and every other column for horizontal objects.
+3. **Reconstruct Grid:** Same as Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    O = I
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if (i % 2 != 0 and portrait(objects(I, T, F, T))) or (j % 2 != 0 and not portrait(objects(I, T, F, T))):
+                O = fill(O, mostcolor(I), {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate through Cells:** This version iterates through each cell of the grid.
+2. **Conditional Filling:**  It fills a cell with the background color based on:
+    - If the object containing the cell is vertical AND the row index is odd.
+    - If the object containing the cell is horizontal AND the column index is odd.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    O = canvas(mostcolor(I), shape(I))
+    for obj in objects(I, T, F, T):
+        for c in obj:
+            i, j = c[1]
+            if (i % 2 == uppermost(obj) % 2 and portrait(obj)) or (j % 2 == leftmost(obj) % 2 and not portrait(obj)):
+                O = fill(O, c[0], {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **Blank Canvas:** Creates a blank canvas (`O`) of the same size and background color as the input.
+2. **Iterate and Paint:** Iterates through each object and its cells. If the cell's row/column index matches the parity of the object's topmost row/leftmost column, it paints the cell onto the canvas.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    h, w = shape(I)
+    O = I
+    for i in range(h):
+        for j in range(w):
+            if (i % 2 != 0 and h > w) or (j % 2 != 0 and w >= h):
+                O = fill(O, mostcolor(I), {(i, j)}) 
+    return O
+```
+
+**Explanation:**
+
+1. **Get Grid Dimensions:** Obtains the height (`h`) and width (`w`) of the grid.
+2. **Iterate and Thin:** Iterates through each cell. 
+   - If the grid is taller than wide (`h > w`) and the row index is odd, it fills the cell with the background color.
+   - If the grid is wider than or equal to its height (`w >= h`) and the column index is odd, it fills the cell.
+
+These five versions provide distinct approaches to achieve the desired thinning transformation using the provided DSL. Each version leverages different combinations of functions and logic, demonstrating the flexibility and expressiveness of the DSL for image manipulation tasks. 

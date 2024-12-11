@@ -1,0 +1,130 @@
+## Transformation Analysis:
+
+The transformation identifies specific "outer" corner cells of objects (excluding the background) in the input grid and changes their values to 1. 
+
+**Let's break down how an "outer" corner is defined:**
+
+1. **Corner:** A cell located at the intersection of two edges of an object.
+2. **Outer Corner:**  A corner cell that only connects diagonally to one other cell of the same object.
+
+**Example:**
+
+In the following object representation, 'X' represents an object cell, and '.' represents a background cell.
+
+```
+....
+.XX.
+.XX.
+....
+```
+
+- The cells at positions (1,1), (1,2), (2,1), (2,2) are all corner cells.
+- However, only (1,2) and (2,1) are considered **outer corners** as they are diagonally connected to only one other 'X' cell.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, True, True)  # Get all objects excluding background
+  def find_outer_corner(obj):
+    corner_indices = corners(obj)  # Get all corner indices of the object
+    for c in corner_indices:
+      if len(intersection(ineighbors(c), corner_indices)) == 1:  # Check if it's an outer corner
+        return frozenset({c}) 
+    return frozenset()
+  outer_corners = mapply(find_outer_corner, objs)  # Find outer corners for each object
+  O = fill(I, 1, merge(outer_corners))  # Fill outer corners with 1
+  return O
+```
+
+**Explanation:**
+
+1. **`objects(I, True, True, True)`:** Extracts all objects from the input grid `I`, considering diagonally connected cells and excluding the background.
+2. **`find_outer_corner(obj)`:** This function takes an object as input and returns the index of the outer corner if it exists. It iterates through each corner of the object. If a corner has only one diagonally connected neighbor within the object's corner set, it's classified as an outer corner.
+3. **`mapply(find_outer_corner, objs)`:** Applies the `find_outer_corner` function to each object in the `objs` set, generating a set of outer corner indices.
+4. **`fill(I, 1, merge(outer_corners))`:** Merges all outer corner indices and fills the corresponding cells in the input grid `I` with the value 1.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def is_outer_corner(i, j):
+    if index(I, (i,j)) == mostcolor(I):  # Ignore background cells
+      return False
+    neighbor_count = 0 
+    for di, dj in {(-1,-1), (-1,1), (1,-1), (1,1)}:
+      ni, nj = i + di, j + dj
+      if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and index(I, (ni, nj)) != mostcolor(I):
+        neighbor_count += 1
+    return neighbor_count == 1  # Outer corner if only one diagonal neighbor
+
+  h, w = len(I), len(I[0])
+  O = canvas(mostcolor(I), (h, w))  # Create output grid with background color
+  for i in range(h):
+    for j in range(w):
+      if is_outer_corner(i, j):
+        O = paint(O, {(1, (i,j))})  # Paint outer corner with value 1
+  return O
+```
+
+**Explanation:**
+
+1. **`is_outer_corner(i, j)`:** This function checks if the cell at index (i, j) is an outer corner. It first ignores background cells. Then, it counts the non-background diagonally connected neighbors. If the count is 1, it's an outer corner.
+2. **`canvas(mostcolor(I), (h, w))`:** Creates an empty output grid `O` filled with the background color of the input grid.
+3. **Nested Loop:** Iterates through each cell of the input grid. If `is_outer_corner` returns True for a cell, it paints that cell with value 1 in the output grid `O`.
+
+## Program Version 3 (Using `objects` and `intersection`)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, True, True) 
+  def outer_corner(obj):
+    return  frozenset({c for c in corners(obj) if len(intersection(ineighbors(c), toindices(obj))) == 1})
+  corner_objs = mapply(outer_corner, objs)
+  O = fill(I, 1, merge(corner_objs))
+  return O
+```
+
+**Explanation:**
+
+This version leverages the `objects` function to identify individual objects. It then defines an `outer_corner` function that iterates over an object's corners and checks for the "outer corner" condition using `intersection` with `ineighbors`. 
+
+## Program Version 4 (Direct Grid Manipulation)
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  O = [list(row) for row in I]  # Make a mutable copy of the grid
+  for i in range(1, h - 1):
+    for j in range(1, w - 1):
+      if I[i][j] != mostcolor(I) and sum([I[i+di][j+dj] != mostcolor(I) for di, dj in {(-1,-1), (-1,1), (1,-1), (1,1)}]) == 1:
+        O[i][j] = 1
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+This version directly iterates over the input grid, identifies non-background cells, checks for the "outer corner" condition, and modifies a copy of the grid accordingly.
+
+## Program Version 5 (Using `rapply` for Diagonal Checks)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, True, True)
+  def outer_corner(obj):
+    return frozenset({c for c in corners(obj) if sum(rapply(lambda d: index(I, add(c,d)) != mostcolor(I), {(-1,-1), (-1,1), (1,-1), (1,1)}))==1})
+  corner_objs = mapply(outer_corner, objs)
+  O = fill(I, 1, merge(corner_objs))
+  return O
+```
+
+**Explanation:**
+
+This version is similar to version 3 but uses `rapply` within the `outer_corner` function to check the diagonal neighbors more concisely.
+
+These five versions provide a range of approaches to solving the transformation task, showcasing different aspects of the DSL and demonstrating various coding styles. 

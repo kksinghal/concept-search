@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation replicates a specific row within each object a number of times based on the object's color. The row being replicated is the one directly below the top row of the object. 
+
+**Details:**
+
+* **Target Row:** The row immediately below the object's uppermost row.
+* **Replication Count:**  Determined by the object's color minus 1. 
+* **Background:**  The background color (most frequent color) remains unchanged.
+* **Object Definition:** Objects seem to be defined by connected pixels of the same color, excluding diagonal connections.
+
+**Example (Input_0 -> Output_0):**
+
+1. **Top-Left Object (Color 5):** 
+   - Target row: `0 5 8 8 8 5`
+   - Replication count: 5 - 1 = 4
+   - Result: The target row is inserted 4 times below the original target row.
+2. **Bottom-Left Object (Color 5):**
+   -  Target row: `0 5 7 7 5 0`
+   -  Replication count: 5 - 1 = 4
+   -  Result: The target row is inserted 4 times below the original target row.
+
+## Program to be Generated:
+
+Here are five distinct program versions to achieve the desired transformation.
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)  # Extract objects (no diagonals)
+  O = I                       # Initialize output
+  for obj in objs:
+    c = color(obj)            # Get object color
+    if c > 0:                 # If not background
+      top_row_i = uppermost(obj)  # Index of object's top row
+      target_row_i = top_row_i + 1 # Index of the row to replicate
+      target_row = crop(I, (target_row_i, leftmost(obj)), (1, width(obj))) # Extract the target row
+      replicated_part = tuple(target_row for _ in range(c - 1)) # Replicate (c - 1) times
+      upper_part = crop(I, (0, 0), (target_row_i, width(I))) # Extract grid above target row
+      lower_part = crop(I, (target_row_i + 1, 0), (height(I) - target_row_i - 1, width(I))) # Extract grid below target row
+      O = vconcat(vconcat(upper_part, replicated_part), lower_part) # Combine all parts
+  return O
+```
+
+**Explanation (Version 1):**
+
+1. **Extract Objects:** `objects(I, T, F, F)` identifies objects in the grid.
+2. **Iterate and Transform:** The code loops through each object.
+3. **Color Check:**  Ignores background objects (color 0).
+4. **Row Identification & Replication:** Determines the target row and replicates it (color - 1) times.
+5. **Grid Splitting & Reassembly:** Splits the grid into three parts (above the target row, the replicated rows, and below the target row) and then reassembles them with the replications.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = list(list(r) for r in I) # Convert to nested lists for easier row insertion
+  for obj in objs:
+    c = color(obj)
+    if c > 0:
+      target_i = uppermost(obj) + 1  
+      target_row = list(crop(I, (target_i, leftmost(obj)), (1, width(obj)))[0])
+      for _ in range(c - 1):
+        O.insert(target_i + 1, target_row) # Insert directly below original target row
+        target_i += 1 
+  return tuple(tuple(r) for r in O) # Convert back to tuple of tuples
+```
+
+**Explanation (Version 2):**
+
+* This version leverages Python's list manipulation for direct row insertion, offering a potentially more intuitive approach. 
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, F)
+    O = I
+    for obj in objs:
+        c = color(obj)
+        if c > 0:
+            start_row = uppermost(obj) + 1
+            row = crop(I, (start_row, 0), (1, width(I)))
+            for i in range(c - 1):
+                O = vconcat(crop(O, (0, 0), (start_row + i, width(I))), vconcat(row, crop(O, (start_row + i, 0), (height(I) - start_row - i, width(I)))))
+    return O
+```
+
+**Explanation (Version 3):**
+
+* This version uses `vconcat` repeatedly to insert the replicated rows. While potentially less efficient, it demonstrates a different approach using DSL functions. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = I
+  for obj in objs:
+    n = color(obj)
+    if n > 1:  
+      y, x = ulcorner(obj)
+      row = crop(I, (y+1, x), (1, width(obj)))
+      O = paint(O, toobject(frozenset({(n-1, (y+1+i, x+j)) for i in range(n-1) for j in range(width(row))}), canvas(0, shape(I))))
+  return O
+```
+
+**Explanation (Version 4):**
+
+* This version uses a combination of `crop`, `canvas`, `toobject` and `paint` to achieve the row replication.
+* It creates a canvas representing the replicated area and paints it onto the original grid.
+
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  for obj in objs:
+    c = color(obj)
+    if c > 1:
+      y = uppermost(obj) + 1
+      h = height(obj)
+      w = width(obj)
+      row = crop(I, (y, leftmost(obj)), (1, w))
+      I = vconcat(vconcat(crop(I, (0, 0), (y, width(I))), tuple(row for _ in range(c - 1))), crop(I, (y + 1, 0), (height(I) - y - 1, width(I))))
+  return I
+```
+
+**Explanation (Version 5):**
+
+* This version iteratively modifies the input grid `I` directly,  splitting and recombining it with the replicated rows.
+* It emphasizes concise code by reusing the `row` variable. 
+
+These five program versions provide diverse solutions to achieve the required row replication transformation, showcasing different strategies for manipulating grids and objects using the DSL functions.

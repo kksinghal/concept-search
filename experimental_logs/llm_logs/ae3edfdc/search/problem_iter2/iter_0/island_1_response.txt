@@ -1,0 +1,181 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected components) in the input grid and applying specific modifications to their positions and values:
+
+* **Object Identification:** Objects are groups of connected, non-zero cells.
+* **Vertical Stacking:** Objects are stacked vertically, centered horizontally. 
+* **Color Modification:** 
+    * The uppermost cell of each object retains its original value.
+    *  The second-from-the-top cell of each object, if it exists,  is replaced with the value '1'. 
+    * All other cells in each object are replaced with the value '2'.
+
+Let's break down each input-output pair:
+
+**Pair 0:**
+
+* The input has three objects: a '7', a '3', and a '7 1 7' structure.
+* These are stacked vertically, centered horizontally, with the '7' on top.
+* The '7' remains unchanged, the '3' becomes '3 2 3', and '7 1 7' becomes '7 1 7'.
+
+**Pair 1:**
+
+*  The input has three objects: a '3', a '7 7', and a '3 2'.
+* Stacking and centering are applied as before.
+*  '3' remains '3', '7 7' becomes '7 1 7', and '3 2' becomes '3 2'.
+
+**Pair 2:**
+
+* The input has three objects: a '3 7', a '2', and a '2 3'.
+*  The output follows the same stacking, centering, and color modification logic.
+
+## Code Generation:
+
+Here are five distinct program versions (Program_to_be_generated) implementing the transformation:
+
+**Program Version 1**
+
+```python
+def program_v1(I):
+  objs = sorted(objects(I, F, F, T), key=lambda obj: uppermost(obj))
+  O = canvas(0, shape(I))
+  for i, obj in enumerate(objs):
+    offset = (i * height(obj) + (height(I) - sum(height(obj) for obj in objs)) // 2, width(I) // 2 - width(obj) // 2)
+    obj_indices = toindices(obj)
+    top_row = min(i for i, j in obj_indices)
+    modified_obj = frozenset({(1 if i == top_row + 1 else 2 if i > top_row + 1 else v, (i, j)) for v, (i, j) in obj})
+    O = paint(O, shift(modified_obj, offset))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and Sort Objects:**  Similar to previous programs, we identify objects in the input grid `I` and sort them based on their uppermost row position using `sorted` and `uppermost`.
+2. **Initialize Canvas:** Create an empty canvas `O` with the same dimensions as the input grid.
+3. **Iterate and Modify:** Loop through each sorted object:
+   - **Calculate Offset:** Determine the vertical and horizontal offsets to center the object.
+   - **Identify Top Row:** Find the index of the top row of the object.
+   - **Modify Object Colors:** Create a new object `modified_obj` where the cell values are changed based on their position relative to the top row.
+   - **Paint Object:** Paint the modified object onto the canvas at the calculated offset.
+4. **Return Output:**  Return the final canvas `O` as the output.
+
+**Program Version 2**
+
+```python
+def program_v2(I):
+  objs = objects(I, F, F, T)
+  h, w = shape(I)
+  canvas_height = sum(height(obj) for obj in objs)
+  O = canvas(0, (canvas_height, w))
+  current_height = (canvas_height - sum(height(obj) for obj in objs)) // 2
+  for obj in sorted(objs, key=lambda obj: uppermost(obj)):
+    obj_height = height(obj)
+    offset = (current_height, (w - width(obj)) // 2)
+    top_indices = {idx for v, idx in obj if idx[0] == uppermost(obj)}
+    O = paint(O, shift(recolor(1, toindices(obj)-top_indices), offset))
+    O = paint(O, shift(recolor(2, top_indices), offset))
+    current_height += obj_height
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects and Calculate Dimensions:**  Identify objects in `I`, get input grid dimensions, and calculate the total height of the output canvas.
+2. **Create Canvas and Initialize Height Tracker:**  Generate an empty canvas `O` and initialize a variable `current_height` to track the vertical position for object placement.
+3. **Iterate and Place Objects:** Loop through each object in sorted order:
+   - **Determine Object Height:**  Get the height of the current object.
+   - **Calculate Offset:** Calculate the offset for the object based on the current height and desired centering.
+   - **Paint Modified Objects:**  Paint the object twice, once with '1' for all cells except the top row and once with '2' for the top row cells, using the calculated offset.
+   - **Update Height Tracker:** Increment `current_height` by the object's height to prepare for the next object's placement.
+4. **Return Output:**  Return the populated canvas `O`.
+
+**Program Version 3**
+
+```python
+def program_v3(I):
+  objs = objects(I, F, F, T)
+  output_height = sum(height(obj) for obj in objs)
+  O = canvas(0, (output_height, width(I)))
+  y_offset = (height(I) - output_height) // 2
+  for i, obj in enumerate(sorted(objs, key=lambda obj: uppermost(obj))):
+    x_offset = (width(I) - width(obj)) // 2
+    obj = shift(obj, (y_offset + i * height(obj), x_offset))
+    top_row = {(v, (i, j)) for v, (i, j) in obj if i == uppermost(obj)}
+    second_row = {(v, (i + 1, j)) for v, (i, j) in top_row if (i + 1, j) in toindices(obj)}
+    O = paint(O, recolor(1, toindices(second_row)))
+    O = paint(O, recolor(2, toindices(obj) - toindices(top_row) - toindices(second_row)))
+    O = paint(O, top_row)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification and Canvas Creation:**  Similar to previous versions, this program begins by identifying objects and creating an output canvas based on their total height and input grid width.
+2. **Iterate and Modify Objects:**  Iterate through each object, sorted by their uppermost row:
+   - **Calculate Offsets:** Determine horizontal and vertical offsets to center the objects.
+   - **Shift Object:** Shift the object to its final position based on calculated offsets.
+   - **Identify Top and Second Rows:**  Extract the top row and the second row (if it exists) from the shifted object.
+   - **Paint Modified Rows:**  Paint the canvas with the modified colors: '1' for the second row, '2' for the remaining rows (excluding the top), and the original values for the top row.
+3. **Return Output:** Return the final modified canvas.
+
+**Program Version 4**
+
+```python
+def program_v4(I):
+  objs = objects(I, F, F, T)
+  obj_heights = [height(obj) for obj in objs]
+  total_height = sum(obj_heights)
+  output = canvas(0, (total_height, width(I)))
+  y_offset = (height(I) - total_height) // 2
+  current_y = y_offset
+  for obj in sorted(objs, key=lambda obj: uppermost(obj)):
+    x_offset = (width(I) - width(obj)) // 2
+    for v, (i, j) in obj:
+      new_i = current_y + i - uppermost(obj)
+      new_j = x_offset + j - leftmost(obj)
+      color = v if new_i == current_y else 1 if new_i == current_y + 1 else 2
+      output = paint(output, {(color, (new_i, new_j))})
+    current_y += obj_heights.pop(0)
+  return output
+```
+
+**Explanation:**
+
+1. **Object Processing and Canvas Setup:** This version identifies objects, calculates their individual heights, and creates an output canvas based on the total height and input grid width.
+2. **Iterate and Position Objects:** It iterates through the objects, sorted by their uppermost row:
+   - **Calculate Offsets:** Determines horizontal and vertical offsets to center each object.
+   - **Iterate Through Cells:**  Iterates through individual cells within each object and calculates their new positions on the canvas.
+   - **Apply Color Modifications:**  Assigns colors to cells based on their vertical position within the object. The top row retains its original color, the second row gets '1', and the rest get '2'.
+   - **Paint Cells:**  Paints each modified cell onto the canvas.
+3. **Return Output:** Returns the final canvas after processing all objects.
+
+**Program Version 5**
+
+```python
+def program_v5(I):
+  objs = sorted(objects(I, F, F, T), key=lambda obj: uppermost(obj))
+  output_height = sum(height(obj) for obj in objs)
+  O = canvas(0, (output_height, width(I)))
+  current_y = (height(I) - output_height) // 2
+  for obj in objs:
+    x_offset = (width(I) - width(obj)) // 2
+    shifted_obj = shift(obj, (current_y - uppermost(obj), x_offset))
+    for i in range(height(obj)):
+      for j in range(width(obj)):
+        color = 1 if i == 1 else 2 if i > 1 else index(I, (uppermost(obj) + i, leftmost(obj) + j))
+        O = paint(O, {(color, (current_y + i, x_offset + j))})
+    current_y += height(obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** This version identifies and sorts objects based on their uppermost position. It then creates an output canvas and sets a variable `current_y` to keep track of the current vertical position on the canvas.
+2. **Object Placement and Color Modification:** It iterates through each sorted object:
+   - **Offset Calculation:** It calculates the necessary offset to center each object horizontally.
+   - **Cell Iteration:** It then iterates through every cell of the object using nested loops.
+   - **Color Assignment:**  It assigns colors based on the cell's position. The top row retains its original value by referencing the input grid `I`, the second row gets '1', and all remaining cells get '2'.
+   - **Painting on Canvas:** It paints the cell with the assigned color at the correct position on the canvas.
+3. **Canvas Update:** After processing each object, it updates `current_y` to the next available vertical position on the canvas.
+4. **Output:**  Finally, it returns the fully populated canvas `O`.
+
+These five program versions provide distinct approaches to achieve the desired transformation in the DSL. Each utilizes different combinations of functions and logic, offering a diverse set of solutions to the problem. 

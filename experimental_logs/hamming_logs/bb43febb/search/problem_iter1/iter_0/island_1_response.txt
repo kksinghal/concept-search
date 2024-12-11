@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the input grid and recoloring the cells that form the "inner frame" of these objects. 
+
+**Let's break down the specifics:**
+
+* **Object Definition:** An object consists of connected cells with the same color, where connectivity can be either orthogonal (adjacent) or diagonal. This is determined by the `objects(I, T, T, T)` and `objects(I, T, F, T)` calls in the provided programs.
+* **Inner Frame:** The inner frame excludes the outermost layer of cells in an object. This means only cells that are surrounded on all four sides (orthogonally) by cells of the same color are part of the inner frame.
+* **Recoloring:** The cells within the inner frame are recolored to a specific value, which is `2` in the given examples.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions using the DSL to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) 
+  for obj in objs:
+    inner_frame = difference(toindices(obj), box(toindices(obj))) 
+    I = fill(I, TWO, inner_frame)
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts objects from the input grid (`I`) considering orthogonal connectivity, treating all colors as non-background.
+2. **Find Inner Frame:** For each object, `difference(toindices(obj), box(toindices(obj)))` calculates the inner frame by subtracting the object's outline (`box`) from its complete set of indices.
+3. **Recolor and Update:** `fill(I, TWO, inner_frame)` recolors the identified inner frame cells to `2` and updates the grid. 
+4. **Return:** The modified grid `I` is assigned to `O` and returned as the output.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)  
+  recolored_objs = frozenset()
+  for obj in objs:
+    shifted_obj_right = shift(obj, RIGHT)
+    shifted_obj_down = shift(obj, DOWN)
+    shifted_obj_left = shift(obj, LEFT)
+    shifted_obj_up = shift(obj, UP)
+    inner_frame = intersection(intersection(toindices(obj), toindices(shifted_obj_right)), intersection(toindices(shifted_obj_down), toindices(shifted_obj_left), toindices(shifted_obj_up)))
+    recolored_objs = insert(recolor(TWO, inner_frame), recolored_objs)
+  O = paint(I, merge(recolored_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to Version 1, but this time we use `objects(I, T, T, T)` to include diagonally connected cells in object definition.
+2. **Create Shifted Objects:** For each object, it generates four shifted versions - shifted one cell to the right, down, left, and up, respectively.
+3. **Find Inner Frame:** The inner frame is identified by finding the intersection of the original object's indices with the indices of all four shifted versions. If a cell is part of the inner frame, it will be present in the original object and all its shifted versions.
+4. **Recolor and Merge:** `recolor(TWO, inner_frame)` recolors the inner frame to `2`, and `insert` adds it to `recolored_objs`. Finally, `merge(recolored_objs)` combines all recolored objects.
+5. **Paint and Return:** `paint(I, ...)` applies the recolorings to the original grid `I`, which is then assigned to `O` and returned.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) 
+  for obj in objs:
+    for index in toindices(obj):
+      if all(index + d in toindices(obj) for d in (UP, DOWN, LEFT, RIGHT)):
+        I = fill(I, TWO, {index})
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, T, F, T)` extracts objects with orthogonal connectivity.
+2. **Iterate and Check:** Iterates through each cell index within each object.
+3. **Inner Frame Condition:** For every cell index, it checks if all its orthogonal neighbors (up, down, left, right) are also present within the object's indices. If true, the cell is part of the inner frame.
+4. **Recolor and Update:** If a cell is identified as part of the inner frame, `fill(I, TWO, {index})` recolors it to `2` and updates the grid `I`.
+5. **Return:** The modified grid `I` is assigned to `O` and returned as the output.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  objs = objects(I, T, T, T) 
+  for obj in objs:
+    for i in range(1, height(obj) - 1):
+      for j in range(1, width(obj) - 1):
+        if (i + uppermost(obj), j + leftmost(obj)) in toindices(obj):
+          O = fill(O, TWO, {(i + uppermost(obj), j + leftmost(obj))}) 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, T)` extracts objects with diagonal connectivity.
+2. **Iterate Within Object Boundaries:** For each object, it iterates through a range of rows and columns that are one cell smaller than the object's height and width, effectively targeting the inner area.
+3. **Check for Cell Membership:** For each (i, j) within the loop, it calculates the corresponding index in the original grid and checks if it's part of the current object.
+4. **Recolor and Update:** If the cell index is part of the object, it recolors that cell to `2` in the output grid `O`.
+5. **Return:** Finally, the modified grid `O` is returned as the output.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  inner_frames = mapply(lambda obj: difference(toindices(obj), box(toindices(obj))), objs)
+  O = paint(I, merge(recolor(TWO, inner_frame) for inner_frame in inner_frames))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Extracts objects from the input grid using `objects(I, T, F, T)`, considering orthogonal connectivity.
+2. **Calculate Inner Frames:**  `mapply` applies a lambda function to each object in `objs`. The lambda function calculates the inner frame of the object using `difference` and `box` similar to previous versions. The result is a set of inner frames for all objects.
+3. **Recolor and Paint:** `recolor(TWO, inner_frame)` recolors each inner frame to `2`. Then, `merge` combines all recolored inner frames. Finally, `paint(I, ...)` applies the recolorings to the original grid `I`.
+4. **Return:** The modified grid `O` is returned as the output.
+
+
+These five program versions demonstrate different approaches to achieve the same transformation, showcasing the flexibility and expressiveness of the provided DSL. 

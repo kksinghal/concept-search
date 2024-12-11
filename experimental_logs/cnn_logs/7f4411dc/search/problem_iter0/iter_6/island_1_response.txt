@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as **"gravity"**:
+
+- **Objects:** The transformation treats each connected group of non-background cells as a single object. 
+- **Movement:** Each object "falls" vertically until it hits either the bottom of the grid or another object. 
+- **Background:** Background cells (most common color) remain unchanged.
+
+**Examples:**
+
+- **Input_0:**  The '7' objects fall to the bottom of the grid.
+- **Input_1:** The '6' objects fall until they rest on top of each other or the bottom of the grid.
+- **Input_2:** Similar to Input_1, the '5' objects are subject to gravity. 
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Extract objects without diagonals, excluding background
+  cleaned_grid = canvas(mostcommon(I), shape(I))  # Create empty grid with background color
+  for obj in objs:
+    shifted_obj = shift(obj, (0, uppermost(obj) * -1)) # Shift each object to the top
+    while uppermost(shifted_obj) < height(I) and all(index(cleaned_grid, add(loc, (1, 0))) == mostcommon(I) for loc in toindices(shifted_obj)):
+      shifted_obj = shift(shifted_obj, (1, 0))  # Move object down if space below is empty
+    cleaned_grid = paint(cleaned_grid, shift(shifted_obj, (0, 0)))  # Paint the object onto the grid
+  return cleaned_grid
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Identify all objects in the input grid.
+2. **Empty Grid:** Create a blank grid filled with the background color.
+3. **Iterate & Shift:** For each object:
+   -  Shift it to the very top of the grid.
+   -  Move it down one row at a time as long as there are empty (background) cells below it.
+4. **Paint:** Paint the final position of the shifted object onto the grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = sorted(objects(I, T, F, T), key=lambda obj: leftmost(obj)) # Extract and sort objects by leftmost column
+  grid = canvas(mostcommon(I), shape(I))
+  for obj in objs:
+    for j in range(leftmost(obj), rightmost(obj) + 1): # Iterate through columns occupied by the object
+      column_cells = {(v, (i, j)) for v, (i, _) in obj if _ == j} # Get cells of the object in the current column
+      if column_cells:
+        lowest_empty_row = next((i for i in range(height(I) - 1, -1, -1) if index(grid, (i, j)) == mostcommon(I)), 0)  # Find lowest empty row in the column
+        grid = paint(grid, shift(column_cells, (lowest_empty_row - uppermost(column_cells), 0))) # Place the column at the lowest empty row
+  return grid
+```
+
+**Explanation:**
+
+1. **Extract and Sort:** Identify all objects and sort them based on their leftmost column.
+2. **Empty Grid:** Create a blank grid filled with the background color.
+3. **Iterate & Place:** For each object:
+   - Iterate through each column occupied by the object.
+   - Find the lowest empty row in that column on the grid.
+   - Place the corresponding column of cells from the object onto the grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  cleaned_grid = canvas(mostcommon(I), shape(I))
+  for j in range(width(I)):
+    for i in range(height(I)-1, -1, -1): # Iterate from bottom to top for each column
+      v = index(I, (i,j))
+      if v != mostcommon(I):  # If not background
+        new_i = next((k for k in range(i, height(I)) if index(cleaned_grid, (k, j)) == mostcommon(I)), height(I)-1)
+        cleaned_grid = paint(cleaned_grid, {(v, (new_i, j))})
+  return cleaned_grid
+```
+
+**Explanation:**
+
+1. **Empty Grid:** Create a blank grid filled with the background color.
+2. **Iterate Columns:** For each column in the input grid:
+    - Iterate from bottom to top.
+    - If a non-background cell is found:
+        - Find the lowest empty cell in that column on the output grid.
+        -  Paint the non-background cell onto the output grid at that position.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  output = I # Directly modify input grid (destructive)
+  for j in range(width(I)): # For each column
+    for i in range(height(I) - 1, 0, -1): # Iterate from bottom to top
+      if output[i][j] != mostcommon(I) and output[i-1][j] == mostcommon(I): # If current cell is filled and the one above is empty
+        for k in range(i, 0, -1): # Find the highest possible empty cell in the column
+          if output[k-1][j] != mostcommon(I):
+            break
+          output = paint(cover(output, {(output[k][j], (k, j))}), {(output[k][j], (k - 1, j))}) # Move the cell up
+  return output
+```
+
+**Explanation:** 
+
+1. **Direct Modification:**  This version directly modifies the input grid for efficiency.
+2. **Iterate Columns:** For each column in the input grid:
+    - Iterate from bottom to top.
+    - If a filled cell is found with an empty cell above it:
+       -  Find the highest empty cell in that column.
+       - Move the filled cell to that position, effectively simulating "falling." 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    grid = canvas(mostcommon(I), shape(I))
+    for i in range(height(I)-1, -1, -1): # Iterate rows from bottom to top
+        for obj in objs:
+            for j in range(leftmost(obj), rightmost(obj) + 1):
+                if (i, j) in toindices(obj) and index(grid, (i,j)) == mostcommon(I): # If the cell belongs to the object and is currently empty on the grid
+                    grid = paint(grid, {(index(I, (i,j)), (i,j))})
+    return grid
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Identify all objects in the input grid.
+2. **Empty Grid:** Create a blank grid filled with the background color.
+3. **Iterate Rows:** Iterate through each row from bottom to top.
+4. **Paint Objects:** For each object and each cell within the object, check if the corresponding cell on the grid is empty. If so, paint the cell from the object onto the grid.
+
+
+These five versions provide different approaches to implement the "gravity" transformation using the provided DSL, offering diversity in logic and function combinations.

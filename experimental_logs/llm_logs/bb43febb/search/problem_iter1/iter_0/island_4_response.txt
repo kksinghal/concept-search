@@ -1,0 +1,132 @@
+## Transformation Analysis:
+
+The transformation aims to recolor a specific portion of the primary object in the input grid. 
+
+* **Input 0:** A horizontal strip within the main object, three cells wide, gets recolored from the top. 
+* **Input 1:** This time, the recoloring targets a vertical strip, also three cells wide, but starting from the leftmost side of the object.
+
+In both cases, the recoloring seems to maintain a one-cell border of the original color around the modified area.
+
+## Code Generation:
+
+Here are five distinct program versions using the provided DSL to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  # Find the most common color in the grid, representing the main object
+  obj_color = mostcolor(I)
+  # Get the indices of all cells belonging to the main object
+  obj_indices = ofcolor(I, obj_color)
+  # Calculate the center of the object
+  center_i, center_j = centerofmass(obj_indices)
+  # Identify the indices to recolor based on object's orientation
+  recolor_indices = frozenset((i, j) for i, j in obj_indices if (
+    (portrait(obj_indices) and center_i - 2 <= i <= center_i) or 
+    (not portrait(obj_indices) and center_j <= j <= center_j + 2)
+  ))
+  # Recolor the selected indices
+  O = fill(I, TWO, recolor_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the main object:**  We find the most common color in the grid, assuming it represents the main object.
+2. **Locate the recoloring area:** The `centerofmass` function helps determine the object's orientation (portrait or landscape). Based on this, we select a horizontal or vertical strip of indices centered around the object's center of mass.
+3. **Recolor and return:** The `fill` function applies the new color (TWO) to the selected indices, effectively recoloring the desired portion of the object.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  obj = largest(objects(I, T, F, F), size)
+  h, w = shape(obj)
+  if h > w:
+    start = (uppermost(obj) + 1, leftmost(obj))
+    dims = (3, w)
+  else:
+    start = (uppermost(obj), leftmost(obj) + 1)
+    dims = (h, 3)
+  recolor_area = toindices(crop(canvas(ZERO, shape(obj)), start, dims))
+  recolor_indices = toindices(toobject(recolor_area, I))
+  O = fill(I, TWO, recolor_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Isolate the main object:**  The `objects` function identifies all distinct objects in the grid. We pick the largest one assuming it's the main object.
+2. **Determine recoloring area:**  The object's shape is used to determine whether a horizontal or vertical strip is needed. We then define the starting point and dimensions of this strip.
+3. **Map and recolor:** A blank canvas of the object's size is used to easily extract the indices of the recoloring area. These indices are then mapped onto the original grid, and the `fill` function applies the new color.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+    obj_color = mostcolor(I)
+    obj = largest(objects(I, T, F, F), size)
+    h, w = shape(obj)
+    if h > w:
+        upper_bound = uppermost(obj) + 3
+        recolor_indices = frozenset((i, j) for v, (i, j) in obj if i < upper_bound)
+    else:
+        right_bound = leftmost(obj) + 3
+        recolor_indices = frozenset((i, j) for v, (i, j) in obj if j < right_bound)
+    O = fill(I, TWO, recolor_indices)
+    return O
+```
+
+**Explanation:**
+
+1. **Find the main object and its dimensions:** Similar to previous versions, we identify the main object and calculate its height and width.
+2. **Establish recoloring boundaries:** We define a boundary based on the object's orientation - either a row index for horizontal strips or a column index for vertical ones.
+3. **Iterate and recolor:** The code iterates through the object's cells, recoloring those whose indices fall within the established boundary.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  obj_color = mostcolor(I)
+  obj_indices = ofcolor(I, obj_color)
+  h, w = shape(obj_indices)
+  if h > w:
+    shift_amount = (1, 0)
+  else:
+    shift_amount = (0, 1)
+  shifted_indices = shift(obj_indices, shift_amount)
+  intersection = obj_indices & shifted_indices
+  recolor_indices = obj_indices - intersection
+  O = fill(I, TWO, recolor_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Locate the main object:**  We find the indices of all cells belonging to the main object.
+2. **Shift and intersect:** The object's indices are shifted by one unit either vertically or horizontally depending on its orientation. The intersection of the original and shifted indices reveals the border that needs to be preserved.
+3. **Recolor the difference:** By subtracting the intersection from the original indices, we obtain the indices to be recolored. The `fill` function applies the new color to these indices.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  main_obj = largest(objects(I, T, F, F), size)
+  if portrait(main_obj):
+    recolor_area = crop(subgrid(main_obj, I), (1, 0), (3, width(main_obj)))
+  else:
+    recolor_area = crop(subgrid(main_obj, I), (0, 1), (height(main_obj), 3))
+  recolored_obj = toobject(recolor(TWO, asindices(recolor_area)), recolor_area)
+  O = paint(cover(I, main_obj), recolored_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Isolate the main object:** Similar to version 2, we find the largest object, assuming it's the main one.
+2. **Extract and recolor the target area:** We directly crop the relevant portion of the object based on its orientation using `subgrid` and `crop`. This cropped area is then recolored by creating a new object with the desired color.
+3. **Combine and return:** The original object is removed from the grid using `cover`, and the recolored portion is painted back in using `paint`.
+
+
+These diverse program versions demonstrate various approaches to achieving the same transformation, highlighting the flexibility and expressiveness of the DSL. Each version leverages different functions and logic, providing a range of solutions to the problem.

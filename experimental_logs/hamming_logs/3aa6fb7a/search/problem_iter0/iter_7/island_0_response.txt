@@ -1,0 +1,155 @@
+## Transformation Analysis:
+
+The transformation aims to identify specific cells adjacent to the "8" objects and change their value to "1". 
+
+**Input_0 to Output_0:**
+
+- The cell directly to the right of the top-left "8" is changed to "1".
+- The cell directly below the bottom-right "8" is changed to "1".
+
+**Input_1 to Output_1:**
+
+- The cell directly below the top-right "8" is changed to "1".
+- The cell directly to the right of the bottom-left "8" is changed to "1".
+
+Essentially, for each object of "8"s, the transformation selects a single adjacent "0" cell and changes it to "1". The selection logic seems to be based on finding the first empty cell in a clockwise sweep around each "8" object.
+
+
+## Code Generation:
+
+Here are five distinct versions of "Program_to_be_generated" that accomplish the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def mark_adjacent(loc):
+    neighbors = [(loc[0], loc[1]+1), (loc[0]+1, loc[1]+1), 
+                 (loc[0]+1, loc[0]), (loc[0]+1, loc[1]-1), 
+                 (loc[0], loc[1]-1), (loc[0]-1, loc[1]-1), 
+                 (loc[0]-1, loc[0]), (loc[0]-1, loc[1]+1)]
+    for ni, nj in neighbors:
+      if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0:
+        return (ni, nj)
+    return None
+
+  marked_indices = mapply(mark_adjacent, ofcolor(I, 8))
+  return fill(I, 1, frozenset(marked_indices) - {None})
+```
+
+**Explanation:**
+
+1. **`mark_adjacent(loc)` Function:** 
+   - Takes the location `loc` of an "8" cell.
+   - Iterates through its 8 neighbors clockwise.
+   - Returns the first neighbor location that contains a "0". 
+   - If no "0" neighbor is found, it returns `None`.
+
+2. **Main Program:**
+   - `ofcolor(I, 8)` retrieves the locations of all "8" cells.
+   - `mapply(mark_adjacent, ...)` applies `mark_adjacent` to each "8" location, collecting the target locations to change.
+   - `frozenset(...) - {None}` removes any `None` values from the set.
+   - `fill(I, 1, ...)` fills the identified locations with "1" in the input grid `I`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def mark_first_empty(obj):
+    for _, (i, j) in obj:
+      for di, dj in [(0, 1), (1, 1), (1, 0), (1, -1), 
+                     (0, -1), (-1, -1), (-1, 0), (-1, 1)]:
+        ni, nj = i + di, j + dj
+        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0:
+          return (ni, nj)
+    return None
+
+  marked_indices = rapply(mark_first_empty, objects(I, True, False, False))
+  return fill(I, 1, frozenset(marked_indices) - {None})
+```
+
+**Explanation:**
+
+1. **`mark_first_empty(obj)` Function:**
+   - Takes an object (a set of connected "8" cells) as input.
+   - Iterates through each cell in the object.
+   - For each cell, it checks its neighbors clockwise for the first empty ("0") cell.
+   - Returns the location of the first empty cell found.
+   - If no empty cell is found, it returns `None`.
+
+2. **Main Program:**
+   - `objects(I, True, False, False)` identifies all connected objects of "8"s in the grid.
+   - `rapply(...)` applies the `mark_first_empty` function to each "8" object. 
+   - The rest of the logic is similar to Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def find_adjacent_empty(loc):
+    for d in [RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, 
+              LEFT, UP_LEFT, UP, UP_RIGHT]:
+      nloc = add(loc, d)
+      if 0 <= nloc[0] < len(I) and 0 <= nloc[1] < len(I[0]) and I[nloc[0]][nloc[1]] == 0:
+        return nloc
+    return None
+
+  indices_to_fill = frozenset(find_adjacent_empty(loc) for loc in ofcolor(I, 8))
+  return fill(I, 1, indices_to_fill - {None}) 
+```
+
+**Explanation:**
+
+- This version is similar in structure to Version 1, but it utilizes pre-defined direction constants (`RIGHT`, `DOWN_RIGHT`, etc.) from the DSL for more concise and readable neighbor checking within the `find_adjacent_empty` function.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def mark_target(obj):
+    min_i = min(i for _, (i, _) in obj)
+    max_i = max(i for _, (i, _) in obj)
+    min_j = min(j for _, (_, j) in obj)
+    max_j = max(j for _, (_, j) in obj)
+
+    if min_j + 1 < len(I[0]) and I[min_i][min_j + 1] == 0:
+      return (min_i, min_j + 1)
+    elif max_i + 1 < len(I) and I[max_i + 1][max_j] == 0:
+      return (max_i + 1, max_j)
+    return None
+  
+  marked_indices = rapply(mark_target, objects(I, True, False, False))
+  return fill(I, 1, frozenset(marked_indices) - {None})
+```
+
+**Explanation:**
+
+- This version focuses on finding the top-left and bottom-right corners of each "8" object. 
+- It prioritizes filling the cell to the right of the top-left corner and the cell below the bottom-right corner.
+- This approach leverages the specific patterns observed in the provided input-output pairs.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def find_fill_location(obj):
+    for _, (i, j) in obj:
+      if (i + 1 < len(I) and j + 1 < len(I[0]) and 
+          I[i + 1][j + 1] == 0 and 
+          ((i + 1, j) in toindices(obj) or (i, j + 1) in toindices(obj))):
+        return (i + 1, j + 1)
+      if (i - 1 >= 0 and j + 1 < len(I[0]) and 
+          I[i - 1][j + 1] == 0 and 
+          ((i - 1, j) in toindices(obj) or (i, j + 1) in toindices(obj))):
+        return (i - 1, j + 1)
+    return None
+
+  target_indices = frozenset(find_fill_location(obj) for obj in objects(I, True, False, False))
+  return fill(I, 1, target_indices - {None})
+```
+
+**Explanation:**
+
+- This version focuses on filling diagonal cells relative to the "8" objects if specific conditions are met. It checks for diagonally adjacent "0" cells that share either a row or column with the current "8" cell. This approach is tailored to the diagonal filling pattern observed in the examples.
+
+Each of these program versions provides a distinct approach to solving the given transformation using the provided DSL. These examples demonstrate the flexibility and expressiveness of the DSL in representing different logical solutions to the same problem.

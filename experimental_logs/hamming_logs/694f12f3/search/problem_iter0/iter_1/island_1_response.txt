@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation involves identifying 4x4 squares within the input grid and then filling a 2x2 square within them based on their vertical position.
+
+**Input_0:**
+- There are two 4x4 squares. 
+- The top square has a 2x2 square filled with '1's, offset by (1,1) from the square's upper-left corner.
+- The bottom square has a 2x2 square filled with '2's, offset by (1,1) from the square's upper-left corner.
+
+**Input_1:**
+- There are two 4x4 squares.
+- The top square has a 2x2 square filled with '2's, offset by (1,1) from the square's upper-left corner.
+- The bottom square has a 2x2 square filled with '1's, offset by (1,1) from the square's upper-left corner.
+
+## Code Generation:
+
+Here are five distinct programs to achieve the desired transformation:
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)  # Extract objects from the grid.
+  O = I 
+  for obj in objs:
+    if shape(obj) == (4, 4):  # Check for 4x4 squares.
+      color_to_fill = 1 if uppermost(obj) < height(I) // 2 else 2  # Determine fill color based on vertical position.
+      # Fill the 2x2 square using underfill to avoid overwriting existing values.
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (1, 1))) 
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (1, 2)))
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (2, 1)))
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (2, 2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Identify distinct objects (connected components) in the grid.
+2. **Iterate and Filter:** Loop through each object and check if its shape is 4x4.
+3. **Determine Fill Color:** Calculate the appropriate fill color (1 or 2) based on the object's vertical position relative to the grid's center.
+4. **Fill Inner Square:** Use `underfill` to paint a 2x2 square within the 4x4 object, ensuring only background cells are filled.
+
+**Program Version 2**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if square(obj) and size(obj) == 16:  # Check for 4x4 squares using square and size.
+      fill_color = 1 if uppermost(obj) < height(I) // 2 else 2
+      inner_square = shift(crop(I, add(ulcorner(obj), (1,1)), (2,2)), (-1,-1))  # Extract and shift the inner 2x2 area.
+      O = paint(cover(O, obj), recolor(fill_color, inner_square))  # Paint the inner square with the chosen color.
+  return O
+```
+
+**Explanation:**
+
+1. **Identify 4x4 Squares:** Find objects that are both squares (`square(obj)`) and have a size of 16 (`size(obj) == 16`).
+2. **Determine Fill Color:** Similar to Version 1.
+3. **Extract Inner Square:** Use `crop` to isolate the 2x2 area within the 4x4 square and `shift` to align it for painting.
+4. **Paint Inner Square:** Erase the original object (`cover`) and then paint (`paint`) the extracted inner square with the determined fill color.
+
+**Program Version 3**
+
+```python
+def solve(I):
+  O = I
+  for i in range(height(I) // 4):
+    for j in range(width(I) // 4):
+      if index(I, (i * 4, j * 4)) != 0: # Check if a 4x4 square exists at this location.
+        fill_color = 1 if i * 4 < height(I) // 2 else 2
+        O = underfill(O, fill_color, frozenset({(i * 4 + 1, j * 4 + 1), (i * 4 + 1, j * 4 + 2), 
+                                         (i * 4 + 2, j * 4 + 1), (i * 4 + 2, j * 4 + 2)}))  # Directly fill the inner square.
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate in 4x4 Steps:**  Iterate through the grid in steps of 4 to cover all potential 4x4 square starting positions.
+2. **Check for Square Existence:** Verify if a 4x4 square starts at the current position.
+3. **Determine Fill Color:** Similar to previous versions.
+4. **Directly Fill:**  Instead of extracting objects, directly fill the inner 2x2 square using its calculated indices and `underfill`.
+
+**Program Version 4**
+
+```python
+def solve(I):
+  O = canvas(mostcolor(I), shape(I))  # Create a blank canvas of the same size as the input.
+  for obj in objects(I, T, F, T):
+    if square(obj) and size(obj) == 16:
+      fill_color = 1 if uppermost(obj) < height(I) // 2 else 2
+      O = paint(O, recolor(fill_color, shift(crop(obj, (1,1), (2,2)), (-1,-1)))) # Paint directly on the new canvas.
+  return O
+```
+
+**Explanation:**
+
+1. **Blank Canvas:** Generate a new grid filled with the background color and the same dimensions as the input.
+2. **Iterate and Filter:** Similar to Version 2.
+3. **Determine Fill Color:** Similar to previous versions.
+4. **Direct Painting:**  Instead of modifying the original grid, extract the inner 2x2 square from the object, recolor it, and paint it directly onto the new canvas.
+
+**Program Version 5**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  filled_squares = mapply(lambda obj: underfill(I, 1 if uppermost(obj) < height(I) // 2 else 2, 
+                                    shift(crop(I, add(ulcorner(obj), (1,1)), (2,2)), (-1,-1))) 
+                        if square(obj) and size(obj) == 16 else I, objs)  # Use mapply to process and merge.
+  return last(filled_squares) # Return the last modified grid.
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Similar to previous versions.
+2. **`mapply` for Processing:** Apply a lambda function to each object in the `objs` set using `mapply`.
+3. **Lambda Function:** The lambda function checks for 4x4 squares, determines the fill color, and uses `underfill` to modify the grid if it's a 4x4 square. If not, it returns the original grid.
+4. **Merge and Return:** `mapply` merges the results of applying the lambda function to each object. The `last` function is used to return the final modified grid.
+
+
+These five program versions demonstrate different approaches and logic flow within the constraints of the DSL. They showcase various ways to achieve the same transformation, highlighting the flexibility and expressiveness of the provided DSL.

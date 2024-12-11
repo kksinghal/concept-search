@@ -1,0 +1,129 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:**
+
+The transformation creates a 3x3 bounding box around each group of connected '2's, excluding any groups that touch the border of the grid.
+
+**Input_1 to Output_1:**
+
+This transformation is similar to the previous one. However, instead of a fixed 3x3 bounding box, the program generates a bounding box that encompasses the entire group of '2's, along with any directly adjacent '2's. As before, groups touching the grid's edge are ignored.
+
+
+## Program Versions:
+
+**Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) # Extract objects, excluding background
+  expanded_boxes = mapply(
+                      lambda obj: box(
+                           merge(
+                               apply(
+                                    lambda loc: dneighbors(loc), 
+                                    toindices(obj)
+                               )
+                           )
+                       ), 
+                      objs
+                  )
+  filtered_boxes = sfilter(expanded_boxes, lambda box: not bordering(box, I)) # Filter boxes touching the border
+  O = fill(I, THREE, merge(filtered_boxes))  # Fill the filtered bounding boxes with '3'
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** We first extract all connected objects (groups of '2's) from the input grid `I`, excluding the background, using `objects(I, T, F, T)`.
+2. **Expand Bounding Boxes:** For each object, we find its bounding box using `box(obj)`. However, we want to include the directly adjacent cells in the box. So, for each cell in the object, we find its direct neighbors (`dneighbors(loc)`) and merge them (`merge`) before computing the final bounding box. 
+3. **Filter Border Boxes:** Similar to Program B, we filter out boxes that touch the grid border using `bordering(box, I)`.
+4. **Fill Boxes:** Finally, we fill the remaining boxes with the value '3' using `fill(I, THREE, merge(filtered_boxes))`.
+
+**Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def process_object(obj):
+    return box(merge(apply(dneighbors, toindices(obj)))) if not bordering(obj, I) else frozenset()
+  return fill(I, THREE, merge(mapply(process_object, objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **Define `process_object` Function:** This function takes an object as input and returns its expanded bounding box if it doesn't touch the grid border, otherwise an empty set.
+2. **Extract Objects:**  We extract all objects from the input grid, excluding the background (`objects(I, T, F, T)`).
+3. **Process Each Object:**  We apply the `process_object` function to each extracted object using `mapply`. This generates a set of expanded bounding boxes for non-bordering objects.
+4. **Fill Boxes:** Finally, we merge all the generated boxes and fill them with '3' in the original grid using `fill`.
+
+**Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def expand_and_filter(obj):
+    return box(obj) | mfilter(
+                            dneighbors, 
+                            toindices(obj)
+                          ) if not bordering(box(obj), I) else frozenset()
+  return fill(I, THREE, merge(mapply(expand_and_filter, objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **Define `expand_and_filter` Function:** This function takes an object, calculates its bounding box, and adds the direct neighbors of its cells to the box if the object doesn't touch the grid border. Otherwise, it returns an empty set.
+2. **Extract and Process Objects:** This part is similar to Version 2, where we extract all the objects and apply the `expand_and_filter` function.
+3. **Fill Boxes:**  We merge the resulting boxes and fill them with '3' on the original grid using `fill`. 
+
+**Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    boxes = set()
+    for obj in objs:
+        if not bordering(obj, I):
+            neighbors_set = mfilter(dneighbors, toindices(obj))
+            boxes.add(box(obj.union(neighbors_set)))
+    return fill(I, THREE, merge(boxes))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** This part is similar to previous versions, extracting objects excluding the background.
+2. **Iterate and Expand:** We iterate through each object, calculate its direct neighbors, and if the object doesn't touch the border, we create a bounding box encompassing both the object and its neighbors.
+3. **Fill Boxes:** We then merge all generated boxes and fill them with '3' in the original grid.
+
+
+**Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def process_cell(i, j):
+    if index(I, (i, j)) != mostcolor(I) and not bordering(initset((i,j)), I):
+      return box(
+               merge(
+                   apply(dneighbors, 
+                         dneighbors((i, j)))
+               )
+             ) 
+    return frozenset()
+  indices = asindices(I)
+  return fill(
+             I, 
+             THREE, 
+             merge(
+                 apply(
+                     lambda loc: process_cell(*loc), 
+                     indices
+                 )
+             )
+         )
+```
+
+**Explanation:**
+
+1. **Define `process_cell` Function:** This function takes cell coordinates, checks if the cell is not background and doesn't touch the grid border. If both conditions are true, it calculates a bounding box covering the cell and its neighbors' neighbors. Otherwise, it returns an empty set.
+2. **Iterate Through Cells:** We get all cell indices of the input grid and apply the `process_cell` function to each cell.
+3. **Fill Boxes:** We merge the resulting boxes and fill them with '3' in the original grid using `fill`.
+
+
+These five program versions showcase different approaches and DSL function combinations to achieve the desired transformation, demonstrating diverse solutions within the DSL's constraints. Each version leverages a unique strategy for identifying relevant cells, calculating expanded bounding boxes, and applying the transformation while ensuring no overlap with the existing code examples.

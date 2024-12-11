@@ -1,0 +1,154 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:** The top half of the top object (4s) remains unchanged. The bottom half of the top object is recoloured to 1.  The top half of the bottom object (4s) is recoloured to 2. The bottom half of the bottom object remains unchanged.
+
+**Input_1 to Output_1:** The top half of the top object (4s) remains unchanged. The bottom half of the top object is recoloured to 2. The top half of the bottom object (4s) is recoloured to 1. The bottom half of the bottom object remains unchanged.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+  h1 = height(obj1) // 2
+  h2 = height(obj2) // 2
+  O = paint(canvas(0, shape(I)), recolor(1, shift(crop(toindices(obj1), (h1, 0), (h1, width(obj1))), (-h1, 0))))
+  O = paint(O, recolor(2, shift(crop(toindices(obj2), (0, 0), (h2, width(obj2))), (h2, 0))))
+  O = paint(O, obj1)
+  O = paint(O, obj2)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and order objects:** Similar to Program_B, we identify the two objects and ensure `obj1` is the top one.
+2. **Calculate splitting points:** Calculate the halfway point for both objects' heights (`h1`, `h2`).
+3. **Recolor bottom half of top object:**
+   - `crop(toindices(obj1), (h1, 0), (h1, width(obj1)))`: Extract the bottom half of `obj1`.
+   - `shift(... (-h1, 0))`: Move the extracted half back up to its original position.
+   - `recolor(1, ...)`: Recolor the extracted and shifted half to 1.
+   - `paint(canvas(0, shape(I)), ...)`: Paint this recoloured half onto a blank canvas.
+4. **Recolor top half of bottom object:**  Similar logic as above, but recoloring to 2 and using the top half of `obj2`.
+5. **Paint original objects:**  Paint the original `obj1` and `obj2` over the canvas. This ensures any overlapping areas are drawn with the correct original colors.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+  O = canvas(0, shape(I))
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if (i, j) in toindices(obj1):
+        O = paint(O, {(1 if i >= uppermost(obj1) + height(obj1) // 2 else I[i][j], (i, j))})
+      elif (i, j) in toindices(obj2):
+        O = paint(O, {(2 if i < uppermost(obj2) + height(obj2) // 2 else I[i][j], (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and order objects:** Same as Version 1.
+2. **Iterate through grid:** Iterate over each cell (i, j) of the input grid.
+3. **Conditional recoloring:**
+   - If the cell belongs to `obj1`:
+     - Recolor to 1 if the cell is in the bottom half of `obj1`.
+     - Otherwise, keep the original color from the input grid (`I[i][j]`).
+   - If the cell belongs to `obj2`:
+     - Recolor to 2 if the cell is in the top half of `obj2`.
+     - Otherwise, keep the original color.
+4. **Paint onto canvas:**  Paint the recoloured cell onto the output canvas (`O`).
+
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+  split1 = uppermost(obj1) + height(obj1) // 2
+  split2 = uppermost(obj2) + height(obj2) // 2
+  O = paint(canvas(0, shape(I)),
+            recolor(1, frozenset((i, j) for i, j in toindices(obj1) if i >= split1)))
+  O = paint(O, 
+            recolor(2, frozenset((i, j) for i, j in toindices(obj2) if i < split2)))
+  O = paint(O, obj1)
+  O = paint(O, obj2)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects and splitting points:**  Same as previous versions.
+2. **Recolor bottom half of `obj1`:**
+   - `frozenset((i, j) for i, j in toindices(obj1) if i >= split1)`: Create a set of indices for the bottom half of `obj1`.
+   - `recolor(1, ...)`: Recolor this set of indices to 1.
+   - `paint(... , ...)`: Paint the recoloured half onto the canvas.
+3. **Recolor top half of `obj2`:**  Similar logic as above, but recoloring to 2 and using the top half of `obj2`.
+4. **Paint original objects:**  Same as Version 1 and 2, ensuring correct color in overlapping areas.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = order(objects(I, F, F, T), uppermost)
+  O = canvas(0, shape(I))
+  for c, obj in enumerate(objs):
+    split = uppermost(obj) + height(obj) // 2
+    O = paint(O, recolor(c + 1, frozenset((i, j) for i, j in toindices(obj) if (c == 0 and i >= split) or (c == 1 and i < split))))
+    O = paint(O, obj) 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and order objects:** Similar to previous versions.
+2. **Iterate through objects:**  Iterate through each object (`obj`) in the ordered list `objs`.
+3. **Calculate splitting point:** Calculate the halfway point for the current object's height.
+4. **Conditional recoloring within loop:**
+   - `(c == 0 and i >= split)`: If it's the first object (top) and the cell is in the bottom half, recolor to `c + 1` (which is 1).
+   - `(c == 1 and i < split)`: If it's the second object (bottom) and the cell is in the top half, recolor to `c + 1` (which is 2).
+5. **Paint onto canvas:**  Paint the recoloured half and then the original object onto the output canvas.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+  h1, w1 = shape(obj1)
+  h2, w2 = shape(obj2)
+  top1 = crop(toindices(obj1), (0, 0), (h1 // 2, w1))
+  bottom1 =  crop(toindices(obj1), (h1 // 2, 0), (h1 - h1 // 2, w1))
+  top2 = crop(toindices(obj2), (0, 0), (h2 // 2, w2))
+  bottom2 =  crop(toindices(obj2), (h2 // 2, 0), (h2 - h2 // 2, w2))
+  O = paint(canvas(0, shape(I)), recolor(1, bottom1))
+  O = paint(O, recolor(2, top2))
+  O = paint(O, toobject(top1, I))
+  O = paint(O, toobject(bottom2, I))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and order objects:** Similar to previous versions.
+2. **Calculate object dimensions:** Calculate the height and width of both objects (`h1`, `w1`, `h2`, `w2`).
+3. **Extract top and bottom halves:** For each object, extract its top and bottom halves using `crop` based on calculated dimensions.
+4. **Recolor and paint:** 
+   - Recolor the bottom half of `obj1` to 1 and paint it onto the canvas.
+   - Recolor the top half of `obj2` to 2 and paint it onto the canvas.
+   - Paint the original top half of `obj1` and the original bottom half of `obj2` onto the canvas to ensure correct coloring in overlapping areas.
+
+These five versions provide distinct approaches to achieve the target transformation, utilizing different DSL function combinations and logic. Remember to test each version thoroughly to ensure they produce the desired output for all input cases. 

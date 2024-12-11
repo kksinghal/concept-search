@@ -1,0 +1,146 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (groups of connected non-background cells) and applying the following:
+
+* **Framing:** Surround each object with a frame of a specific color (here, color 6).
+* **Filling:** Fill the area within the frame but outside the object with a specific color (here, color 4). 
+* **Pattern Replacement:** Within the filled area, replace colors based on a diagonal pattern using other colors (here, colors 1 and 2).
+
+**Input 0 - Output 0:** Two objects (8 and 3) are framed and filled. The pattern replacement creates alternating diagonals of 1 and 2 within the filled areas.
+
+**Input 1 - Output 1:** A single object (3) is framed and filled. There's no pattern replacement as the filled area is empty.
+
+**Input 2 - Output 2:** Two objects (2 and 3) are framed and filled. Pattern replacement occurs only for the object 2, creating diagonals of 1 and 2.
+
+**Input 3 - Output 3:** A single object (8) is framed and filled. There's no pattern replacement as the filled area is empty.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)  # Identify objects
+  O = fill(I, 6, mapply(outbox, objs))  # Frame the objects
+  for obj in objs:
+    O = underfill(O, 4, inbox(toindices(obj)))  # Fill inside the frame
+    for i, j in toindices(inbox(toindices(obj))):
+      if (i + j) % 2 == 0:  # Diagonal pattern replacement
+        O = fill(O, 1, {(i, j)})
+      elif (i + j) % 4 == 1:
+        O = fill(O, 2, {(i, j)})
+      elif (i + j) % 4 == 3:
+        O = fill(O, 1, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identify foreground objects using `objects(I, T, F, T)`.
+2. **Framing:** Create the frame by filling the `outbox` of each object with color 6.
+3. **Fill Inside Frame:**  For each object, fill its `inbox` with color 4 using `underfill`.
+4. **Diagonal Pattern Replacement:** Iterate over the `inbox` indices. Based on the sum of row and column indices modulo 4, replace colors with 1 or 2, creating the diagonal pattern.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  objs = fgpartition(I)  # Identify objects
+  O = I
+  for obj in objs:
+    O = paint(O, recolor(6, outbox(toindices(obj))))  # Frame objects
+    O = underfill(O, 4, difference(inbox(toindices(obj)), toindices(obj)))  # Fill inside frame
+    shifted_obj = shift(obj, (1, 1)) # Shift object diagonally
+    O = paint(O, recolor(1, difference(inbox(toindices(shifted_obj)), toindices(shifted_obj)))) # Replace every other diagonal with 1
+    O = paint(O, recolor(2, intersection(inbox(toindices(obj)), toindices(shifted_obj)))) # Replace remaining diagonal intersections with 2 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identify foreground objects using `fgpartition(I)`.
+2. **Framing:** Create the frame by recoloring the `outbox` of each object to 6.
+3. **Fill Inside Frame:** Fill the area inside the frame but outside the object with color 4 using `underfill` and `difference`.
+4. **Diagonal Pattern Replacement:** 
+    - Shift the object diagonally down-right using `shift`.
+    - Replace every other diagonal with color 1 by recoloring the `inbox` of the shifted object, excluding the shifted object itself.
+    - Replace the remaining diagonal intersections with color 2 by recoloring the intersection of the original and shifted object's `inbox`.
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, T)
+  O = fill(I, 6, mapply(outbox, objs)) # Frame objects
+  O = underfill(O, 4, difference(mapply(backdrop, objs), mapply(toindices, objs)))  # Fill area inside the frame 
+  for obj in objs:
+    for i in range(uppermost(obj) + 1, lowermost(obj)):  # Iterate within the frame
+      for j in range(leftmost(obj) + 1, rightmost(obj)):
+        if (i + j) % 2 == 0: # Apply diagonal pattern
+          O = fill(O, 1, {(i, j)})
+        else:
+          O = fill(O, 2, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identify foreground objects using `objects(I, T, F, T)`.
+2. **Framing and Filling:** Create the frame and fill inside it using `fill` and `underfill` on the `outbox` and the area difference between `backdrop` and object `toindices`.
+3. **Diagonal Pattern Replacement:** Iterate within the frame of each object. Apply a simple alternating diagonal pattern of 1 and 2 based on the sum of the row and column indices modulo 2.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)  # Identify objects
+  O = I
+  for obj in objs:
+    O = paint(O, recolor(6, outbox(toindices(obj))))  # Frame the objects
+    upper_left = (uppermost(obj) + 1, leftmost(obj) + 1)
+    bottom_right = (lowermost(obj) - 1, rightmost(obj) - 1)
+    O = underfill(O, 4, backdrop({upper_left, bottom_right})) # Fill area inside the frame 
+    for i in range(upper_left[0], bottom_right[0] + 1): # Iterate within the frame
+      for j in range(upper_left[1], bottom_right[1] + 1):
+        if (i - upper_left[0] + j - upper_left[1]) % 2 == 0: # Apply diagonal pattern based on offset from upper left corner
+          O = fill(O, 1, {(i, j)})
+        else:
+          O = fill(O, 2, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identify foreground objects using `objects(I, T, F, T)`.
+2. **Framing:** Frame the objects by recoloring the `outbox` to 6.
+3. **Fill Inside Frame:** Calculate the `upper_left` and `bottom_right` corners of the area to be filled. Use `underfill` and `backdrop` to fill the area with color 4. 
+4. **Diagonal Pattern Replacement:** Iterate within the frame using the calculated corners. Apply the diagonal pattern of 1 and 2 based on the sum of the row and column offsets from the `upper_left` corner modulo 2. 
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  objs = fgpartition(I)  # Identify objects
+  O = I
+  for obj in objs:
+    O = paint(O, recolor(6, outbox(toindices(obj))))  # Frame the objects
+    O = underfill(O, 4, difference(inbox(toindices(obj)), toindices(obj)))  # Fill inside the frame
+    for i in range(1, width(obj) - 1):  # Iterate within the frame using object dimensions
+      for j in range(1, height(obj) - 1):
+        if (i + j) % 2 == 0:
+          O = fill(O, 1, {(uppermost(obj) + j, leftmost(obj) + i)}) # Calculate cell coordinates based on object position
+        else:
+          O = fill(O, 2, {(uppermost(obj) + j, leftmost(obj) + i)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identify foreground objects using `fgpartition(I)`.
+2. **Framing:** Frame the objects using `recolor` and `outbox`.
+3. **Fill Inside Frame:**  Fill the area inside the frame using `underfill` and `difference`.
+4. **Diagonal Pattern Replacement:** Iterate within the frame using the `width` and `height` of the object. Calculate the cell coordinates for pattern replacement based on the object's `uppermost` and `leftmost` positions. Apply the diagonal pattern of 1 and 2.
+
+These five versions demonstrate different approaches to achieving the same transformation, showcasing the flexibility of the provided DSL. Each version utilizes distinct logic or function combinations, offering a diverse set of solutions.

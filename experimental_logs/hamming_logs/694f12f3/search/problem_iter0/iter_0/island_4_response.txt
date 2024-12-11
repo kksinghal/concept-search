@@ -1,0 +1,185 @@
+## Transformation Analysis
+
+**Input 0 to Output 0:**
+
+1. **Horizontal Split:** The top and bottom objects (composed of '4's) are treated separately. 
+2. **Top Object Transformation:**  The inner two columns of the top object are recolored to '1'. 
+3. **Bottom Object Transformation:** The inner four columns of the bottom object are recolored to '2'.
+
+**Input 1 to Output 1:**
+
+1. **Horizontal Split:**  Similar to Input 0, the transformation treats the top and bottom objects separately.
+2. **Top Object Transformation:**  The inner three columns of the top object are recolored to '2'.
+3. **Bottom Object Transformation:** The inner two columns of the bottom object are recolored to '1'.
+
+
+## Program Versions
+
+Here are five distinct program versions utilizing the DSL to achieve the described transformations.
+
+**Program Version 1**
+
+```python
+def solve_27a28665(I):
+    # Identify the objects in the grid.
+    objs = objects(I, T, F, F)
+    # Find the top and bottom objects.
+    top_obj = extract(objs, lambda obj: uppermost(obj) < len(I) // 2)
+    bottom_obj = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2)
+    # Define a helper function to recolor the inner columns of an object.
+    def recolor_inner(obj, color, width):
+        left = leftmost(obj) + (width(obj) - width) // 2
+        right = left + width
+        inner_indices = frozenset((i, j) for i, j in toindices(obj) if left <= j < right)
+        return recolor(color, inner_indices)
+    # Apply the transformations to the top and bottom objects.
+    top_transformed = recolor_inner(top_obj, 1, 2)
+    bottom_transformed = recolor_inner(bottom_obj, 2, 4)
+    # Paint the transformed objects back onto the grid.
+    O = paint(paint(cover(I, top_obj), top_transformed), bottom_transformed)
+    return O
+```
+
+**Explanation:**
+
+1.  **Identify Objects:**  We first identify all objects in the grid using `objects(I, T, F, F)`.
+2.  **Separate Top and Bottom:** The `extract` function finds the top and bottom objects based on their vertical position.
+3.  **Recolor Inner Columns:** The `recolor_inner` helper function takes an object and a color, then calculates the indices of the inner columns based on the object's width. It recolors these indices using `recolor`.
+4.  **Apply Transformations:**  The program recolors the inner columns of the top and bottom objects to '1' and '2' respectively.
+5.  **Reconstruct Grid:**  Finally, it paints the transformed objects back onto the original grid after covering the original objects with the background color.
+
+**Program Version 2**
+
+```python
+def solve_27a28665(I):
+    # Extract objects and determine the larger object's color.
+    objs = objects(I, T, F, F)
+    top_color = color(extract(objs, lambda obj: uppermost(obj) < len(I) // 2))
+    bottom_color = color(extract(objs, lambda obj: uppermost(obj) >= len(I) // 2))
+    # Define a function to fill a rectangular region within an object.
+    def fill_region(obj, new_color, start_offset, end_offset):
+        start_i, start_j = add(ulcorner(obj), start_offset)
+        end_i, end_j = subtract(lrcorner(obj), end_offset)
+        indices = frozenset((i, j) for i in range(start_i, end_i + 1) 
+                         for j in range(start_j, end_j + 1))
+        return recolor(new_color, indices)
+    # Apply the transformations.
+    top_transformed = fill_region(objs.pop(), 1, (1, 1), (1, 1)) 
+    bottom_transformed = fill_region(objs.pop(), 2, (1, 2), (1, 2))
+    # Paint the transformed objects onto a blank canvas.
+    O = paint(canvas(0, shape(I)), top_transformed)
+    O = paint(O, bottom_transformed)
+    return O
+```
+
+**Explanation:**
+
+1.  **Identify Objects and Colors:** Similar to version 1, it identifies objects and their colors.
+2.  **Fill Region:** This version uses `fill_region`, which calculates a rectangular region within an object using corner coordinates and offsets.  It fills this region with the specified color.
+3.  **Apply Transformations:** It recolors regions within the objects based on calculated offsets.
+4.  **Reconstruct Grid:** Instead of modifying the original grid, this version paints transformed objects onto a blank canvas.
+
+**Program Version 3**
+
+```python
+def solve_27a28665(I):
+    # Partition the grid into objects.
+    objs = partition(I)
+    h = height(I)
+    # Define a function to modify a specific column within an object.
+    def modify_column(obj, col_index, new_color):
+        return frozenset((new_color, (i, j)) if j == col_index else (c, (i, j))
+                       for c, (i, j) in obj)
+    # Apply transformations based on object positions.
+    O = frozenset()
+    for obj in objs:
+        if uppermost(obj) < h // 2:
+            obj = modify_column(obj, leftmost(obj) + 1, 1)
+            obj = modify_column(obj, rightmost(obj) - 1, 1)
+        else:
+            obj = modify_column(obj, leftmost(obj) + 2, 2)
+            obj = modify_column(obj, rightmost(obj) - 2, 2)
+            obj = modify_column(obj, leftmost(obj) + 1, 2)
+            obj = modify_column(obj, rightmost(obj) - 1, 2)
+        O = O | obj
+    # Convert the transformed object set back into a grid.
+    O = tuple(tuple(extract(O, lambda cell: cell[1] == (i, j))[0] 
+                for j in range(width(I))) for i in range(h))
+    return O
+```
+
+**Explanation:**
+
+1.  **Partition Grid:**  It partitions the grid into objects based on color using `partition`.
+2.  **Modify Column:** `modify_column` targets a specific column within an object and recolors its cells.
+3.  **Iterate and Transform:** The code iterates through objects, applying column modifications based on their position (top or bottom).
+4.  **Grid Reconstruction:**  It reconstructs the grid from the transformed object set by finding the appropriate color for each cell index.
+
+**Program Version 4**
+
+```python
+def solve_27a28665(I):
+  # Identify objects based on color.
+  objs = objects(I, T, F, F)
+  top_obj = extract(objs, lambda obj: color(obj) == 4 and uppermost(obj) < 5)
+  bottom_obj = extract(objs, lambda obj: color(obj) == 4 and uppermost(obj) >= 5)
+
+  def modify_stripe(obj, start_col, end_col, new_color):
+    return frozenset(((new_color, (i, j)) if start_col <= j <= end_col else (c, (i, j))) 
+                 for c, (i, j) in obj)
+  
+  # Modify columns of each object.
+  top_obj = modify_stripe(top_obj, leftmost(top_obj) + 1, rightmost(top_obj) - 1, 1)
+  bottom_obj = modify_stripe(bottom_obj, leftmost(bottom_obj) + 2, rightmost(bottom_obj) - 2, 2)
+
+  # Reconstruct the grid.
+  O = paint(cover(I, top_obj), top_obj)
+  O = paint(cover(O, bottom_obj), bottom_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** The program starts by identifying objects based on color.
+2. **Stripe Modification:** The `modify_stripe` function is used to recolor a vertical stripe within an object based on column indices.
+3. **Transformation Application:** The `modify_stripe` function is applied to the top and bottom objects to recolor their inner columns.
+4. **Grid Reconstruction:** The original objects are covered on the input grid and the modified objects are painted back onto the grid.
+
+**Program Version 5**
+
+```python
+def solve_27a28665(I):
+    h, w = len(I), len(I[0])
+    # Identify the object.
+    obj = extract(objects(I, T, F, F), lambda obj: len(obj) > 1)
+    # Calculate the bounding box of the object.
+    min_row, min_col = ulcorner(obj)
+    max_row, max_col = lrcorner(obj)
+    # Create the output grid.
+    O = canvas(0, (h, w))
+    for i in range(h):
+        for j in range(w):
+            # If within the object's bounding box.
+            if min_row <= i <= max_row and min_col <= j <= max_col:
+                # Apply transformation based on position.
+                if i < h // 2:
+                    if min_col + 1 <= j <= max_col - 1:
+                        O = fill(O, 1, {(i, j)})
+                    else:
+                        O = fill(O, 4, {(i, j)})
+                else:
+                    if min_col + 2 <= j <= max_col - 2:
+                        O = fill(O, 2, {(i, j)})
+                    else:
+                        O = fill(O, 4, {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **Object and Bounding Box:**  The code identifies the main object and its bounding box using `ulcorner` and `lrcorner`.
+2. **Iterate within Bounding Box:**  It iterates through cells within the bounding box.
+3. **Conditional Transformation:** It applies specific transformations based on the cell's position relative to the object and the grid's midline.  
+4. **Direct Grid Manipulation:**  The output grid is directly manipulated using `fill` within the loop.
+
+These five program versions provide distinct approaches to solving the given transformation problem, each leveraging different combinations of DSL functions and logical structures.

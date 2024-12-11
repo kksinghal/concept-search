@@ -1,0 +1,125 @@
+## Transformation Analysis:
+
+The transformation focuses on objects formed by the digit '5' and applies modifications based on their shape and internal structure. 
+
+**General Pattern:**
+
+1. **Outline & Fill:** The outer layer of each '5' object is replaced with '8'.
+2. **Shape-Based Internal Fill:** 
+    - **Vertical Objects:** If the object is taller than it is wide, a vertical line of '7's is drawn one cell inwards from the top left corner, spanning almost the entire height.
+    - **Horizontal/Square Objects:** If the object is wider than or equal in height, a horizontal line of '7's is drawn in the middle row of the object, one cell inwards from the left, spanning almost the entire width.
+
+**Specific Input-Output Analysis:**
+
+- **Input_0:** Two '5' objects. The top one is horizontal, filled with '8's on the outline and a central horizontal '7' line. The bottom one is vertical, filled with '8's on the outline and a central vertical '7' line.
+- **Input_1:** Three '5' objects, showcasing different orientations and positions. The transformation is applied consistently based on the shape rules.
+- **Input_2:** Similar to Input_0 with two horizontally aligned '5' objects.
+
+## Program_to_be_generated:
+
+**Version 1: Using `inbox` for internal fill**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5)))) # Outline with '8'
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      O = fill(O, 7, crop(O, add(ulcorner(obj), (1,1)), (height(obj)-2, 1))) 
+    else:
+      O = fill(O, 7, crop(O, add(center(inbox(obj)), (-1, 0)), (1, width(obj)-2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Extract & Outline:** Extracts all '5' objects, fills their outlines with '8'.
+2. **Shape-Based Fill:** 
+    - **Vertical:** Fills a vertical line within the object.
+    - **Horizontal/Square:** Uses `inbox` and `center` to find the starting point for the horizontal line and fills it.
+
+**Version 2: Direct Calculation for internal fill**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5))))  # Outline with '8'
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      O = fill(O, 7, crop(O, add(ulcorner(obj), (1,1)), (height(obj)-2, 1)))
+    else:
+      center_row = uppermost(obj) + height(obj) // 2
+      O = fill(O, 7, crop(O, (center_row, leftmost(obj) + 1), (1, width(obj) - 2)))
+  return O
+```
+
+**Explanation:**
+
+- Similar to Version 1, but instead of using `inbox`, it directly calculates the starting point of the horizontal '7' line for improved efficiency.
+
+**Version 3: Single `fill` call for internal lines**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5)))) # Outline with '8'
+  inner_lines = set()
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      inner_lines |= connect(add(ulcorner(obj), (1,1)), add(llcorner(obj), (-1,1)))
+    else:
+      center_row = uppermost(obj) + height(obj) // 2
+      inner_lines |= connect((center_row, leftmost(obj) + 1), (center_row, rightmost(obj) - 1))
+  return fill(O, 7, inner_lines) 
+```
+
+**Explanation:**
+
+- Calculates the start and end points of internal '7' lines using `connect` and fills them all at once for potential performance improvement.
+
+**Version 4: Iterative Approach**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 5:
+        if any(I[k][l] != 5 for k, l in neighbors((i, j))):
+          O = fill(O, 8, ((i, j),))
+        elif (i > 0 and I[i-1][j] == 5 and ((j > 0 and I[i][j-1] == 5) or (j < len(I[0])-1 and I[i][j+1] == 5))):
+          O = fill(O, 7, ((i, j),))
+        elif (j > 0 and I[i][j-1] == 5 and ((i > 0 and I[i-1][j] == 5) or (i < len(I)-1 and I[i+1][j] == 5))):
+          O = fill(O, 7, ((i, j),))
+  return O
+```
+
+**Explanation:**
+
+- Iterates through every cell in the grid. 
+- If a cell is '5', checks if it's on the outer layer (adjacent to a non-'5') and fills with '8', or if it's part of the internal fill pattern and fills with '7'.
+
+**Version 5: Leveraging `frontiers`**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5))))  # Outline with '8'
+  for obj in colorfilter(objs, 5):
+    frontiers_set = frontiers(toindices(obj)) 
+    for f in frontiers_set:
+      if len(f) > 1:  
+        if height(f) > width(f):
+          O = fill(O, 7,  crop(O, add(ulcorner(f), (1,0)), (height(f) - 2, 1)))
+        else:
+          O = fill(O, 7, crop(O, add(center(f), (0,-1)), (1, width(f) - 2)))
+  return O
+```
+
+**Explanation:**
+
+- Extracts frontiers within each '5' object using the `frontiers` function.
+- For frontiers longer than one cell (indicating internal lines), applies the shape-based fill logic.
+
+
+Each version of the code provides a unique approach to solve the transformation task. This showcases the flexibility and diverse problem-solving capabilities possible with the provided DSL. 

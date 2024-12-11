@@ -1,0 +1,100 @@
+## Transformation Analysis:
+
+The transformation recolors all cells belonging to objects with the value '1' to '8'. However, it only recolors them if they are not isolated, meaning they are directly connected to at least one cell that is not the background color '9'.
+
+**Example:**
+
+In Input_0, the '1' objects in the top-right and bottom-left corners are isolated and remain unchanged. All other '1' objects are connected to non-'9' cells and are recolored to '8'.
+
+## Program_to_be_generated:
+
+**Version 1:** (Inspired by Program_A's logic, simplified using DSL functions)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Extract objects, excluding background
+  filtered_objs = sfilter(objs, lambda obj: color(obj) == ONE and any(index(I, n) != NINE for n in mapply(dneighbors, toindices(obj))))  # Filter objects with color '1' and at least one adjacent non-'9' cell
+  recolored_objs = mapply(lambda obj: recolor(EIGHT, obj), filtered_objs)  # Recolor filtered objects to '8'
+  return paint(I, merge(recolored_objs))  # Paint recolored objects back onto the original grid
+```
+
+**Explanation:**
+
+1. **Extract objects:** `objects(I, T, F, T)` extracts all objects from the grid `I`, treating cells with value '1' as a single object (`T`), not considering diagonals (`F`), and excluding the background (`T`).
+2. **Filter objects:**  `sfilter` keeps only objects where:
+    - `color(obj) == ONE`: The object's color is '1'.
+    - `any(index(I, n) != NINE for n in mapply(dneighbors, toindices(obj)))`: At least one cell directly adjacent to the object has a value different from '9'.
+3. **Recolor objects:** `mapply` applies `recolor(EIGHT, obj)` to each object in `filtered_objs`, changing their color to '8'.
+4. **Paint objects:** `paint(I, merge(recolored_objs))` merges all recolored objects and paints them onto the original grid `I`, overwriting existing values. 
+
+**Version 2:** (Utilizing `cellwise` for a different approach)
+
+```python
+def Program_to_be_generated(I):
+  obj_grid = paint(canvas(ZERO, shape(I)), objects(I, T, F, T))  # Create a grid with only objects and '0' background
+  recolored_grid = cellwise(obj_grid, I, EIGHT)  # Replace object cells in I with '8' if they are adjacent to non-'9' cells in obj_grid
+  return cellwise(I, recolored_grid, NINE)  # Combine the original grid with the recolored grid, keeping the original values for non-object cells
+```
+
+**Explanation:**
+
+1. **Object Grid:** Creates a grid `obj_grid` where object cells retain their original values, and background cells are replaced with '0'.
+2. **Recolor Based on Adjacency:** Uses `cellwise` to compare `obj_grid` and the original grid `I`. If a cell in `obj_grid` has a non-zero value (meaning it's part of an object) and its corresponding cell in `I` has a neighbor different from '9', it's replaced with '8' in `recolored_grid`.
+3. **Combine Grids:** Uses `cellwise` again to combine `I` and `recolored_grid`.  Non-object cells in `recolored_grid` retain their original value ('9' from `I`).
+
+**Version 3:** (Using `underpaint` for a more concise solution)
+
+```python
+def Program_to_be_generated(I):
+  target_objs = sfilter(objects(I, T, F, T), lambda obj: color(obj) == ONE)  # Extract objects with color '1'
+  recolored_objs = mapply(lambda obj: recolor(EIGHT, obj), target_objs)  # Recolor objects to '8'
+  return underpaint(I, merge(recolored_objs))  # Underpaint recolored objects onto the original grid (only affects background cells)
+```
+
+**Explanation:**
+
+This version simplifies the logic by using `underpaint`:
+
+1. **Extract and Recolor:**  Similar to previous versions, it extracts objects with color '1' and recolors them to '8'.
+2. **Underpaint:** `underpaint` directly paints the recolored objects onto the original grid `I`. Crucially, `underpaint` only affects cells that currently have the background color ('9'), leaving other object cells untouched.
+
+**Version 4:** (Leveraging `delta` to identify bordering cells)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  recolored_objs = set()
+  for obj in objs:
+    if color(obj) == ONE and any(index(I, n) != NINE for n in mapply(dneighbors, toindices(obj))):
+      recolored_objs.add(recolor(EIGHT, obj))
+    else:
+      recolored_objs.add(obj)
+  return paint(canvas(NINE, shape(I)),recolored_objs)
+```
+
+**Explanation:**
+
+This version iterates over each object, checking if it meets the criteria for recoloring, and then paints it onto a blank canvas:
+
+1. **Extract Objects:** Extracts all objects from the grid.
+2. **Iterate and Recolor:**  Iterates through each object. If the object's color is '1' and it has at least one adjacent non-'9' cell, it's recolored to '8'. Otherwise, it's added to the `recolored_objs` set without modification.
+3. **Paint to Canvas:** Creates a new canvas filled with the background color ('9') and paints all objects from `recolored_objs` onto it. 
+
+**Version 5:** ( Combining `objects` and `recolor` for a concise solution)
+
+```python
+def Program_to_be_generated(I):
+  def condition(cell):
+    v, (i, j) = cell
+    return v == ONE and any(index(I, n) != NINE for n in dneighbors((i, j)))
+  return paint(I, recolor(EIGHT, mfilter(asobject(I), condition)))
+```
+
+**Explanation:**
+
+1. **Define Condition:** Defines a `condition` function that checks if a cell has the value '1' and at least one directly adjacent non-'9' cell.
+2. **Apply Condition and Recolor:**
+   - Converts the grid `I` to a single object using `asobject(I)`.
+   - Uses `mfilter` to apply the `condition` function to each cell in the object, keeping only those that satisfy the condition. 
+   - Recolors the filtered cells to '8' using `recolor`.
+3. **Paint:** Paints the recolored cells onto the original grid `I`.

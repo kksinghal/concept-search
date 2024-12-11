@@ -1,0 +1,155 @@
+## Transformation Analysis:
+
+The transformation involves identifying all objects with the color '1' and connecting them using a single-width line of '8's.  The connection line is determined based on the spatial arrangement of the '1'-colored objects:
+
+* **Horizontal Connection:** If any two '1'-objects share a row, the line is drawn horizontally. The row chosen for the connection is the middle row within the bounding box encompassing all '1'-objects.
+* **Vertical Connection:** If no two '1'-objects share a row, the line is drawn vertically.  The column chosen is the middle column within the bounding box of all '1'-objects.
+
+## Code Generation:
+
+Here are five distinct program versions, along with explanations, that achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)  # Extract all objects
+    one_objs = sfilter(objs, lambda obj: color(obj) == 1)  # Filter '1'-colored objects
+
+    # Horizontal connection if any two '1'-objects share a row:
+    if any(hmatching(obj1, obj2) for obj1 in one_objs for obj2 in one_objs if obj1 != obj2):
+        topmost_row = min(uppermost(obj) for obj in one_objs)
+        bottommost_row = max(lowermost(obj) for obj in one_objs)
+        connection_row = (topmost_row + bottommost_row) // 2
+        connection_line = frozenset((connection_row, j) for j in range(width(I)))
+
+    # Otherwise, vertical connection:
+    else:
+        leftmost_col = min(leftmost(obj) for obj in one_objs)
+        rightmost_col = max(rightmost(obj) for obj in one_objs)
+        connection_col = (leftmost_col + rightmost_col) // 2
+        connection_line = frozenset((i, connection_col) for i in range(height(I)))
+
+    O = paint(I, recolor(8, toobject(connection_line, I)))  # Paint the line
+    return O
+```
+
+**Explanation:**
+
+1. **Object Extraction and Filtering:**  Identifies all objects in the grid and filters for those with color '1'.
+2. **Connection Determination:**
+   - Iterates through '1'-objects and checks if any pair shares a row using `hmatching`.
+   - If a shared row is found, calculates the connection row as the average of the topmost and bottommost rows of all '1'-objects.
+   - If no shared row, calculates the connection column as the average of the leftmost and rightmost columns.
+3. **Line Creation:** Generates the connection line as a set of indices based on the determined connection row/column.
+4. **Painting:**  Paints the line with color '8' onto the input grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    one_objs = sfilter(objs, lambda obj: color(obj) == 1)
+
+    # Use `reduce` for min/max calculation:
+    from functools import reduce
+    topmost_row = reduce(lambda a, b: min(uppermost(a), uppermost(b)), one_objs)
+    bottommost_row = reduce(lambda a, b: max(lowermost(a), lowermost(b)), one_objs)
+    leftmost_col = reduce(lambda a, b: min(leftmost(a), leftmost(b)), one_objs)
+    rightmost_col = reduce(lambda a, b: max(rightmost(a), rightmost(b)), one_objs)
+
+    # Connect based on bounding box dimensions:
+    if bottommost_row - topmost_row >= rightmost_col - leftmost_col:
+        connection_row = (topmost_row + bottommost_row) // 2
+        connection_line = frozenset((connection_row, j) for j in range(width(I)))
+    else:
+        connection_col = (leftmost_col + rightmost_col) // 2
+        connection_line = frozenset((i, connection_col) for i in range(height(I)))
+
+    O = paint(I, recolor(8, toobject(connection_line, I)))
+    return O
+```
+
+**Explanation:**
+
+- Similar to Version 1, but utilizes the `reduce` function for a more functional approach to calculating the bounding box coordinates.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    one_objs = sfilter(objs, lambda obj: color(obj) == 1)
+
+    # Find top-left and bottom-right corners of bounding box:
+    tl_corner = ulcorner(merge(one_objs))
+    br_corner = lrcorner(merge(one_objs))
+
+    # Connect based on bounding box dimensions:
+    if br_corner[0] - tl_corner[0] >= br_corner[1] - tl_corner[1]:
+        connection_row = (tl_corner[0] + br_corner[0]) // 2
+        connection_line = frozenset((connection_row, j) for j in range(width(I)))
+    else:
+        connection_col = (tl_corner[1] + br_corner[1]) // 2
+        connection_line = frozenset((i, connection_col) for i in range(height(I)))
+
+    O = paint(I, recolor(8, toobject(connection_line, I)))
+    return O
+```
+
+**Explanation:**
+
+-  Directly calculates the top-left and bottom-right corners of the bounding box using `ulcorner` and `lrcorner` on the merged set of '1'-objects. This simplifies the logic for connection determination.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  one_objs = sfilter(objs, lambda obj: color(obj) == 1)
+
+  # Check for horizontal alignment:
+  h_aligned = any(hmatching(obj1, obj2) for obj1 in one_objs for obj2 in one_objs if obj1 != obj2)
+
+  # Calculate the connection line based on alignment:
+  if h_aligned:
+    connection_line = frozenset(((uppermost(one_objs.pop()) + lowermost(one_objs.pop())) // 2, j) for j in range(width(I)))
+  else:
+    connection_line = frozenset((i, (leftmost(one_objs.pop()) + rightmost(one_objs.pop())) // 2) for i in range(height(I)))
+
+  O = paint(I, recolor(8, toobject(connection_line, I)))
+  return O
+```
+
+**Explanation:**
+
+-  This version focuses on determining if the '1'-objects are horizontally aligned by checking if any pair shares a row using `hmatching`. 
+-  It then leverages this information to calculate the connection line by directly accessing the `uppermost` and `lowermost` (for horizontal alignment) or `leftmost` and `rightmost` (for vertical alignment) of arbitrary '1'-objects.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  one_objs = sfilter(objs, lambda obj: color(obj) == 1)
+
+  # Create a single object representing all '1'-colored cells:
+  merged_obj = merge(one_objs)
+
+  # Determine connection type based on shape:
+  if portrait(merged_obj):
+    connection_line = frozenset((i, centerofmass(merged_obj)[1]) for i in range(height(I)))
+  else:
+    connection_line = frozenset((centerofmass(merged_obj)[0], j) for j in range(width(I)))
+
+  O = paint(I, recolor(8, toobject(connection_line, I)))
+  return O
+```
+
+**Explanation:**
+
+- This version merges all '1'-colored objects into a single object (`merged_obj`) using `merge`. 
+- It then determines the connection type (horizontal or vertical) by analyzing the shape of the `merged_obj` using `portrait`.
+- The connection line is then drawn through the `centerofmass` of the `merged_obj`. 
+
+These five versions showcase distinct approaches to achieving the same transformation, leveraging different DSL functions and logic flow. Each version should provide a different code structure, demonstrating diverse solution paths. 

@@ -1,0 +1,134 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects containing digits 1, 2, or 3 and moving them upwards until they "touch" the top border of the grid or another object. 
+
+**Let's break it down:**
+
+1. **Object Identification:** The code needs to identify all objects on the grid that contain at least one cell with the value 1, 2, or 3. 
+2. **Upward Movement:** These identified objects need to be moved upwards.
+3. **Collision Detection:** The movement should stop when the object's uppermost cell reaches either the top border of the grid (row index 0) or comes into contact with another object already present.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions in the provided DSL achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  new_grid = canvas(0, shape(I))
+  for obj in target_objs:
+    while uppermost(obj) > 0 and all(index(new_grid, (i - 1, j)) == 0 for i, j in toindices(obj)):
+      obj = shift(obj, (-1, 0))
+    new_grid = paint(new_grid, obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`target_objs = ...`**: Identifies objects containing 1, 2, or 3 using `objects` and `mfilter`.
+2. **`new_grid = ...`**: Creates an empty canvas of the same size as the input.
+3. **`for obj in ...`**: Iterates through each identified object.
+4. **`while ...`**:  Moves the object upwards (`shift` with `(-1, 0)`) as long as:
+    - It's not already at the top (`uppermost(obj) > 0`) and
+    - The cells above it in `new_grid` are empty (`index(new_grid, (i - 1, j)) == 0`).
+5. **`new_grid = ...`**:  Paints the moved object onto the `new_grid`.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  target_objs = sorted(mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj)), key=uppermost)
+  new_grid = canvas(0, shape(I))
+  for obj in target_objs:
+    offset = (0, 0)
+    for i in range(uppermost(obj), 0, -1):
+      if all(index(new_grid, (k - 1, j)) == 0 for k, j in toindices(shift(obj, (offset[0] - 1, 0)))):
+        offset = (offset[0] - 1, 0)
+      else:
+        break
+    new_grid = paint(new_grid, shift(obj, offset))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`target_objs = ...`**: Identifies target objects and sorts them based on their uppermost row position (`uppermost`).
+2. **`new_grid = ...`**: Creates an empty canvas.
+3. **`for obj in ...`**: Iterates through each object, starting with the highest ones.
+4. **`for i in ...`**:  Iterates through possible upward movements from the object's current position to the top.
+5. **`if all(...)`**: Checks for collisions with existing objects in `new_grid`. If no collision, updates the `offset`.
+6. **`new_grid = ...`**: Paints the object at its final calculated offset.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  def up_limit(obj):
+    for i in range(uppermost(obj) - 1, -1, -1):
+      if any(index(I, (i, j)) != 0 for i, j in toindices(shift(obj, (-uppermost(obj) + i, 0)))):
+        return i + 1
+    return 0
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  new_grid = canvas(0, shape(I))
+  for obj in target_objs:
+    new_grid = paint(new_grid, shift(obj, (up_limit(obj) - uppermost(obj), 0)))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`up_limit(obj)`**:  A helper function that determines the highest row an object can be shifted to before hitting an obstacle.
+2. **`target_objs = ...`**:  Identifies target objects.
+3. **`new_grid = ...`**: Creates an empty canvas.
+4. **`for obj in ...`**: For each target object:
+    - Calculates the shift amount using `up_limit` and `uppermost`.
+    - Shifts and paints the object directly onto the `new_grid`.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+    target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+    new_grid = paint(canvas(0, shape(I)), merge(objects(I, False, False, True)) - target_objs)
+    for obj in target_objs:
+        offset = (0, 0)
+        for i in range(uppermost(obj), 0, -1):
+            if all(index(new_grid, (k - 1, j)) == 0 for k, j in toindices(shift(obj, (offset[0] - 1, 0)))):
+                offset = (offset[0] - 1, 0)
+        new_grid = paint(new_grid, shift(obj, offset))
+    return new_grid
+```
+
+**Explanation:**
+
+1. **`target_objs = ...`**:  Identifies target objects.
+2. **`new_grid = ...`**: Instead of an empty canvas, this version initializes `new_grid` by painting non-target objects directly onto it.
+3. **`for obj in ...`**: Iterates through each target object.
+4. **`for i in ...`**: Checks for collision with existing objects in `new_grid` and updates `offset` for each target object.
+5. **`new_grid = ...`**: Paints each target object at its final calculated offset.
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  def move_up(obj, grid):
+    if uppermost(obj) == 0 or any(index(grid, (i - 1, j)) != 0 for i, j in toindices(obj)):
+      return obj
+    return move_up(shift(obj, (-1, 0)), grid)
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  new_grid = canvas(0, shape(I))
+  for obj in target_objs:
+    new_grid = paint(new_grid, move_up(obj, new_grid))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`move_up(obj, grid)`**: This recursive helper function moves an object upwards until it hits the top or another object.
+2. **`target_objs = ...`**: Identifies target objects.
+3. **`new_grid = ...`**: Creates an empty canvas.
+4. **`for obj in ...`**: Iterates through target objects and uses `move_up` to determine the final position before painting onto `new_grid`.
+
+These five program versions provide distinct approaches to achieve the same transformation, showcasing the flexibility and expressiveness of the provided DSL. 

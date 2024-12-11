@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves extending each non-background digit in the input grid vertically downwards to form a continuous line until it reaches another non-background digit or the bottom edge of the grid. 
+
+**Example:**
+
+Let's take Input_1 and Output_1 to illustrate:
+
+**Input_1:**
+
+```
+0 0 0 0 0 0 0 8 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 8 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 8 0 0 0 8
+0 0 0 0 0 0 0 0 0 0
+0 0 8 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+```
+
+**Output_1:**
+
+```
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 8 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 8 0 0 0 0 0 0 0
+0 0 8 0 0 0 0 0 0 0
+0 0 8 0 0 0 0 0 0 0
+0 0 8 0 0 8 8 8 8 8
+0 0 8 0 0 0 0 0 0 0
+0 0 8 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+```
+
+Here, each '8' in the input grid is extended downwards, creating continuous vertical lines. 
+
+## Program_to_be_generated:
+
+**Version 1 (Inspired by Program_A's object iteration and Program_B's line extension):**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, F)
+  O = I
+  for obj in objs:
+    for j in range(leftmost(obj), rightmost(obj) + 1):
+      start_i = uppermost(obj)
+      end_i = next((i for i in range(start_i + 1, height(I)) if index(I, (i, j)) != mostcolor(I)), height(I))
+      O = fill(O, color(obj), {(i, j) for i in range(start_i, end_i)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** It identifies each connected object of the same color using `objects(I, T, F, F)`.
+2. **Iterate and Extend:** For each object, it iterates through its columns. For each column:
+    - It finds the topmost row of the object.
+    - It then finds the next row downwards where a different color or the grid's edge is encountered.
+    - It fills the column between these rows with the object's color.
+
+**Version 2 (Using `vfrontier` and object manipulation):**
+
+```python
+def program_v2(I):
+  objs = objects(I, T, F, F)
+  O = I
+  for obj in objs:
+    for (i, j) in toindices(obj):
+      frontier = vfrontier((i, j))
+      intersection = toindices(obj) & frontier
+      if len(intersection) == 1:
+        O = fill(O, color(obj), frontier - intersection)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Single Cells:** It identifies objects and iterates through each cell of every object.
+2. **Extend using Vertical Frontier:**  For each cell, it calculates the vertical line (frontier) passing through it. 
+    - If this line intersects the object at only one point (the current cell), it means this cell needs extension.
+    - It fills the frontier (excluding the current cell) with the object's color. 
+
+**Version 3 (Leveraging `down` direction and `shoot` function):**
+
+```python
+def program_v3(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != mostcolor(I):
+        line = shoot((i, j), DOWN)
+        O = fill(O, val, line - toindices(objects(I, T, F, F)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Cells:** It iterates through each cell of the grid.
+2. **Shoot and Fill:** For each non-background cell, it 'shoots' a line downwards using `shoot((i, j), DOWN)`. 
+    - It then fills this line with the cell's color, excluding any cells that are already part of an object.
+
+**Version 4 (Combining `hconcat` and row-wise processing):**
+
+```python
+def program_v4(I):
+  O = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    column = tuple(I[i][j] for i in range(height(I)))
+    new_column = tuple()
+    current_color = mostcolor(I)
+    for val in column:
+      if val != mostcolor(I):
+        current_color = val
+      new_column = new_column + (current_color,)
+    O = hconcat(O, (new_column,))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Columns:**  It processes each column of the grid individually.
+2. **Extend Downwards:**  For each column, it keeps track of the current color (initialized as background). 
+   - If it encounters a non-background color, it updates the `current_color`. 
+   - It appends the `current_color` to the `new_column` tuple, effectively extending the color downwards.
+3. **Concatenate Columns:** Finally, it horizontally concatenates all the processed columns to form the output grid.
+
+
+**Version 5 (Using `papply` for pairwise comparison):**
+
+```python
+def program_v5(I):
+  O = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    column = tuple(I[i][j] for i in range(height(I)))
+    extended_column = papply(lambda a, b: a if a != mostcolor(I) else b, column, column[1:] + (mostcolor(I),))
+    O = hconcat(O, (extended_column,))
+  return O
+```
+
+**Explanation:**
+
+1. **Column-wise Processing:** Like Version 4, it processes each column individually.
+2. **Pairwise Comparison:** It utilizes `papply` to compare each cell with the cell below it in the column.
+    - If the current cell is not the background, it's kept as is. 
+    - Otherwise, it takes the value of the cell below it, effectively extending colors downwards.
+3. **Concatenate Columns:**  It concatenates the processed columns horizontally to generate the output.
+
+These five versions showcase different approaches to achieve the same transformation in the DSL, each with its own logic and function combinations. 

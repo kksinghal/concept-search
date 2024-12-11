@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation in all three examples can be summarized as follows:
+
+1. **Object Isolation:** The input grid is analyzed to identify distinct objects. An object is defined as a group of connected cells with the same value (excluding the background color, which is assumed to be the most frequent color).
+
+2. **Object Relocation:** Each object is moved to a new location in the output grid.
+
+   * The object containing a cell with value '1' serves as an anchor.
+
+   * If an anchor is present:
+      * All objects are moved so that their top edges align with the top edge of the anchor object.
+      * Objects are horizontally centered based on their width.
+
+   * If no anchor is present:
+      * All objects are vertically centered.
+      * Objects are horizontally positioned next to each other, maintaining their order from left to right as observed in the input grid.
+
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  objs = objects(I, F, F, T)  # Extract objects
+  anchor = extract(objs, lambda obj: 1 in {v for v, _ in obj})  # Find anchor object
+  out = canvas(0, shape(I))
+  if anchor:
+    for i, obj in enumerate(objs):
+      out = paint(out, shift(normalize(obj), (i * height(obj), width(I) // 2 - width(obj) // 2)))
+  else:
+    x_offset = 0
+    for obj in objs:
+      out = paint(out, shift(normalize(obj), (height(I) // 2 - height(obj) // 2, x_offset)))
+      x_offset += width(obj) + 1
+  return out
+```
+
+**Explanation:**
+
+* This version uses `objects` to extract objects.
+* `extract` finds the anchor object containing the value '1'.
+* If an anchor exists, objects are stacked vertically and centered horizontally.
+* If no anchor exists, objects are vertically centered and placed horizontally next to each other.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  objs = sorted(objects(I, F, F, T), key=lambda obj: (-(1 in {v for v, _ in obj}), ulcorner(obj)))  # Sort objects, prioritizing anchor
+  out = canvas(0, shape(I))
+  anchor_present = objs[0] if (1 in {v for v, _ in objs[0]}) else None
+  y_offset = uppermost(anchor_present) if anchor_present else height(I) // 2 - height(objs[0]) // 2
+  x_offset = 0
+  for obj in objs:
+    out = paint(out, shift(normalize(obj), (y_offset, width(I) // 2 - width(obj) // 2))) if anchor_present else paint(out, shift(normalize(obj), (y_offset, x_offset)))
+    x_offset += width(obj) + 1
+  return out
+```
+
+**Explanation:**
+
+* This version sorts objects, prioritizing the anchor object using a custom key in `sorted`.
+* It directly calculates the vertical offset based on the presence of the anchor.
+* The loop iterates through the sorted objects, placing them accordingly.
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  objs = objects(I, F, F, T)
+  anchor = extract(objs, lambda obj: 1 in {v for v, _ in obj})
+  out = canvas(0, shape(I))
+  return paint(out, merge({shift(normalize(obj), (i * height(obj), width(I) // 2 - width(obj) // 2)) for i, obj in enumerate(objs) if anchor} 
+                        | {shift(normalize(obj), (height(I) // 2 - height(obj) // 2, sum(width(o) + 1 for o in objs[:i]))) for i, obj in enumerate(objs) if not anchor}))
+```
+
+**Explanation:**
+
+* This version uses set comprehension to handle both anchor and non-anchor cases within a single `paint` call.
+* It calculates offsets within the comprehension, improving readability.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  objs = objects(I, F, F, T)
+  anchor_index = next((i for i, obj in enumerate(objs) if 1 in {v for v, _ in obj}), None)  # Find anchor index
+  out = canvas(0, shape(I))
+  for i, obj in enumerate(objs):
+    if anchor_index is not None:
+      y_offset = (i - anchor_index) * height(obj)
+    else:
+      y_offset = height(I) // 2 - height(obj) // 2
+    out = paint(out, shift(normalize(obj), (y_offset, width(I) // 2 - width(obj) // 2)))
+  return out
+```
+
+**Explanation:**
+
+* This version focuses on finding the index of the anchor object.
+* It uses the anchor index to calculate the vertical offset for each object.
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  objs = objects(I, F, F, T)
+  anchor = next((obj for obj in objs if 1 in {v for v, _ in obj}), None)  # Find anchor object
+  out = canvas(0, shape(I))
+  if anchor:
+    return paint(out, merge(apply(lambda obj: shift(normalize(obj), (objs.index(obj) * height(obj), width(I) // 2 - width(obj) // 2)), objs)))
+  else:
+    return paint(out, merge({shift(normalize(obj), (height(I) // 2 - height(obj) // 2, sum(width(o) + 1 for o in objs[:i]))) for i, obj in enumerate(objs)})) 
+```
+
+**Explanation:**
+
+* This version uses a combination of `apply` and `merge` to handle object placement.
+* It aims for concise code by leveraging functional programming concepts.
+
+These five versions provide distinct approaches to achieving the desired transformation while adhering to the provided DSL. Each version offers a different balance between readability, conciseness, and computational efficiency.

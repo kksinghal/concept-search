@@ -1,0 +1,192 @@
+## Transformation Analysis:
+
+The transformation involves identifying foreground objects (digits different from the background 0) and drawing a cross shape centered on each object. The cross extends horizontally to the edges of the object and vertically one cell above and below the object's center of mass. 
+
+**Example:**
+
+Input: 
+```
+0 0 0 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+```
+
+Output:
+```
+0 0 0 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 3 0 0 0 0 0 0
+0 0 3 3 3 0 0 0 0 0
+0 0 0 3 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+```
+
+
+## Program Versions:
+
+**Program Version 1**
+
+```python
+def solve_cross(I):
+  objs = fgpartition(I)
+  cross = lambda obj: recolor(3, combine(
+    connect(add(centerofmass(obj), (0, -width(obj)//2)), add(centerofmass(obj), (0, width(obj)//2))),
+    connect(add(centerofmass(obj), (-1, 0)), add(centerofmass(obj), (1, 0)))
+  ))
+  crosses = mapply(cross, objs)
+  O = paint(I, crosses)
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`:**  Identifies all foreground objects in the input grid `I`.
+2. **`cross = lambda obj: ...`:** Defines a lambda function `cross` that takes an object as input and returns the cross shape for that object.
+    * **`connect(add(centerofmass(obj), (0, -width(obj)//2)), add(centerofmass(obj), (0, width(obj)//2)))`:** This part draws the horizontal line of the cross by connecting the leftmost and rightmost points of the object.
+    * **`connect(add(centerofmass(obj), (-1, 0)), add(centerofmass(obj), (1, 0)))`:** This part draws the vertical line, extending one cell above and below the center.
+    * **`recolor(3, combine(...))`:** Combines the horizontal and vertical lines, and recolors the resulting indices to '3'.
+3. **`crosses = mapply(cross, objs)`:** Applies the `cross` function to each object in `objs` and merges the results into a single set of indices.
+4. **`O = paint(I, crosses)`:** Paints the cross indices onto the input grid `I` to generate the output grid `O`.
+
+
+**Program Version 2**
+
+```python
+def solve_cross(I):
+  objs = fgpartition(I)
+  cross = lambda obj: recolor(
+    3, 
+    frozenset(
+        (i,j) 
+        for i in range(uppermost(obj), lowermost(obj) + 1) 
+        for j in range(leftmost(obj), rightmost(obj) + 1) 
+        if i == centerofmass(obj)[0] or j == centerofmass(obj)[1]
+    )
+  )
+  crosses = mapply(cross, objs)
+  O = paint(I, crosses)
+  return O
+```
+
+**Explanation:**
+
+This version takes a different approach to drawing the cross:
+
+1. **`objs = fgpartition(I)`:** Same as in Version 1.
+2. **`cross = lambda obj: ...`:** Defines the `cross` function.
+    * **`frozenset((i,j) for ...)`:** Iterates over all indices within the bounding box of the object.
+    * **`if i == centerofmass(obj)[0] or j == centerofmass(obj)[1]`:** Selects only those indices that lie either on the horizontal or vertical line passing through the center of mass.
+    * **`recolor(3, ...)`:** Recolors the selected indices to '3'.
+3. **`crosses = mapply(cross, objs)`:** Applies `cross` to each object and merges the results.
+4. **`O = paint(I, crosses)`:** Paints the crosses onto the input grid.
+
+
+**Program Version 3**
+
+```python
+def solve_cross(I):
+    objs = fgpartition(I)
+    make_cross = lambda obj: paint(
+        canvas(0, shape(obj)), 
+        recolor(3, frozenset(
+            {(centerofmass(obj)[0] - uppermost(obj), j) for j in range(width(obj))} |
+            {(i, centerofmass(obj)[1] - leftmost(obj)) for i in range(height(obj))}
+        ))
+    )
+    crosses = (compose(
+        lambda x: paint(I, x),
+        lambda obj: toobject(shift(asindices(x), ulcorner(obj)), x),
+        make_cross
+    ))(objs)
+    O = merge(crosses)
+    return O
+```
+
+**Explanation:**
+
+This version constructs the crosses separately on blank canvases:
+
+1. **`objs = fgpartition(I)`:** Same as before.
+2. **`make_cross = lambda obj: ...`:** Defines the `make_cross` function to create a cross on a blank canvas.
+    * **`canvas(0, shape(obj))`:** Creates a blank canvas with the same size as the object.
+    * **`recolor(3, frozenset(...))`:** Creates a set of indices representing the cross on the canvas, recoloring them to '3'.
+3. **`crosses = (compose(...))(objs)`:** This part applies a series of functions to each object:
+    * **`make_cross`:** Creates the cross on a blank canvas.
+    * **`lambda obj: toobject(shift(asindices(x), ulcorner(obj)), x)`:**  Shifts the cross indices to the correct position on the original grid and converts them to object format.
+    * **`lambda x: paint(I, x)`:**  Paints the object onto the input grid `I`.
+4. **`O = merge(crosses)`:** Merges the results of painting each cross onto the grid.
+
+
+**Program Version 4**
+
+```python
+def solve_cross(I):
+  objs = fgpartition(I)
+  def draw_cross(obj):
+    center_i, center_j = centerofmass(obj)
+    cross = set()
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      cross.add((3, (i, center_j)))
+    for j in range(leftmost(obj), rightmost(obj) + 1):
+      cross.add((3, (center_i, j)))
+    return frozenset(cross)
+  crosses = mapply(draw_cross, objs)
+  O = paint(I, crosses)
+  return O
+```
+
+**Explanation:**
+
+This version iteratively builds the cross shape:
+
+1. **`objs = fgpartition(I)`:** Same as before.
+2. **`def draw_cross(obj): ...`:** Defines the `draw_cross` function.
+    * **`center_i, center_j = centerofmass(obj)`:** Gets the center coordinates of the object.
+    * **`for i in ...`:** Iterates vertically through the object, adding horizontal line indices to the `cross` set.
+    * **`for j in ...`:** Iterates horizontally, adding vertical line indices.
+    * **`return frozenset(cross)`:** Returns the complete cross as a frozenset.
+3. **`crosses = mapply(draw_cross, objs)`:** Applies `draw_cross` to each object and merges the results.
+4. **`O = paint(I, crosses)`:** Paints the crosses onto the input grid.
+
+
+**Program Version 5**
+
+```python
+def solve_cross(I):
+  objs = fgpartition(I)
+  crosses = mapply(lambda obj: recolor(
+      3,
+      frozenset.union(
+          connect((uppermost(obj), centerofmass(obj)[1]), (lowermost(obj), centerofmass(obj)[1])),
+          connect((centerofmass(obj)[0], leftmost(obj)), (centerofmass(obj)[0], rightmost(obj)))
+      )
+  ), objs)
+  O = paint(I, crosses)
+  return O
+```
+
+**Explanation:**
+
+This version uses the `connect` function for both lines of the cross:
+
+1. **`objs = fgpartition(I)`:** Same as before.
+2. **`crosses = mapply(lambda obj: ...`:** Defines a lambda function to create the cross for each object.
+    * **`connect((uppermost(obj), centerofmass(obj)[1]), (lowermost(obj), centerofmass(obj)[1]))`:** Draws the vertical line connecting the top and bottom points of the object at the center's column.
+    * **`connect((centerofmass(obj)[0], leftmost(obj)), (centerofmass(obj)[0], rightmost(obj)))`:** Draws the horizontal line connecting the leftmost and rightmost points at the center's row.
+    * **`frozenset.union(...)`:** Combines the vertical and horizontal lines.
+    * **`recolor(3, ...)`:** Recolors the combined lines to '3'.
+3. **`O = paint(I, crosses)`:** Paints the crosses onto the input grid.
+
+
+These are five distinct versions of the program that utilize different logic and function combinations within the given DSL to achieve the desired transformation. 

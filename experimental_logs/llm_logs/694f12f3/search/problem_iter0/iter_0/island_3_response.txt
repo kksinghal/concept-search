@@ -1,0 +1,141 @@
+## Transformation Analysis:
+
+The transformation involves recoloring specific regions within objects detected in the input grid. 
+
+* **Input_0 to Output_0:**  The object made of '4's is split horizontally. The top half remains unchanged. The bottom half is further split horizontally, with the top row remaining '4's and the bottom two rows becoming '2's. 
+
+* **Input_1 to Output_1:** This transformation is similar to the previous one, but the object is split vertically. The left part remains '4's. The right part is split vertically again, with the left column remaining '4's and the right two columns becoming '1's.
+
+## Code Generation:
+
+Based on the provided DSL and the observed transformation, it's clear we need functions to:
+
+1. **Identify objects:**  We can use `objects(grid, univalued, diagonal, without_bg)` for this.
+2. **Split objects:** Functions like `hsplit(grid, n)` and `vsplit(grid, n)` will be helpful.
+3. **Recolor regions:** `fill(grid, value, patch)` can be used for this.
+4. **Combine grids:** `hconcat(a, b)` and `vconcat(a, b)` allow combining grids.
+
+Here are five distinct program versions achieving the desired transformation:
+
+### Program Version 1:
+
+```python
+def solve(I):
+  obj = first(objects(I, F, T, T)) # Assuming single object
+  h = height(obj)
+  w = width(obj)
+  if h > w:
+    top, bottom = vsplit(subgrid(obj, I), 2)
+    bottom_left, bottom_right = hsplit(bottom, 2)
+    bottom_right = fill(bottom_right, 1, asindices(bottom_right))
+    bottom = hconcat(bottom_left, bottom_right)
+    O = vconcat(top, bottom)
+  else:
+    left, right = hsplit(subgrid(obj, I), 2)
+    top_right, bottom_right = vsplit(right, 2)
+    bottom_right = fill(bottom_right, 2, asindices(bottom_right))
+    right = vconcat(top_right, bottom_right)
+    O = hconcat(left, right)
+  return paint(cover(I, obj), asobject(O)) 
+```
+
+**Explanation:**
+
+1. **Identify and Isolate Object:** The code first identifies the object in the grid using `objects` and then isolates it using `subgrid`. 
+2. **Split Based on Orientation:** It then checks the object's orientation (portrait or landscape) and splits it either vertically or horizontally using `vsplit` and `hsplit`.
+3. **Recolor Sub-regions:** The appropriate sub-regions are then recolored using `fill`. 
+4. **Combine and Paint:** Finally, the sub-regions are combined back using `vconcat` and `hconcat`, and then painted onto the original grid after removing the original object.
+
+### Program Version 2:
+
+```python
+def solve(I):
+  obj = first(objects(I, F, T, T)) # Assuming single object
+  if portrait(obj):
+    split_line =  uppermost(obj) + height(obj) // 2
+    O = fill(I, 1, frozenset((i, j) for i, j in toindices(obj) if i >= split_line and j > leftmost(obj) + width(obj) // 2))
+  else:
+    split_line =  leftmost(obj) + width(obj) // 2
+    O = fill(I, 2, frozenset((i, j) for i, j in toindices(obj) if j >= split_line and i > uppermost(obj) + height(obj) // 2))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Object and Orientation:**  Similar to Version 1, the code identifies the object and its orientation.
+2. **Calculate Split Line:**  Instead of splitting the object, this version calculates the dividing line based on the object's orientation and dimensions.
+3. **Direct Recoloring:** It uses `fill` to recolor cells within the object that lie beyond the split line in both dimensions, effectively achieving the desired sub-region recoloring.
+
+### Program Version 3:
+
+```python
+def solve(I):
+  obj = first(objects(I, F, T, T)) # Assuming single object
+  h, w = shape(obj)
+  if h > w:
+    O = paint(cover(I, obj), asobject(vconcat(crop(I, ulcorner(obj), (h//2, w)), hconcat(crop(I, (h//2, 0), (1, w)), fill(crop(I, (h//2 + 1, 0), (h - h//2 - 1, w)), 1, asindices(crop(I, (h//2 + 1, 0), (h - h//2 - 1, w))))))))
+  else:
+    O = paint(cover(I, obj), asobject(hconcat(crop(I, ulcorner(obj), (h, w//2)), vconcat(crop(I, (0, w//2), (h, 1)), fill(crop(I, (0, w//2 + 1), (h, w - w//2 - 1)), 2, asindices(crop(I, (0, w//2 + 1), (h, w - w//2 - 1))))))))
+  return O
+```
+
+**Explanation:**
+
+This version focuses on directly manipulating and combining grid sections:
+
+1. **Identify and Measure Object:** It identifies the object and retrieves its dimensions.
+2. **Crop and Recolor:** Based on the orientation, it crops the object into its intended sub-regions using `crop`. It then uses `fill` to recolor the bottom-right or top-right sections as needed.
+3. **Combine and Paint:**  The cropped sections are then combined using `hconcat` and `vconcat` in the correct order and painted onto the original grid after clearing the original object.
+
+
+### Program Version 4:
+
+```python
+def solve(I):
+  obj = first(objects(I, F, T, T))
+  if portrait(obj):
+    split_index =  len(toindices(obj)) // 2
+    sorted_indices = order(toindices(obj), lambda x: x[0] * 100 + x[1])
+    top_half = frozenset(sorted_indices[:split_index])
+    bottom_half = frozenset(sorted_indices[split_index:])
+    O = paint(cover(I, obj), combine(recolor(4, top_half), recolor(1, bottom_half)))
+  else:
+    split_index =  len(toindices(obj)) // 2
+    sorted_indices = order(toindices(obj), lambda x: x[1] * 100 + x[0])
+    left_half = frozenset(sorted_indices[:split_index])
+    right_half = frozenset(sorted_indices[split_index:])
+    O = paint(cover(I, obj), combine(recolor(4, left_half), recolor(2, right_half)))
+  return O
+```
+
+**Explanation:**
+This version uses sorting and index manipulation for recoloring:
+
+1. **Object Identification and Orientation:**  Identifies the object and its orientation.
+2. **Index Sorting:** Sorts the object's indices based on row or column priority depending on orientation.
+3. **Splitting by Index:** Splits the sorted indices into two halves, representing the top/bottom or left/right sections.
+4. **Recoloring and Painting:** Recolors each half using `recolor` and combines them back before painting onto the original grid.
+
+### Program Version 5:
+```python
+def solve(I):
+  objs = objects(I, F, T, T)
+  O = I
+  for obj in objs:
+    if portrait(obj):
+      O = vconcat(crop(O, (0, 0), (height(O) // 2, width(O))), hconcat(crop(O, (height(O) // 2, 0), (1, width(O))), fill(crop(O, (height(O) // 2 + 1, 0), (height(O) - height(O) // 2 - 1, width(O))), 1, asindices(crop(O, (height(O) // 2 + 1, 0), (height(O) - height(O) // 2 - 1, width(O)))))))
+    else:
+      O = hconcat(crop(O, (0, 0), (height(O), width(O) // 2)), vconcat(crop(O, (0, width(O) // 2), (height(O), 1)), fill(crop(O, (0, width(O) // 2 + 1), (height(O), width(O) - width(O) // 2 - 1)), 2, asindices(crop(O, (0, width(O) // 2 + 1), (height(O), width(O) - width(O) // 2 - 1))))))
+  return O
+```
+
+**Explanation:**
+This version iterates through objects and modifies the grid directly:
+
+1. **Object Identification:** Identifies all objects in the grid.
+2. **Iterative Modification:** Iterates through each object:
+   - If portrait, splits the entire grid horizontally and recolors the bottom right section.
+   - If landscape, splits the entire grid vertically and recolors the bottom right section.
+3. **Return Modified Grid:**  Returns the modified grid after processing all objects.
+
+These five program versions demonstrate different approaches to achieving the same transformation using the provided DSL. Each version utilizes a distinct combination of functions and logic, showcasing the flexibility and versatility of the DSL for expressing spatial transformations.

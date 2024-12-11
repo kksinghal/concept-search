@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation in both examples focuses on manipulating the smallest object in the grid:
+
+* **Identification & Isolation:** The smallest object (in terms of the number of cells it occupies) is identified and isolated from other objects in the grid.
+* **Recoloring:** The isolated smallest object is recolored to a specific value, in this case, '2'.
+* **Relocation:** The recolored object is then shifted to a new location in the grid. 
+    * **Output_0:** The smallest object is placed one row above the bottom-left corner of the largest object.
+    * **Output_1:** The smallest object is placed one row above and centered horizontally with the top-left corner of the largest object.
+
+Essentially, the transformation extracts the smallest object, recolors it, and strategically repositions it relative to the largest object in the grid.
+
+
+## Program Version 1:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  if len(objs) < 2: return I  # Handle cases with less than two objects
+  sm = min(objs, key=size)
+  lg = max(objs, key=size)
+  offset = (uppermost(lg) - height(sm) - 1, leftmost(lg) + (width(lg) - width(sm)) // 2 )
+  return paint(canvas(mostcommon(I), shape(I)), recolor(2, shift(sm, offset)))
+```
+
+**Explanation:**
+
+1. **Object Extraction:** `objects(I, True, False, True)` extracts all objects (connected components) from the input grid `I`, excluding the background.
+2. **Size-Based Selection:**  The smallest (`sm`) and largest (`lg`) objects are identified using `min(objs, key=size)` and `max(objs, key=size)` respectively.
+3. **Offset Calculation:** The offset to reposition the smallest object is calculated to place it one row above (`uppermost(lg) - height(sm) - 1`) and horizontally centered (`leftmost(lg) + (width(lg) - width(sm)) // 2`) with the largest object.
+4. **Recoloring and Shifting:** The smallest object `sm` is recolored to '2' using `recolor(2, sm)` and then shifted by the calculated offset using `shift(sm, offset)`.
+5. **Painting on Canvas:** Finally, the shifted and recolored object is painted onto a blank canvas of the same size as the input grid using `paint(canvas(mostcommon(I), shape(I)), shifted_recolored_sm)`.
+
+
+## Program Version 2:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  if len(objs) < 2: return I
+  sm = min(objs, key=lambda o: (size(o), ulcorner(o)[0], ulcorner(o)[1]))  # Prioritize top-left if same size
+  lg = max(objs, key=size)
+  target = (uppermost(lg) - 1, leftmost(lg) + (width(lg) - width(sm)) // 2) 
+  offset = subtract(target, ulcorner(sm))
+  return paint(canvas(mostcommon(I), shape(I)), recolor(2, shift(sm, offset))) 
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Similar to Version 1.
+2. **Smallest Object Selection:**  The smallest object `sm` is found with an additional prioritization: if multiple objects have the same size, the one closest to the top-left corner is selected. This is achieved by using a lambda function in `min` to consider size, and then the row and column of the upper-left corner. 
+3. **Target Location Calculation:** Instead of directly calculating the offset, this version first determines the desired target location `target` for the upper-left corner of the smallest object.
+4. **Offset Calculation:** The offset is then simply the difference between the `target` location and the current upper-left corner of the smallest object (`ulcorner(sm)`).
+5. **The rest:** Recoloring, shifting, and painting are the same as in Version 1.
+
+
+## Program Version 3:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  if len(objs) < 2: return I
+  sm = argmin(objs, size)
+  lg = argmax(objs, size)
+  return paint(
+      canvas(mostcommon(I), shape(I)), 
+      recolor(
+          2, 
+          shift(
+              sm, 
+              (uppermost(lg)-lowermost(sm)-1, leftmost(lg) + (width(lg) - width(sm))//2 - leftmost(sm))
+          )
+      )
+  ) 
+```
+
+**Explanation:**
+
+This version is more concise by nesting function calls:
+
+1. **Object Extraction:** Similar to previous versions.
+2. **Smallest and Largest Objects:**  Uses `argmin` and `argmax` to directly find the smallest (`sm`) and largest (`lg`) objects based on size.
+3. **Nested Transformations:**  The core logic is nested within the `paint` function:
+    -  `recolor(2, ...)` recolors the shifted object.
+    -  `shift(sm, ...)` shifts the smallest object `sm` by the calculated offset. The offset calculation remains similar to Version 1, aiming for one row above and horizontally centered relative to the largest object. 
+    -  `canvas(mostcommon(I), shape(I))` creates the background canvas.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, True, False, True)
+    if len(objs) < 2:
+        return I
+    sm = min(objs, key=size)
+    lg = max(objs, key=size)
+    sm_center = centerofmass(sm)
+    lg_center = centerofmass(lg)
+    h_offset = lg_center[1] - sm_center[1]
+    v_offset = uppermost(lg) - height(sm) - 1
+    return paint(canvas(mostcommon(I), shape(I)), recolor(2, shift(sm, (v_offset, h_offset))))
+```
+
+**Explanation:**
+
+This version uses the `centerofmass` function to calculate the offset:
+
+1. **Object Extraction & Selection:** Similar to previous versions.
+2. **Center of Mass Calculation:**  Calculates the center of mass for both the smallest (`sm_center`) and largest (`lg_center`) objects using `centerofmass`.
+3. **Offset Calculation:**
+    - The horizontal offset `h_offset` is the difference in the column indices of the centers of mass. 
+    - The vertical offset `v_offset` ensures the smallest object is one row above the largest object's top.
+4. **Recoloring, Shifting, and Painting:**  The rest is the same as the previous versions.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  if len(objs) < 2: return I
+  sm = min(objs, key=lambda o: size(o))
+  lg = max(objs, key=lambda o: size(o))
+  top_left_lg = ulcorner(lg)
+  return paint(
+      canvas(mostcommon(I), shape(I)),
+      recolor(
+          2,
+          shift(
+              sm,
+              (
+                  top_left_lg[0] - height(sm) - 1,
+                  top_left_lg[1] + (width(lg) - width(sm)) // 2,
+              ),
+          ),
+      ),
+  )
+```
+
+**Explanation:**
+
+This version focuses on readability by using more descriptive variable names and breaking down the offset calculation:
+
+1. **Object Extraction & Selection:** Similar to previous versions.
+2. **Upper-Left Corner of Largest Object:**  The upper-left corner of the largest object is stored in `top_left_lg` for clarity.
+3. **Offset Calculation:**  The offset is calculated directly within the `shift` function:
+    -  Vertical offset:  `top_left_lg[0] - height(sm) - 1` places it one row above.
+    -  Horizontal offset:  `top_left_lg[1] + (width(lg) - width(sm)) // 2`  horizontally centers it.
+4. **Recoloring, Shifting, and Painting:**  Similar to previous versions. 
+
+These five versions demonstrate different approaches to achieving the same transformation, showcasing the flexibility and expressiveness of the provided DSL. 

@@ -1,0 +1,160 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the grid and modifying a central stripe within each object based on its position relative to the middle row of the grid. 
+
+* **Top Objects:** Objects whose uppermost row is above the middle row of the grid have a 2-column wide central stripe recolored to '1'.
+* **Bottom Objects:** Objects whose uppermost row is at or below the middle row of the grid have a 4-column wide central stripe recolored to '2'.
+
+Let's break down the code generation process, aiming for diversity and clarity.
+
+
+## Program Version 1: 
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  objs = objects(I, T, F, F)
+  O = I
+  for obj in objs:
+    obj_width = width(obj)
+    start_col = leftmost(obj) + (obj_width - (2 if uppermost(obj) < h else 4)) // 2
+    end_col = start_col + (2 if uppermost(obj) < h else 4)
+    new_color = 1 if uppermost(obj) < h else 2
+    O = paint(O, recolor(new_color, frozenset((i, j) for i, j in toindices(obj) if start_col <= j < end_col)))
+  return O 
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate the middle row index (`h`) and identify all objects in the input grid (`objs`).
+2. **Iterate through Objects:**  For each object (`obj`) in `objs`:
+    - **Calculate Stripe Dimensions:** Determine the `start_col` and `end_col` of the central stripe based on the object's width and its position relative to `h`. The width is 2 for top objects and 4 for bottom objects.
+    - **Determine Stripe Color:** Set `new_color` to '1' for top objects and '2' for bottom objects.
+    - **Recolor and Paint:** Recolor the stripe within the object to `new_color` and paint it back onto the output grid (`O`).
+3. **Return Output Grid:** Return the modified grid `O`.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  top_objs = sfilter(objects(I, T, F, F), lambda obj: uppermost(obj) < h)
+  bottom_objs = sfilter(objects(I, T, F, F), lambda obj: uppermost(obj) >= h)
+  
+  def modify_obj(obj, width, color):
+    start_col = leftmost(obj) + (width(obj) - width) // 2
+    end_col = start_col + width
+    return recolor(color, frozenset((i, j) for i, j in toindices(obj) if start_col <= j < end_col))
+  
+  O = I
+  for obj in top_objs:
+    O = paint(O, modify_obj(obj, 2, 1))
+  for obj in bottom_objs:
+    O = paint(O, modify_obj(obj, 4, 2))
+  return O
+```
+
+**Explanation:**
+
+1. **Pre-processing:**  Separate objects into `top_objs` and `bottom_objs` based on their position relative to the middle row (`h`).
+2. **Helper Function:** Define a function `modify_obj` to calculate the stripe indices and recolor the stripe within a given object.
+3. **Iterate and Modify:**  
+    - Iterate through `top_objs`, apply `modify_obj` with width 2 and color 1, and paint the modified object onto the output grid.
+    - Repeat for `bottom_objs` with width 4 and color 2.
+4. **Return Output Grid:** Return the modified grid `O`. 
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  O = canvas(0, (h, w)) 
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != 0:
+        obj = extract(objects(I, T, F, F), lambda obj: (i, j) in toindices(obj))
+        stripe_width = 2 if uppermost(obj) < h // 2 else 4
+        start_col = leftmost(obj) + (width(obj) - stripe_width) // 2
+        O = paint(O, recolor(1 if i < h // 2 else 2, frozenset((a, b) for a, b in toindices(obj) if start_col <= b < start_col + stripe_width)))
+  return O
+```
+
+**Explanation:**
+
+1. **Create Empty Canvas:**  Create an output grid (`O`) filled with zeros, matching the dimensions of the input grid.
+2. **Iterate through Cells:** Iterate through each cell in the input grid (`I`).
+3. **Identify and Modify Object:** If a cell is not background (value 0), identify the object it belongs to. Calculate the stripe dimensions and color based on the object's position, and paint the modified object onto the output grid.
+4. **Return Output Grid:** Return the modified grid `O`.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  def modify_row(row, obj, width, color):
+    start_col = leftmost(obj) + (width(obj) - width) // 2
+    end_col = start_col + width
+    return tuple(color if start_col <= j < end_col else I[i][j] for j in range(len(row)))
+
+  O = tuple()
+  for i, row in enumerate(I):
+    if any(v != 0 for v in row):  
+      obj = extract(objects(I, T, F, F), lambda obj: hmatching(frozenset({(i, j) for j in range(len(row))}), obj))
+      new_row = modify_row(row, obj, 2 if i < h else 4, 1 if i < h else 2)
+      O = O + (new_row,)
+    else:
+      O = O + (row,)
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Rows:** Iterate through each row in the input grid.
+2. **Identify Object:** For each non-empty row, identify the object it intersects with.
+3. **Modify Row:** Apply `modify_row` to recolor the central stripe in the row based on its position relative to `h`.
+4. **Construct Output:** Append the modified row to the output grid (`O`). If a row is empty, append it directly.
+5. **Return Output Grid:** Return the constructed output grid `O`.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  objs = objects(I, T, F, F)
+  O = canvas(0, shape(I))
+  for obj in objs:
+    stripe_width = 2 if uppermost(obj) < h else 4
+    start_col = leftmost(obj) + (width(obj) - stripe_width) // 2
+    stripe = frozenset(
+        (i, j) 
+        for i in range(uppermost(obj), lowermost(obj) + 1) 
+        for j in range(start_col, start_col + stripe_width)
+    )
+    O = paint(O, recolor(1 if uppermost(obj) < h else 2, stripe))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Calculate the middle row index (`h`), identify all objects, and create an empty output grid.
+2. **Iterate through Objects:** For each object:
+    - Determine stripe dimensions and color.
+    - Generate a set of indices representing the stripe within the object's bounding box.
+    - Recolor the stripe and paint it onto the output grid.
+3. **Return Output Grid:** Return the final modified grid.
+
+These five program versions provide distinct approaches to solving the given transformation task using the provided DSL, showcasing diverse function combinations and logical flows. 

@@ -1,0 +1,149 @@
+## Transformation Analysis:
+
+The transformation involves identifying square objects within the grid and modifying their fill based on the value at their center. 
+
+* **If the center value of a square object is the most common color in the entire grid, the square is filled with the value "2".** 
+* **Otherwise, the square retains its original center value but the rest of the square is filled with the background color.**
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  new_grid = canvas(mostcommon(I), shape(I)) # Create a new grid filled with the most common color
+  for obj in objects(I, T, F, F):  # Iterate over all objects in the grid
+    if square(obj):  # Check if the object is a square
+      center_val = index(I, center(obj)) # Get the value at the center of the square
+      fill_val = 2 if center_val == mostcommon(I) else center_val  # Determine the fill value
+      new_grid = fill(new_grid, fill_val, toindices(obj))  # Fill the square in the new grid
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`new_grid = canvas(mostcommon(I), shape(I))`**: Creates a new grid of the same size as the input (`I`), initially filled with the most common color in the input.
+2. **`for obj in objects(I, T, F, F)`**: Iterates through each object identified in the input grid.
+3. **`if square(obj)`**: Checks if the current object is a square.
+4. **`center_val = index(I, center(obj))`**: Retrieves the value at the center of the square object.
+5. **`fill_val = 2 if center_val == mostcommon(I) else center_val`**:  Determines the fill value based on the transformation rule.
+6. **`new_grid = fill(new_grid, fill_val, toindices(obj))`**: Fills the corresponding indices of the square object in the new grid with the determined `fill_val`.
+7. **`return new_grid`**: Returns the transformed grid.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  return tuple(
+    tuple(
+      2 if any(square(o) and (i,j) == center(o) and index(I, (i,j)) == mostcommon(I) for o in objects(I, T, F, F)) else
+      index(I, center(obj)) if any(square(o) and (i,j) in toindices(o) for o in objects(I, T, F, F)) else
+      I[i][j]
+      for j in range(len(I[0])))
+    for i in range(len(I)))
+```
+
+**Explanation:**
+
+This version utilizes nested loops and conditional expressions for a more concise approach:
+
+1. **`return tuple(tuple(...))`**: Constructs and returns the output grid directly.
+2. **`for i in range(len(I))`** and **`for j in range(len(I[0]))`**: Iterates over each cell (i, j) in the input grid.
+3. The nested conditional expressions check three conditions:
+    * **`any(square(o) and (i,j) == center(o) and index(I, (i,j)) == mostcommon(I) for o in objects(I, T, F, F))`**: If the current cell (i, j) is the center of a square object AND its value is the most common color, it assigns "2".
+    * **`any(square(o) and (i,j) in toindices(o) for o in objects(I, T, F, F))`**:  If the current cell is part of a square object (but not necessarily the center), it assigns the color of the square's center.
+    * **`I[i][j]`**: Otherwise, it retains the original cell value from the input grid.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, F)
+  squares = sfilter(objs, square)
+  return tuple(
+    tuple(
+      2 if any((i,j) == center(obj) and index(I, (i,j)) == mostcommon(I) for obj in squares) else
+      index(I, center(next(obj for obj in squares if (i,j) in toindices(obj)))) if any((i,j) in toindices(obj) for obj in squares) else 
+      I[i][j] 
+      for j in range(len(I[0]))) 
+    for i in range(len(I)))
+```
+
+**Explanation:**
+
+This version optimizes by pre-filtering square objects:
+
+1. **`objs = objects(I, T, F, F)`**: Identifies all objects.
+2. **`squares = sfilter(objs, square)`**: Filters and stores only the square objects.
+3. The rest of the code functions similarly to version 2, but with improved efficiency as it iterates over a smaller set of `squares` instead of all objects.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+    new_grid = canvas(mostcommon(I), shape(I))
+    for obj in objects(I, T, F, F):
+        if square(obj):
+            center_i, center_j = center(obj)
+            if index(I, (center_i, center_j)) == mostcommon(I):
+                new_grid = fill(new_grid, 2, toindices(obj))
+            else:
+                new_grid = fill(new_grid, index(I, (center_i, center_j)), toindices(obj))
+                new_grid = fill(new_grid, mostcommon(I), {(center_i, center_j)})  # Refill center with background
+    return new_grid
+
+```
+
+**Explanation:**
+
+This version explicitly handles the "refilling" of the center with the background color when the center value is not the most common:
+
+1. It creates a new grid (`new_grid`) filled with the most common color like in previous versions.
+2. When iterating through square objects, it distinguishes between the two cases:
+    * If the center is the most common color, it fills the entire square with "2".
+    * If the center is not the most common color:
+        * It fills the entire square with the center color.
+        * It then explicitly refills the center cell with the most common color using `fill(new_grid, mostcommon(I), {(center_i, center_j)})`.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  return tuple(
+    tuple(
+      branch(
+        any(square(obj) and (i, j) in toindices(obj) for obj in objects(I, T, F, F)),
+        branch(
+          index(I, center(extract(objects(I, T, F, F), lambda obj: square(obj) and (i, j) in toindices(obj)))) == mostcommon(I),
+          2,
+          index(I, center(extract(objects(I, T, F, F), lambda obj: square(obj) and (i, j) in toindices(obj))))
+        ),
+        I[i][j]
+      ) for j in range(len(I[0])))
+    for i in range(len(I)))
+```
+
+**Explanation:**
+
+This version extensively uses the `branch` function for a more functional approach:
+
+1. The nested `branch` functions create a decision tree for each cell (i, j):
+    * The outermost `branch` checks if the cell belongs to a square.
+    * If true, the inner `branch` checks if the center value of that square is the most common color. 
+        * If true, it assigns "2".
+        * If false, it assigns the center value of the square.
+    * If the cell doesn't belong to a square, it retains its original value.
+
+This version prioritizes a functional style and showcases the versatility of the `branch` function. However, it might be less readable than the other versions.
+
+
+These five programs offer diverse approaches to achieve the desired transformation, each highlighting different aspects of the DSL and coding styles. Choose the version that best suits your preferences for readability, efficiency, or coding paradigms. 

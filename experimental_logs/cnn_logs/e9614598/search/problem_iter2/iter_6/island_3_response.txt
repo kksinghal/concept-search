@@ -1,0 +1,119 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the input grid and drawing a horizontal line of '3's one row below the object. The length of the line matches the width of the object.  
+
+**Input_0:**
+- Two objects are detected: {(2,(4,1)), (2,(4,7))}, {(1,(5,1)), (6,(5,2)), (7,(5,0)), (7,(5,6)), (1,(5,7)), (6,(5,8))}
+- For each object, a line of '3's is drawn one row below:
+    - Object 1: {(3,(6,1)), (3,(6,2)), (3,(6,3)), (3,(6,4)), (3,(6,5)), (3,(6,6)), (3,(6,7)), (3,(6,8)), (3,(6,9))}
+    - Object 2: {(3,(4,0)), (3,(4,1)), (3,(4,2)), (3,(4,3)), (3,(4,4)), (3,(4,5)), (3,(4,6)), (3,(4,7)), (3,(4,8)), (3,(4,9))}
+
+**Input_1:**
+- Two objects are detected: {(7,(0,2)), (1,(0,3)), (6,(0,4)), (7,(8,2)), (1,(8,3)), (6,(8,4))}, {(8,(1,3)), (8,(9,3))} 
+- For each object, a line of '3's is drawn one row below:
+    - Object 1: {(3,(1,2)), (3,(1,3)), (3,(1,4))}
+    - Object 2: {(3,(9,2)), (3,(9,3)), (3,(9,4)), (3,(9,5)), (3,(9,6)), (3,(9,7)), (3,(9,8)), (3,(9,9))}
+
+
+## Program Versions:
+
+Here are five distinct program versions to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def solve_60b61512(I):
+    objs = fgpartition(I)  # Extract foreground objects
+    lines = mapply(lambda obj: recolor(3, {(i+1, j) for i, j in toindices(obj) for k in range(width(obj))}), objs)  # Create lines of 3s below objects
+    return paint(I, lines)  # Paint the lines onto the original grid
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`:** Extracts all foreground objects from the input grid `I`.
+2. **`lines = mapply(...)`:** 
+   - Iterates through each `obj` in `objs`.
+   - For each cell `(i, j)` in the object, it generates a horizontal line of `3`s with the same width as the object, starting one row below the cell.
+   - `recolor(3, ...)`: Sets the color of the generated indices to `3`.
+3. **`return paint(I, lines)`:**  Paints the generated `lines` onto the original grid `I`.
+
+**Program Version 2:**
+
+```python
+def solve_60b61512(I):
+    objs = fgpartition(I)
+    lines = merge(apply(lambda obj: recolor(3, {(lowermost(obj) + 1, j) for j in range(leftmost(obj), rightmost(obj) + 1)}), objs))  # Create lines based on object boundaries
+    return paint(I, lines) 
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`:**  Same as Version 1.
+2. **`lines = merge(...)`:**
+   - Iterates through each object `obj`.
+   - Determines the object's boundaries (`lowermost`, `leftmost`, `rightmost`).
+   - Creates a horizontal line of '3's one row below the object's `lowermost` row, spanning from its `leftmost` to `rightmost` columns.
+   - `recolor(3, ...)`: Sets the color of these indices to `3`.
+3. **`return paint(I, lines)`:** Same as Version 1. 
+
+**Program Version 3:**
+
+```python
+def solve_60b61512(I):
+    return paint(I, merge(apply(lambda obj: recolor(3, {(lowermost(obj) + 1, j) for j in range(width(I)) if (lowermost(obj) + 1, j) in backdrop(obj)}), fgpartition(I))))  # Combine object extraction and line creation
+```
+
+**Explanation:**
+
+This version combines the object extraction and line creation steps within a single line of code. 
+
+1. **`fgpartition(I)`:** Extracts foreground objects.
+2. **`apply(lambda obj: ..., ...)`:**  For each object:
+    - Determines its lower boundary (`lowermost`).
+    - Generates a horizontal line of `3`s one row below (`lowermost(obj) + 1`), spanning the entire width of the input grid.
+    - It ensures these new indices fall within the object's backdrop using `(lowermost(obj) + 1, j) in backdrop(obj)`.
+    - `recolor(3, ...)`:  Sets the color of these indices to `3`.
+3. **`merge(...)`:** Merges the lines generated for each object.
+4. **`paint(I, ...)`:**  Paints the merged lines onto the original grid `I`.
+
+
+**Program Version 4:**
+
+```python
+def solve_60b61512(I):
+  objs = fgpartition(I)
+  lines = mapply(lambda obj: recolor(3, {(y + 1, x) for _, (y, x) in obj if y + 1 < height(I)}), objs)  # Check boundary before adding a line
+  return paint(I, lines) 
+```
+
+**Explanation:**
+
+This version adds a boundary check to prevent lines from extending beyond the grid's bottom edge.
+
+1. **`objs = fgpartition(I)`:** Extracts foreground objects.
+2. **`lines = mapply(...)`:** For each object:
+   - Generates a line of '3's only if the line's y-coordinate (`y + 1`) is within the grid's height (`y + 1 < height(I)`).
+3.  **`return paint(I, lines)`:**  Paints the lines onto the original grid `I`.
+
+**Program Version 5:**
+
+```python
+def solve_60b61512(I):
+    objs = objects(I, T, T, T)
+    shifted_objs = mapply(lambda obj: shift(obj, (1, 0)), objs) # Shift objects downwards
+    lines = mapply(lambda obj: recolor(3, intersection(toindices(obj), backdrop(shift(obj, (-1, 0))))), shifted_objs) # Find intersection with the original object's backdrop 
+    return paint(I, lines)
+```
+
+**Explanation:**
+
+This version uses a different approach by shifting objects and finding intersections to determine line placement. 
+
+1. **`objs = objects(I, T, T, T)`:** Extract all objects from the input grid.
+2. **`shifted_objs = mapply(lambda obj: shift(obj, (1, 0)), objs)`:** Shift each object one row downwards.
+3. **`lines = mapply(...)`:**  For each shifted object:
+   - Finds the intersection (`intersection`) between the shifted object's indices and the backdrop of the original (unshifted) object. 
+   - This intersection represents the cells where the line of '3's should be drawn.
+4. **`return paint(I, lines)`:**  Paints the lines onto the original grid.
+
+These program versions provide different ways to achieve the same transformation. You can choose the version that you find most efficient or readable for your use case. 

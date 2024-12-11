@@ -1,0 +1,147 @@
+## Transformation Analysis:
+
+The transformation involves recoloring specific cells within each connected object (excluding the background color 0) to the value 2. 
+
+* **Horizontal Objects:** For objects wider than tall, the transformation recolors every other column to 2, starting with the second column from the left.
+* **Vertical Objects:** For objects taller than wide, the transformation recolors every other row to 2, starting with the second row from the top.
+* **Square Objects:**  Square objects are treated as horizontal objects, with the recoloring applied to columns. 
+
+Let's illustrate with an example from Input_1:
+
+```
+Input_1:         Output_1:
+0 0 0 0 ...      0 0 0 0 ...
+0 8 8 8 ...      0 8 8 8 ...
+0 8 0 8 ...      0 8 2 8 ...
+0 8 0 8 ...      0 8 2 8 ...
+0 0 0 8 ...      0 2 2 8 ...
+0 0 0 0 ...      0 0 0 0 ...
+```
+
+The top-right object is wider than tall. Notice the alternating columns of 8 and 2 in the output.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program, each with an explanation:
+
+**Program Version 1**
+
+```python
+def solve(I):
+    objs = objects(I, F, F, T)
+    recolored_objs = set()
+    for obj in objs:
+        if portrait(obj):
+            start_row = uppermost(obj) + 1
+            for i in range(start_row, lowermost(obj) + 1, 2):
+                recolored_objs.add(recolor(2, toobject(frozenset((i, j) for j in range(leftmost(obj), rightmost(obj) + 1)), I)))
+        else:
+            start_col = leftmost(obj) + 1
+            for j in range(start_col, rightmost(obj) + 1, 2):
+                recolored_objs.add(recolor(2, toobject(frozenset((i, j) for i in range(uppermost(obj), lowermost(obj) + 1)), I)))
+    O = I
+    for obj in recolored_objs:
+        O = paint(O, obj)
+    return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies all objects in the input grid (`I`) excluding the background using `objects(I, F, F, T)`.
+2. **Iterate and Recolor:**  Iterates through each object (`obj`).
+    * **Determine Orientation:** Uses `portrait(obj)` to check if the object is taller than wide.
+    * **Recolor Based on Orientation:**  If taller, recolors every other row starting from the second row. If wider, recolors every other column starting from the second column.
+3. **Paint Objects:**  Paints the recolored objects onto the original grid to produce the output (`O`).
+
+**Program Version 2**
+
+```python
+def solve(I):
+  objs = objects(I, F, F, T)
+  new_objs = set()
+  for obj in objs:
+    if portrait(obj):
+      p = vperiod(obj)
+      new_objs.add(recolor(2, shift(obj, (p, 0))))
+    else:
+      p = hperiod(obj)
+      new_objs.add(recolor(2, shift(obj, (0, p))))
+  O = I
+  for obj in new_objs:
+    O = underpaint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies all foreground objects.
+2. **Calculate Periodicity:** For each object, determines its vertical or horizontal periodicity (`vperiod` or `hperiod`) based on its orientation.
+3. **Shift and Recolor:** Creates a shifted copy of the object by its periodicity and recolors it to 2.
+4. **Underpaint:** Merges the shifted and recolored objects with the original grid, overwriting only background cells.
+
+**Program Version 3**
+
+```python
+def solve(I):
+  objs = objects(I, F, F, T)
+  modified_grid = I
+  for obj in objs:
+    ul = ulcorner(obj)
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      for j in range(leftmost(obj), rightmost(obj) + 1):
+        if (i - ul[0] + j - ul[1]) % 2 == 1:
+          modified_grid = fill(modified_grid, 2, frozenset({(i, j)}))
+  return modified_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies all foreground objects.
+2. **Iterate through Cells:**  Iterates through each cell within each object.
+3. **Calculate Offset Sum:** For each cell, calculates the sum of its row and column offsets from the object's upper-left corner.
+4. **Conditional Recoloring:** Recolors the cell to 2 if the offset sum is odd.
+
+**Program Version 4**
+
+```python
+def solve(I):
+  objs = objects(I, F, F, T)
+  result = I
+  for obj in objs:
+    for i, row in enumerate(subgrid(obj, I)):
+      for j, val in enumerate(row):
+        if (portrait(obj) and i % 2 == 1) or (not portrait(obj) and j % 2 == 1):
+          result = fill(result, 2, frozenset({(i + uppermost(obj), j + leftmost(obj))}))
+  return result 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identifies all foreground objects in the grid.
+2. **Iterate through Subgrids:** Extracts the subgrid corresponding to each object and iterates through its cells.
+3. **Conditional Recoloring:**  Recolors a cell to 2 if:
+    * The object is taller than wide, and the cell is in an odd-indexed row.
+    * The object is wider than tall or square, and the cell is in an odd-indexed column. 
+
+**Program Version 5**
+
+```python
+def solve(I):
+  objs = objects(I, F, F, T)
+  new_grid = I
+  for obj in objs:
+    if portrait(obj):
+      indices = frozenset((i, j) for i in range(uppermost(obj) + 1, lowermost(obj) + 1, 2) for j in range(leftmost(obj), rightmost(obj) + 1))
+    else:
+      indices = frozenset((i, j) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(leftmost(obj) + 1, rightmost(obj) + 1, 2))
+    new_grid = fill(new_grid, 2, indices)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identifies all foreground objects in the grid.
+2. **Generate Recoloring Indices:**  For each object:
+   * If it's taller than wide, generates indices for every other row starting from the second row.
+   * If it's wider than tall or square, generates indices for every other column starting from the second column.
+3. **Recolor Grid:** Directly recolors the `new_grid` at the generated indices to 2. 

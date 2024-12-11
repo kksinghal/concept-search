@@ -1,0 +1,192 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids seems to be **"gravity"**. It appears to simulate the effect of objects falling straight down within the grid until they encounter another object or the bottom edge of the grid.  
+
+Here's a breakdown for each input-output pair:
+
+* **Input_0/Output_0:** The single 7-valued cell at the top left and all the 7-valued objects fall to the bottom, leaving empty space (filled with the background color 0) above.
+* **Input_1/Output_1:** Similar to Input_0, all 6-valued objects fall to the bottom, leaving empty space above. 
+* **Input_2/Output_2:** The 5-valued objects "fall" downwards, filling the spaces below them.
+
+
+## Program_to_be_generated:
+
+Here are five distinct program versions using the DSL provided in `dsl.py`:
+
+
+### Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Iterates through rows from the bottom up, 
+  shifting non-background values down if space exists.
+  """
+  h, w = len(I), len(I[0])
+  O = list(list(row) for row in I) # Mutable copy
+  bg = mostcommon(I)
+  for i in range(h-2, -1, -1): # Bottom to top
+    for j in range(w):
+      if O[i][j] != bg and O[i+1][j] == bg: # If non-bg and space below
+        O[i+1][j] = O[i][j] # Move value down
+        O[i][j] = bg # Clear original position 
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. Creates a mutable copy of the input grid (`O`).
+2. Determines the background color (`bg`).
+3. Iterates through the rows from the bottom up (excluding the last row).
+4. For each cell, it checks if:
+    * The cell is not the background color.
+    * The cell below is the background color.
+5. If both conditions are true:
+    * It moves the current cell's value down one row.
+    * It replaces the current cell's value with the background color.
+
+This simulates gravity by progressively moving non-background values down into empty spaces. 
+
+
+### Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses paint and cover to simulate gravity.
+  """
+  O = I
+  bg = mostcommon(I)
+  objs = objects(I, False, False, False)
+  for obj in objs:
+    shifted_obj = shift(obj, (height(I) - lowermost(obj), 0))  # Shift to bottom
+    O = paint(cover(O, obj), shifted_obj) # Cover original, paint at bottom
+  return O
+```
+
+**Explanation:**
+
+1. Extracts all objects from the input grid.
+2. For each object:
+   - Calculates how far down it needs to be shifted to touch the bottom.
+   - Shifts the object to its new position.
+   - Covers (removes) the original object from the grid.
+   - Paints the shifted object onto the grid.
+
+This version directly manipulates objects instead of individual cells, making it potentially more efficient for grids with large objects. 
+
+
+### Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Recursively drops objects down until they hit another object.
+  """
+  h, w = len(I), len(I[0])
+  O = I
+  bg = mostcommon(I)
+  def drop_object(obj):
+    """Recursively moves object down until collision."""
+    shifted_obj = shift(obj, (1, 0))
+    if any(vmatching(shifted_obj, other_obj) for other_obj in objects(O, False, False, False) if other_obj != obj) or lowermost(shifted_obj) >= h:
+      return obj  # Collision or at bottom
+    else:
+      return drop_object(shifted_obj)
+  for obj in objects(I, False, False, False):
+    O = paint(cover(O, obj), drop_object(obj))
+  return O
+```
+
+**Explanation:**
+
+1. Defines a recursive function `drop_object` that:
+   - Shifts an object one step down.
+   - Checks for collisions with other objects or the bottom edge.
+   - If a collision occurs or it's at the bottom, returns the current object.
+   - Otherwise, recursively calls itself with the shifted object.
+2. Extracts all objects from the input grid.
+3. For each object, it calls `drop_object` to get its final resting position and paints it onto the grid.
+
+This version uses recursion for a more elegant solution, highlighting the expressive power of DSLs.
+
+
+### Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses a column-wise approach to move objects down.
+  """
+  h, w = len(I), len(I[0])
+  O = list(list(row) for row in I) # Mutable copy
+  bg = mostcommon(I)
+  for j in range(w): # For each column
+    for i in range(h-2, -1, -1): # From bottom to top
+      if O[i][j] != bg and O[i+1][j] == bg: # Check for non-bg & empty space
+        k = i
+        while k > 0 and O[k-1][j] != bg and O[k][j] == bg:  # Find top of the object
+          k -= 1
+        O[i+1][j] = O[k][j]  # Move top element down
+        O[k][j] = bg  # Clear original
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. Iterates through the grid column by column.
+2. For each column, it moves from bottom to top, looking for non-background values with empty space below.
+3. If it finds such a value:
+    -  It then iterates upwards within the column to find the topmost element of the object (the highest non-background value).
+    -  It moves the topmost element down to the initial empty space.
+    -  It clears the original position of the topmost element. 
+
+This version optimizes movement by directly finding the top of an object and moving it to the available space, potentially reducing the number of individual cell moves compared to simpler iterative approaches.
+
+
+### Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Simulates gravity using a while loop and down-shifting.
+  """
+  O = I
+  stable = False
+  while not stable:
+    stable = True
+    for obj in objects(O, False, False, False):
+      shifted_obj = shift(obj, (1, 0))
+      if not any(vmatching(shifted_obj, other_obj) for other_obj in objects(O, False, False, False) if other_obj != obj) and lowermost(shifted_obj) < height(O):
+        O = paint(cover(O, obj), shifted_obj)
+        stable = False
+  return O
+```
+
+**Explanation:**
+
+1. Uses a `while` loop that continues until the grid reaches a stable state (no more objects can fall).
+2. Within the loop, it iterates through all objects in the grid.
+3. For each object, it checks:
+   - If it can be shifted down without colliding with another object.
+   - If it's not already at the bottom edge.
+4. If both conditions are met:
+   - It shifts the object down by one unit.
+   - It sets `stable` to `False`, indicating that the grid might not be stable yet.
+5. The loop repeats until no more objects can be moved down. 
+
+This version provides a more intuitive simulation of gravity, as it repeatedly checks for falling objects until they all come to rest. 
+
+---
+
+These five program versions demonstrate diverse approaches to achieving the desired transformation. Each leverages different DSL functions and logical structures, highlighting the flexibility and problem-solving capabilities within a DSL environment. 

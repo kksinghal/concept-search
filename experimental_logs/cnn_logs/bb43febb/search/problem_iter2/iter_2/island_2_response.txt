@@ -1,0 +1,108 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects with color '5' and then replacing their inner cells with color '2', essentially creating a hollow frame of the original object.  
+
+**Input_0 to Output_0:**
+
+* The large '5' object is transformed into a hollow frame with a '2' filled interior.
+* The smaller '5' objects remain unchanged as they only consist of a border.
+
+**Input_1 to Output_1:**
+
+* The same transformation is applied to both '5' objects, hollowing them out and filling the interior with '2'.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  new_objs = set()
+  for obj in objects(I, T, T, T):
+    if color(obj) == 5 and height(obj)>2 and width(obj)>2:
+      ul = ulcorner(obj)
+      new_obj = shift(recolor(2, crop(I, add(ul,(1,1)),subtract(shape(obj),(2,2)))), add(ul,(1,1)))
+      new_objs.add(new_obj)
+  return paint(I, merge(new_objs)) 
+```
+
+**Explanation:**
+
+1. **Iterate over objects:**  `for obj in objects(I, T, T, T)` iterates through each object in the input grid.
+2. **Check color and size:** `if color(obj) == 5 and height(obj)>2 and width(obj)>2` ensures only objects with color '5' and height & width greater than 2 are processed.
+3. **Calculate inner region:** `ul = ulcorner(obj)` gets the upper-left corner, and `crop(I, add(ul,(1,1)),subtract(shape(obj),(2,2)))` extracts the inner region of the object.
+4. **Recolor and shift:** `recolor(2, ...)` changes the inner region's color to '2', and `shift(..., add(ul,(1,1)))` moves it back to the original position within the object.
+5. **Paint to output:**  `paint(I, merge(new_objs))` merges all modified objects and paints them onto a copy of the input grid. 
+
+**Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    if color(obj) == 5 and len(delta(obj))>0:
+      O = underfill(O, 2, inbox(obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Filter:** Loop through all objects and process only those with color '5' and having a non-empty delta (meaning they have an inner area).
+2. **Underfill:** Use `underfill` to paint color '2' only on the background cells (`mostcolor(grid)`) within the object's `inbox`. This avoids changing existing non-background colors.
+
+**Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))  # Initialize output with background
+  for obj in objects(I, T, T, T):
+    if color(obj) == 5:
+      if len(delta(obj))>0:
+        obj = recolor(2, delta(obj)) | toobject(box(obj), I)
+    O = paint(O, obj)  # Paint the modified or original object
+  return O
+```
+
+**Explanation:**
+
+1. **Background Canvas:** Create an output grid filled with the background color of the input.
+2. **Conditional Modification:** For each '5' colored object:
+   - If it has an inner area, recolor the `delta` to '2' and combine it with the original object's border (`box`).
+   - If not, the object remains unchanged.
+3. **Paint to Output:** Paint each processed object onto the output canvas.
+
+**Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(I, merge({branch(len(delta(obj)) > 0, 
+                            shift(recolor(2,crop(I, astuple(uppermost(obj)+1, leftmost(obj)+1), 
+                                                  subtract(shape(obj),TWO_BY_TWO))), astuple(uppermost(obj)+1, leftmost(obj)+1)), 
+                            obj) 
+                           for obj in objects(I, T, T, T) if color(obj) == 5}))
+
+```
+
+**Explanation:**
+
+1. **Object Filtering and Mapping:** Uses a set comprehension to process only '5' colored objects.
+2. **Conditional Transformation:** `branch(len(delta(obj)) > 0, ..., obj)` applies the transformation only if the object has an inner region.
+   - If an inner region exists, it crops the inner portion, recolors it to '2', and shifts it back to the correct position.
+   - Otherwise, it keeps the object unchanged.
+
+**Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(I, merge(apply(lambda obj: shift(recolor(2, crop(I, add(ulcorner(obj),(1,1)), subtract(shape(obj),(2,2)))), add(ulcorner(obj),(1,1))) 
+                         if color(obj) == 5 and height(obj)>1 and width(obj)>1 else obj, 
+                         objects(I, T, T, T))))
+```
+
+**Explanation:**
+
+1. **Apply and Lambda:**  Uses `apply` with a lambda function to apply the transformation to each object from `objects(I, T, T, T)`.
+2. **Inline Conditional:** The lambda function contains the logic:
+   - If the object is color '5' and has both height and width greater than 1, it performs the crop, recolor, and shift operations.
+   - Otherwise, it returns the object unchanged. 
+3. **Merge and Paint:**  The results are then merged and painted onto the input grid. 

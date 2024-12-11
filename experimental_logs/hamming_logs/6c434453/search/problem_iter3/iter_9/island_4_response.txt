@@ -1,0 +1,182 @@
+## Transformation Analysis:
+
+The transformation takes a single-pixel object on a blank canvas and draws a 3x3 square and a 3-cell line on a larger canvas.  The position and orientation of the shapes depend on the location of the single pixel in the input:
+
+* **Square:** The square's top-left corner is positioned two cells to the right and two cells down from the single-pixel object.
+* **Line:** The line is always 3 cells long. 
+    * If the single pixel is in the top row of the input grid, the line is drawn horizontally to the right of the square. 
+    * If the single pixel is not in the top row, the line is drawn vertically below the square.
+
+**Let's analyze the provided programs:**
+
+* **Program_A:** This program hardcodes the objects' positions and uses a conditional statement to handle different inputs. It fails to generalize to arbitrary input positions.
+* **Program_B:** This program attempts to generalize by calculating the diagonal line based on input coordinates. However, it still hardcodes the vertical line and doesn't generate the square.
+
+**Key takeaway:** We need a program that dynamically calculates the positions of both the square and the line based on the single pixel's location in the input grid.
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" code, each with an explanation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  # Locate the single pixel object
+  obj = extract(objects(I, T, F, T), lambda obj: size(obj) == 1)
+  
+  # Calculate the top-left corner of the square
+  corner = add(ulcorner(obj), (2, 2))
+  
+  # Generate square indices
+  square_indices = prapply(lambda i, j: astuple(add(corner, (i, j))), interval(0, 3, 1), interval(0, 3, 1))
+  
+  # Generate line indices based on pixel position
+  line_indices = prapply(lambda i, j: astuple(add(corner, (i, j))), interval(0, 3, 1), {0}) if ulcorner(obj)[0] == 0 else prapply(lambda i, j: astuple(add(corner, (i, j))), {0}, interval(0, 3, 1))
+  
+  # Paint the shapes onto a blank canvas
+  O = paint(canvas(0, shape(I)), recolor(2, square_indices) | recolor(1, line_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Locate the Pixel:** `objects(I, T, F, T)` finds all objects in the input (`I`), considering single-color objects only (`T`), without diagonal connections (`F`), and excluding the background (`T`). `extract` then finds the single-pixel object based on its size.
+2. **Calculate Corner:** `ulcorner(obj)` gets the top-left corner of the single-pixel object, and `add(..., (2, 2))` offsets it to find the square's corner.
+3. **Generate Indices:** `prapply` generates indices for the square and line by iterating through row and column offsets.  
+4. **Paint Shapes:**  The shapes are painted onto a blank canvas (`canvas(0, shape(I))`) using the calculated indices and `recolor`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  # Locate single pixel
+  pixel_loc = ulcorner(extract(objects(I, T, F, T), lambda obj: size(obj) == 1))
+
+  # Square's top-left corner
+  square_corner = add(pixel_loc, (2, 2))
+
+  # Generate square using nested loops
+  square = frozenset()
+  for i in range(3):
+    for j in range(3):
+      square = insert(add(square_corner, (i, j)), square)
+
+  # Generate line based on pixel location
+  line = frozenset()
+  if pixel_loc[0] == 0:  # Horizontal line
+    for i in range(3):
+      line = insert(add(square_corner, (i, 0)), line)
+  else:  # Vertical line
+    for i in range(3):
+      line = insert(add(square_corner, (0, i)), line)
+
+  # Paint on canvas
+  O = paint(canvas(0, shape(I)), recolor(2, square) | recolor(1, line))
+  return O
+```
+
+**Explanation:**
+
+1. **Find Pixel:** Similar to version 1, we locate the single pixel.
+2. **Calculate Corner:**  Calculate the square's top-left corner.
+3. **Generate Shapes:**  Nested loops generate indices for the square. The line's orientation is determined by the pixel's row position.
+4. **Paint:** Shapes are painted on a blank canvas.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  # Single pixel location
+  pixel_loc = ulcorner(extract(objects(I, T, F, T), lambda obj: size(obj) == 1))
+
+  # Square corner
+  corner = add(pixel_loc, (2, 2))
+
+  # Square using `crop` and `canvas`
+  square = toindices(asobject(crop(canvas(2, (3, 3)), (0, 0), (3, 3)))) 
+  square = shift(square, corner)
+
+  # Line conditional on pixel location
+  line = toindices(asobject(canvas(1, (3, 1)))) if pixel_loc[0] == 0 else toindices(asobject(canvas(1, (1, 3))))
+  line = shift(line, corner)
+
+  # Paint on a blank canvas
+  O = paint(canvas(0, shape(I)), recolor(2, square) | recolor(1, line)) 
+  return O
+```
+
+**Explanation:**
+
+1. **Find Pixel:** Locate the single pixel.
+2. **Calculate Corner:** Calculate the square's top-left corner.
+3. **Generate Shapes:**  
+    * **Square:** Created using `canvas` to generate a 3x3 grid of the desired color, cropped to the correct size, and then shifted to the correct location.
+    * **Line:** Created similarly, with the dimensions of `canvas` changing based on the pixel's location.
+4. **Paint:** Paint the shapes on a blank canvas.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  # Single pixel object
+  obj = extract(objects(I, T, F, T), lambda obj: size(obj) == 1)
+
+  # Offset for shapes
+  offset = add(ulcorner(obj), (2, 2))
+
+  # Create square using `fill`
+  O = fill(canvas(0, shape(I)), 2, {(offset[0] + i, offset[1] + j) for i in range(3) for j in range(3)})
+
+  # Create line based on pixel location
+  if ulcorner(obj)[0] == 0:  # Horizontal line
+    O = fill(O, 1, {(offset[0] + i, offset[1]) for i in range(3)})
+  else:  # Vertical line
+    O = fill(O, 1, {(offset[0], offset[1] + i) for i in range(3)})
+
+  return O
+```
+
+**Explanation:**
+
+1. **Find Pixel:** Locate the single pixel.
+2. **Calculate Offset:** Calculate the offset from the pixel's location to the shapes' starting points.
+3. **Generate Shapes:**  
+   * **Square:**  Directly filled on the canvas using nested loops and `fill`.
+   * **Line:** Filled on the canvas using a loop and `fill`, with the direction determined by the pixel's row position.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  # Get the pixel's location
+  pixel_loc = ulcorner(extract(objects(I, T, F, T), lambda obj: size(obj) == 1))
+
+  # Corner of the shapes
+  corner = add(pixel_loc, (2, 2))
+
+  # Square using repeated concatenation
+  square = canvas(2, (1, 1))
+  for _ in range(2): 
+    square = hconcat(square, canvas(2, (1, 1)))
+  for _ in range(2):
+    square = vconcat(square, hconcat(canvas(2, (1, 1)), canvas(2, (1, 1)), canvas(2, (1, 1))))
+
+  # Line creation based on pixel location
+  line = canvas(1, (3, 1)) if pixel_loc[0] == 0 else canvas(1, (1, 3)) 
+
+  # Combine shapes and place on canvas
+  O = paint(canvas(0, shape(I)), shift(asobject(square), corner) | shift(asobject(line), corner))
+  return O
+```
+
+**Explanation:**
+
+1. **Find Pixel:** Locate the single pixel.
+2. **Calculate Corner:** Calculate the shapes' corner location.
+3. **Generate Shapes:**
+    * **Square:** Created by repeatedly concatenating single-cell canvases.
+    * **Line:**  Created directly using `canvas` with appropriate dimensions based on the pixel's position.
+4. **Combine and Place:**  Shapes are shifted to their final positions and painted onto the canvas.
+
+These five program versions provide distinct approaches to achieve the desired transformation while adhering to the provided DSL. Each leverages different combinations of functions and logic, showcasing the flexibility and power of the DSL for image manipulation tasks.

@@ -1,0 +1,155 @@
+## Transformation Analysis:
+
+The transformation focuses on objects made of the digit '8' and aims to change the color of their tail to '1'. The tail is defined as the furthest point on the object from its center of mass. 
+
+**Input_0:**
+- The '8' object's tail is at the bottom right.
+- The transformation changes this bottom right '8' to a '1'.
+
+**Input_1:**
+- The '8' object's tail is ambiguous as multiple points share the maximum distance from the center of mass.
+- The transformation prioritizes the tail located further down and then further to the right.
+
+## Program_to_be_generated:
+
+**Version 1: Iterative Approach**
+
+```python
+def program_v1(grid):
+  def find_tail(obj):
+    cm = centerofmass(obj)
+    max_dist = 0
+    tail = None
+    for i, j in toindices(obj):
+      dist = manhattan((i, j), cm)
+      if dist > max_dist:
+        max_dist = dist
+        tail = (i, j)
+      elif dist == max_dist and j > tail[1]:
+        tail = (i, j)
+    return tail
+
+  obj_8 = extract(objects(grid, False, True, True), lambda obj: color(obj) == 8)
+  tail = find_tail(obj_8)
+  return paint(grid, recolor(1, {tail}))
+```
+
+**Explanation:**
+
+1. **find_tail(obj):** This function iterates through all indices of the object.
+    - It calculates the Manhattan distance of each index from the object's center of mass.
+    - It keeps track of the index with the maximum distance and updates it if a further point is found, prioritizing points lower down and further to the right.
+2. The main function then extracts the object made of '8'.
+3. It calls `find_tail` to determine the tail index of the object.
+4. Finally, it repaints the grid by changing the color of the tail index to '1'.
+
+**Version 2: Using `argmax` with Custom Key**
+
+```python
+def program_v2(grid):
+  obj_8 = extract(objects(grid, False, True, True), lambda obj: color(obj) == 8)
+  cm = centerofmass(obj_8)
+  def dist_func(idx):
+    i, j = idx
+    return -manhattan((i, j), cm), i, -j 
+  tail_idx = argmax(toindices(obj_8), key=dist_func)
+  return paint(grid, recolor(1, {tail_idx}))
+```
+
+**Explanation:**
+
+1. **dist_func(idx):**  Returns a tuple to be used as the key for `argmax`. The tuple prioritizes indices based on:
+    - **-manhattan((i, j), cm):** The negative Manhattan distance (furthest first).
+    - **i:** Row index (lower row preferred).
+    - **-j:** Negative column index (rightmost column preferred).
+2. The main function extracts the '8' object and its center of mass.
+3. It uses `argmax` with `dist_func` to find the tail index based on the prioritized criteria.
+4. Finally, it repaints the grid, changing the tail index's color to '1'.
+
+**Version 3: Recursive Approach**
+
+```python
+def program_v3(grid):
+  def find_tail(grid, start, visited=None, max_dist=0, tail=None):
+    if visited is None:
+      visited = set()
+    visited.add(start)
+    neighbors_list = [(start[0]-1, start[1]), (start[0]+1, start[1]), (start[0], start[1]-1), (start[0], start[1]+1)]
+    for ni, nj in neighbors_list:
+      if 0 <= ni < len(grid) and 0 <= nj < len(grid[0]) and grid[ni][nj] == 8 and (ni, nj) not in visited:
+        dist = manhattan((ni, nj), centerofmass(obj_8))
+        if dist > max_dist:
+          max_dist = dist
+          tail = (ni, nj)
+        elif dist == max_dist and nj > tail[1]:
+          tail = (ni, nj)
+        tail = find_tail(grid, (ni, nj), visited, max_dist, tail)
+    return tail
+
+  obj_8 = extract(objects(grid, False, True, True), lambda obj: color(obj) == 8)
+  start_point = centerofmass(obj_8) 
+  tail = find_tail(grid, start_point)
+  return paint(grid, recolor(1, {tail}))
+```
+
+**Explanation:**
+
+1. **find_tail(grid, start, visited, max_dist, tail):** This function recursively explores the object, starting from the center of mass. 
+    - It keeps track of visited indices, the current maximum distance, and the corresponding tail index.
+    - It prioritizes points further down and then further to the right when encountering equal distances.
+2. The main function extracts the '8' object and its center of mass.
+3. It calls `find_tail` to find the tail index recursively.
+4. Finally, it repaints the grid, coloring the tail index with '1'.
+
+**Version 4: Distance Map and Filtering**
+
+```python
+def program_v4(grid):
+  obj_8 = extract(objects(grid, False, True, True), lambda obj: color(obj) == 8)
+  cm = centerofmass(obj_8)
+  distances = tuple(manhattan((i, j), cm) for i, j in toindices(obj_8))
+  max_distance = max(distances)
+  tail_indices = frozenset((i, j) for i, j in toindices(obj_8) if manhattan((i, j), cm) == max_distance)
+  tail_idx = max(tail_indices, key=lambda x: (x[0], -x[1]))
+  return paint(grid, recolor(1, {tail_idx}))
+```
+
+**Explanation:**
+
+1. It creates a distance map where each entry corresponds to the Manhattan distance of an object index from the center of mass.
+2. It identifies the maximum distance in the distance map.
+3. It filters for indices with the maximum distance, representing potential tail candidates.
+4. It selects the tail index from the candidates, prioritizing lower rows and then rightmost columns.
+5. Finally, it repaints the grid by changing the color of the tail index to '1'.
+
+**Version 5: Combining `objects` and Tail Finding**
+
+```python
+def program_v5(grid):
+  def find_and_recolor_tail(obj):
+    cm = centerofmass(obj)
+    max_dist = 0
+    tail = None
+    for i, j in toindices(obj):
+      dist = manhattan((i, j), cm)
+      if dist > max_dist:
+        max_dist = dist
+        tail = (i, j)
+      elif dist == max_dist and j > tail[1]:
+        tail = (i, j)
+    return recolor(1, {tail})
+
+  modified_objects = frozenset(find_and_recolor_tail(obj) if color(obj) == 8 else obj for obj in objects(grid, False, True, True))
+  return paint(canvas(0, shape(grid)), merge(modified_objects))
+```
+
+**Explanation:**
+
+1. **find_and_recolor_tail(obj):** Similar to previous versions, this function finds the tail index of an object and directly recolors it to '1'.
+2. The main function iterates through all objects in the grid using `objects`.
+3. For each object:
+    - If the object's color is '8', it calls `find_and_recolor_tail` to recolor the tail.
+    - Otherwise, it keeps the object unchanged.
+4. Finally, it repaints a blank canvas with the modified objects.
+
+These are just a few examples. You can explore various other combinations of DSL functions to achieve the same transformation with different approaches. 

@@ -1,0 +1,166 @@
+## Transformation Analysis:
+
+The transformation appears to follow this logic:
+
+**For each object in the input grid:**
+
+1. **Extend the object:** Add a border of "1"s around the object. 
+2. **Limit extension:** The border should only extend outwards from the object, not fill in any internal holes or gaps.
+
+**Example:**
+
+Input:
+
+```
+2 0 0
+0 0 2
+0 0 0 
+```
+
+Output:
+
+```
+2 1 1
+1 1 2
+0 1 1
+```
+
+## Code Generation:
+
+Here are five distinct program versions for the "Program_to_be_generated" using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  bg = mostcolor(I)
+  result = canvas(bg, shape(I))
+  for obj in objs:
+    result = paint(result, obj) # paint original object first
+    for i, j in toindices(obj):
+      for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+        new_i, new_j = i + di, j + dj
+        if 0 <= new_i < height(I) and 0 <= new_j < width(I) and index(I, (new_i, new_j)) == bg: #check if the neighbor is background
+          result = fill(result, ONE, {(new_i, new_j)})
+  return result
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Finds all objects in the input grid excluding the background.
+2. **Initialize Canvas:** Creates an empty canvas with the same shape as the input, filled with the background color.
+3. **Iterate Objects:** Loops through each identified object.
+4. **Paint Original:** Paints the current object onto the canvas.
+5. **Extend with Border:** For each cell in the object, it checks its four direct neighbors (up, down, left, right). If a neighbor is within the grid bounds and has the background color, it gets filled with a "1".
+6. **Return Result:** Returns the modified canvas.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, False, False, True)
+    bg = mostcolor(I)
+    result = canvas(bg, shape(I))
+    for obj in objs:
+        halo = mfilter(
+            prapply(
+                lambda loc, d: branch(
+                    both(
+                        contained((loc[0] + d[0], loc[1] + d[1]), asindices(I)),
+                        equality(bg, index(I, (loc[0] + d[0], loc[1] + d[1])))),
+                    (loc[0] + d[0], loc[1] + d[1]),
+                    None),
+                toindices(obj), 
+                [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            ),
+            identity
+        )
+        result = paint(result, obj)
+        result = fill(result, ONE, halo)
+    return result
+```
+
+**Explanation:**
+
+1. **Identify Objects and Background:** Similar to Version 1.
+2. **Initialize Canvas:** Similar to Version 1.
+3. **Iterate Objects:** Loops through each identified object.
+4. **Calculate Halo:** For each object, it calculates a "halo" of cells that should be filled with "1". This is done using `prapply` to apply a function to every combination of cell in the object and direction. The function checks if a neighbor in that direction is within the grid and has the background color. If so, it includes the neighbor's coordinates in the halo.
+5. **Paint and Fill:** Paints the object onto the canvas and then fills the calculated halo with "1".
+6. **Return Result:** Similar to Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, False, False, True)
+    bg = mostcolor(I)
+    result = canvas(bg, shape(I))
+    for obj in objs:
+      dilated =  toindices(obj)
+      for _ in range(1):  # Control border thickness
+        dilated =  set.union(dilated, mapply(lambda loc: sfilter(dneighbors(loc), lambda x: index(I,x)==bg), dilated))
+      result = fill(result, ONE, dilated - toindices(obj))
+      result = paint(result, obj)
+    return result
+```
+
+**Explanation:**
+
+1. **Identify Objects and Background:** Similar to Version 1.
+2. **Initialize Canvas:** Similar to Version 1.
+3. **Iterate Objects:** Loops through each identified object.
+4. **Dilate Object:**  Performs a "dilation" operation on the object's indices. This involves repeatedly finding neighboring cells with the background color and adding them to the dilated set. The loop iteration controls the border thickness.
+5. **Fill and Paint:**  Fills the difference between the dilated set and the original object's indices with "1"s. Then, it paints the original object on top.
+6. **Return Result:** Similar to Version 1.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  bg = mostcolor(I)
+  result = I
+  for obj in objs:
+    for cell in toindices(obj):
+      for d in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        neighbor = (cell[0] + d[0], cell[1] + d[1])
+        if 0 <= neighbor[0] < height(result) and 0 <= neighbor[1] < width(result) and result[neighbor[0]][neighbor[1]] == bg:
+          result = fill(result, ONE, {neighbor})
+  return result
+```
+
+**Explanation:**
+
+1. **Identify Objects and Background:** Similar to previous versions.
+2. **Directly Modify Input:**  Instead of creating a separate canvas, this version modifies the input grid directly.
+3. **Iterate Objects and Cells:** Iterates through each object and then each cell within the object.
+4. **Check and Fill Neighbors:** For every cell, it checks its four direct neighbors. If a neighbor is within the grid bounds and has the background color, it fills that neighbor with "1" directly in the `result` grid.
+5. **Return Modified Input:**  Returns the modified `result` grid, which was originally a copy of the input.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  padded = canvas(mostcolor(I), add(shape(I), (2,2)))
+  padded = paint(padded, shift(asobject(I), (1,1)))
+  
+  for i in range(1, height(padded) - 1):
+    for j in range(1, width(padded) - 1):
+      if padded[i][j] == mostcolor(I) and any(padded[i+di][j+dj] != mostcolor(I) for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+        padded = fill(padded, ONE, {(i,j)})
+        
+  return trim(padded)
+```
+
+**Explanation:**
+
+1. **Create Padded Grid:**  Creates a larger grid (padded by 1 cell on each side) filled with the background color.
+2. **Paint Shifted Input:**  Paints the input grid onto the padded grid, shifted by one cell in both directions. This creates a buffer around the objects.
+3. **Iterate Inner Cells:** Iterates through the inner cells of the padded grid (excluding the padding border).
+4. **Check Neighbors and Fill:**  For each cell, it checks if it's a background cell and if any of its direct neighbors are not background cells. If this condition is met, it fills the current cell with a "1".
+5. **Trim and Return:** Removes the padding from the grid and returns the trimmed result.
+
+
+Each of these program versions provides a distinct approach to achieving the desired transformation. Experiment with them to see which one best suits your needs and coding style! 

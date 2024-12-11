@@ -1,0 +1,125 @@
+## Transformation Analysis:
+
+The transformation involves identifying connected components of the digit '2' in the input grid and then outlining these components with the digit '3'. 
+
+* **Touching Objects:** If a '2' component touches another '2' component (even diagonally), the touching cells are considered part of the outline and are replaced with '3'.
+* **Bordering Objects:** If a '2' component touches the edge of the grid, those touching cells are also considered part of the outline and replaced with '3'. 
+
+Let's illustrate with an example from Input_1:
+
+```
+0 0 0 0 0 0 0 3 2 2 3 0 3 2 3 0  
+2 0 0 0 0 0 0 3 3 3 3 0 3 2 3 0  
+0 0 0 0 0 0 0 0 0 0 0 0 3 3 3 0  
+0 0 0 0 0 0 0 0 2 0 0 0 0 0 3 3  
+0 0 2 0 0 0 0 0 0 0 2 0 0 2 3 2  
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 2  
+0 0 0 0 0 0 0 0 0 0 2 0 0 0 3 3  
+0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0  
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0  
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0  
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0  
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0  
+0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0  
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0  
+0 0 2 0 0 0 0 0 0 0 2 0 0 0 0 0
+```
+- The '2's at the top right corner are connected and form an outline.
+-  The isolated '2' at (7,1) is outlined.
+-  The '2's at the bottom left are connected and outlined. 
+
+## Code Generation:
+
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, True, False)  # Get connected components of '2's, including diagonal connections
+  border_cells = mfilter(objs, lambda obj: bordering(obj, I) or any(adjacent(obj, other) for other in remove(obj, objs)))
+  O = paint(I, recolor(3, merge(border_cells)))  # Paint the border cells with '3's
+  return O 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, True, False)`:**  Identifies all connected components of '2's in the grid `I`, including diagonal connections.
+2. **`border_cells = ...`:**  Filters the `objs` to find objects that either border the grid edge (`bordering(obj, I)`) or are adjacent to another object (`adjacent(obj, other)`). 
+3. **`O = paint(I, recolor(3, merge(border_cells)))`:** Merges all border cells, recolors them with '3', and paints them onto a copy of the original grid `I` to produce the output `O`.
+
+**Program Version 2**
+
+```python 
+def Program_to_be_generated(I):
+  two_indices = ofcolor(I, 2)  # Get indices of all '2's
+  border_indices = frozenset(loc for loc in two_indices if any(neighbor not in two_indices for neighbor in neighbors(loc)))
+  O = fill(I, 3, border_indices)  # Fill border cells with '3'
+  return O
+```
+
+**Explanation:**
+
+1. **`two_indices = ofcolor(I, 2)`:**  Finds the indices of all cells containing the digit '2'.
+2. **`border_indices = ...`:** Iterates through `two_indices`. For each '2' location, it checks if any of its neighboring cells (using `neighbors(loc)` which includes diagonals) do not contain a '2'. If so, that location is a border cell and added to `border_indices`.
+3.  **`O = fill(I, 3, border_indices)`:** Fills the identified border cells in the grid `I` with the digit '3' to create the output `O`.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 2 and any(0 <= i + di < len(I) and 0 <= j + dj < len(I[0]) and I[i + di][j + dj] != 2 for di in [-1, 0, 1] for dj in [-1, 0, 1] if (di, dj) != (0, 0)):
+        O = paint(O, {(3, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **`O = I`:**  Initializes the output grid `O` as a copy of the input grid `I`.
+2. **Nested Loops:** Iterates through every cell in the grid using nested loops.
+3. **Conditional Check:**  For each cell containing a '2', it checks its 8 neighbors. If any neighbor is not a '2' (including out-of-bounds checks), the current cell is on the border.
+4. **`O = paint(O, {(3, (i, j))})`:** If a border cell is found, it's painted with a '3' on the output grid `O`.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  padded_I = canvas(0, (len(I) + 2, len(I[0]) + 2))  # Create a padded grid
+  padded_I = paint(padded_I, shift(asobject(I), (1, 1)))  # Place the input grid in the center
+  O = paint(canvas(0, shape(I)),  # Initialize output grid with the same shape as input
+              mpapply(lambda i, j: 3 if padded_I[i][j] == 0 and any(padded_I[i+di][j+dj] == 2 for di in [-1, 0, 1] for dj in [-1, 0, 1]) else I[i - 1][j - 1],
+                     *pair(interval(1, len(I) + 1, 1), interval(1, len(I[0]) + 1, 1))))
+  return O
+```
+
+**Explanation:**
+
+1. **Padding:** Creates a padded version of the input grid (`padded_I`) to simplify border checks.
+2. **Centering:**  Places the original input grid in the center of the padded grid.
+3. **Output Initialization:** Creates an output grid (`O`) filled with zeros, having the same dimensions as the input grid. 
+4. **`mpapply` and Logic:** Iterates over the central region of the padded grid (where the original input is). For each cell, it checks if it's a '0' and if any of its neighbors in the padded grid is a '2'. If both conditions are true, it paints a '3' at the corresponding location in the output grid. Otherwise, it copies the value from the original input grid.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+    twos = toindices(ofcolor(I, 2))
+    shifted_twos = shift(twos, (1, 1))
+    border = difference(backdrop(shifted_twos), backdrop(twos))
+    filtered_border = sfilter(border, lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0]))
+    O = fill(I, 3, filtered_border)
+    return O
+```
+
+**Explanation:**
+
+1. **`twos = toindices(ofcolor(I, 2))`:** Gets the indices of all cells with value '2'.
+2. **`shifted_twos = shift(twos, (1, 1))`:** Shifts the '2' indices by one unit down and right.
+3. **`border = difference(backdrop(shifted_twos), backdrop(twos))`:** Calculates the difference between the backdrops of shifted and original '2' indices, giving a preliminary border.
+4. **`filtered_border = sfilter(...)`:** Filters out the indices from `border` that are out of bounds of the original grid.
+5. **`O = fill(I, 3, filtered_border)`:** Fills the cells at the `filtered_border` indices in the input grid `I` with value '3' to generate the output grid `O`.
+
+
+Each of these versions offers a different approach to achieve the same transformation. Some are more concise, others might be more efficient depending on the DSL implementation. 

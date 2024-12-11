@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation applied in these examples can be described as **"gravity shifting"**:
+
+* **Identify Target Area:** The transformation seems to identify a "target area" at the bottom of the grid for the non-background objects to move towards.
+* **Object Gravity:**  Each non-background object "falls" vertically downwards within the grid until it reaches the top of the target area or another object. 
+* **No Object Overlap:** Objects do not overlap or push each other during this shifting process.
+
+**Let's break down the individual example transformations:**
+
+* **Input_0:** The '2' object shifts downwards to the bottom of the grid. The '8' object remains in place as it is already at the top of the target area.
+* **Input_1:** Similar to Input_0, the '2' object gravitates downwards. Notably, it stops above the '8' object, demonstrating the no-overlap constraint. 
+* **Input_2:** The '2' object again falls downwards. This time, it reaches the bottom of the grid. The '8' object remains in its initial position.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions to achieve the "gravity shifting" transformation:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)  # Extract non-background objects
+  bg = mostcolor(I)  # Identify the background color
+  h = height(I)  # Get the height of the grid
+  for obj in objs:
+    for i in range(h):
+      shifted = shift(obj, (i,0))  # Shift object downwards
+      if not any(v != bg for v, (si, sj) in shifted if 0 <= si < h): 
+        # If no object collision and within grid bounds
+        I = paint(cover(I, obj), shifted)  # Update the grid
+        break
+  return I
+```
+
+**Explanation:**
+
+1. **Extract Objects and Background:**  The code extracts non-background objects and identifies the background color.
+2. **Iterate and Shift:** It iterates through each object, attempting to shift it downwards one row at a time.
+3. **Collision Check:** Before applying the shift, it checks for potential collisions with other objects or grid boundaries. 
+4. **Update Grid:** If a safe downward shift is found, the object is moved in the grid by first covering its original position with the background color and then painting the shifted object.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  h = height(I)
+  for i in range(h-1, 0, -1): # Iterate from bottom row upwards
+    for j in range(width(I)):
+      if index(I, (i,j)) == mostcolor(I):  # If the cell is background
+        for k in range(1, i+1):
+          if index(I, (i-k, j)) != mostcolor(I):
+            # Find the first non-background cell above
+            I = paint(cover(I, {(index(I, (i-k,j)), (i-k,j))}), {(index(I, (i-k, j)), (i, j))})
+            # Move the object down to current cell
+            break
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate from Bottom:**  This version iterates through the grid rows from bottom to top.
+2. **Find Empty Cells:** It identifies empty (background) cells.
+3. **Search for Objects Above:** For each empty cell, it searches upwards in the same column for the first non-background cell.
+4. **Swap if Found:** If an object is found, it is moved down to the empty cell, effectively simulating the gravity effect.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  objs = sorted(objects(I, T, F, T), key=lambda obj: uppermost(obj))  # Sort objects from top to bottom
+  for obj in objs:
+    shifted = obj  # Initialize shifted object
+    for i in range(1, height(I)):
+      down = shift(shifted, (1, 0))
+      if not any(toindices(down) & toindices(o) for o in objs if o != obj) and lowermost(down) < height(I):
+        # If no collision and within grid, move object down
+        shifted = down
+      else:
+        break
+    I = paint(cover(I, obj), shifted)  # Update the grid with the final shifted object
+  return I 
+```
+
+**Explanation:**
+
+1. **Sort Objects:** This version first sorts the extracted objects based on their uppermost row position (from top to bottom).
+2. **Shift and Check:** It iterates through each object, attempting to shift it downwards as far as possible while checking for collisions with other objects and grid boundaries.
+3. **Update with Final Position:** The object is only painted on the grid once its final, non-colliding position is determined.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  bg = mostcolor(I)
+  for j in range(width(I)):  # Iterate through columns
+    column = tuple(I[i][j] for i in range(height(I)))  # Extract the column
+    for i in range(len(column) - 1, 0, -1):  # Iterate through column from bottom to top
+      if column[i] == bg and column[i - 1] != bg:
+        # Swap values to simulate gravity
+        column = tuple(column[:i-1] + (column[i],) + (column[i-1],) + column[i+1:])
+    for i in range(height(I)):
+      I = paint(cover(I, {(I[i][j], (i, j))}), {(column[i], (i, j))})  # Update the grid with modified column
+  return I
+```
+
+**Explanation:**
+
+1. **Column-wise Processing:** This program focuses on processing the grid column by column. 
+2. **Gravity Simulation within Column:** It iterates through each column from bottom to top, swapping background cells with the nearest non-background cell above it. This effectively simulates gravity within each column.
+3. **Update Grid:** After processing each column, it updates the original grid with the modified column data.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  h = height(I)
+  new_grid = canvas(mostcolor(I), shape(I))  # Create an empty grid
+  for obj in objects(I, T, F, T):
+    upper = uppermost(obj)
+    lower_bound = h - height(obj)
+    new_pos = max(0, lower_bound - upper)  # Calculate the new upper position
+    new_grid = paint(new_grid, shift(obj, (new_pos, 0)))  # Place the object in the new position
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Create Empty Grid:** The program initializes an empty grid with the background color.
+2. **Calculate New Position:** It iterates through each object and determines its new vertical position based on its original position and the available space at the bottom.
+3. **Paint on New Grid:** The object is then directly painted onto the new grid at its calculated position, avoiding any explicit collision checks.
+
+
+## Note:
+
+These are just five examples, and there might be other creative and efficient solutions within the DSL. The provided programs aim to showcase diverse approaches to solving the problem while adhering to the DSL constraints and achieving the desired "gravity shifting" transformation. 

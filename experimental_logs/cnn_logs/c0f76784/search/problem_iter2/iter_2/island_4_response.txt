@@ -1,0 +1,149 @@
+## Transformation Analysis:
+
+The transformation consistently replaces specific digit occurrences within objects based on their relative position:
+
+* **Target Digit:** The digit '7' is consistently targeted for replacement within objects.
+* **Replacement Digit:** The replacement digit varies based on context:
+    * **'8' Replacement:**  If the '7' is not at the center of an object, it's replaced by '8'.
+    * **'6' Replacement:** If the '7' is at the center of an object, it's replaced by '6'.
+
+**Illustrative Examples:**
+
+* **Input_0:** The large '7' object has its central '7' replaced by '6', while the surrounding '7's are replaced by '8'. The small '2' objects remain unchanged.
+* **Input_1, Input_2:**  Follow the same pattern, with central '7's becoming '6' and others becoming '8'.
+
+## Program_to_be_generated:
+
+**Version 1 (Using `center` and conditional `recolor`)**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  transformed_objs = frozenset()
+  for obj in objs:
+    if color(obj) == 7:
+      center_index = center(obj)
+      obj = frozenset(
+          (8 if index in delta(frozenset({center_index})) else 6, index) 
+          for _, index in obj
+      )
+    transformed_objs = transformed_objs.union(frozenset({obj}))
+  O = paint(canvas(0, shape(I)), merge(transformed_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies objects in the input grid using `objects`.
+2. **Iterate and Transform:** Iterates over each object:
+   - **Color Check:** If the object's color is '7':
+     - **Center Identification:**  Finds the center index of the object using `center`.
+     - **Conditional Recoloring:**  Recolors the object. '8' is used for cells not at the center (`delta` is used to exclude the center), and '6' is used for the center cell.
+3. **Paint Transformed Objects:** Paints the transformed objects onto a blank canvas of the same shape as the input grid.
+
+**Version 2 (Using `ulcorner`, `shape` and nested loops for direct replacement)**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  O = canvas(0, shape(I))
+  for obj in objs:
+    if color(obj) == 7:
+      start_i, start_j = ulcorner(obj)
+      height, width = shape(obj)
+      for i in range(height):
+        for j in range(width):
+          if (i, j) == (height // 2, width // 2):
+            O = fill(O, 6, frozenset({(start_i + i, start_j + j)}))
+          else:
+            O = fill(O, 8, frozenset({(start_i + i, start_j + j)}))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies objects in the input grid using `objects`.
+2. **Iterate and Transform:** Iterates over each object:
+   - **Color Check:** If the object's color is '7':
+     - **Corner and Dimensions:** Gets the upper-left corner and dimensions of the object using `ulcorner` and `shape`.
+     - **Nested Loop Replacement:**  Iterates through the object's bounding box:
+        - **Center Check:** Replaces with '6' if the current cell is the center.
+        - **Non-Center Replacement:** Replaces with '8' otherwise.
+
+**Version 3 (Leveraging `asobject`, `apply` and `paint`)**
+
+```python
+def Program_to_be_generated(I):
+  def transform_cell(cell, center_index):
+    return (8, cell[1]) if cell[1] != center_index else (6, cell[1])
+
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if color(obj) == 7:
+      center_index = center(obj)
+      O = paint(O, frozenset(transform_cell(cell, center_index) for cell in asobject(subgrid(obj, I))))
+  return O 
+```
+
+**Explanation:**
+
+1. **Define `transform_cell`:**  Creates a helper function to apply the conditional color replacement at the cell level.
+2. **Identify Objects:**  Identifies objects in the input grid using `objects`.
+3. **Iterate and Transform:** Iterates over each object:
+   - **Color Check:** If the object's color is '7':
+      - **Get Center:**  Gets the center index of the object using `center`.
+      - **Apply Transformation:** Uses `asobject` to iterate over the object's cells and applies `transform_cell` to each cell, painting the result back onto the grid.
+
+**Version 4 (Using `index`, `asobject` and list comprehension)**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == 7:
+        obj = extract(objects(I, T, F, T), lambda o: (i, j) in toindices(o))
+        O = fill(O, 8 if (i, j) != center(obj) else 6, frozenset({(i, j)}))
+      else:
+        O = fill(O, val, frozenset({(i, j)}))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Grid:** Iterates through each cell of the input grid.
+2. **Check for '7':** If the cell value is '7':
+   - **Find Object:** Finds the object containing the current cell.
+   - **Center Check:**  Determines if the current cell is the object's center.
+   - **Conditional Fill:** Fills the corresponding cell in the output grid with '8' (non-center) or '6' (center).
+3. **Preserve Other Values:** If the cell value is not '7', it's directly copied to the output grid.
+
+
+**Version 5 (Combining `objects`, `center` and list comprehension)**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    O = [[0 for _ in range(len(I[0]))] for _ in range(len(I))]
+    for obj in objs:
+        if color(obj) == 7:
+            c = center(obj)
+            for i, j in toindices(obj):
+                O[i][j] = 6 if (i, j) == c else 8
+        else:
+            for v, (i, j) in obj:
+                O[i][j] = v
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies objects in the input grid using `objects`.
+2. **Initialize Output:** Creates an empty grid `O` with the same dimensions as the input grid `I`.
+3. **Iterate and Transform:** Iterates over each object:
+   - **Color Check:** If the object's color is '7':
+      - **Get Center:**  Gets the center index of the object using `center`.
+      - **Fill with 8 or 6:** Fills the corresponding cell in the output grid `O` with '6' if it's the center, otherwise with '8'. 
+   - **Preserve Other Colors:** If the object's color is not '7', it fills the corresponding cells in `O` with the original values from the object. 
+4. **Return as Tuple:** Returns the output grid `O` as a tuple of tuples.

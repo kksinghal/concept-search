@@ -1,0 +1,144 @@
+## Transformation Analysis:
+
+The transformation focuses on objects formed by connected '2's in the input grid (diagonal connections don't count as connected).  The output grid is essentially a blank canvas where a 3x1 vertical line of '3's is drawn at the horizontal center of each object from the input.
+
+**Input_0 to Output_0:**
+
+* Two objects of '2's exist.
+* First object's center is at column 2. A 3x1 vertical line of '3's is drawn with the center at column 2.
+* Second object's center is at column 6. A 3x1 vertical line of '3's is drawn with the center at column 6.
+
+**Input_1 to Output_1:**
+
+* One object of '2's exists.
+* The object's center is at column 6. A 3x1 vertical line of '3's is drawn with the center at column 6.
+
+**Input_2 to Output_2:**
+
+* Two objects of '2's exist.
+* First object's center is at column 3. A 3x1 vertical line of '3's is drawn with the center at column 3.
+* Second object's center is at column 11. A 3x1 vertical line of '3's is drawn with the center at column 11. 
+
+## Program_to_be_generated:
+
+### Program Version 1:
+
+```python
+def Program_to_be_generated(I):
+  def mark_center_column(obj):
+      center_j = (leftmost(obj) + rightmost(obj)) // 2  
+      center_i = (uppermost(obj) + lowermost(obj)) // 2
+      return frozenset({(center_i - 1, center_j), (center_i, center_j), (center_i + 1, center_j)})
+  
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  centers = mapply(mark_center_column, objs)
+  return paint(canvas(0, shape(I)), centers)
+```
+
+**Explanation:**
+
+1. **`mark_center_column(obj)` Function:**  This function takes an object (set of '2' cells) as input. It calculates the horizontal center (`center_j`) and vertical center (`center_i`) of the object. Then it constructs and returns a set containing the indices of a 3x1 vertical line centered at (`center_i`, `center_j`).
+
+2. **Main Function:**
+   * **`objs = objects(...)`**:  Extracts all objects from the input grid `I`. We use `univalued=True` to group only connected '2's, `diagonal=False` to ignore diagonal connections and `without_bg=True` to exclude the background.
+   * **`centers = mapply(mark_center_column, objs)`**:  Applies the `mark_center_column` function to each object in `objs` and merges the results, giving us a set of all the center line indices. 
+   * **`return paint(canvas(0, shape(I)), centers)`**: Creates a blank canvas of the same size as the input grid and "paints" the `3`s at the center line indices calculated earlier.
+
+### Program Version 2:
+
+```python
+def Program_to_be_generated(I):
+  def vertical_line_at(j):
+    return frozenset({(i, j) for i in range(height(I))})
+  
+  objs = objects(I, True, False, True)
+  center_columns = { (leftmost(obj) + rightmost(obj)) // 2 for obj in objs }
+  lines = mapply(vertical_line_at, center_columns)
+  return underfill(canvas(0, shape(I)), 3, lines)
+```
+
+**Explanation:**
+
+1. **`vertical_line_at(j)` Function:**  Takes a column index `j` and returns a set of indices representing a vertical line spanning the entire height of the grid at that column.
+
+2. **Main Function:**
+   * **`objs = objects(...)`**:  Same as in Version 1, extracts objects from the grid.
+   * **`center_columns = ...`**:  Iterates through each object and calculates the horizontal center column index, storing them in a set.
+   * **`lines = mapply(vertical_line_at, center_columns)`**:  Applies the `vertical_line_at` function to each center column index, generating a set of indices for vertical lines.
+   * **`return underfill(canvas(0, shape(I)), 3, lines)`**: Creates a blank canvas. Then, using `underfill`, it paints `3`s at the `lines` indices only if those cells are part of the background (effectively drawing the 3x1 lines centered on the object columns).
+
+
+### Program Version 3:
+
+```python
+def Program_to_be_generated(I):
+  def mark_center_row(obj):
+    i = (uppermost(obj) + lowermost(obj)) // 2
+    return frozenset({(i - 1, j) for j in range(width(I)) if (i, j) in toindices(obj)} |
+                      {(i, j) for j in range(width(I)) if (i, j) in toindices(obj)} |
+                      {(i + 1, j) for j in range(width(I)) if (i, j) in toindices(obj)})
+  
+  objs = objects(I, True, False, True)
+  center_rows = mapply(mark_center_row, objs)
+  return paint(canvas(0, shape(I)), center_rows) 
+```
+
+**Explanation:**
+
+1. **`mark_center_row(obj)` Function:** This function calculates the vertical center (`i`) of an object.  It then creates a set of indices representing a 3x1 vertical line centered at row `i` but only for the columns where the object exists.
+
+2. **Main Function:**
+   * **`objs = objects(...)`**: Same as before, extracts objects from the input.
+   * **`center_rows = mapply(mark_center_row, objs)`**: Applies the `mark_center_row` function to each object, getting the indices for the 3x1 lines, and merges them.
+   * **`return paint(canvas(0, shape(I)), center_rows)`**: Paints the `3`s at the calculated `center_rows` indices onto a blank canvas.
+
+### Program Version 4:
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, shape(I))
+  for j in range(width(I)):
+    rows = [i for i in range(height(I)) if I[i][j] == 2]
+    if rows:
+      start_row = (rows[0] + rows[-1]) // 2 - 1
+      O = fill(O, 3, {(start_row + k, j) for k in range(3)})
+  return O 
+```
+
+**Explanation:**
+
+1. **Main Function:**
+   * **`O = canvas(0, shape(I))`**:  Initializes an empty canvas.
+   * **Outer Loop `for j in range(width(I))`**:  Iterates over each column of the input grid.
+   * **`rows = ...`**: Creates a list `rows` containing the row indices where a '2' is present in the current column `j`.
+   * **`if rows`**: Checks if any '2's were found in the column.
+     * **`start_row = ...`**: Calculates the starting row for the 3x1 line by finding the middle row of the '2's and subtracting 1.
+     * **`O = fill(...)`**:  Fills the canvas `O` with '3's at the indices corresponding to the 3x1 vertical line starting at `start_row` and column `j`. 
+   * **`return O`**: Returns the modified canvas.
+
+### Program Version 5:
+
+```python
+def Program_to_be_generated(I):
+  def line_indices(j, start_i):
+    return {(start_i + k, j) for k in range(3)}
+  
+  O = canvas(0, shape(I))
+  for obj in objects(I, True, False, True):
+    center_j = (leftmost(obj) + rightmost(obj)) // 2
+    center_i = (uppermost(obj) + lowermost(obj)) // 2
+    O = fill(O, 3, line_indices(center_j, center_i - 1))
+  return O
+```
+
+**Explanation:**
+
+1. **`line_indices(j, start_i)` Function:**  Takes a column index `j` and a starting row index `start_i`. It returns a set of indices representing a 3x1 vertical line starting at (`start_i`, `j`). 
+
+2. **Main Function:**
+   * **`O = canvas(0, shape(I))`**: Initializes an empty canvas.
+   * **`for obj in objects(...)`**: Iterates over each object found in the input grid.
+     * **`center_j = ...`**:  Calculates the horizontal center column (`center_j`) of the object.
+     * **`center_i = ...`**: Calculates the vertical center row (`center_i`) of the object.
+     * **`O = fill(...)`**:  Fills the canvas `O` with '3's at the indices returned by `line_indices` which will be a 3x1 line centered at the object.
+   * **`return O`**: Returns the modified canvas. 

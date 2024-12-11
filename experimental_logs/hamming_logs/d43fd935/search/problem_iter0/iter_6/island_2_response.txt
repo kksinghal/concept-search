@@ -1,0 +1,170 @@
+## Transformation Analysis:
+
+The transformation focuses on extending objects horizontally based on specific conditions. 
+
+* **Input 0:**  The "3" object extends rightward to align with the rightmost "1" on its row. Similarly, the top "6" object extends to align with the rightmost "6" on the same row. Other objects remain unchanged.
+* **Input 1:**  The top and bottom "7" objects extend rightward to align with the rightmost occurrence of "7" on their respective rows. The top "8" extends rightward to meet the rightmost "8". The middle "7" extends to connect with the "3" object. Other objects remain unchanged.
+* **Input 2:**  All "1" objects extend rightward to align with the rightmost "1" on their respective rows. Other objects remain unchanged.
+
+
+## Program_to_be_generated:
+
+Here are five distinct code versions for the `Program_to_be_generated`:
+
+### Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(grid: Grid) -> Grid:
+  """
+  Extends objects horizontally to align with the rightmost instance of their color on the same row.
+  """
+  def extend_object(obj: Object, grid: Grid) -> Object:
+    """Extends an object to the rightmost occurrence of its color on the same row."""
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      rightmost_index = max(j for j in range(width(grid)) if index(grid, (i, j)) == color(obj))
+      obj = obj | recolor(color(obj), {(i, k) for k in range(rightmost(obj) + 1, rightmost_index + 1)})
+    return obj
+
+  return paint(grid, merge(apply(lambda obj: extend_object(obj, grid), fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **`extend_object(obj, grid)`:** 
+   - Finds the rightmost index of the object's color on each row the object occupies.
+   - Extends the object to that index by recoloring cells with the object's color.
+2. **Main Function:**
+   - Iterates through each object (excluding the background) using `fgpartition(grid)`.
+   - Applies `extend_object` to each object.
+   - Paints the modified objects back onto the grid.
+
+
+### Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(grid: Grid) -> Grid:
+  """
+  Iterates through rows, extending objects to the rightmost instance of their color on that row.
+  """
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for i in range(height(grid)):
+    for j in range(width(grid)):
+      current_color = index(grid, (i, j))
+      if current_color != mostcolor(grid):
+        rightmost_index = max(k for k in range(width(grid)) if index(grid, (i, k)) == current_color)
+        new_grid = fill(new_grid, current_color, {(i, l) for l in range(j, rightmost_index + 1)})
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates an empty canvas (`new_grid`) of the same size and background color as the input grid.
+2. **Iteration:** Iterates through each cell of the grid row by row.
+3. **Extension:** If a cell isn't the background color:
+   - Finds the rightmost index of that color on the same row.
+   - Fills the `new_grid` with that color from the current column to the rightmost index.
+4. **Return:** Returns the modified `new_grid`.
+
+
+### Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(grid: Grid) -> Grid:
+  """
+  Uses occurrences to find all instances of a color and extends objects to the rightmost instance on each row.
+  """
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for obj in fgpartition(grid):
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      occurrences_in_row = frozenset((i, j) for j in range(width(grid)) if index(grid, (i, j)) == color(obj))
+      rightmost_occurrence = lrcorner(occurrences_in_row)
+      new_grid = fill(new_grid, color(obj), {(i, k) for k in range(leftmost(occurrences_in_row), rightmost_occurrence[1] + 1)})
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a blank canvas (`new_grid`).
+2. **Object Iteration:** Iterates through each object in the grid.
+3. **Row Processing:** For each row an object occupies:
+   - Finds all occurrences of the object's color on that row.
+   - Identifies the rightmost occurrence.
+   - Fills the `new_grid` with the object's color from the leftmost occurrence to the rightmost occurrence.
+4. **Return:** Returns the updated `new_grid`.
+
+### Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(grid: Grid) -> Grid:
+  """
+  Leverages hfrontier to determine if a row is fully occupied by one color and extends accordingly.
+  """
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for i in range(height(grid)):
+    for j in range(width(grid)):
+      current_color = index(grid, (i, j))
+      if current_color != mostcolor(grid) and len(palette(hfrontier((i, j)))) == 1:
+        new_grid = fill(new_grid, current_color, {(i, k) for k in range(width(grid))})
+      else:
+        new_grid = fill(new_grid, current_color, {(i, j)})
+  return new_grid
+
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a blank canvas.
+2. **Iteration and Check:** Iterates through each cell.
+   - If a cell's color isn't the background AND its horizontal frontier (`hfrontier`) contains only one color:
+     - Fills the entire row in `new_grid` with that color.
+   - Otherwise, fills only the current cell in `new_grid`.
+3. **Return:** Returns the modified `new_grid`.
+
+### Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(grid: Grid) -> Grid:
+  """
+  Uses shared_row_indices from Program_B and extends objects within those rows to the rightmost instance.
+  """
+  def shared_row_indices(grid: Grid) -> Indices:
+    """Identifies rows shared by multiple object colors."""
+    shared_rows = set()
+    for i in range(height(grid)):
+      row_colors = set(index(grid, (i, j)) for j in range(width(grid)))-{mostcolor(grid)}
+      if len(row_colors) > 1:
+        shared_rows.add(i)
+    return frozenset((i, j) for i in shared_rows for j in range(width(grid)))
+
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  shared_rows = shared_row_indices(grid)
+  for i in range(height(grid)):
+    for j in range(width(grid)):
+      current_color = index(grid, (i, j))
+      if (i, j) in shared_rows and current_color != mostcolor(grid):
+        rightmost_index = max(k for k in range(width(grid)) if index(grid, (i, k)) == current_color)
+        new_grid = fill(new_grid, current_color, {(i, l) for l in range(j, rightmost_index + 1)})
+      else:
+        new_grid = fill(new_grid, current_color, {(i, j)})
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`shared_row_indices` Function:** (Reused from `Program_B`) Identifies rows containing multiple object colors.
+2. **Initialization:** Creates a blank canvas.
+3. **Shared Row Processing:** Iterates through each cell; if the cell is in a shared row:
+   - Finds the rightmost index of its color on that row.
+   - Fills the `new_grid` with that color from the current cell to the rightmost index.
+4. **Non-Shared Row Processing:**  Otherwise, fills only the current cell in `new_grid`.
+5. **Return:** Returns the updated `new_grid`. 

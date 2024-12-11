@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) and extending them until they connect with another object of a different value. The extension uses the color of the object it connects to.
+
+**Input_0:**
+- The object '1' at (0,0) extends rightward to connect with the '6' at (1,8), adopting the color '6'.
+- The object '1' at (9,4) extends upward to connect with the '3' at (4,2), adopting the color '3'.
+
+**Input_1:**
+- The object '7' at (1,1) extends downward and rightward to connect with the '8's, adopting their color.
+- The object '7' at (9,6) extends upward and leftward to connect with various objects, adopting their colors.
+
+**Input_2:**
+- The object '1' at (2,1) extends both upward and downward to connect with other '1's, maintaining its color.
+- This highlights a potential rule: if an object connects with another of the same value, no color change occurs.
+
+
+## Program Version 1:
+
+**Code:**
+```python
+def solve(I):
+  objs = objects(I, T, F, F) 
+  bg = mostcolor(I)
+  for obj in objs:
+    for other_obj in objs:
+      if color(obj) != color(other_obj) and manhattan(obj, other_obj) <= 2:
+        direction = gravitate(obj, other_obj)
+        extension = shoot(center(obj), direction)
+        I = paint(I, recolor(color(other_obj), intersection(extension, asobject(I))))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies all connected objects within the grid.
+2. **Iterate & Extend:** The program iterates through each object (`obj`) and checks its Manhattan distance to other objects (`other_obj`). 
+3. **Connection Check:** If the distance is less than or equal to 2 (meaning they are close enough to connect with a single-cell extension) and have different colors, it proceeds.
+4. **Determine Extension:**  `gravitate(obj, other_obj)` determines the direction to extend `obj` to reach `other_obj`. 
+5. **Create Extension:** `shoot` creates a line representing the extension from the center of `obj` in the determined direction.
+6. **Paint Extension:** The code paints the intersection of the extension and the grid (`asobject(I)`) with the color of the `other_obj`, effectively extending the original object.
+
+
+## Program Version 2:
+
+**Code:**
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  for obj1 in objs:
+    closest = argmin(objs, lambda obj2: manhattan(obj1, obj2) if color(obj1) != color(obj2) else 100)
+    if manhattan(obj1, closest) <= 2:
+      direction = gravitate(obj1, closest)
+      extension = shoot(centerofmass(obj1), direction)
+      I = paint(I, recolor(color(closest), intersection(extension, asobject(I))))
+  return I
+```
+
+**Explanation:**
+
+This version focuses on finding the closest different-colored object for each object and extending towards it.
+
+1. **Find Objects:** Like Version 1, it identifies all objects in the grid.
+2. **Find Closest:** For each object (`obj1`), it finds the closest object with a different color (`closest`) using `argmin` and `manhattan` distance. A large distance (100) is used if the colors are the same to exclude them from the closest object search.
+3. **Connect if Close:** If the closest object is within a Manhattan distance of 2, it calculates the extension direction using `gravitate` and creates the extension line with `shoot`.
+4. **Paint & Return:** The extension is painted with the color of the closest object, and the modified grid is returned.
+
+
+## Program Version 3:
+
+**Code:**
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  grid = asobject(I)
+  for obj in objs:
+    neighbors =  mapply(lambda loc: (index(I, loc), loc), mapply(dneighbors, toindices(obj)))
+    diff_neighbors = sfilter(neighbors, lambda x: x[0] != color(obj) and x[0] != mostcolor(I))
+    for neighbor in diff_neighbors:
+      direction = gravitate(obj, initset(neighbor[1]))
+      extension = shoot(centerofmass(obj), direction)
+      I = paint(I, recolor(neighbor[0], intersection(extension, grid)))
+  return I
+```
+
+**Explanation:**
+
+This version focuses on finding directly adjacent cells with different colors and extending towards them.
+
+1. **Find Objects and Grid:** Similar to previous versions, it identifies all objects and creates a set representation of the grid.
+2. **Find Different Neighbors:** For each object (`obj`), it finds directly adjacent cells (`dneighbors`) that have a different color than the object and are not background.
+3. **Extend Towards Neighbors:** For each different neighbor, it calculates the direction towards it and creates an extension line.
+4. **Paint and Return:**  The extension is painted with the color of the neighbor, and the modified grid is returned.
+
+
+## Program Version 4:
+
+**Code:**
+```python
+def solve(I):
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != mostcolor(I):
+        for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+          ni, nj = i + di, j + dj
+          if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] != mostcolor(I) and I[ni][nj] != I[i][j]:
+            I = fill(I, I[ni][nj], connect((i, j), (ni, nj)))
+  return I
+```
+
+**Explanation:**
+
+This version directly iterates through grid cells and extends objects towards neighboring different-colored cells.
+
+1. **Iterate Through Cells:** The program iterates through each cell in the grid.
+2. **Check for Non-Background:** If the cell is not background, it checks its four neighboring cells (up, down, left, right).
+3. **Extend if Different Color:** If a neighbor is found that has a different color than the current cell and is not background, it connects the two cells with a line filled with the neighbor's color.
+
+
+## Program Version 5:
+
+**Code:**
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  changed = True
+  while changed:
+    changed = False
+    for obj1 in objs:
+      for obj2 in objs:
+        if color(obj1) != color(obj2) and manhattan(obj1, obj2) == 2:
+          direction = gravitate(obj1, obj2)
+          extension = connect(centerofmass(obj1), add(centerofmass(obj1), direction))
+          I = paint(I, recolor(color(obj2), intersection(extension, asobject(I))))
+          changed = True
+          break
+      if changed:
+        break
+  return I
+```
+
+**Explanation:**
+
+This version iteratively extends objects until no more extensions are possible.
+
+1. **Identify Objects:** It starts by identifying all objects in the grid.
+2. **Iterative Extension:** It enters a loop that continues as long as changes are made to the grid (`changed` flag).
+3. **Find Objects to Connect:** Within the loop, it iterates through each object pair and checks if they have different colors and a Manhattan distance of exactly 2.
+4. **Extend and Update:** If a suitable pair is found, it calculates the extension direction and creates a one-cell extension line. The grid is updated, and the `changed` flag is set to True to continue the loop.
+
+
+These are five distinct program versions inspired by the provided context and using the given DSL functions. Each version offers a different approach to achieve the desired transformation, highlighting the versatility of the DSL and the potential for diverse solutions. 

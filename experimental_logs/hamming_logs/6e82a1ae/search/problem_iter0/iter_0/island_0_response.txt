@@ -1,0 +1,140 @@
+## Transformation Analysis:
+
+The transformation relabels each distinct object in the input grid with a unique identifier, starting from 1 and incrementing for each new object encountered. The background color (0 in these examples) remains unchanged. 
+
+**Let's illustrate with an example:**
+
+In **Input_0**, there are three distinct objects formed by the digit '5': 
+
+1. Top-middle
+2. Bottom-left
+3. Right
+
+The output **Output_0** relabels these objects as 1, 3, and 2 respectively. 
+
+The same logic applies to **Input_1**, **Output_1** and **Input_2**, **Output_2** pairs.
+
+## Program to be Generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def solve(grid):
+  objs = objects(grid, True, False, True)
+  obj_map = {color(obj): i + 1 for i, obj in enumerate(objs)}
+  return tuple(
+    tuple(
+      obj_map.get(v, v) for v in row
+    ) for row in grid
+  )
+```
+
+**Explanation:**
+
+1. **`objs = objects(grid, True, False, True)`:** Extracts all distinct objects from the grid. `True, False, True` arguments ensure only identically colored, directly connected cells without background are considered a single object.
+2. **`obj_map = {color(obj): i + 1 for i, obj in enumerate(objs)}`:**  Creates a dictionary mapping the color of each object to a unique identifier starting from 1.
+3. **`return tuple(tuple(obj_map.get(v, v) for v in row) for row in grid)`:** Iterates through the grid. If a cell belongs to an object, it is replaced with its assigned identifier from `obj_map`, otherwise, it retains its original value.
+
+**Program Version 2:**
+
+```python
+def solve(grid):
+  labeled = canvas(0, shape(grid))
+  counter = 1
+  for i, row in enumerate(grid):
+    for j, v in enumerate(row):
+      if v != 0 and labeled[i][j] == 0:
+        obj = toobject(flood_fill((i, j), grid), grid)
+        labeled = paint(labeled, recolor(counter, obj))
+        counter += 1
+  return labeled
+
+def flood_fill(start, grid):
+  h, w = len(grid), len(grid[0])
+  target_color = grid[start[0]][start[1]]
+  visited = set()
+  queue = [start]
+  while queue:
+    i, j = queue.pop(0)
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or grid[i][j] != target_color:
+      continue
+    visited.add((i, j))
+    queue.extend([(i-1, j), (i+1, j), (i, j-1), (i, j+1)])
+  return frozenset(visited)
+```
+
+**Explanation:**
+
+1. **`labeled = canvas(0, shape(grid))`:** Initializes a canvas of the same size as the input, filled with 0s.
+2. **`counter = 1`:**  Initializes a counter for object identifiers.
+3. The program iterates through the grid. For each non-background cell (`v != 0`) not yet labeled (`labeled[i][j] == 0`):
+   - **`obj = toobject(flood_fill((i, j), grid), grid)`:** Performs flood fill starting from the current cell to find all connected cells of the same color, forming an object.
+   - **`labeled = paint(labeled, recolor(counter, obj))`:** Paints the detected object on the `labeled` canvas with the current `counter` value.
+   - **`counter += 1`:**  Increments the counter for the next object.
+4. **`return labeled`:** Returns the labeled canvas.
+
+**Program Version 3:**
+
+```python
+def solve(grid):
+  return tuple(
+    tuple(
+      next((i+1 for i, obj in enumerate(objects(grid, True, False, True)) if (i, j) in toindices(obj)), v)
+      for j, v in enumerate(row)
+    ) for i, row in enumerate(grid)
+  )
+```
+
+**Explanation:**
+
+1. **`objects(grid, True, False, True)`:** Extracts all distinct objects from the grid, considering only identically colored, directly connected cells, excluding the background.
+2. The code iterates through the grid and, for each cell, uses a nested generator expression:
+   - **`(i+1 for i, obj in ... if (i, j) in toindices(obj))`:**  This generator yields the index (plus 1) of the object containing the current cell. `next(...)` retrieves the first such index, effectively labeling the cell with its object's identifier. If the cell doesn't belong to any object, `next(...)` defaults to the cell's original value (`v`).
+
+**Program Version 4:**
+
+```python
+def solve(grid):
+  objs = objects(grid, True, False, True)
+  return tuple(
+    tuple(
+      sum((i+1) * ((i, j) in toindices(obj)) for i, obj in enumerate(objs)) or v
+      for j, v in enumerate(row)
+    ) for i, row in enumerate(grid)
+  )
+```
+
+**Explanation:**
+
+ This version is similar to Version 3, but instead of `next` and a generator, it uses a sum over boolean conditions to achieve the labeling:
+
+- **`sum((i+1) * ((i, j) in toindices(obj)) for i, obj in enumerate(objs))`:**  For each object, this part calculates `(i+1)` if the current cell `(i, j)` is part of that object (making the boolean condition `True` and multiplying by `i+1`), otherwise it adds `0` (boolean `False` in the multiplication). The `sum` accumulates these values, resulting in the object's identifier if the cell belongs to an object.
+- **`... or v`:**  If the sum is 0 (meaning the cell wasn't part of any object), this part defaults to the cell's original value (`v`).
+
+**Program Version 5:**
+
+```python
+def solve(grid):
+  return modify_grid(grid, objects(grid, True, False, True), 1)
+
+def modify_grid(grid, objs, counter):
+  if not objs:
+    return grid
+  obj = next(iter(objs))
+  grid = paint(grid, recolor(counter, obj))
+  return modify_grid(grid, objs - {obj}, counter + 1)
+```
+
+**Explanation:**
+
+1. **`solve(grid)`:** Initiates the recursive object labeling process.
+2. **`objs = objects(grid, True, False, True)`:** Extracts all distinct objects from the grid.
+3. **`modify_grid(grid, objs, 1)`:**  Recursively labels each object with a unique identifier.
+   - **`if not objs: return grid`:** Base case: If there are no more objects, return the modified grid.
+   - **`obj = next(iter(objs))`:**  Get the first object from the set.
+   - **`grid = paint(grid, recolor(counter, obj))`:**  Paint the current object on the grid with the `counter` value.
+   - **`return modify_grid(grid, objs - {obj}, counter + 1)`:**  Recursively call the function with the remaining objects and incremented counter.
+
+These five versions demonstrate diverse approaches to achieving the desired object labeling transformation, utilizing different DSL functions and logic constructs.

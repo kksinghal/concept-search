@@ -1,0 +1,125 @@
+## Transformation Analysis:
+
+The transformation involves identifying the borders of objects (excluding the background) and extending those borders one unit to the right. However, the extension only occurs if the cell to the right is part of the background.
+
+**Input 0:**
+
+* The border of the '1' object is identified.
+* Each border cell attempts to extend one unit to the right.
+* If the right cell is a '9' (background), it's replaced with an '8'.
+
+**Input 1:**
+
+* Same logic as Input 0, but with a different object shape.
+
+**Input 2:**
+
+* Same logic as previous inputs. Note the bottom-left corner, where the border doesn't extend because the right cell isn't background.
+
+**Input 3:**
+
+* Same logic, demonstrating the consistency of the transformation across various object shapes and positions.
+
+
+## Program Version 1
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Identify objects without background
+  borders = mapply(lambda obj: delta(toindices(obj)), objs) # Calculate border indices
+  shifted_borders = shift(borders, RIGHT) # Shift border indices to the right
+  return underpaint(I, recolor(8, shifted_borders)) # Paint shifted borders on the grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` identifies objects in the input grid `I`, treating diagonally connected cells as separate objects and excluding the background.
+2. **Calculate Borders:** `mapply(lambda obj: delta(toindices(obj)), objs)` calculates the indices of border cells for each object. `delta` returns the indices surrounding the object, effectively outlining it.
+3. **Shift Borders:** `shift(borders, RIGHT)` shifts the border indices one unit to the right.
+4. **Paint Shifted Borders:** `underpaint(I, recolor(8, shifted_borders))` first recolors the shifted border indices to '8'. Then, it paints these recoloured indices onto the input grid `I` but only where the original grid color is the background color.
+
+## Program Version 2
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  def right_extension(obj):
+    return sfilter(
+      shift(toindices(obj), RIGHT), 
+      lambda loc: index(I, loc) == mostcolor(I)
+    )
+  extended_borders = mapply(right_extension, objs)
+  return underpaint(I, recolor(8, extended_borders)) 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to version 1.
+2. **Define Right Extension:** `right_extension` is a function that takes an object, shifts its indices to the right, and then filters the shifted indices, keeping only those located on the background color.
+3. **Apply Right Extension:** `mapply(right_extension, objs)` applies this function to each object, resulting in a set of indices representing the valid rightward border extensions.
+4. **Paint Extensions:** Similar to version 1, but using the calculated extensions instead of simply shifted borders.
+
+
+## Program Version 3
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, T, F, T)
+  def extend_right(obj):
+    return frozenset(
+      (i, j + 1) for i, j in toindices(obj) 
+      if j < width(I) - 1 and I[i][j + 1] == bg
+    )
+  extensions = merge(apply(extend_right, objs))
+  return fill(I, 8, extensions)
+```
+
+**Explanation:**
+
+1. **Get Background Color:** `bg = mostcolor(I)` stores the background color for later use.
+2. **Identify Objects:** Similar to previous versions.
+3. **Define Extension Logic:** `extend_right` takes an object and iterates through its indices. For each index, it checks if a rightward extension is possible (not on the grid edge and the right cell is background). If possible, the extended index is added to the result set.
+4. **Apply and Merge Extensions:** `merge(apply(extend_right, objs))` applies this extension logic to each object and merges the resulting index sets.
+5. **Fill Extensions:** `fill(I, 8, extensions)` directly fills the '8' color at the calculated extension indices on the input grid.
+
+## Program Version 4
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  def valid_extension(i, j):
+    return j < width(I) - 1 and I[i][j + 1] == mostcolor(I)
+  extended = frozenset(
+    (i, j + 1) for obj in objs 
+    for i, j in toindices(obj) if valid_extension(i, j)
+  )
+  return underpaint(I, recolor(8, extended))
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions.
+2. **Define Valid Extension:** `valid_extension` checks if a given index can be extended rightward.
+3. **Calculate Extensions:** This version directly iterates through objects and their indices, using the `valid_extension` function to filter and generate the extended indices in a set comprehension.
+4. **Paint Extensions:** Similar to previous versions, recoloring and painting the extensions onto the input grid.
+
+## Program Version 5
+
+```python
+def Program_to_be_generated(I):
+  shifted =  hconcat(I, canvas(mostcolor(I), (height(I), 1)))
+  objs = objects(I, T, F, T)
+  extended = frozenset(
+    (i, j + 1) for obj in objs
+    for i, j in toindices(obj) if index(shifted, (i, j + 1)) == mostcolor(I)
+  )
+  return paint(I, recolor(8, extended))
+```
+
+**Explanation:**
+
+1. **Create Shifted Grid:** This version cleverly avoids boundary checks by concatenating a one-column background canvas to the right of the input grid.
+2. **Identify Objects:** Similar to previous versions.
+3. **Calculate Extensions:** It iterates through objects and indices, but now checks the shifted grid for valid rightward extensions, simplifying the condition.
+4. **Paint Extensions:** Similar to previous versions, but using `paint` directly as extensions are guaranteed to be within the original grid boundaries. 

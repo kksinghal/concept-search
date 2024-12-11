@@ -1,0 +1,161 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) in the input grid and replacing them with objects of a different digit. The new digit is determined by finding a single-cell object adjacent to the original object. 
+
+**Example:**
+
+In Input_0, the object composed of '5's has a single-cell object of '2' adjacent to it. The transformation replaces all '5's with '2's. Similarly, the single '8' is replaced by '6' as a single-cell '6' object is adjacent to it. 
+
+This logic applies to all input-output pairs.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  for obj in objs:
+    if size(obj) > 1:
+      n = rbind(adjacent, obj)
+      neighbors = mfilter(objects(I, T, F, F), n)
+      single_neighbors = sizefilter(neighbors, 1)
+      if len(single_neighbors) > 0:
+        new_color = color(first(single_neighbors))
+        I = paint(cover(I, obj), recolor(new_color, toindices(obj)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies all objects in the input grid `I`.
+2. **Iterate and Transform:** The code iterates through each identified object `obj`.
+3. **Check for Multi-Cell Objects:** `if size(obj) > 1` focuses on objects with more than one cell.
+4. **Find Adjacent Single-Cell Objects:** 
+    * `rbind(adjacent, obj)` creates a function checking for adjacency with the current `obj`.
+    * `mfilter(objects(I, T, F, F), n)` finds all objects adjacent to `obj`.
+    * `sizefilter(neighbors, 1)` isolates single-cell objects from the neighbors.
+5. **Recolor:**
+    * If single-cell neighbors exist (`if len(single_neighbors) > 0`):
+        * `new_color = color(first(single_neighbors))` extracts the digit of the first single-cell neighbor.
+        * `I = paint(cover(I, obj), recolor(new_color, toindices(obj)))` replaces the original object with the new digit. 
+6. **Return Transformed Grid:** The modified grid `I` is returned.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  for i in palette(I):
+    obj = asobject(replace(I, i, 1))
+    adj_objs =  mfilter(objects(I, T, F, F), rbind(adjacent, obj))
+    for j in palette(I):
+      if size(intersection(toindices(obj), toindices(recolor(j, asobject(replace(I, j, 1)))))) > 0:
+        for k in palette(I):
+          if size(intersection(toindices(recolor(k, asobject(replace(I, k, 1)))), toindices(adj_objs))) == 1:
+            I = replace(I, i, k)
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Through Colors:** The code iterates through each unique color `i` in the input grid `I`.
+2. **Isolate Object of Color `i`:**  
+    * `replace(I, i, 1)` replaces all occurrences of color `i` with '1'.
+    * `asobject(...)` converts the modified grid into an object representing the original object of color `i`.
+3. **Find Adjacent Objects:** `mfilter(objects(I, T, F, F), rbind(adjacent, obj))` identifies all objects adjacent to the object of color `i`.
+4. **Iterate Through Colors Again:**  The code iterates through each color `j` in the input grid.
+5. **Check for Single-Cell Adjacent Objects:** The code iterates through each color `k` in the input grid and checks if a single-cell object of color `k` is adjacent to the object of color `i`.
+6. **Replace Color:** If a single-cell adjacent object of color `k` is found, all occurrences of color `i` are replaced with `k`.
+7. **Return Transformed Grid:** The modified grid `I` is returned.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  for c in palette(I):
+    obj = recolor(1, ofcolor(I, c))
+    if size(obj) > 1:
+      for d in palette(I):
+        adj_obj = recolor(1, ofcolor(I, d))
+        if size(adj_obj) == 1 and adjacent(obj, adj_obj):
+          I = replace(I, c, d)
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Through Colors:** The code iterates through each unique color `c` in the input grid `I`.
+2. **Isolate Object of Color `c`:** `recolor(1, ofcolor(I, c))` creates an object representing the regions of color `c`, effectively isolating it.
+3. **Check Object Size:** `if size(obj) > 1` proceeds only if the object has more than one cell.
+4. **Iterate Through Colors Again:** The code iterates through each color `d` in the input grid.
+5. **Check for Single-Cell Adjacency:**
+   * `adj_obj = recolor(1, ofcolor(I, d))` isolates the potential adjacent object of color `d`.
+   * `if size(adj_obj) == 1 and adjacent(obj, adj_obj)` verifies if `adj_obj` is a single-cell object and adjacent to the main object.
+6. **Replace Color:** If the conditions are met, the original color `c` is replaced with color `d` in the grid.
+7. **Return Transformed Grid:**  The modified grid `I` is returned.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  def check_and_replace(obj):
+    for d in palette(I):
+      adj_obj = recolor(1, ofcolor(I, d))
+      if size(adj_obj) == 1 and adjacent(obj, adj_obj):
+        return paint(cover(I, obj), recolor(d, toindices(obj)))
+    return I
+  return mapply(check_and_replace, objects(I, T, F, F))
+```
+
+**Explanation:**
+
+1. **Define Helper Function:**  `check_and_replace(obj)` is defined to encapsulate the logic of finding an adjacent single-cell object and performing the replacement.
+2. **Identify Objects:** `objects(I, T, F, F)` identifies all objects in the input grid `I`.
+3. **Apply and Merge:**  
+    * `mapply(check_and_replace, objects(I, T, F, F))` applies the `check_and_replace` function to each object and merges the results.
+4. **Helper Function Logic:**
+    * Iterates through colors `d` in the grid.
+    * Isolates potential adjacent object `adj_obj` of color `d`.
+    * Checks if `adj_obj` is a single-cell object adjacent to the input `obj`.
+    * If found, replaces the input `obj` with the color `d` and returns the modified grid.
+    * If no suitable adjacent object is found, returns the original grid `I`.
+5. **Return Transformed Grid:** The modified grid resulting from the `mapply` operation is returned.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  def transform_object(obj):
+    if size(obj) > 1:
+      adj_colors =  set(color(n) for n in mfilter(objects(I, T, F, F), rbind(adjacent, obj)) if size(n) == 1)
+      if adj_colors:
+        return recolor(first(adj_colors), toindices(obj))
+    return toindices(obj)
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(transform_object, objects(I, T, F, F))))
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** `transform_object(obj)` handles the transformation logic for individual objects.
+2. **Identify Objects:**  `objects(I, T, F, F)` identifies all objects in the grid.
+3. **Apply Transformation and Merge:**
+    * `apply(transform_object, objects(I, T, F, F))` applies `transform_object` to each object.
+    * `merge(...)` combines the results into a single set of indices.
+4. **Helper Function Logic:**
+    * Checks if the object has more than one cell (`if size(obj) > 1`).
+    * Finds adjacent single-cell objects and stores their colors in `adj_colors`.
+    * If `adj_colors` is not empty, recolors the object with the first color from `adj_colors`.
+    * If the object is not transformed (single-cell or no adjacent single-cell objects), returns its original indices.
+5. **Create New Grid and Paint:**
+    * `canvas(mostcolor(I), shape(I))` creates a blank canvas filled with the background color of the input.
+    * `paint(..., ...)` paints the transformed objects onto the canvas.
+6. **Return Transformed Grid:** The painted canvas representing the transformed grid is returned. 

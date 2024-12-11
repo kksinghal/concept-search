@@ -1,0 +1,216 @@
+## Transformation Analysis:
+
+The transformation involves these key steps:
+
+1. **Identifying Key Objects:** The input grid always contains objects made of digits '7', '3', '2' and rest is background '0'. The transformation primarily focuses on the '7' object and its interaction with the other objects.
+
+2. **Centering and Modifying the '7' Object:** 
+    - The '7' object is always moved to the center of the grid.
+    -  A '1' is inserted in the middle of the centered '7' object.
+
+3. **Transforming Other Objects:**
+    - '3' objects: 
+        - If a '3' object has a size of 2, it's recolored to '1'.
+        - Otherwise, it's expanded horizontally with additional '3's on either side, and a '2' is inserted in the middle.
+    - '2' objects: Their position is adjusted based on their proximity to '3' objects.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the described transformation:
+
+**Version 1:**
+
+```python
+def program_v1(grid):
+  h, w = shape(grid)
+  objs = fgpartition(grid)
+  main_obj = extract(objs, lambda o: color(o) == 7)
+  other_objs = objs - {main_obj}
+  centered_main_obj = shift(main_obj, (h // 2 - uppermost(main_obj) - height(main_obj) // 2, 
+                                     w // 2 - leftmost(main_obj) - width(main_obj) // 2))
+  centered_main_obj = combine(centered_main_obj, {(1, (uppermost(centered_main_obj) + height(centered_main_obj) // 2, 
+                                                  leftmost(centered_main_obj) + width(centered_main_obj) // 2))})
+
+  def transform_obj(obj):
+    if color(obj) == 3:
+      if size(obj) == 2:
+        return recolor(1, obj)
+      else:
+        return combine(obj, {(3, (i, j + 1)) for _, (i, j) in obj} | {(3, (i, j - 1)) for _, (i, j) in obj} |
+                       {(2, (uppermost(obj) + height(obj) // 2, leftmost(obj) + width(obj) // 2))})
+    elif color(obj) == 2:
+      # Find a 3-object that's horizontally or vertically aligned with the 2-object
+      matching_3_obj = extract(other_objs, lambda o: color(o) == 3 and (hmatching(o, obj) or vmatching(o, obj)))
+      if matching_3_obj:
+        # Place the 2-object next to the 3-object
+        if hmatching(matching_3_obj, obj):
+          return shift(obj, (0, 1 if rightmost(matching_3_obj) < leftmost(obj) else -1))
+        else:
+          return shift(obj, (1 if lowermost(matching_3_obj) < uppermost(obj) else -1, 0))
+      else:
+        return obj
+    else:
+      return obj
+
+  return paint(canvas(0, (h, w)), merge([centered_main_obj] + apply(transform_obj, other_objs)))
+```
+
+**Explanation:**
+
+1. **Identifies and centers the '7' object**, adding a '1' in the middle.
+2. **Iterates through other objects ('3' and '2'):**
+   - For '3': Applies transformations based on size.
+   - For '2':  Finds a '3' object that is horizontally or vertically aligned, and places the '2' object beside it.
+3. **Paints the transformed objects onto a blank canvas.**
+
+**Version 2:**
+
+```python
+def program_v2(grid):
+  h, w = shape(grid)
+  objs = fgpartition(grid)
+  main_obj = argmax(objs, lambda o: color(o) == 7)
+  other_objs = objs - {main_obj}
+
+  def reposition(obj):
+    if color(obj) == 7:
+      return shift(obj, (h//2 - centerofmass(obj)[0], w//2 - centerofmass(obj)[1])) | {(1, centerofmass(obj))}
+    elif color(obj) == 3:
+      if size(obj) == 2:
+        return recolor(1, obj)
+      else:
+        return combine(obj, {(3, add(loc, (0, 1))) for _, loc in obj} | 
+                           {(3, add(loc, (0, -1))) for _, loc in obj} | 
+                           {(2, centerofmass(obj))})
+    elif color(obj) == 2:
+      closest_3 = argmin(sfilter(other_objs, lambda o: color(o) == 3), lambda o: manhattan(o, obj))
+      if closest_3:
+        return shift(obj, sign(subtract(centerofmass(closest_3), centerofmass(obj))))
+      else:
+        return obj
+    else:
+      return obj
+
+  return paint(canvas(0, (h, w)), merge(apply(reposition, objs)))
+```
+
+**Explanation:**
+
+1. **Finds the '7' object using `argmax`**, centers it using `centerofmass`, and adds a '1' in its center.
+2. **Applies similar transformations to '3' objects as Version 1**.
+3. **For '2' objects**: 
+    - Uses `argmin` and `manhattan` to find the closest '3' object.
+    - Shifts the '2' object one step towards the closest '3' object.
+
+**Version 3:**
+
+```python
+def program_v3(grid):
+  h, w = shape(grid)
+  objs = objects(grid, False, False, True)
+
+  def transform(obj):
+    c = color(obj)
+    if c == 7:
+      return shift(obj | {(1, centerofmass(obj))}, 
+                   (h//2 - centerofmass(obj)[0], w//2 - centerofmass(obj)[1]))
+    elif c == 3:
+      if size(obj) == 2:
+        return recolor(1, obj)
+      else:
+        return obj | {(3, (i, j+1)) for _, (i, j) in obj if j < w-1} | \
+               {(3, (i, j-1)) for _, (i, j) in obj if j > 0} | \
+               {(2, centerofmass(obj))}
+    elif c == 2:
+      for _, (i, j) in obj:
+        for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+          if (i+di, j+dj) in toindices(sfilter(objs, lambda o: color(o) == 3)):
+            return shift(obj, (di, dj))
+        return obj
+    else:
+      return obj
+
+  return paint(canvas(0, (h, w)), merge(apply(transform, objs)))
+```
+
+**Explanation:**
+
+1. **Uses `objects` function to extract objects without background.**
+2. **Similar transformations for '7' and '3' objects**.
+3. **For '2' objects:** 
+    - Directly iterates through neighbors to find an adjacent '3' object.
+    - If found, shifts towards it.
+
+**Version 4:**
+
+```python
+def program_v4(grid):
+  h, w = shape(grid)
+  objs = fgpartition(grid)
+  seven = extract(objs, lambda o: color(o) == 7)
+  others = objs - {seven}
+
+  def reposition(obj):
+    c = color(obj)
+    if c == 7:
+      return shift(obj, subtract((h // 2, w // 2), centerofmass(obj))) | {(1, centerofmass(obj))}
+    elif c == 3:
+      return branch(size(obj) == 2, 
+                 recolor(1, obj), 
+                 obj | {(3, add(p, (0, 1))) for _, p in obj} | 
+                      {(3, add(p, (0, -1))) for _, p in obj} | 
+                      {(2, centerofmass(obj))})
+    elif c == 2:
+      closest_three = argmin(sfilter(others, lambda o: color(o) == 3), lambda o: manhattan(o, obj))
+      return branch(closest_three,
+                 shift(obj, crement(subtract(centerofmass(closest_three), centerofmass(obj)))),
+                 obj)
+    else:
+      return obj
+
+  return paint(canvas(0, (h, w)), merge(apply(reposition, objs)))
+```
+
+**Explanation:**
+
+1. **Uses `extract` to find the '7' object and separates it from others.**
+2. **Similar transformations for '7' and '3' objects**.
+3. **For '2' objects:**
+    - Uses `argmin` and `manhattan` to find the closest '3' object.
+    - Uses `crement` to move the '2' object one step closer to the '3' object.
+
+**Version 5:**
+
+```python
+def program_v5(grid):
+  h, w = shape(grid)
+  objs = fgpartition(grid)
+
+  def process(obj):
+    c = color(obj)
+    if c == 7:
+      return shift(obj | {(1, center(obj))}, 
+                   subtract((h // 2, w // 2), center(obj)))
+    elif c == 3:
+      return branch(size(obj) == 2,
+                 recolor(1, obj),
+                 combine(obj, {(3, add(loc, (0, d))) for _, loc in obj for d in [-1, 1]} |
+                         {(2, center(obj))}))
+    elif c == 2:
+      threes = sfilter(objs, lambda o: color(o) == 3)
+      closest_three = argmin(threes, lambda o: manhattan(o, obj))
+      return branch(closest_three,
+                 shift(obj, sign(subtract(center(closest_three), center(obj)))),
+                 obj)
+    else:
+      return obj
+
+  return paint(canvas(0, (h, w)), merge(apply(process, objs)))
+```
+
+**Explanation:**
+
+1. **Similar transformations for '7', '3', and '2' objects as Version 4**.
+2. **Uses `center` instead of `centerofmass` for object positioning.**
+
+These five versions provide distinct ways to achieve the required transformation in the DSL, showcasing the flexibility and expressiveness of the language. 

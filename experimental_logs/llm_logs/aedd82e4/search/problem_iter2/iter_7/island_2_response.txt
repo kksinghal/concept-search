@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation shifts specific elements of the input grid based on their value and position.  Here's a breakdown:
+
+* **General Pattern:**  The transformation seems to target elements in the bottom row and shift them either upwards or leftwards. The background color (most common color) fills the vacated spaces. 
+* **Specific Observations:**
+    * Elements with the same value as the element in the bottom right corner are shifted one position upwards.
+    * The element in the bottom left corner is shifted to the leftmost available space in the second-to-last row. 
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  O = canvas(mostcolor(I), (h, w)) # Initialize with background color
+  for i in range(h):
+    for j in range(w):
+      if i == h - 1 and j == 0: # Bottom Left Corner
+        target_j = 0 # Start at leftmost
+        while target_j < w and O[h-2][target_j] != mostcolor(I): 
+          target_j += 1
+        O = fill(O, I[i][j], {(h-2, target_j)}) # Move to leftmost empty space
+      elif I[i][j] == I[h-1][w-1]: # Match bottom right color
+        O = fill(O, I[i][j], {(i-1, j)}) # Shift one row up 
+      else:
+        O = fill(O, I[i][j], {(i, j)}) # Keep other elements in place
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a canvas `O` of the same size as input `I`, filled with the background color.
+2. **Bottom Left Corner Handling:**  Identifies the bottom left corner element and finds the leftmost empty space in the second-to-last row (`h-2`) to move it.
+3. **Shifting Upwards:**  Iterates through the grid, and if an element matches the bottom right corner's value, it's shifted one row up.
+4. **Preserving Other Elements:** Elements not meeting the above conditions are placed back in their original positions.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  O = I # Start with the input grid
+  bottom_left_val = I[h-1][0] 
+  bottom_right_val = I[h-1][w-1]
+  O = fill(O, mostcolor(I), {(h-1, 0)}) # Clear bottom left corner
+  O = fill(O, bottom_right_val, {(h-2, w-1)}) # Move bottom right value up one row
+  for j in range(w-1):
+    if O[h-2][j] == mostcolor(I):
+      O = fill(O, bottom_left_val, {(h-2, j)}) # Fill leftmost empty space with bottom left value
+      break
+  return O
+```
+
+**Explanation:**
+
+1. **Direct Manipulation:**  Instead of creating a new canvas, this version directly modifies the input grid `I`.
+2. **Targeted Shifts:**  Focuses on shifting only the bottom left and bottom right corner elements.
+3. **Finding Empty Space:** Efficiently searches for the leftmost empty space in the second-to-last row to place the bottom left element.
+
+**Program Version 3 (Using Objects):**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  objs = objects(I, univalued=False, diagonal=False, without_bg=False) # Extract objects
+  bottom_right_color = I[h-1][w-1]
+  O = canvas(mostcolor(I), (h, w)) # Create empty canvas
+  for obj in objs:
+    if color(obj) == bottom_right_color: # Match object color with bottom right
+      O = paint(O, shift(obj, (-1, 0))) # Shift the entire object up
+    else:
+      O = paint(O, obj) # Paint other objects in original position
+  bottom_left_obj = extract(objs, lambda obj: (h-1, 0) in toindices(obj)) # Get bottom left object
+  O = paint(O, shift(bottom_left_obj, (0, -leftmost(bottom_left_obj)))) # Move bottom left object to the left
+  return O
+```
+
+**Explanation:**
+
+1. **Object-Based Approach:**  This version first extracts objects from the input grid and manipulates them as units.
+2. **Shifting by Color:**  Shifts objects that have the same color as the bottom right corner element upwards.
+3. **Handling Bottom Left:**  Specifically extracts and shifts the object containing the bottom left element to the leftmost position.
+
+**Program Version 4 (Functional Approach):**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  bottom_right_val = I[h-1][w-1]
+  
+  def shift_up(row, row_index):
+    return  tuple(bottom_right_val if v == bottom_right_val and row_index < h-1 else v for v in row)
+  
+  O = apply(lambda x: shift_up(*x), pair(I, range(h))) # Apply shift_up to each row
+  
+  bottom_left_val = I[h-1][0]
+  empty_index = next((j for j, v in enumerate(O[h-2]) if v == mostcolor(I)), None)
+  if empty_index is not None:
+    O = fill(O, bottom_left_val, {(h-2, empty_index)}) # Place bottom left value
+  
+  return O
+```
+
+**Explanation:**
+
+1. **Functional Style:** Utilizes functional programming concepts like `apply` and `pair` for concise code.
+2. **Shifting with `shift_up`:**  Defines a helper function `shift_up` to handle the upward shift based on row index.
+3. **Finding Empty Index:** Efficiently uses `next` to find the first empty space in the second-to-last row.
+
+**Program Version 5 (Using `cellwise`):**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  shifted_grid = vconcat(I[1:], (tuple(mostcolor(I) for _ in range(w)),)) # Shift entire grid up
+  mask = canvas(1, (h, w))
+  mask = fill(mask, 0, {(h-1, 0)}) # Mark bottom left for no shift
+  for i in range(h-1):
+    for j in range(w):
+      if I[i][j] != I[h-1][w-1]:
+        mask = fill(mask, 0, {(i, j)})  # Mark non-matching elements for no shift
+  O = cellwise(shifted_grid, I, mostcolor(I)) # Apply shift based on mask
+  return O
+```
+
+**Explanation:**
+
+1. **Shift and Mask:**  This version first shifts the entire grid upwards and then uses a mask to control which elements retain the shifted position.
+2. **Creating the Mask:**  The mask is initialized to all 1s, and then specific elements (bottom left, and those not matching the bottom right value) are marked with 0 to prevent shifting.
+3. **Applying the Shift:**  The `cellwise` function combines the shifted grid and the original grid based on the mask, effectively implementing the desired transformation.
+
+## Conclusion:
+
+These five program versions demonstrate diverse ways to achieve the same transformation using the provided DSL. Each version utilizes different functions and logic, showcasing the flexibility and expressiveness of the language. 

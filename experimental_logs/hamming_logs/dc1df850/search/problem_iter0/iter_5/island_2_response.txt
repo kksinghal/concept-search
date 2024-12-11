@@ -1,0 +1,131 @@
+## Transformation Analysis:
+
+**Input 0 to Output 0:**
+
+1. **Identify "2" Objects:** The transformation identifies all connected regions of the digit "2".
+2. **Expand with "1"s:** Each "2" object expands horizontally and vertically, replacing adjacent "0"s with "1"s.  The expansion stops at the boundary of other non-zero digits or the grid edge. 
+
+**Input 1 to Output 1:**
+
+1. **Identify "2" Objects:** Similar to Input 0, the transformation targets connected regions of the digit "2".
+2. **Directional Expansion:** This time, the expansion is primarily downwards and to the left, filling adjacent "0"s with "1"s. Again, the expansion stops at other non-zero digits or the grid edge.
+
+**Input 2 to Output 2:**
+
+1. **Identify "2" Object:**  The single "2" in the grid is identified.
+2. **Surrounding Expansion:** The "2" object expands to fill its immediate surrounding "0"s with "1"s, forming a plus-sign shape.
+
+
+## Program Versions:
+
+**Version 1: Using `objects` and `fill`:**
+
+```python
+def Program_to_be_generated(I):
+  return fill(I, 1, mpapply(lambda obj: difference(
+      product(interval(uppermost(obj), lowermost(obj) + 1, 1), interval(leftmost(obj), rightmost(obj) + 1, 1)),
+      toindices(obj)), 
+    objects(I, T, F, T)))
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`:** Identifies all connected objects of the same value (univalued=T), excluding diagonals (diagonal=F), and ignoring the background (without_bg=T).
+2. **`mpapply(...)`:** Applies a lambda function to each object.
+3. **Lambda Function:**  For each object:
+    - **`product(...)`:** Creates a bounding box of indices encompassing the object.
+    - **`difference(...)`:**  Subtracts the object's own indices from the bounding box, leaving only the surrounding indices.
+    - This ensures only the "border" around each object is targeted.
+4. **`fill(I, 1, ...)`:** Fills the identified surrounding indices with the value "1". 
+
+**Version 2: Iterative Expansion with `dneighbors`:**
+
+```python
+def Program_to_be_generated(I):
+  twos = ofcolor(I, 2)
+  expansion_area = set(twos) 
+  for i, j in twos:
+    queue = [(i, j)]
+    visited = {(i, j)}
+    while queue:
+      current = queue.pop(0)
+      for neighbor in dneighbors(current):
+        ni, nj = neighbor
+        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and (ni, nj) not in visited and I[ni][nj] == 0:
+          queue.append((ni, nj))
+          visited.add((ni, nj))
+          expansion_area.add((ni, nj))
+  return fill(I, 1, frozenset(expansion_area))
+```
+
+**Explanation:**
+
+1. **`ofcolor(I, 2)`:** Get indices of all "2"s.
+2. **Iterative Expansion:** For each "2":
+    - Use Breadth-First Search (BFS) with a queue to expand outwards.
+    - `dneighbors`:  Expands only to direct neighbors (up, down, left, right).
+    - Mark visited cells to avoid infinite loops.
+    - Add expanded cells to `expansion_area`.
+3. **`fill(I, 1, ...)`:** Fills the collected `expansion_area` indices with "1"s.
+
+**Version 3:  Recursive Expansion (Similar Logic to Version 2):**
+
+```python
+def Program_to_be_generated(I):
+  def expand(I, i, j, visited):
+    if 0 <= i < len(I) and 0 <= j < len(I[0]) and (i, j) not in visited and I[i][j] == 0:
+      visited.add((i, j))
+      for ni, nj in dneighbors((i, j)):
+        expand(I, ni, nj, visited)
+      return visited
+    return visited
+  
+  twos = ofcolor(I, 2)
+  expansion_area = set(twos)
+  for i, j in twos:
+    expansion_area = expand(I, i, j, expansion_area) 
+  return fill(I, 1, frozenset(expansion_area))
+```
+
+**Explanation:**
+
+- Similar logic to Version 2, but implements expansion using recursion.
+
+**Version 4: Leveraging `backdrop` and Set Operations:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  return fill(I, 1, mpapply(lambda obj: difference(
+      backdrop(obj), 
+      toindices(obj)), 
+    objs))
+```
+
+**Explanation:**
+
+1. **`objects(...)`:** Get all objects (excluding background).
+2. **`mpapply(...)`:** Apply a function to each object.
+3. **Lambda Function:** 
+    - **`backdrop(obj)`:** Get the indices of the object's bounding box.
+    - **`difference(...)`:**  Remove the object's indices, leaving only the surrounding "border". 
+4. **`fill(I, 1, ...)`:** Fill the border indices with "1"s.
+
+**Version 5: Combining `box` and Conditional Filling:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  for obj in objs:
+    I = fill(I, 1, box(obj))
+  return I 
+```
+
+**Explanation:**
+
+1. **`objects(...)`:** Get all objects (excluding background).
+2. **Iterate and Fill:**
+    - For each object, directly fill its `box` (outline) with "1"s using `fill`. 
+
+
+These versions demonstrate diverse approaches to achieve the same transformation, ranging from iterative expansion to set operations and bounding box manipulation. 

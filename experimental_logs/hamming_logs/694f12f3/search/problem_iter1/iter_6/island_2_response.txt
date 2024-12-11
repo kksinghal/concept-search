@@ -1,0 +1,164 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:** The program should recolor the center 3x3 area of the top object to '1' and the center 5x3 area of the bottom object to '2'.
+
+**Input_1 to Output_1:** The program should recolor the center 3x5 area of the top object to '2' and the center 3x3 area of the bottom object to '1'. 
+
+## Program_to_be_generated:
+
+**Version 1**
+
+```python
+def program_v1(I):
+  # Identify top and bottom objects 
+  objs = objects(I, T, F, T)
+  top_obj = extract(objs, lambda obj: uppermost(obj) < len(I) // 2)
+  bottom_obj = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2)
+
+  # Define function to recolor a rectangular area within an object
+  def recolor_area(obj, size, color):
+    i_center, j_center = centerofmass(obj)
+    h, w = size
+    return frozenset(
+        ((color, (i, j)) if abs(i - i_center) < h // 2 and abs(j - j_center) < w // 2 else (v, (i, j)))
+        for v, (i, j) in obj
+    )
+
+  # Recolor areas in top and bottom objects based on their shape
+  recolored_top = recolor_area(top_obj, (3, 3) if portrait(top_obj) else (5, 3), 1) 
+  recolored_bottom = recolor_area(bottom_obj, (3, 5) if portrait(bottom_obj) else (3, 3), 2) 
+
+  # Paint the recolored objects onto a blank canvas
+  O = paint(paint(canvas(0, shape(I)), recolored_top), recolored_bottom)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** The code identifies the top and bottom objects based on their vertical position.
+2. **Recolor Area Function:**  This function takes an object, area size (height, width), and color. It identifies the object's center and recolors a rectangular area around it with the specified size and color.
+3. **Shape-Based Recoloring:**  It recolors the center areas of the top and bottom objects. The area size is determined dynamically based on whether the object is taller than it is wide (portrait) or vice-versa.
+4. **Painting the Output:** It paints the recolored objects onto a blank canvas to generate the output grid.
+
+
+**Version 2**
+
+```python
+def program_v2(I):
+    objs = objects(I, T, F, T)
+    O = canvas(0, shape(I))
+    for obj in objs:
+        center_i, center_j = centerofmass(obj)
+        h, w = shape(obj)
+        color = 1 if uppermost(obj) < len(I) // 2 else 2
+        for i, r in enumerate(I):
+            for j, v in enumerate(r):
+                if (v, (i, j)) in obj:
+                    if (h > w and abs(i - center_i) < 1 and abs(j - center_j) < 2) or \
+                       (w > h and abs(i - center_i) < 2 and abs(j - center_j) < 1):
+                        O = paint(O, {(color, (i, j))})
+                    else:
+                        O = paint(O, {(v, (i, j))})
+    return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a blank canvas 'O' with the same dimensions as the input grid 'I'.
+2. **Iterate Objects:** Iterates through each object in the input grid.
+3. **Determine Recoloring:** Calculates the center, height, and width of the object. Decides the recolor color (1 for top, 2 for bottom).
+4. **Cell-by-Cell Recoloring:** Iterates through each cell of the input grid:
+    - If the cell belongs to the current object, it checks if the cell falls within the central recoloring area based on object shape and center. 
+    - If within the recolor area, it paints the cell with the designated color; otherwise, it paints the original cell color onto the canvas. 
+
+**Version 3**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for n, obj in enumerate(objs):
+    O = cover(O, obj)
+    c = n + 1
+    center = centerofmass(obj)
+    if portrait(obj):
+        area = frozenset((center[0] + i, center[1] + j) for i in range(-1, 2) for j in range(-1, 2))
+    else:
+        area = frozenset((center[0] + i, center[1] + j) for i in range(-2, 3) for j in range(-1, 2))
+    O = paint(O, recolor(c, intersection(toindices(obj), area)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Starts with output `O` being the same as input `I`.
+2. **Object Iteration:** Iterates through each object detected in `I`.
+3. **Cover and Recolor:** For each object:
+    -  Removes the object from `O` using `cover`.
+    -  Determines a color `c` based on the object's index.
+    -  Calculates the object's center and defines a recoloring `area` based on whether it's taller than wide (portrait).
+    -  Recolors the intersection of the object and the `area` using `recolor`.
+4. **Paint:** Paints the recolored object back onto `O`.
+
+**Version 4**
+
+```python
+def program_v4(I):
+    h, w = shape(I)
+    objs = objects(I, T, F, T)
+    top = extract(objs, lambda o: uppermost(o) < h // 2)
+    bottom = extract(objs, lambda o: uppermost(o) >= h // 2)
+    O = canvas(0, (h, w))
+    for i in range(h):
+        for j in range(w):
+            if (I[i][j], (i, j)) in top:
+                if abs(i - centerofmass(top)[0]) <= 1 and abs(j - centerofmass(top)[1]) <= 1:
+                    O = paint(O, {(1, (i, j))})
+                else:
+                    O = paint(O, {(I[i][j], (i, j))})
+            elif (I[i][j], (i, j)) in bottom:
+                if abs(i - centerofmass(bottom)[0]) <= 1 and abs(j - centerofmass(bottom)[1]) <= 2:
+                    O = paint(O, {(2, (i, j))})
+                else:
+                    O = paint(O, {(I[i][j], (i, j))})
+    return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Gets the shape of the input grid and extracts the top and bottom objects. A blank canvas is created.
+2. **Cell Iteration:** It iterates over every cell in the grid.
+3. **Top Object Recoloring:** If the cell belongs to the top object, it checks if it's within a 3x3 region around the object's center and recolors it to '1'. Otherwise, the original color is retained.
+4. **Bottom Object Recoloring:**  Similar to the top object, if the cell belongs to the bottom object, it checks for its presence within a 3x5 region around the object's center and recolors it to '2', otherwise keeping the original color.
+5. **Painting:** In both cases, the appropriately colored cell is painted onto the canvas.
+
+**Version 5**
+
+```python
+def program_v5(I):
+  h, w = shape(I)
+  objs = objects(I, T, F, T)
+  O = canvas(0, (h, w))
+  for obj in objs:
+    color = 1 if uppermost(obj) < h // 2 else 2
+    ci, cj = centerofmass(obj)
+    for cell in obj:
+      v, (i, j) = cell
+      if abs(i - ci) <= 1 and abs(j - cj) <= (2 if color == 2 else 1):
+        O = paint(O, {(color, (i, j))})
+      else:
+        O = paint(O, {(v, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a blank canvas `O` of the same size as the input grid `I`.
+2. **Iterate through Objects:**  It iterates through each object detected in the input grid.
+3. **Color and Center:** For each object, it determines the color (`1` for top, `2` for bottom) and calculates the center coordinates (`ci`, `cj`).
+4. **Cell Recoloring:** It iterates through each cell of the object:
+   - If the cell is within a certain distance from the center (1 unit vertically and 1 or 2 units horizontally depending on the color), it's recolored.
+   - Otherwise, the original color of the cell is kept.
+5. **Painting:** The cell, with its new or original color, is then painted onto the canvas.
+
+These five versions demonstrate different approaches and logic within the DSL to achieve the same visual transformation, showcasing the flexibility and diversity possible even with a limited set of functions. 

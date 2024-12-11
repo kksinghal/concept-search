@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation focuses on objects composed of the digit '3' and modifies them based on their adjacency to other '3' objects or the grid border. Here's a breakdown:
+
+* **Isolated '3' Objects:** Objects formed solely of '3's that are not connected to any other '3' object (including diagonally) are transformed into objects composed of '8's. 
+* **Connected '3' Objects:** Objects made of '3's that are connected to at least one other '3' object (including diagonally) remain unchanged.
+* **Bordering '3' Objects:**  Objects made of '3's that touch the border of the grid also remain unchanged.
+
+Let's illustrate with an example from `Input_2`:
+
+```
+Input_2:        Output_2:
+3 3 0 3         8 8 0 3
+3 3 0 0         8 8 0 0
+3 0 0 3         8 0 0 8 
+0 0 3 3         0 0 8 8
+```
+
+* The top-left and bottom-right '3' objects are transformed to '8's as they are isolated. 
+* The remaining '3' objects remain as they are connected to others or touch the border.
+
+## Code Generation:
+
+Here are five distinct program versions, each with a different approach to achieve the desired transformation.
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = objects(I, T, T, F) # Identify all objects, including diagonal connections
+  isolated_objs = sfilter(objs, lambda obj: all(manhattan(obj, other_obj) > 1 for other_obj in objs - {obj})) # Find isolated objects
+  transformed_objs = apply(lambda obj: recolor(EIGHT, obj), isolated_objs) # Transform isolated objects to '8's
+  O = I
+  for obj in transformed_objs:
+    O = paint(O, obj) # Paint the transformed objects onto the grid
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, T, T, F)` detects all '3' objects, including diagonal connections.
+2. **Filter Isolated Objects:** `sfilter` with the lambda function identifies objects that have a Manhattan distance greater than 1 from all other objects, ensuring isolation.
+3. **Transform to '8's:** `apply` and `recolor` change isolated objects to '8's.
+4. **Paint on Grid:** The transformed objects are painted onto a copy of the input grid `O` using `paint`.
+
+**Program Version 2**
+
+```python
+def solve(I):
+  objs = objects(I, T, T, F) 
+  border_objs = mfilter(objs, lambda obj: bordering(obj, I)) # Identify objects touching the border
+  connected_objs = mfilter(objs, lambda obj: any(adjacent(obj, other_obj) for other_obj in objs - {obj})) # Identify directly or diagonally connected objects
+  unchanged_objs = border_objs | connected_objs # Combine border and connected objects
+  transformed_objs = apply(lambda obj: recolor(EIGHT, obj), objs - unchanged_objs)  # Transform remaining (isolated) objects to '8's
+  O = I
+  for obj in transformed_objs:
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Filter Border Objects:** `mfilter` with `bordering` identifies objects touching the grid border.
+3. **Filter Connected Objects:** `mfilter` with `adjacent` identifies objects connected to others.
+4. **Isolate Objects for Transformation:** Objects that are neither bordering nor connected are isolated.
+5. **Transform and Paint:** Similar to Version 1.
+
+**Program Version 3** 
+
+```python
+def solve(I):
+  threes = ofcolor(I, THREE) # Get indices of all '3's
+  connected = mapply(neighbors, threes) # Find all indices adjacent to '3's
+  isolated = threes - connected # Isolate '3' indices not adjacent to others
+  eights = recolor(EIGHT, isolated) # Create an object of '8's at the isolated indices
+  O = paint(I, eights)  # Paint the '8' object onto the input grid
+  return O
+```
+
+**Explanation:**
+
+1. **Locate '3's:** `ofcolor(I, THREE)` finds the indices of all cells containing '3'.
+2. **Identify Connected '3's:**  `mapply` with `neighbors` gets all indices adjacent to '3's.
+3. **Isolate Unconnected '3's:**  Set difference (`threes - connected`) isolates indices of '3's not adjacent to others.
+4. **Create '8' Object:**  `recolor` generates an object with '8's at the isolated indices.
+5. **Paint '8's:** The '8' object is painted onto the input grid.
+
+
+**Program Version 4**
+
+```python
+def solve(I):
+    objs = objects(I, T, T, F)
+    def is_isolated(obj):
+        for other_obj in objs - {obj}:
+            if manhattan(obj, other_obj) <= 1:
+                return False
+        return True
+    isolated_objs = sfilter(objs, is_isolated) 
+    O = I
+    for obj in isolated_objs:
+        O = fill(O, EIGHT, obj)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions.
+2. **Define Isolation Check:** A separate function `is_isolated` checks if an object is isolated by iterating through other objects and checking for adjacency using Manhattan distance.
+3. **Filter Isolated Objects:** `sfilter` utilizes `is_isolated` to find isolated objects. 
+4. **Fill with '8's:** `fill` directly places '8's at the indices of isolated objects.
+
+
+**Program Version 5**
+
+```python
+def solve(I):
+    transformed_grid = [[8 if cell == 3 and all(I[i + di][j + dj] != 3 for di in [-1, 0, 1] for dj in [-1, 0, 1] if 0 <= i + di < len(I) and 0 <= j + dj < len(I[0]) and (di, dj) != (0, 0)) else cell for j, cell in enumerate(row)] for i, row in enumerate(I)]
+    return tuple(tuple(row) for row in transformed_grid)
+```
+
+**Explanation:**
+
+This version uses nested list comprehensions to achieve the transformation concisely:
+
+1. **Iterate Through Grid:** The outer list comprehension iterates through rows and the inner through cells in each row.
+2. **Isolation Check:** For each cell with a '3', the conditional checks if all neighboring cells (including diagonals) are not '3's.
+3. **Transform to '8':** If isolated, the '3' is replaced with an '8'.
+4. **Rebuild Grid:** The transformed cells are used to reconstruct the grid, which is converted back into a tuple of tuples. 
+
+This approach directly modifies the grid at the cell level without explicitly using object-based functions.
+
+
+## Conclusion:
+
+These five program versions offer distinct approaches using the provided DSL to achieve the same grid transformation. The choice of the "best" version depends on factors like code readability, conciseness, and potential for generalization to other similar transformations. 

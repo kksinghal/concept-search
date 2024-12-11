@@ -1,0 +1,171 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the input grid and modifying their internal structure based on their size and position. Here's a breakdown:
+
+**General Pattern:**
+
+1. **Object Isolation:** The program first identifies distinct objects (connected regions of the same digit) within the grid. 
+2. **Size-Based Modification:** Objects are categorized based on their size (specifically, whether they are wider than tall or taller than wide). 
+3. **Internal Recoloring:**  The internal structure of the objects is modified by recoloring specific cells. This recoloring seems to follow a pattern based on the object's orientation and position within the grid.
+    * **Wider objects:** The central column remains unchanged. Columns to the left are recolored with one color, and columns to the right are recolored with a different color. 
+    * **Taller objects:** The central row remains unchanged. Rows above are recolored with one color, and rows below are recolored with a different color.
+
+**Specific Observations:**
+
+* The exact colors used for recoloring (6, 7, 8) seem to be arbitrary and might vary across different examples.
+* The background (digit 0) remains unchanged throughout the transformation.
+
+## Program Versions:
+
+**Note:** Since you haven't provided the two unprovided programs, I'll assume they provide basic functionality for object identification, size filtering, and recoloring. The programs below build upon these assumed capabilities. 
+
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T) # Identify objects, excluding background
+  modified_objs = set()
+  for obj in objs:
+    if width(obj) > height(obj): # Wider than tall
+      mid = width(obj) // 2 
+      left_part =  recolor(6, sfilter(toindices(obj), lambda ij: ij[1] < leftmost(obj) + mid ))
+      right_part = recolor(8, sfilter(toindices(obj), lambda ij: ij[1] > leftmost(obj) + mid))
+      modified_objs.add(obj.union(left_part).union(right_part))
+    elif height(obj) > width(obj): # Taller than wide
+      mid = height(obj) // 2
+      top_part =  recolor(7, sfilter(toindices(obj), lambda ij: ij[0] < uppermost(obj) + mid ))
+      bottom_part = recolor(8, sfilter(toindices(obj), lambda ij: ij[0] > uppermost(obj) + mid))
+      modified_objs.add(obj.union(top_part).union(bottom_part))
+    else: # Square object, keep unchanged
+      modified_objs.add(obj) 
+  O = paint(canvas(0, shape(I)), merge(modified_objs)) # Paint modified objects onto blank canvas
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** The `objects(I, T, F, T)` function identifies all connected regions of non-background digits in the input grid `I`.
+2. **Size-Based Modification:** The code iterates through each object:
+   - **Wider objects:** The middle column index is calculated using `width(obj) // 2`. Cells to the left of this column are recolored to 6, and cells to the right are recolored to 8.
+   - **Taller objects:**  Similar to wider objects, the middle row index is calculated, and cells above and below are recolored accordingly.
+   - **Square objects:** Remain unchanged.
+3. **Grid Reconstruction:** The modified objects are merged and painted onto a blank canvas of the same size as the input grid.
+
+**Program Version 2**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    O = I
+    for obj in objs:
+        w, h = width(obj), height(obj)
+        if w > h:
+            for i in range(uppermost(obj), lowermost(obj) + 1):
+                for j in range(leftmost(obj), rightmost(obj) + 1):
+                    if j < leftmost(obj) + w // 2:
+                        O = fill(O, 6, {(i, j)})
+                    elif j > leftmost(obj) + w // 2:
+                        O = fill(O, 8, {(i, j)})
+        elif h > w:
+            for i in range(uppermost(obj), lowermost(obj) + 1):
+                for j in range(leftmost(obj), rightmost(obj) + 1):
+                    if i < uppermost(obj) + h // 2:
+                        O = fill(O, 7, {(i, j)})
+                    elif i > uppermost(obj) + h // 2:
+                        O = fill(O, 8, {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** Similar to Version 1.
+2. **Direct Modification:**  Iterates through each object and directly modifies the input grid `I`.
+   - For each object, the code iterates through all cells within its bounding box.
+   - Based on the object's orientation, cells are conditionally recolored. 
+3. **In-Place Changes:** The modifications are done directly on the input grid `I`, which is then returned as the output `O`.
+
+**Program Version 3 (Functional approach)**
+
+```python
+def recolor_object(obj):
+  w, h = width(obj), height(obj)
+  if w > h:
+    return toobject(mpapply(lambda i, j: 6 if j < leftmost(obj) + w // 2 else (8 if j > leftmost(obj) + w // 2 else I[i][j]), *zip(*toindices(obj))), I)
+  elif h > w:
+    return toobject(mpapply(lambda i, j: 7 if i < uppermost(obj) + h // 2 else (8 if i > uppermost(obj) + h // 2 else I[i][j]), *zip(*toindices(obj))), I)
+  return obj
+
+def solve(I):
+  objs = objects(I, T, F, T)
+  return paint(canvas(0, shape(I)), merge(apply(recolor_object, objs)))
+```
+
+**Explanation:**
+
+1. **`recolor_object` Function:** Takes an object as input and returns the modified object. It uses a functional approach with `mpapply` to conditionally recolor cells within the object's bounding box.
+2. **Object Identification and Modification:** Similar to previous versions. The `apply` function applies `recolor_object` to each object in the identified set.
+3. **Grid Reconstruction:**  Similar to Version 1.
+
+
+**Program Version 4 (Using `cellwise`)**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if width(obj) > height(obj):
+      mid = width(obj) // 2
+      left_grid = canvas(6, (height(obj), mid)) 
+      right_grid = canvas(8, (height(obj), width(obj) - mid))
+      new_grid = hconcat(left_grid, right_grid)
+    elif height(obj) > width(obj):
+      mid = height(obj) // 2
+      top_grid = canvas(7, (mid, width(obj))) 
+      bottom_grid = canvas(8, (height(obj) - mid, width(obj)))
+      new_grid = vconcat(top_grid, bottom_grid)
+    else:
+      continue 
+    O = paint(O, toobject(shift(asindices(new_grid), ulcorner(obj)), O))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** Similar to previous versions.
+2. **Grid Creation and Merging:** For each object:
+   - Creates separate grids (`left_grid`, `right_grid` or `top_grid`, `bottom_grid`) with the desired recoloring pattern based on the object's orientation.
+   - Concatenates these grids horizontally or vertically using `hconcat` or `vconcat`.
+   - Uses `cellwise` to combine the newly created grid with the original grid `I`, preserving the original object's shape.
+3. **Grid Update:** Updates the grid `O` with the merged result in each iteration.
+
+**Program Version 5 (Leveraging symmetry)**
+
+```python
+def modify_half(obj, value):
+  if width(obj) > height(obj):
+    return recolor(value, sfilter(toindices(obj), lambda ij: ij[1] > leftmost(obj) + width(obj) // 2))
+  elif height(obj) > width(obj):
+    return recolor(value, sfilter(toindices(obj), lambda ij: ij[0] > uppermost(obj) + height(obj) // 2))
+  return frozenset()
+
+def solve(I):
+  objs = objects(I, T, F, T)
+  modified_objs = set()
+  for obj in objs:
+    modified_objs.add(obj.union(modify_half(obj, 8)))
+    modified_objs.add(obj.union(modify_half(hmirror(obj), 6) if width(obj) > height(obj) else modify_half(vmirror(obj), 7))) 
+  O = paint(canvas(0, shape(I)), merge(modified_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **`modify_half` Function:** Takes an object and a color value as input. It recolors the right half of wider objects and the bottom half of taller objects to the given value.
+2. **Object Modification:** Iterates through objects and modifies them using `modify_half` and mirroring:
+   - First, recolors the right/bottom half of the object to color 8.
+   - Then, mirrors the object horizontally or vertically and recolors the right/bottom half (which corresponds to the left/top half of the original object) to colors 6 or 7, respectively.
+3. **Grid Reconstruction:** Similar to Version 1.
+
+These five program versions demonstrate various approaches to achieve the desired transformation, highlighting the flexibility and expressiveness of the provided DSL.

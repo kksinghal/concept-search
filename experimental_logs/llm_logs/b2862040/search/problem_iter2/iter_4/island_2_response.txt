@@ -1,0 +1,121 @@
+## Transformation Analysis:
+
+The transformation involves identifying the smallest object in the grid (excluding the background color, which is the most frequent color) and then expanding it by one cell in all directions, coloring the expanded area with the value '8'.
+
+**Input 0:**
+
+- **Smallest object:** The '1's form the smallest object.
+- **Expansion:** The object is expanded by one cell in all directions, resulting in a larger area filled with '8's surrounding the original '1's.
+
+**Input 1:**
+
+- **Smallest object:**  The single '1' at the bottom right is the smallest object.
+- **Expansion:** It expands by one cell, creating a 2x2 square of '8's.
+
+**Input 2:**
+
+- **Smallest object:** The '1' at the top right corner.
+- **Expansion:** The expansion wraps around the top and right edges of the grid, extending to the left and bottom of the original '1'.
+
+**Input 3:**
+
+- **Smallest object:** The single '1' in the bottom right corner.
+- **Expansion:** Similar to Input 2, the expansion wraps around the bottom and right edges.
+
+## Program Versions:
+
+Here are five distinct program versions using the DSL:
+
+**Program Version 1:**
+
+```python
+def program_to_be_generated(I):
+  target_obj = argmin(objects(I, True, False, True), size)
+  expansion = mapply(lambda idx: dneighbors(idx), toindices(target_obj))
+  return paint(I, recolor(EIGHT, toobject(expansion - toindices(target_obj), I)))
+```
+
+**Explanation:**
+
+1. **`target_obj = argmin(objects(I, True, False, True), size)`**:  Finds the smallest object (excluding background) using `objects` and `argmin` based on object `size`.
+2. **`expansion = mapply(lambda idx: dneighbors(idx), toindices(target_obj))`**: Generates the expanded indices by applying `dneighbors` to each cell of the `target_obj` using `mapply`.
+3. **`return paint(I, recolor(EIGHT, toobject(expansion - toindices(target_obj), I)))`**: Colors the expanded area with '8' using `paint` and `recolor` after removing the original object indices. 
+
+**Program Version 2:**
+
+```python
+def program_to_be_generated(I):
+  smallest_object = min(objects(I, True, False, True), key=lambda obj: len(obj))
+  expanded_area = set()
+  for i, j in toindices(smallest_object):
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        expanded_area.add((i + di, j + dj))
+  return paint(I, recolor(EIGHT, toobject(frozenset(expanded_area) - toindices(smallest_object), I)))
+```
+
+**Explanation:**
+
+1. **`smallest_object = min(objects(I, True, False, True), key=lambda obj: len(obj))`**:  Identifies the smallest object using `objects` and `min` based on the object's length.
+2. **Loop:** Iterates through each cell (`i`, `j`) of the `smallest_object`.
+   - Inner loops:  Iterate through the 8 neighboring cells using offsets (`di`, `dj`) and add them to `expanded_area`.
+3. **`return paint(I, recolor(EIGHT, toobject(frozenset(expanded_area) - toindices(smallest_object), I)))`**: Paints the `expanded_area` with '8' after removing the original object indices.
+
+**Program Version 3:**
+
+```python
+def program_to_be_generated(I):
+  min_obj = argmin(objects(I, True, False, True), size)
+  return paint(I, recolor(EIGHT, toobject(delta(backdrop(min_obj)), I)))
+```
+
+**Explanation:**
+
+1. **`min_obj = argmin(objects(I, True, False, True), size)`**: Finds the smallest object excluding the background.
+2. **`return paint(I, recolor(EIGHT, toobject(delta(backdrop(min_obj)), I)))`**: This line efficiently achieves the expansion and recoloring using DSL functions:
+   - `backdrop(min_obj)`:  Calculates the bounding box indices containing the `min_obj`.
+   - `delta(backdrop(min_obj))`: Extracts indices within the bounding box but outside the `min_obj`, representing the expanded area.
+   - `toobject(...)`: Converts the expanded indices to an object using grid values.
+   - `recolor(EIGHT, ...)`:  Recolors the expanded object with the value '8'.
+   - `paint(I, ...)`: Applies the recoloring to the original grid `I`.
+
+**Program Version 4:**
+
+```python
+def program_to_be_generated(I):
+  min_obj = argmin(objects(I, True, False, True), lambda obj: len(toindices(obj)))
+  shifted_objs = [shift(min_obj, d) for d in [(0, 1), (0, -1), (1, 0), (-1, 0)]]
+  expansion =  set().union(*[toindices(obj) for obj in shifted_objs])
+  return paint(I, recolor(EIGHT, toobject(expansion, I)))
+```
+
+**Explanation:**
+
+1. **`min_obj = argmin(objects(I, True, False, True), lambda obj: len(toindices(obj)))`**: Identifies the smallest object (excluding background) based on the number of indices it occupies.
+2. **`shifted_objs = [shift(min_obj, d) for d in [(0, 1), (0, -1), (1, 0), (-1, 0)]]`**: Creates four shifted versions of the `min_obj`, each moved one cell in a cardinal direction.
+3. **`expansion = set().union(*[toindices(obj) for obj in shifted_objs])`**: Calculates the union of indices from the shifted objects, effectively representing the expanded area.
+4. **`return paint(I, recolor(EIGHT, toobject(expansion, I)))`**:  Paints the `expansion` with '8' on the original grid.
+
+**Program Version 5:**
+
+```python
+def program_to_be_generated(I):
+    small_obj = argmin(objects(I, True, False, True), size)
+    expanded_area = frozenset({(i + di, j + dj) 
+                               for i, j in toindices(small_obj)
+                               for di in [-1, 0, 1] 
+                               for dj in [-1, 0, 1] 
+                               if (di, dj) != (0, 0)}) 
+    return paint(I, recolor(EIGHT, toobject(expanded_area, I)))
+```
+
+**Explanation:**
+
+1. **`small_obj = argmin(objects(I, True, False, True), size)`**: Finds the smallest object in the grid, excluding the background.
+2. **`expanded_area = ...`**:  This part constructs the set of expanded indices:
+   - It iterates over each cell (`i`, `j`) in the `small_obj`.
+   - For each cell, it considers all its neighbors including itself by iterating over offsets `di` and `dj` ranging from -1 to 1.
+   - The condition `if (di, dj) != (0, 0)` excludes the original cell itself from the `expanded_area`.
+3. **`return paint(I, recolor(EIGHT, toobject(expanded_area, I)))`**:  Colors the `expanded_area` with '8' on the original grid.
+
+These five program versions demonstrate different approaches to achieve the same transformation, showcasing the flexibility and expressiveness of the provided DSL.

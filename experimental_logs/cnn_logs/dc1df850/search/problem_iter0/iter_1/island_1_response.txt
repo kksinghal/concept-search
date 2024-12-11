@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation appears to extend a "glow" outward from the non-zero digits in the input grid. 
+
+* **Input_0:** The digits '2' and '6' spread their value one cell diagonally, replacing only cells containing '0'.
+* **Input_1:** The digits '2', '3', and '8' also extend a one-cell diagonal glow, again only overwriting '0's.
+* **Input_2:**  Similar diagonal glow extending from '2', overwriting only '0's. 
+
+**Key Observations:**
+
+* The glow only affects cells directly diagonal to a non-zero digit.
+* Only cells initially containing '0' are modified.
+* The transformation appears independent for each non-zero digit in the grid.
+
+
+## Program Versions:
+
+Here are five distinct programs to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+    # Find all non-zero objects
+    objs = objects(I, T, F, T) 
+    
+    # Create diagonal extensions for each object
+    def extend_diagonally(obj):
+        return frozenset(
+            (v, (i + di, j + dj)) 
+            for v, (i, j) in obj 
+            for di, dj in [(1, 1), (1, -1), (-1, 1), (-1, -1)] 
+            if 0 <= i + di < height(I) and 0 <= j + dj < width(I)
+        )
+    
+    extensions = mapply(extend_diagonally, objs)
+    
+    # Apply extensions only to the background (0)
+    O = underpaint(I, merge(extensions))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Non-Zero Objects:**  `objects(I, T, F, T)` identifies all connected regions of non-zero digits.
+2. **Diagonal Extension Function:**  `extend_diagonally(obj)` generates new cells diagonally adjacent to each cell in the object.
+3. **Apply Extensions:** `mapply` applies `extend_diagonally` to each object, creating a set of extended cells.
+4. **Selective Painting:**  `underpaint(I, merge(extensions))` merges all extensions and paints them onto the input grid *only* where the input grid has '0'.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    # Pad the grid with a border of '1's to simplify boundary checks
+    padded_grid = vconcat((tuple(1 for _ in range(width(I))),), vconcat(I, (tuple(1 for _ in range(width(I))),)))
+    padded_grid = hconcat((tuple(1 for _ in range(height(padded_grid))),), hconcat(padded_grid, (tuple(1 for _ in range(height(padded_grid))),)))
+
+    # Apply the glow logic to each cell
+    def apply_glow(i, j):
+        if padded_grid[i][j] == 0 and (padded_grid[i+1][j+1] != 0 or padded_grid[i+1][j-1] != 0 or padded_grid[i-1][j+1] != 0 or padded_grid[i-1][j-1] != 0):
+            return 1
+        return padded_grid[i][j]
+    
+    transformed_grid = tuple(tuple(apply_glow(i, j) for j in range(1, width(padded_grid)-1)) for i in range(1, height(padded_grid)-1))
+    
+    return transformed_grid 
+```
+
+**Explanation:**
+
+1. **Padding:** Creates a new grid with a border of '1's around the input. This simplifies checking for diagonal neighbors without exceeding grid boundaries.
+2. **Glow Logic:** `apply_glow(i, j)` checks if a cell is '0' and has at least one non-zero diagonal neighbor in the padded grid. If so, it returns '1' (representing the glow).
+3. **Grid Construction:**  Iterates over the padded grid, applying `apply_glow` to each cell to construct the transformed grid.
+4. **Return Transformed Grid:** Returns the grid without the padding. 
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    # Find diagonal neighbors for each cell
+    def diagonal_neighbors(i, j):
+        return ((i + 1, j + 1), (i + 1, j - 1), (i - 1, j + 1), (i - 1, j - 1))
+    
+    # Check if any diagonal neighbor is non-zero
+    def has_glowing_neighbor(i, j):
+        for ni, nj in diagonal_neighbors(i, j):
+            if 0 <= ni < height(I) and 0 <= nj < width(I) and I[ni][nj] != 0:
+                return True
+        return False
+    
+    # Apply the transformation
+    O = tuple(
+        tuple(
+            1 if I[i][j] == 0 and has_glowing_neighbor(i, j) else I[i][j] 
+            for j in range(width(I))
+        )
+        for i in range(height(I))
+    )
+    return O
+```
+
+**Explanation:**
+
+1. **`diagonal_neighbors` Function:** Returns a tuple of diagonal neighbor indices for a given cell.
+2. **`has_glowing_neighbor` Function:**  Checks if any diagonal neighbor of a cell is non-zero.
+3. **Grid Transformation:**  Uses nested loops to iterate over the grid, applying the glow logic (`1` if the cell is '0' and has a glowing neighbor, otherwise keeping the original value).
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    # Create a grid to store the glow
+    glow_grid = canvas(0, shape(I))
+    
+    # Apply glow to cells diagonally adjacent to non-zero cells
+    for i, row in enumerate(I):
+        for j, val in enumerate(row):
+            if val != 0:
+                for di, dj in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
+                    ni, nj = i + di, j + dj
+                    if 0 <= ni < height(I) and 0 <= nj < width(I):
+                        glow_grid = fill(glow_grid, 1, {(ni, nj)})
+
+    # Combine the original grid with the glow
+    O = cellwise(I, glow_grid, 1) 
+    return O
+```
+
+**Explanation:**
+
+1. **Glow Grid:** Creates a separate grid, `glow_grid`, initialized with '0's, to store the glow pattern.
+2. **Apply Glow:** Iterates through the input grid. When it encounters a non-zero value, it marks its diagonal neighbors in `glow_grid` with '1'. 
+3. **Combine Grids:** Uses `cellwise` to combine the original grid with `glow_grid`. If a cell in `glow_grid` is 1, the output cell is set to '1'; otherwise, it retains the value from the input grid.
+
+**Program Version 5:** 
+
+```python
+def Program_to_be_generated(I):
+  shifted_grids = []
+  for di, dj in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
+    shifted_grid = shift(asobject(I), (di, dj))
+    shifted_grids.append(paint(canvas(0, shape(I)), shifted_grid))
+
+  merged_grid = I
+  for shifted_grid in shifted_grids:
+    merged_grid = cellwise(merged_grid, shifted_grid, 1)
+
+  return merged_grid
+```
+
+**Explanation:** 
+
+1. **Create Shifted Grids:**  Creates four copies of the input grid, each shifted one cell diagonally. This is done by converting the grid to an object (`asobject`), shifting the object, and then painting it back onto an empty canvas.
+2. **Merge Shifted Grids:**  Iterates through the shifted grids, using `cellwise` to combine them.  The logic ensures that if any of the shifted grids have a non-zero value at a particular cell, the corresponding cell in the merged grid becomes '1'.
+3. **Return Merged Grid:** Returns the final merged grid, representing the input grid with the diagonal glow effect. 
+
+
+These five versions utilize diverse logic and function combinations from the DSL to achieve the same result. They highlight the flexibility and expressiveness of the provided DSL for image manipulation tasks. 

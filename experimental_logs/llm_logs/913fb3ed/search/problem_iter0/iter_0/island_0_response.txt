@@ -1,0 +1,142 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:**  The transformation involves identifying the object containing the digit '8'. A 3x3 square with '4' is drawn around this object. Then, a rectangular border of '6's is drawn around the square. Finally, three '1's are placed below the right side of the square, with a '2' in the middle. 
+
+**Input_1 to Output_1:** The object containing '3' is found, and a 3x3 square border of '6's is drawn around it. 
+
+**Input_2 to Output_2:** The object containing '3' is found, and a 3x3 square border of '6's is drawn around it. Similarly, a 3x3 square border of '1's is drawn around the object containing '2'.
+
+**Input_3 to Output_3:** A 3x3 square border of '4's is drawn around the object containing '8'.
+
+## Code Generation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  obj8 = extract(objects(I,T,T,T), lambda obj: color(obj) == 8)
+  obj3 = extract(objects(I,T,T,T), lambda obj: color(obj) == 3)
+  obj2 = extract(objects(I,T,T,T), lambda obj: color(obj) == 2)
+  square_indices = backdrop(shift(normalize(obj8), (1,1)))
+  border_indices = difference(backdrop(shift(square_indices, (1,1))), backdrop(square_indices))
+  bottom_indices = {(lowermost(obj8)+2, rightmost(obj8)-1), (lowermost(obj8)+2, rightmost(obj8)), (lowermost(obj8)+2, rightmost(obj8)+1)}
+  I = fill(I, 4, square_indices)
+  I = fill(I, 6, border_indices)
+  I = fill(I, 1, bottom_indices)
+  I = fill(I, 2, {(lowermost(obj8)+2, rightmost(obj8))})
+  
+  if obj3:
+    square_indices = backdrop(shift(normalize(obj3), (1,1)))
+    I = fill(I, 6, square_indices)
+  
+  if obj2:
+    square_indices = backdrop(shift(normalize(obj2), (1,1)))
+    I = fill(I, 1, square_indices)
+  
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Key Objects:**  Find the objects containing '8', '3', and '2' using `objects` and `extract`.
+2. **Draw the Square and Border (for '8'):** 
+   - Calculate indices for a 3x3 square around '8' using `normalize`, `shift`, and `backdrop`.
+   - Calculate indices for the rectangular border using set difference of `backdrop`s.
+   - Fill these indices with '4' and '6' respectively using `fill`.
+3. **Place the '1's and '2' (for '8'):**
+   - Manually define indices below the square for '1's and '2'.
+   - Fill them with respective values using `fill`.
+4. **Draw Borders for '3' and '2':**
+   - If objects containing '3' or '2' exist, calculate and fill square border indices with '6' and '1' respectively.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    c = color(obj)
+    if c == 8:
+      I = fill(I, 4, backdrop(shift(normalize(obj),(1,1))))
+      I = fill(I, 6, difference(backdrop(shift(obj,(2,2))), backdrop(shift(obj,(1,1)))))
+      I = fill(I, 1, {(lowermost(obj)+2, rightmost(obj)-1), (lowermost(obj)+2, rightmost(obj)), (lowermost(obj)+2, rightmost(obj)+1)})
+      I = fill(I, 2, {(lowermost(obj)+2, rightmost(obj))})
+    elif c == 3:
+      I = fill(I, 6, backdrop(shift(normalize(obj),(1,1))))
+    elif c == 2:
+      I = fill(I, 1, backdrop(shift(normalize(obj),(1,1))))
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:**  Iterate through all objects found in the input grid.
+2. **Conditional Border Drawing:** 
+   - Based on the object's color ('8', '3', or '2'), calculate the appropriate border indices and fill them with corresponding colors.
+   - Uses similar logic to Version 1 for border calculation and filling. 
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, T, T, T):
+    c = color(obj)
+    ul = ulcorner(obj)
+    I = fill(I, {8:4, 3:6, 2:1}.get(c, 0), backdrop(shift({(0,0)}, add(ul,(1,1)))))
+    if c == 8: 
+      I = fill(I, 6, difference(backdrop(shift({(0,0)}, add(ul,(2,2)))), backdrop(shift({(0,0)}, add(ul,(1,1))))))
+      I = fill(I, 1, {(ul[0]+2, ul[1]+width(obj)-2),(ul[0]+2, ul[1]+width(obj)-1),(ul[0]+2, ul[1]+width(obj))})
+      I = fill(I, 2, {(ul[0]+2, ul[1]+width(obj)-1)})
+  return I
+```
+
+**Explanation:**
+
+1. **Simplified Iteration:**  Iterates directly through objects without storing them separately.
+2. **Dictionary-based Filling:**  Uses a dictionary to map object colors to fill colors for the inner squares.
+3. **Relative Indexing:** Calculates border and element positions relative to the upper-left corner of each object for more concise code.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  I = fill(I, 4, backdrop(shift(normalize(extract(objs, lambda obj: color(obj)==8)), (1,1))))
+  I = fill(I, 6, mapply(lambda obj: backdrop(shift(normalize(obj), (1,1))), sfilter(objs, lambda obj: color(obj) in {3,8})))
+  I = fill(I, 1,  backdrop(shift(normalize(extract(objs, lambda obj: color(obj)==2)), (1,1))))
+  for obj in sfilter(objs, lambda obj: color(obj) == 8):
+    I = fill(I, 6, difference(backdrop(shift(obj,(2,2))), backdrop(shift(obj,(1,1)))))
+    I = fill(I, 1, {(lowermost(obj)+2, rightmost(obj)-1), (lowermost(obj)+2, rightmost(obj)), (lowermost(obj)+2, rightmost(obj)+1)})
+    I = fill(I, 2, {(lowermost(obj)+2, rightmost(obj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Combined Filling:** Fills inner squares of all '8', '3', and '2' objects in separate steps using `mapply` and `sfilter` for filtering.
+2. **Separate Handling for '8' Details:**  Handles the outer border and '1's and '2' placement for the '8' object separately in a loop for clarity.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  def draw_border(I, obj, color, offset):
+    return fill(I, color, backdrop(shift(normalize(obj), offset)))
+  objs = objects(I, T, T, T)
+  I = draw_border(I, extract(objs, lambda obj: color(obj)==8), 4, (1,1))
+  I = mapply(lambda obj: draw_border(I, obj, 6, (1,1)), sfilter(objs, lambda obj: color(obj) in {3,8}))
+  I = draw_border(I, extract(objs, lambda obj: color(obj)==2), 1, (1,1))
+  for obj in sfilter(objs, lambda obj: color(obj) == 8):
+    I = draw_border(I, obj, 6, (2,2))
+    I = fill(I, 1, {(lowermost(obj)+2, rightmost(obj)-1), (lowermost(obj)+2, rightmost(obj)), (lowermost(obj)+2, rightmost(obj)+1)})
+    I = fill(I, 2, {(lowermost(obj)+2, rightmost(obj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Helper Function:** Introduces a helper function `draw_border` to reduce code repetition for drawing borders around objects.
+2. **Simplified Logic:** Utilizes the helper function and similar logic to Version 4 for a more readable and modular code structure.
+
+
+These different versions provide a variety of approaches to the same transformation, showcasing different aspects of the DSL and highlighting the flexibility of program synthesis. 

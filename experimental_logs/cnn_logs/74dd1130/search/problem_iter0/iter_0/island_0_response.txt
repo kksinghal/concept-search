@@ -1,0 +1,147 @@
+## Transformation Analysis:
+
+The transformation taking place in all examples seems to follow a consistent pattern: **Rotating each object in the grid by 90 degrees clockwise**. Let's break down how this applies to each input-output pair:
+
+**Input_0:**
+
+```
+2 2 1    ->    2 1 5
+1 5 1    ->    2 5 2
+5 2 2    ->    1 1 2 
+```
+
+* The object consisting of "5"s is rotated clockwise.
+* The object consisting of "1"s (excluding the standalone "1") is rotated clockwise.
+* The object consisting of "2"s (excluding the top-left "2") is rotated clockwise.
+
+**Input_1:**
+
+```
+2 2 5    ->    2 6 5 
+6 2 2    ->    2 2 5 
+5 5 5    ->    5 2 5
+```
+
+* Each object (the "5"s, the "6", and the "2"s) is rotated clockwise independently.
+
+**Input_2:**
+
+```
+9 9 5    ->    9 5 5
+5 5 8    ->    9 5 8
+5 8 9    ->    5 8 9
+```
+
+* Similar to the previous examples, individual objects are rotated clockwise.
+
+**Input_3:**
+
+```
+2 6 6    ->    2 2 2
+2 1 1    ->    6 1 6
+2 6 2    ->    6 1 2 
+```
+
+* Each distinct object (the "2"s, the "6"s, and the "1"s) is rotated clockwise.
+
+## Program to be Generated:
+
+Based on the transformation analysis, we need a program that identifies objects in the grid and rotates each object individually by 90 degrees clockwise. Here are five potential solutions utilizing the provided DSL:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)  # Extract objects from the grid
+    rotated_objs = frozenset(
+        recolor(color(obj), toindices(rot90(subgrid(obj, I)))) for obj in objs  # Rotate each object
+    )
+    O = paint(canvas(mostcolor(I), shape(I)), merge(rotated_objs))  # Paint rotated objects onto a blank canvas
+    return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, T, F, T)` identifies individual objects in the grid.
+2. **Rotate Objects:** For each object:
+   - `subgrid(obj, I)` extracts the smallest subgrid containing the object.
+   - `rot90(...)` rotates this subgrid by 90 degrees clockwise.
+   - `toindices(...)` gets the indices of the rotated object.
+   - `recolor(color(obj), ...)` applies the original object's color to the rotated indices.
+3. **Paint Rotated Objects:** 
+   - `canvas(mostcolor(I), shape(I))` creates a blank canvas with the background color and same dimensions as the input.
+   - `merge(rotated_objs)` combines all rotated objects.
+   - `paint(..., ...)` paints the rotated objects onto the canvas.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+    O = I  # Start with the input grid
+    for obj in objects(I, T, F, T):  # Iterate over each object
+        O = cover(O, obj)  # Cover the current object on the grid
+        O = paint(O, recolor(color(obj), toindices(rot90(subgrid(obj, I)))))  # Paint the rotated object
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate and Rotate:** This version iterates through each object, covers it on a copy of the original grid, and paints the rotated version in its place.
+2. **Cover and Paint:** 
+   - `cover(O, obj)` replaces the current object with the background color.
+   -  The rest of the logic within the loop is similar to Version 1, rotating and painting each object individually. 
+
+**Program Version 3:**
+
+```python
+def solve(I):
+    rotated_grid = canvas(mostcolor(I), shape(I))  # Create a blank canvas
+    for i in range(height(I)):
+        for j in range(width(I)):
+            if index(I, (i, j)) != mostcolor(I):  # For every non-background cell
+                rotated_grid = paint(rotated_grid, {(index(I, (i, j)), (j, height(I) - i - 1))})  # Place the color at the rotated position
+    return rotated_grid 
+```
+
+**Explanation:** 
+
+1. **Direct Rotation:** This version focuses on rotating the grid cell by cell instead of object by object.
+2. **Iterate and Rotate:**  It iterates through each cell of the input grid and if the cell is not part of the background, it places its color on the rotated position on a blank canvas.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    O = I  # Start with the input grid
+    for obj in fgpartition(I):  # Iterate through foreground objects
+        O = cover(O, obj)  # Cover the current object on the grid
+        rotated_indices = toindices(rot90(subgrid(obj, I)))
+        shifted_indices = shift(rotated_indices, subtract(center(rotated_indices), center(obj)))  # Calculate the shift to align centers
+        O = paint(O, recolor(color(obj), shifted_indices))  # Paint the rotated object at the corrected position
+    return O
+```
+
+**Explanation:**
+
+1. **Center Alignment:** This version adds a step to align the center of the rotated object with the center of the original object.
+2. **Calculate Shift:**
+    - `center(rotated_indices)` and `center(obj)` find the centers of the rotated and original objects.
+    - `subtract(...)` calculates the difference between these centers, giving the required shift.
+3. **Shift and Paint:**  `shift(..., ...)` applies the calculated shift to the rotated indices before painting.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  rotated_objs = apply(lambda obj: recolor(color(obj), toindices(rot90(subgrid(obj, I)))), objs)
+  O = paint(canvas(mostcolor(I), shape(I)), merge(rotated_objs))
+  return O
+```
+
+**Explanation:** 
+
+1. **Lambda Function:** This version simplifies the code for rotating individual objects by using a lambda function within the `apply` function.
+2. **Apply Rotation:** `apply(lambda obj: ..., objs)` applies the lambda function, which encapsulates the rotation logic from previous versions, to each object in the `objs` set. 
+
+These are just five examples, and many other valid solutions within the DSL could achieve the same outcome. The choice of the "best" solution depends on factors like code readability, efficiency, and personal preference. 

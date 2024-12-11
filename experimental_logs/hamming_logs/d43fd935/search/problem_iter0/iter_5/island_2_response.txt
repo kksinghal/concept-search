@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves extending objects horizontally to the right, stopping at the last occurrence of the same object color in the same row. This differs from simply extending to the grid boundary or until encountering a different color.
+
+**Input_0 to Output_0:**
+* The '1' object remains unchanged.
+* The '3' object is extended to include the rightmost '1' in the same row.
+* The '6' objects are extended rightwards to the last occurrence of '6' in their respective rows.
+
+**Input_1 to Output_1:**
+* The '7' and '8' objects at the top row remain unchanged.
+* The '7' object in the 3rd row is extended to include the other '7' objects in the same row.
+* The '8' objects in the 3rd row are extended to include the rightmost '8' in the same row.
+* The '3' object remains unchanged.
+* The bottom row '7' objects remain unchanged.
+
+**Input_2 to Output_2:**
+* All '1' objects remain unchanged.
+* The '3' object remains unchanged.
+
+
+## Program Version 1
+
+**Code:**
+
+```python
+def program_v1(grid: Grid) -> Grid:
+  def extend_object_right(obj: Object, grid: Grid) -> Object:
+    """ Extends an object to the right, stopping at the last occurrence of its color in the row. """
+    for j in range(rightmost(obj) + 1, width(grid)):
+      if index(grid, (uppermost(obj), j)) == color(obj):
+        obj = obj | recolor(color(obj), {(uppermost(obj), j)})
+      else:
+        break
+    return obj
+  return paint(grid, merge(apply(lambda obj: extend_object_right(obj, grid), fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **`extend_object_right(obj, grid)`:** This function takes an object and the grid as input. It iterates through the columns to the right of the object, checking if the cell at the same row as the object's uppermost cell contains the same color. If so, it extends the object to include that cell.
+2. **`fgpartition(grid)`:** This function partitions the grid into foreground objects, excluding the background color.
+3. **`apply(lambda obj: extend_object_right(obj, grid), fgpartition(grid))`:** This applies the `extend_object_right` function to each foreground object in the grid.
+4. **`merge(...)`:** This merges the extended objects back into a single set of cells.
+5. **`paint(grid, ...)`:**  Finally, the function paints the extended objects onto the original grid, producing the output grid.
+
+
+## Program Version 2
+
+**Code:**
+
+```python
+def program_v2(grid: Grid) -> Grid:
+  def find_last_occurrence(row: Tuple, color: Integer, start: Integer) -> Integer:
+    """ Finds the last occurrence of a color in a row starting from a specific index. """
+    for j in range(len(row) - 1, start - 1, -1):
+      if row[j] == color:
+        return j
+    return start
+
+  new_grid = tuple()
+  for i, row in enumerate(grid):
+    for j, value in enumerate(row):
+      if value != mostcolor(grid):
+        last_index = find_last_occurrence(row, value, j)
+        new_row = row[:j] + tuple(value for _ in range(last_index - j + 1)) + row[last_index + 1:]
+        new_grid = new_grid + (new_row,)
+        break
+    else:
+      new_grid = new_grid + (row,)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`find_last_occurrence(row, color, start)`:** This helper function finds the index of the last occurrence of a specific color in a given row, starting from a specified index.
+2. **Iterating through rows and cells:** The program iterates through each row and then each cell within the row.
+3. **Identifying non-background cells:** If a cell's value is not the background color, it indicates the start of an object.
+4. **Finding the last occurrence and extending:**  The `find_last_occurrence` function is used to find the last occurrence of the object's color in that row. The row is then modified to extend the object from its starting cell to the last occurrence. 
+5. **Adding modified row to the new grid:**  The modified row is added to the `new_grid`.
+6. **Handling rows without object extensions:** If a row doesn't contain any objects to extend, it's added to `new_grid` without modification.
+
+
+## Program Version 3 (using recursion)
+
+**Code:**
+
+```python
+def program_v3(grid: Grid) -> Grid:
+  def extend_recursively(grid: Grid, i: Integer, j: Integer, color: Integer) -> Grid:
+    """ Recursively extends an object to the right. """
+    if j == width(grid) or index(grid, (i, j)) != color:
+      return grid
+    return extend_recursively(fill(grid, color, {(i, j)}), i, j + 1, color)
+
+  new_grid = grid
+  for i in range(height(grid)):
+    for j in range(width(grid)):
+      value = index(grid, (i, j))
+      if value != mostcolor(grid):
+        new_grid = extend_recursively(new_grid, i, j + 1, value)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **`extend_recursively(grid, i, j, color)`:** This function recursively extends an object starting at cell (i, j) to the right. It fills the current cell with the object's color and recursively calls itself for the next cell to the right if it also contains the same color.
+2. **Iterating through cells:** The program iterates through each cell of the grid.
+3. **Triggering recursive extension:** When a non-background cell is encountered, the `extend_recursively` function is called, starting from the next cell to the right.
+4. **Updating the grid:** The `extend_recursively` function updates the grid directly during recursion, ensuring the object is extended to the rightmost occurrence of its color.
+
+## Program Version 4 (using object manipulation)
+
+**Code:**
+
+```python
+def program_v4(grid: Grid) -> Grid:
+  def extend_object(obj: Object, grid: Grid) -> Object:
+    """ Extends the object to the rightmost occurrence of its color in its row. """
+    last_occurrence = max(j for i, j in toindices(obj) if i == uppermost(obj))
+    return recolor(color(obj), {(i, j) for i, j in product(range(uppermost(obj), lowermost(obj) + 1), range(leftmost(obj), last_occurrence + 1))})
+  
+  return paint(grid, merge(apply(lambda obj: extend_object(obj, grid), fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **`extend_object(obj, grid)`:**  This function focuses on manipulating the object itself. It finds the rightmost occurrence of the object's color in its row and then uses `recolor` to create a new object that extends from the original object's leftmost point to the last occurrence. 
+2. **Applying to all objects:** The rest of the code follows the structure of previous versions: it partitions the grid into objects, applies the `extend_object` function to each, merges them, and paints them back onto the grid.
+
+## Program Version 5 (using horizontal mirroring)
+
+**Code:**
+
+```python
+def program_v5(grid: Grid) -> Grid:
+  def extend_and_mirror(obj: Object, grid: Grid) -> Object:
+    """ Extends the object to the right by mirroring its left half. """
+    midpoint = leftmost(obj) + width(obj) // 2
+    mirrored_part = frozenset((color(obj), (i, 2 * midpoint - j)) for value, (i, j) in obj if j < midpoint)
+    return obj | mirrored_part
+
+  return paint(grid, merge(apply(lambda obj: extend_and_mirror(obj, grid), fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **`extend_and_mirror(obj, grid)`:** This version takes a different approach by mirroring the left half of each object to the right. It calculates the midpoint of the object and creates a mirrored set of cells based on the left half.
+2. **Combining original and mirrored parts:**  It then combines the original object with the mirrored part to create the extended object. 
+3. **Applying to the grid:** Like the other versions, this function is applied to all foreground objects and painted back onto the grid to produce the final output.
+
+Each of these versions offers a distinct way of achieving the same grid transformation. They utilize different DSL functions and logic, showcasing the flexibility and expressive power of the provided DSL. 

@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation involves recoloring the cells within each object based on their position relative to the object's boundary. 
+
+* **Inner cells:** Cells completely surrounded by other cells of the same object are recolored to '2'.
+* **Boundary cells:**  Cells on the edge of the object, directly adjacent to the background or another object, retain their original color.
+
+**Example:**
+
+In Input_1, the top-left object (all '5's) has its inner cells recolored to '2' in the output. The bottom object (also '5's) only has its center cell recolored to '2' because the other '2's are considered boundary cells.
+
+
+## Program Versions:
+
+Here are five distinct program versions using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify objects in the grid
+  objs = objects(I, univalued=False, diagonal=True, without_bg=True) 
+  
+  def recolor_inner(obj):
+    # Determine the inner bounding box
+    inner_box = inbox(toindices(obj))  
+    # Recolor cells within the inner box
+    return recolor(2, inner_box.intersection(toindices(obj)))
+  
+  # Apply recoloring and combine the objects
+  return paint(I, merge(apply(recolor_inner, objs))) 
+```
+
+**Explanation:**
+
+1. **`objects(I, univalued=False, diagonal=True, without_bg=True)`:**  Identifies all distinct objects in the input grid (`I`).
+2. **`recolor_inner(obj)`:** Defines a function to recolor the inner cells of an object:
+   - **`inbox(toindices(obj))`:** Calculates the indices forming a box one cell inside the object's boundary.
+   - **`inner_box.intersection(toindices(obj))`:** Finds the cells that are both inside the object and within the inner box.
+   - **`recolor(2, ...)`:** Recolors the identified inner cells to '2'.
+3. **`apply(recolor_inner, objs)`:** Applies the `recolor_inner` function to each object in the grid.
+4. **`merge(...)`:** Combines the recolored objects.
+5. **`paint(I, ...)`:** Paints the combined, recolored objects onto the original input grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=False, diagonal=True, without_bg=True)
+
+  def is_inner(obj, loc):
+    return dneighbors(loc).issubset(toindices(obj)) 
+
+  def recolor_obj(obj):
+    return frozenset({(2 if is_inner(obj, (i, j)) else c, (i, j)) for c, (i, j) in obj})
+  
+  return paint(I, merge(apply(recolor_obj, objs)))
+```
+
+**Explanation:**
+
+1. **`objects(...)`:** Same as in Version 1.
+2. **`is_inner(obj, loc)`:** Checks if a cell at `loc` is an inner cell within `obj` by verifying if all its directly adjacent neighbors are also part of the object.
+3. **`recolor_obj(obj)`:** Recolors an object:
+   - Iterates through each cell of the object.
+   - Uses `is_inner` to decide if the cell should be recolored to '2' or retain its original color.
+4. **`apply(recolor_obj, objs)`:** Applies recoloring to each object.
+5. **`merge(...)` and `paint(I, ...)`:**  Same as in Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=False, diagonal=True, without_bg=True)
+  
+  def recolor_obj(obj):
+    boundary = toindices(obj) - delta(toindices(obj))  # Find boundary cells
+    return frozenset({(2 if (i, j) in boundary else c, (i, j)) for c, (i, j) in obj})
+  
+  return paint(I, merge(apply(recolor_obj, objs))) 
+```
+
+**Explanation:**
+
+1. **`objects(...)`:** Same as before.
+2. **`recolor_obj(obj)`:** 
+   -  `boundary = toindices(obj) - delta(toindices(obj))`: Determines the boundary cells by removing the cells identified by the `delta` function (which finds the cells just outside the object's boundary).
+   - Recolors cells based on whether they belong to the boundary.
+3. The rest is the same as in Version 1.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=False, diagonal=True, without_bg=True)
+
+  def recolor_obj(obj):
+    # Find the bounding box
+    ul = ulcorner(obj)
+    lr = lrcorner(obj)
+    # Iterate through the bounding box
+    recolored_obj = set()
+    for i in range(ul[0], lr[0] + 1):
+      for j in range(ul[1], lr[1] + 1):
+        if (i, j) in toindices(obj):
+          # Check if all direct neighbors are in the object
+          if all(((i + di, j + dj) in toindices(obj)) for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+            recolored_obj.add((2, (i, j)))
+          else:
+            recolored_obj.add((I[i][j], (i, j)))
+    return frozenset(recolored_obj)
+
+  return paint(I, merge(apply(recolor_obj, objs)))
+```
+
+**Explanation:**
+
+1. **`objects(...)`:** Identifies objects in the grid.
+2. **`recolor_obj(obj)`:** Recolors an object by iterating through its bounding box:
+   - It checks if each cell within the bounding box belongs to the object.
+   - If a cell belongs to the object, it further checks if all its direct neighbors are also part of the object. If so, it recolors the cell to '2'; otherwise, it retains the original color from the input grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=False, diagonal=True, without_bg=True)
+  
+  def recolor_obj(obj):
+    boundary = set(toindices(obj))
+    inner = set()
+    # Iteratively identify and remove boundary cells
+    while boundary:
+      next_boundary = set()
+      for i, j in boundary:
+        for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+          ni, nj = i + di, j + dj
+          if (ni, nj) not in toindices(obj):
+            next_boundary = set() # If a neighbor is not in the object, clear next_boundary
+            break
+          else:
+            next_boundary.add((ni, nj))
+      inner.update(boundary - next_boundary)
+      boundary = next_boundary
+    return frozenset({(2 if (i, j) in inner else c, (i, j)) for c, (i, j) in obj})
+  
+  return paint(I, merge(apply(recolor_obj, objs)))
+```
+
+**Explanation:**
+
+1. **`objects(...)`:**  Identifies objects.
+2. **`recolor_obj(obj)`:** Uses an iterative approach to identify inner cells:
+   - It starts by considering all object cells as potential boundary cells.
+   - It iteratively removes cells from the boundary set if all their direct neighbors are also part of the object.
+   - The remaining cells in the boundary set after the iterations are the true boundary cells, while the removed cells are the inner cells. 
+
+
+These five versions offer diverse approaches to identifying and recoloring inner cells within objects, demonstrating the flexibility and expressiveness of the provided DSL.

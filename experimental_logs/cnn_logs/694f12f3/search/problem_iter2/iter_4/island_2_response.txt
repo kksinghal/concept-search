@@ -1,0 +1,144 @@
+## Transformation Analysis:
+
+The transformation involves modifying the color of the "inner" cells of objects with color 4 based on their position and index. Here's a breakdown:
+
+**Input_0 to Output_0:**
+
+1. **Top Object:** The inner cells of the top object (above the middle row) are all recolored to 1.
+2. **Bottom Object:**  The inner cells of the bottom object (below the middle row) maintain their original color (4) on the outline and corners. The remaining inner cells alternate between 2 and 4, forming a checkerboard pattern.
+
+**Input_1 to Output_1:**
+
+1. **Top Object:** The inner cells of the top object are all recolored to 2, creating a solid fill.
+2. **Bottom Object:**  Similar to the bottom object in Output_0, the outline and corners keep their original color (4). The other inner cells alternate between 1 and 4 in a checkerboard pattern. 
+
+## Program to be Generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  objs = colorfilter(objects(I, T, F, T), FOUR)
+  O = I
+  for i, obj in enumerate(objs):
+    inner_area = difference(backdrop(obj), box(obj))
+    if uppermost(obj) < len(I) // 2:
+      O = fill(O, ONE, inner_area)
+    else:
+      for a, b in enumerate(range(leftmost(inner_area), rightmost(inner_area) + 1)):
+        for c in range(uppermost(inner_area), lowermost(inner_area) + 1):
+          if (a + c) % 2 == 0:
+            O = fill(O, TWO if even(i) else ONE, {(c, b)})
+  return O
+```
+
+**Explanation:**
+
+- Iterates through objects of color 4.
+- Distinguishes top and bottom objects based on their position relative to the middle row.
+- Fills top objects with 1.
+- For bottom objects:
+    - Uses nested loops to iterate through the inner area.
+    - Applies alternating 1/2 or 2/4 fill based on object index and cell position using modulo operation.
+
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, value in enumerate(row):
+      if value == FOUR:
+        obj = extract(colorfilter(objects(I, T, F, T), FOUR), lambda obj: contained((i, j), obj))
+        if i < len(I) // 2:
+          O = fill(O, ONE, {(i, j)})
+        else:
+          if (i + j) % 2 == 0 and not contained((i, j), box(obj)):
+            O = fill(O, TWO, {(i, j)})
+          elif not contained((i, j), box(obj)):
+            O = fill(O, ONE, {(i, j)}) 
+  return O
+```
+
+**Explanation:**
+
+- Iterates through each cell in the grid.
+- For cells with color 4:
+    - Determines if the cell belongs to a top or bottom object.
+    - Top object cells are filled with 1.
+    - Bottom object cells:
+        - Use modulo operation to achieve the alternating pattern based on row and column index.
+        - Only modifies cells within the object's inner area.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  objs = colorfilter(objects(I, T, F, T), FOUR)
+  O = I
+  for i, obj in enumerate(objs):
+    if uppermost(obj) < len(I) // 2:
+      O = fill(O, ONE, difference(backdrop(obj), box(obj)))
+    else:
+      checkered_fill = chain(
+          partial(fill, O),
+          lambda p: {(a, b) for a, b in enumerate(range(leftmost(p), rightmost(p) + 1)) if (a + b) % 2 == 0},
+          lambda p: difference(backdrop(p), box(p))
+      )(obj)
+      O = fill(O, TWO if even(i) else ONE, checkered_fill)
+  return O
+```
+
+**Explanation:**
+
+- Employs functional programming concepts like `chain` and `partial`.
+- Similar to Version 1, it differentiates between top and bottom objects.
+- The `checkered_fill` function elegantly calculates and applies the checkerboard pattern using a lambda expression.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  O = canvas(mostcolor(I), shape(I))
+  for i, obj in enumerate(colorfilter(objects(I, T, F, T), FOUR)):
+    inner = difference(backdrop(obj), box(obj))
+    if uppermost(obj) < len(I) // 2:
+      O = paint(O, recolor(ONE, inner))
+    else:
+      fill_color = TWO if even(i) else ONE
+      checkered_cells = {(i, j) for i in range(uppermost(inner), lowermost(inner) + 1) for j in range(leftmost(inner), rightmost(inner) + 1) if (i + j) % 2 == 0}
+      O = paint(O, recolor(fill_color, checkered_cells & inner))
+  return O
+```
+
+**Explanation:**
+
+- Starts by creating an empty canvas filled with the background color.
+- Iterates through objects, identifies the inner area, and paints it accordingly.
+- Uses set operations to efficiently select cells for the checkerboard pattern within the inner area.
+
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  O = I
+  for i, obj in enumerate(colorfilter(objects(I, T, F, T), FOUR)):
+    for x, y in enumerate(range(leftmost(obj), rightmost(obj) + 1)):
+      for z in range(uppermost(obj), lowermost(obj) + 1):
+        if (uppermost(obj) < len(I) // 2) and not contained((z, y), box(obj)):
+          O = fill(O, ONE, {(z, y)})
+        elif (uppermost(obj) >= len(I) // 2) and (x + z) % 2 == 0 and not contained((z, y), box(obj)):
+          O = fill(O, TWO if even(i) else ONE, {(z, y)})
+  return O
+```
+
+**Explanation:**
+
+- Similar to Version 2, it iterates through each cell within the objects.
+- Directly applies the transformation rules based on object position, cell indices, and object index, streamlining the logic.
+
+These five versions showcase diverse approaches to achieve the same transformation, demonstrating the flexibility of the DSL and the creative potential in problem-solving. 

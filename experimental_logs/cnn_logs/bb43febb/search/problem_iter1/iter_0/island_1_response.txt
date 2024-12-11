@@ -1,0 +1,153 @@
+## Transformation Analysis:
+
+The transformation focuses on the largest object in the grid (excluding the background color) and applies the following changes:
+
+* **Interior Fill:** The interior cells of the largest object, defined as cells not touching the object's bounding box, are filled with the value '2'. 
+* **Selective Right Edge Modification:** On the right edge of the largest object, every other cell is modified to have the value '2'. This modification starts from the second row of the object and continues downwards.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  # x1: Identify all objects within the grid, excluding the background
+  x1 = objects(I, F, F, T)
+  # x2: Determine the object with the largest size
+  x2 = argmax(x1, size)
+  # x3:  Extract the indices of all cells belonging to this largest object
+  x3 = toindices(x2)
+  # x4: Generate a new grid identical to the input grid
+  x4 = I
+  # x5: Iterate through each cell index in the grid
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      # x6: Check if the current cell index is part of the largest object's indices
+      if (i, j) in x3:
+        # x7: If the current index is not on the bounding box of the object, fill it with 2
+        if (i, j) not in box(x3):
+          x4 = fill(x4, 2, {(i, j)})
+        # x8: If the current index is on the right edge and the row index is even, fill it with 2
+        elif j == rightmost(x3) and even(i):
+          x4 = fill(x4, 2, {(i, j)})
+  # O: The modified grid with the filled interior of the largest object
+  O = x4
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification and Selection:**  This part is identical to Program_A and Program_B. It identifies all objects, finds the largest one, and extracts its indices. 
+2. **Interior Fill:**  Also identical to Program_A and Program_B, it fills the interior cells of the largest object with the value '2'.
+3. **Right Edge Modification:** This version introduces a new condition within the loop. It checks if the cell is on the right edge (`j == rightmost(x3)`) and if the row index is even (`even(i)`). If both conditions are met, the cell is filled with '2'.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  # x1: Identify all objects, excluding the background
+  x1 = objects(I, F, F, T)
+  # x2: Find the largest object
+  x2 = argmax(x1, size)
+  # x3: Get the indices of the largest object
+  x3 = toindices(x2)
+  # x4: Fill the interior of the largest object with 2
+  x4 = fill(I, 2, difference(x3, box(x3)))
+  # x5: Get the indices of the right edge of the largest object, excluding the first row
+  x5 = frozenset((i, rightmost(x3)) for i in range(1, height(x2) + uppermost(x2)))
+  # x6: Filter the right edge indices to keep only even row indices
+  x6 = sfilter(x5, lambda loc: even(loc[0]))
+  # O: Fill the selected right edge indices with 2
+  O = fill(x4, 2, x6)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Processing:** Similar to Version 1, this part identifies and selects the largest object.
+2. **Direct Interior Fill:** Instead of iterating through all cells, this version directly fills the interior by calculating the difference between the object's indices and its bounding box (`difference(x3, box(x3))`).
+3. **Right Edge Processing:**  This version separates the right edge processing. It generates the indices for the entire right edge (excluding the first row) and then filters this set to keep only the indices with even row numbers. Finally, it fills these selected indices with '2'.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  # x1: Identify objects (excluding background) and find the largest one
+  x1 = argmax(objects(I, F, F, T), size) 
+  # x2: Get the bounding box indices of the largest object
+  x2 = box(x1)
+  # x3: Create a set of indices for the right edge, excluding the top and bottom rows
+  x3 = frozenset((i, rightmost(x1)) for i in range(uppermost(x1) + 1, lowermost(x1)))
+  # x4: Filter the right edge indices, keeping only those with even row indices 
+  x4 = sfilter(x3, lambda loc: even(loc[0]))
+  # O: Fill the interior and selected right edge indices with 2
+  O = fill(fill(I, 2, difference(toindices(x1), x2)), 2, x4)  
+  return O
+```
+
+**Explanation:**
+
+1. **Combined Object Handling:** This version combines object identification and selection into a single line. 
+2. **Bounding Box and Edge Generation:**  It directly calculates the bounding box and generates the right edge indices (excluding the top and bottom rows) without intermediate steps.
+3. **Concise Filling:**  This version utilizes nested `fill` functions. The inner `fill` fills the interior, and the outer `fill` applies the modifications to the right edge.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  # x1: Identify the largest object, excluding the background
+  x1 = argmax(objects(I, F, F, T), size)
+  # x2: Create a grid with the same dimensions as the input, filled with 2s 
+  x2 = canvas(2, shape(I))
+  # x3: Paint the largest object onto the new grid
+  x3 = paint(x2, x1)
+  # x4: Combine the original grid and the new grid using cellwise comparison
+  #     If the values match, keep the original value; otherwise, use the value from the new grid 
+  O = cellwise(I, x3, 2)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:**  Similar to previous versions, this part identifies the largest object.
+2. **Canvas Creation:** This version creates a new grid (`x2`) with the same dimensions as the input, filled entirely with the value '2'.
+3. **Object Painting:**  It then paints the largest object (`x1`) onto this new grid (`x2`), effectively keeping the object's original values where it's present. 
+4. **Cellwise Combination:** Finally, it uses the `cellwise` function to compare the original grid (`I`) with the modified grid (`x3`). If the values in the corresponding cells match (meaning the cell was part of the largest object), the original value is kept. Otherwise, the value from the new grid (`x3`), which is '2', is used. This approach effectively fills the interior and modifies the right edge in a single step.
+
+**Note:**  This version, while concise, might be less efficient for large grids compared to versions that directly manipulate specific cells. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  # x1: Find the largest object, excluding the background
+  x1 = argmax(objects(I, F, F, T), size)
+  # x2: Create a set of all indices of the grid
+  x2 = asindices(I)
+  # x3: Remove the indices of the largest object from the set of all indices
+  x3 = difference(x2, toindices(x1))
+  # x4: Create a set of indices for the right edge of the largest object, excluding the first row
+  x4 = frozenset((i, rightmost(x1)) for i in range(1, height(x1) + uppermost(x1)))
+  # x5: Filter the right edge indices, keeping only those with odd row indices
+  x5 = sfilter(x4, lambda loc: not even(loc[0]))
+  # O: Fill the indices that are not part of the largest object and the selected right edge indices with 2 
+  O = fill(fill(I, 2, x3), 2, x5)
+  return O
+```
+
+**Explanation:**
+
+1. **Largest Object Identification:**  This version starts by identifying the largest object like the previous ones.
+2. **Inverse Selection:** It takes a different approach by creating a set of all grid indices and then removing the indices belonging to the largest object. This effectively selects all the cells *outside* the largest object.
+3. **Right Edge Modification:** Similar to Version 2, it generates the right edge indices (excluding the first row) and filters them, this time keeping the indices with *odd* row numbers. 
+4. **Combined Filling:**  It uses nested `fill` functions to fill the areas outside the largest object and the selected right edge cells with '2'.
+
+These five versions demonstrate diverse approaches to achieve the same transformation, highlighting the flexibility and expressiveness of DSLs. Each version uses distinct logic or function combinations, making them genuinely different solutions. 

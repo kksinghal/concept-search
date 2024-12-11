@@ -1,0 +1,164 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) in the input grid and then shifting each object to the border of the grid while maintaining its shape and relative position to other objects. The specific border each object moves towards seems dependent on its initial position within the grid.
+
+**Input 0:** The single object (digit 5) moves to the center of the top border.
+**Input 1:** Objects are pushed to different borders depending on their starting position: top-left, bottom-right, top-right, bottom-left. The object closest to the center remains in the center.
+**Input 2:** Similar to Input 1, objects are distributed to different borders based on their initial position. 
+
+## Code Generation & Explanation:
+
+Due to the complexity of the transformation, a single DSL function call won't suffice. Here's a breakdown of a possible program structure and five distinct versions utilizing different DSL functions:
+
+```python
+def solve(I):
+    # 1. Identify Objects:
+    objs = objects(I, T, F, T)  # Extract objects from the grid
+
+    # 2. Categorize Objects (Different for each version)
+
+    # 3. Define Target Positions (Different for each version)
+
+    # 4. Move Objects:
+    moved_objs = []
+    for obj in objs:
+        # Determine target position for this object
+        target = ... 
+        # Calculate offset to reach the target
+        offset = subtract(target, centerofmass(obj))  
+        # Move the object
+        moved_objs.append(shift(obj, offset))  
+
+    # 5. Paint Objects to the Grid:
+    O = paint(canvas(mostcolor(I), shape(I)), merge(moved_objs))
+    return O
+```
+
+### Program Version 1: Quadrant-based Categorization and Positioning
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    h, w = shape(I)
+    ch, cw = h // 2, w // 2
+    moved_objs = []
+    for obj in objs:
+        ci, cj = centerofmass(obj)
+        target = (0, cw) if ci < ch and cj < cw else \
+                 (h-1, cw) if ci >= ch and cj < cw else \
+                 (0, w-1) if ci < ch and cj >= cw else \
+                 (h-1, 0)
+        offset = subtract(target, centerofmass(obj))
+        moved_objs.append(shift(obj, offset))
+    O = paint(canvas(mostcolor(I), shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Extracts objects from the grid.
+2. **Categorize Objects:** Divides the grid into four quadrants. Objects are categorized based on the quadrant containing their center of mass.
+3. **Define Target Positions:** Each quadrant is assigned a corner of the grid as the target position for its objects.
+4. **Move Objects:** Objects are shifted to their designated corners.
+5. **Paint Objects:** Moved objects are painted onto a blank canvas of the original grid's size and background color.
+
+### Program Version 2: Distance-based Categorization and Positioning
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    h, w = shape(I)
+    center_grid = (h // 2, w // 2)
+    objs = order(objs, lambda obj: manhattan(center_grid, centerofmass(obj)))
+    targets = ((0, 0), (0, w-1), (h-1, w-1), (h-1, 0))
+    moved_objs = []
+    for i, obj in enumerate(objs):
+        target = targets[i % len(targets)]
+        offset = subtract(target, centerofmass(obj))
+        moved_objs.append(shift(obj, offset))
+    O = paint(canvas(mostcolor(I), shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Categorize Objects:** Objects are ordered based on their Manhattan distance from the center of the grid.
+3. **Define Target Positions:**  A list of corner coordinates is created.
+4. **Move Objects:**  Objects are assigned target corners in order of their distance from the center, cycling through the corner list.
+5. **Paint Objects:** Same as Version 1.
+
+### Program Version 3: Size-based Categorization and Positioning
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    h, w = shape(I)
+    objs = order(objs, size)
+    moved_objs = []
+    for i, obj in enumerate(objs):
+        target = (0, (w // len(objs)) * i)  # Distribute horizontally
+        offset = subtract(target, ulcorner(obj))
+        moved_objs.append(shift(obj, offset))
+    O = paint(canvas(mostcolor(I), shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Categorize Objects:** Objects are ordered based on their size (number of cells).
+3. **Define Target Positions:**  Objects are assigned positions along the top border, spaced evenly based on the number of objects.
+4. **Move Objects:** Objects are shifted to their assigned positions.
+5. **Paint Objects:** Same as Version 1.
+
+### Program Version 4: Color-based Categorization and Positioning
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    h, w = shape(I)
+    moved_objs = []
+    for obj in objs:
+        color_val = color(obj)
+        target = (0, w - color_val) if color_val % 2 == 0 else (h - 1, color_val)
+        offset = subtract(target, centerofmass(obj))
+        moved_objs.append(shift(obj, offset))
+    O = paint(canvas(mostcolor(I), shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Categorize Objects:** Objects are categorized based on their color (digit value).
+3. **Define Target Positions:** Even-valued objects target the top border, while odd-valued objects target the bottom border. Their horizontal position depends on their color value.
+4. **Move Objects:** Objects are shifted to their designated positions.
+5. **Paint Objects:** Same as Version 1.
+
+### Program Version 5: Combination of Criteria
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    h, w = shape(I)
+    objs = order(objs, lambda obj: (color(obj) % 2, size(obj)))  # Sort by even/odd color, then size
+    moved_objs = []
+    for i, obj in enumerate(objs):
+        target = (0, (w // len(objs)) * i) if i % 2 == 0 else (h - 1, (w // len(objs)) * (i // 2))
+        offset = subtract(target, ulcorner(obj))
+        moved_objs.append(shift(obj, offset))
+    O = paint(canvas(mostcolor(I), shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Categorize Objects:** Objects are first sorted by whether their color is even or odd, then by size.
+3. **Define Target Positions:**  Objects alternate between the top and bottom borders based on their position in the sorted list.  Objects are spaced evenly along their assigned border.
+4. **Move Objects:** Objects are shifted to their assigned positions.
+5. **Paint Objects:** Same as Version 1.
+
+
+These five versions demonstrate different approaches to categorization and positioning, showcasing the flexibility of the DSL. By modifying the categorization logic and target position definitions, you can create diverse programs that achieve the desired transformation. Remember to test each program version thoroughly to ensure it correctly handles various input grids. 

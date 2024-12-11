@@ -1,0 +1,174 @@
+## Transformation Analysis:
+
+The transformation in all three examples involves moving the objects made of digit '5' towards the center of mass of the objects formed by digit '2' but stopping just outside the bounding box of these '2' objects. 
+
+Let's break down the movement for clarity:
+
+* **Horizontal Movement:** The '5' objects move horizontally towards the '2' objects' center until they are in the same column or in an adjacent column.
+* **Vertical Movement:**  The '5' objects move vertically towards the '2' objects' center until they are in the same row or in an adjacent row.
+
+Importantly, the '5' objects never overlap or move inside the '2' objects. They position themselves as close as possible while remaining outside the bounding box of the '2' objects.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program that achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def program(I):
+  # Find the bounding box of all '2' objects.
+  target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))
+  
+  # Move '5' objects towards the center of the bounding box.
+  def move_to_target(obj):
+    while not intersection(toindices(obj), target_area):
+      obj = shift(obj, (sign(centerofmass(target_area)[0] - centerofmass(obj)[0]), sign(centerofmass(target_area)[1] - centerofmass(obj)[1])))
+    return shift(obj, invert((sign(centerofmass(target_area)[0] - centerofmass(obj)[0]), sign(centerofmass(target_area)[1] - centerofmass(obj)[1]))))
+  
+  # Apply the movement to all '5' objects.
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_to_target, fives)
+  
+  # Combine: remove old '5's, paint new ones.
+  return underpaint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **`target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))`**: This line first identifies all objects made of '2' using `colorfilter(objects(I, True, False, True), 2)`. It then merges them using `merge` and finds the bounding box encompassing all of them using `box`.
+2. **`move_to_target(obj)` function**: This function takes a '5' object (`obj`) and iteratively moves it one step closer to the center of the `target_area` using `shift`. The movement continues until the object is adjacent to the `target_area` (checked using `intersection` and `toindices`). Then it takes one step back to just outside the bounding box.
+3. **`fives = colorfilter(objects(I, True, False, True), 5)`**: This line identifies all '5' objects.
+4. **`moved_fives = apply(move_to_target, fives)`**: This line applies the `move_to_target` function to each of the '5' objects.
+5. **`return underpaint(cover(I, merge(fives)), merge(moved_fives))`**: This line first removes the original '5' objects from the input grid `I` using `cover` and then paints the moved objects `moved_fives` onto the grid using `underpaint` to avoid overwriting existing '2' objects.
+
+**Program Version 2:**
+
+```python
+def program(I):
+  # Calculate the center of mass of '2' objects.
+  target = centerofmass(merge(colorfilter(objects(I, True, False, True), 2)))
+
+  # Define a function to gravitate an object towards the target.
+  def gravitate_to_target(obj):
+    return shift(obj, gravitate(obj, frozenset({(0, target)})))
+
+  # Identify '5' objects and gravitate them towards the target.
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(gravitate_to_target, fives)
+
+  # Combine: Remove original '5' objects and paint the moved ones.
+  return underpaint(cover(I, merge(fives)), merge(moved_fives)) 
+```
+
+**Explanation:**
+
+1. **`target = centerofmass(merge(colorfilter(objects(I, True, False, True), 2)))`**:  Identifies the center of mass of all '2' objects.
+2. **`gravitate_to_target(obj)` function**: This function leverages the `gravitate` function to calculate the necessary shift to move the input object (`obj`) directly adjacent to the `target`.
+3. **`fives = colorfilter(objects(I, True, False, True), 5)`**: Identifies all '5' objects.
+4. **`moved_fives = apply(gravitate_to_target, fives)`**: Applies the `gravitate_to_target` function to all '5' objects.
+5. **`return underpaint(cover(I, merge(fives)), merge(moved_fives))`**:  Removes the original '5' objects and paints the gravitated '5' objects onto the grid, ensuring they don't overwrite the '2' objects.
+
+**Program Version 3:**
+
+```python
+def program(I):
+  # Define a function to find the closest point outside the target area to a given point.
+  def closest_point_outside(point, target_area):
+    if point not in target_area:
+      return point
+    neighbors = sfilter(dneighbors(point), lambda p: p not in target_area)
+    if neighbors:
+      return first(neighbors)
+    return point
+
+  # Find the bounding box of all '2' objects.
+  target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))
+
+  # Define a function to move '5' objects to the closest point outside the target area.
+  def move_to_target(obj):
+    target_point = closest_point_outside(centerofmass(obj), target_area)
+    return shift(obj, subtract(target_point, centerofmass(obj)))
+
+  # Identify '5' objects and move them to their respective target points.
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_to_target, fives)
+
+  # Combine: Remove original '5' objects and paint the moved ones.
+  return underpaint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **`closest_point_outside(point, target_area)` function**: Finds the nearest point to `point` that lies outside the `target_area`. If `point` is already outside, it returns the `point` itself. Otherwise, it checks direct neighbors and returns the first one found outside. 
+2. **`target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))`**: Calculates the bounding box of all '2' objects.
+3. **`move_to_target(obj)` function**:  Calculates the shift needed to move the '5' object (`obj`) to its closest point outside the `target_area`.
+4. **`fives = colorfilter(objects(I, True, False, True), 5)`**: Identifies all '5' objects.
+5. **`moved_fives = apply(move_to_target, fives)`**: Applies the `move_to_target` function to each '5' object.
+6. **`return underpaint(cover(I, merge(fives)), merge(moved_fives))`**: Removes the original '5' objects and paints the moved '5' objects onto the grid without overwriting the '2' objects.
+
+
+**Program Version 4:**
+
+```python
+def program(I):
+  # Define a function to calculate the movement vector towards the target.
+  def calculate_move_vector(obj, target):
+    dx = sign(target[0] - centerofmass(obj)[0])
+    dy = sign(target[1] - centerofmass(obj)[1])
+    return (dx, dy)
+
+  # Find the bounding box of all '2' objects.
+  target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))
+
+  # Define a function to move an object towards the target until just outside the target area.
+  def move_to_target(obj):
+    while not intersection(toindices(obj), target_area):
+      obj = shift(obj, calculate_move_vector(obj, centerofmass(target_area)))
+    return shift(obj, invert(calculate_move_vector(obj, centerofmass(target_area))))
+
+  # Identify all '5' objects and move them towards the target area.
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_to_target, fives)
+
+  # Combine: Remove original '5' objects and paint the moved ones.
+  return underpaint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **`calculate_move_vector(obj, target)` function**: This function determines the direction to move an object (`obj`) to get closer to the `target`. It returns a tuple `(dx, dy)` where `dx` and `dy` are either -1, 0, or 1, indicating the direction of movement along the x and y axes respectively.
+2. **`target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))`**: This line calculates the bounding box of all '2' objects.
+3. **`move_to_target(obj)` function**: This function iteratively moves the input object (`obj`) towards the center of the `target_area` using the calculated move vector. The movement continues as long as the object doesn't intersect the `target_area`. Once it's about to intersect (meaning it's adjacent), the loop breaks, and the object takes a step back to stay outside the `target_area`.
+4. **`fives = colorfilter(objects(I, True, False, True), 5)`**: This line identifies all '5' objects in the input grid.
+5. **`moved_fives = apply(move_to_target, fives)`**: This line applies the `move_to_target` function to each of the identified '5' objects.
+6. **`return underpaint(cover(I, merge(fives)), merge(moved_fives))`**:  This line first clears the original positions of the '5' objects using `cover` and then paints the moved '5' objects onto the grid using `underpaint`. The `underpaint` function is used to prevent overwriting any existing '2' objects.
+
+**Program Version 5:**
+
+```python
+def program(I):
+  # Find the bounding box of all '2' objects.
+  target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))
+
+  # Define a function to move an object outside the target area.
+  def move_outside(obj):
+    while any((i, j) in target_area for i, j in toindices(obj)):
+      obj = shift(obj, (sign(centerofmass(target_area)[0] - centerofmass(obj)[0]), sign(centerofmass(target_area)[1] - centerofmass(obj)[1])))
+    return obj
+
+  # Identify all '5' objects and move them outside the target area.
+  fives = colorfilter(objects(I, True, False, True), 5)
+  moved_fives = apply(move_outside, fives)
+
+  # Combine: Remove original '5' objects and paint the moved ones.
+  return underpaint(cover(I, merge(fives)), merge(moved_fives))
+```
+
+**Explanation:**
+
+1. **`target_area = box(merge(colorfilter(objects(I, True, False, True), 2)))`**: This line calculates the bounding box that encloses all objects made of the digit '2' in the input grid `I`.
+2. **`move_outside(obj)` function**: This function is designed to move an object (`obj`) until it's completely outside the `target_area`. It does this by iteratively shifting the object one step at a time in the direction of the center of the `target_area` until none of the object's cells are within the `target_area`.
+3. **`fives = colorfilter(objects(I, True, False, True), 5)`**:  This line identifies all objects in the input grid `I` that are made of the digit '5'.
+4. **`moved_fives = apply(move_outside, fives)`**: This line applies the `move_outside` function to each of the '5' objects. This effectively moves all '5' objects outside the bounding box of the '2' objects.
+5. **`return underpaint(cover(I, merge(fives)), merge(moved_fives))`**: This line first removes the original '5' objects from their initial positions in the input grid `I`. Then, it paints the moved '5' objects (`moved_fives`) onto the grid. The use of `underpaint` ensures that no '2' objects are overwritten in the process. 

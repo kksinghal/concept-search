@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation involves identifying "isolated" cells within the input grid and marking a position two rows below them with a specific value (4 in this case). An "isolated" cell seems to be defined as a cell containing the value 0, which is located directly above a single-cell object.
+
+**Input_0:**
+
+* Two isolated cells are identified: (1, 1) and (3, 6).
+* Positions (3, 1) and (5, 6) are marked with the value 4.
+
+**Input_1:**
+
+* One isolated cell is identified: (1, 1).
+* Position (3, 1) is marked with the value 4.
+
+**Input_2:**
+
+* Two isolated cells are identified: (2, 1) and (3, 5).
+* Positions (4, 1) and (5, 5) are marked with the value 4.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def is_isolated(i, j):
+    if i + 1 < height(I) and 0 <= j < width(I):
+      return I[i][j] == 0 and size(objects(crop(I, (i + 1, j), UNITY), T, T, T)) == 1
+    return False
+  return paint(I, recolor(4, mfilter(prapply(lambda i, j: (i + 2, j) if is_isolated(i, j) else (-1,-1), range(height(I)), range(width(I))), lambda x: x != (-1, -1))))
+```
+
+**Explanation:**
+
+1. **`is_isolated(i, j)` Function:** This function checks if a cell at (i, j) is "isolated" by verifying:
+    * It's within the grid boundaries.
+    * Its value is 0.
+    * The cell below it (i+1, j) contains a single-cell object.
+2. **`prapply(...)`:** This applies the `lambda` function to all cell indices (i, j) of the input grid `I`. The lambda function returns (i+2, j) if the cell is isolated, otherwise (-1, -1). This creates a set of target indices to be marked.
+3. **`mfilter(...)`:** This filters out the invalid (-1, -1) indices from the set.
+4. **`recolor(4, ...)`:** This recolors the remaining indices (representing target positions) with the value 4.
+5. **`paint(I, ...)`:** This paints the recoloured indices onto the original input grid `I`, producing the final output.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def mark_isolated(obj):
+    i, j = ulcorner(obj)
+    if i > 0 and I[i - 1][j] == 0:
+      return frozenset({(4, (i + 1, j))})
+    return frozenset()
+  return paint(I, merge(apply(mark_isolated, objects(I, T, T, T))))
+```
+
+**Explanation:**
+
+1. **`mark_isolated(obj)` Function:** This function takes an object as input and:
+    * Extracts its upper-left corner coordinates (i, j).
+    * Checks if the cell above (i-1, j) exists and has a value of 0.
+    * If both conditions are met, it returns a new object containing a single cell with value 4 at position (i+1, j).
+    * Otherwise, it returns an empty object.
+2. **`objects(I, T, T, T)`:** This identifies all objects in the input grid `I`.
+3. **`apply(mark_isolated, ...)`:**  This applies the `mark_isolated` function to each object, potentially creating new single-cell objects with value 4 at the target positions.
+4. **`merge(...)`:** This merges all the resulting objects (including the newly created ones).
+5. **`paint(I, ...)`:**  This paints the merged objects onto the original input grid `I`, generating the final output.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  shifted = shift(I, (-1, 0))
+  isolated = cellwise(I, shifted, 1)
+  targets = shift(objects(isolated, T, T, T), (2, 0))
+  return paint(I, recolor(4, merge(targets)))
+```
+
+**Explanation:**
+
+1. **`shifted = shift(I, (-1, 0))`:** Creates a copy of the input grid shifted one row upwards.
+2. **`isolated = cellwise(I, shifted, 1)`:**  Compares the original and shifted grids cell-wise. If both cells have the same value, a 1 is placed in the `isolated` grid. This effectively identifies potential "isolated" cells as those with a 1 above them.
+3. **`targets = shift(objects(isolated, T, T, T), (2, 0))`:** Identifies objects in the `isolated` grid and shifts them two rows downwards. This determines the target positions for marking with value 4.
+4. **`recolor(4, merge(targets))`:** Merges all the shifted objects and recolors them with the value 4.
+5. **`paint(I, ...)`:** Paints the recoloured objects onto the original input grid `I`, producing the final output.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def check_and_mark(i, j):
+    if 0 < i < height(I) - 2 and I[i][j] == 0 and size(objects(crop(I, (i + 1, j), UNITY), T, T, T)) == 1:
+      return (4, (i + 2, j))
+    return None
+  new_cells = sfilter(apply(lambda ij: check_and_mark(ij[0], ij[1]), product(range(height(I)), range(width(I)))), lambda x: x is not None)
+  return paint(I, frozenset(new_cells))
+```
+
+**Explanation:**
+
+1. **`check_and_mark(i, j)` Function:** Checks if the cell at (i, j) meets the criteria for marking:
+   * It's within the grid boundaries (leaving space for marking below).
+   * It has a value of 0.
+   * The cell below it (i+1, j) contains a single-cell object.
+   * If all conditions are met, it returns a tuple with the value 4 and the target position (i+2, j). Otherwise, it returns None.
+2. **`product(range(height(I)), range(width(I)))`:** Generates all possible cell indices (i, j) within the grid.
+3. **`apply(lambda ij: check_and_mark(ij[0], ij[1]), ...)`:** Applies the `check_and_mark` function to each cell index.
+4. **`sfilter(..., lambda x: x is not None)`:** Filters the results, keeping only the tuples representing valid markings.
+5. **`paint(I, frozenset(new_cells))`:** Converts the filtered results into a set of cell tuples and paints them onto the original input grid `I`, producing the output.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def is_isolated(i, j):
+    return I[i][j] == 0 and i + 1 < height(I) and size(objects(crop(I, (i + 1, j), UNITY), T, T, T)) == 1
+  marked_indices = mfilter(prapply(lambda i, j: {(4, (i + 2, j))} if is_isolated(i, j) else {}, range(height(I)), range(width(I))), lambda x: len(x) > 0)
+  return paint(I, merge(marked_indices))
+```
+
+**Explanation:**
+
+1. **`is_isolated(i, j)` Function:** Similar to previous versions, checks if a cell at (i, j) is "isolated."
+2. **`prapply(...)`:** Applies a lambda function to each cell index (i, j). The lambda function returns a set containing a single-cell object with value 4 at position (i+2, j) if the cell is isolated; otherwise, it returns an empty set.
+3. **`mfilter(...)`:**  Filters the resulting list of sets, keeping only the non-empty sets, which represent valid markings.
+4. **`merge(...)`:** Merges all the remaining sets into a single set of cell tuples.
+5. **`paint(I, ...)`:**  Paints the merged set of cells onto the original input grid `I`, generating the final output. 

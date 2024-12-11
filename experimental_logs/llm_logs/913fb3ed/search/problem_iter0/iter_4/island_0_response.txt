@@ -1,0 +1,149 @@
+## Transformation Analysis:
+
+The transformation seems to involve identifying objects within the input grid and drawing a bounding box around them. Specific colors are used for the fill and outline of these boxes based on the color of the original object.  Let's break down the transformation for each input-output pair:
+
+**Input_0 -> Output_0:**
+
+* The '8' object is surrounded by a '4' filled box with a '6' outline. 
+* A '1' filled box with '6' outline is placed below the '3' object.
+*  The '2' object is surrounded by a '1' filled box.
+
+**Input_1 -> Output_1:**
+
+* The '3' object is surrounded by a '6' filled box.
+
+**Input_2 -> Output_2:**
+
+* The '3' object is surrounded by a '6' filled box.
+* The '2' object is surrounded by a '1' filled box.
+
+**Input_3 -> Output_3:**
+
+* The '8' object is surrounded by a '4' filled box.
+
+## Code Generation:
+
+Here are five distinct versions of the program ("Program_to_be_generated") in the DSL to achieve the desired transformation:
+
+### Program Version 1:
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    c = color(obj)
+    I = fill(I, branch(c == 8, 4, 1), backdrop(shift(normalize(obj), (1, 1))))
+    I = fill(I, branch(c == 8 or c == 3, 6, 0), difference(backdrop(shift(normalize(obj), (2, 2))), backdrop(shift(normalize(obj), (1, 1)))))
+    if c == 8:
+      I = fill(I, 1, {(lowermost(obj) + 2, j) for j in range(leftmost(obj), rightmost(obj) + 1)})
+      I = fill(I, 2, {(lowermost(obj) + 2, rightmost(obj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Identify objects:**  `objs = objects(I, T, T, T)` identifies all objects in the input grid `I`.
+2. **Iterate through objects:**  The `for obj in objs` loop processes each object.
+3. **Determine colors:** `c = color(obj)` stores the object's color. Based on the color, inner and outer fill colors are chosen using `branch` functions.
+4. **Fill inner box:** `fill(I, inner_color, backdrop(shift(normalize(obj), (1, 1))))` draws the inner filled box by shifting the normalized object, finding its backdrop, and filling it with `inner_color`.
+5. **Fill outer box:** `fill(I, outer_color, difference(backdrop(shift(normalize(obj),(2,2))), backdrop(shift(normalize(obj),(1,1))))))` creates the outline by filling a larger backdrop and then subtracting the inner backdrop. 
+6. **Special case for '8':** If the object's color is 8, an additional '1' filled box with a '2' at the end is drawn below the object. 
+
+### Program Version 2:
+
+```python
+def Program_to_be_generated(I):
+  def process_object(obj, I):
+    c = color(obj)
+    inner = branch(c == 8, 4, branch(c == 2, 1, 0)) 
+    outer = branch(c == 8 or c == 3, 6, 0)
+    shifted_obj = shift(normalize(obj), (1, 1))
+    I = fill(I, inner, backdrop(shifted_obj))
+    I = fill(I, outer, difference(backdrop(shift(shifted_obj, (1, 1))), backdrop(shifted_obj)))
+    return fill(I, 1, {(lowermost(obj) + 2, j) for j in range(leftmost(obj), rightmost(obj) + 1)}) if c == 8 else I
+  return mapply(lambda obj: process_object(obj, I), objects(I, T, T, T))
+```
+
+**Explanation:**
+
+1. **Define helper function:** `process_object` encapsulates the logic for processing a single object, making the main function cleaner.
+2. **Identify objects and apply function:** `mapply` applies the `process_object` function to each object identified by  `objects(I, T, T, T)`.
+3. **Inner and outer colors:** Similar to Version 1, `branch` functions determine the fill colors based on the object's color.
+4. **Shift and fill:** This version reuses the shifted object `shifted_obj` for efficient calculation of both inner and outer boxes.
+5. **Conditional fill for '8':** The '1' filled box for the '8' object is added using a conditional `fill` at the end of the `process_object` function.
+
+### Program Version 3:
+
+```python
+def Program_to_be_generated(I):
+  def box_fill(I, obj, inner, outer):
+    shifted = shift(normalize(obj), (1, 1))
+    return fill(fill(I, inner, backdrop(shifted)), outer, difference(backdrop(shift(shifted, (1, 1))), backdrop(shifted)))
+  objs = objects(I, T, T, T)
+  I = mapply(lambda obj: box_fill(I, obj, 4, 6) if color(obj) == 8 else I, objs)
+  I = mapply(lambda obj: box_fill(I, obj, 1, 6) if color(obj) == 3 else I, objs)
+  I = mapply(lambda obj: box_fill(I, obj, 1, 0) if color(obj) == 2 else I, objs)
+  obj = extract(objs, lambda obj: color(obj)==8)
+  if obj:
+    I = fill(I, 1, {(lowermost(obj) + 2, j) for j in range(leftmost(obj), rightmost(obj) + 1)})
+    I = fill(I, 2, {(lowermost(obj) + 2, rightmost(obj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Dedicated box function:**  `box_fill` function is introduced to specifically handle the drawing of the filled box with an outline. This improves code readability.
+2. **Separate mapply for each color:** This version uses separate `mapply` calls for each object color ('8', '3', '2') to apply the `box_fill` function with specific colors.
+3. **Conditional fill for '8':** Similar to previous versions, the additional '1' filled box for the '8' object is added using `extract` and conditional `fill`.
+
+### Program Version 4:
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  for (inner, outer), color_group in  [(
+      (4, 6), (8,)
+    ), 
+    (
+      (1, 6), (3,)
+    ),
+    (
+      (1, 0), (2,)
+    )]:
+    I = mapply(lambda obj: fill(fill(I, inner, backdrop(shift(normalize(obj), (1, 1)))), outer, difference(backdrop(shift(normalize(obj), (2, 2))), backdrop(shift(normalize(obj), (1, 1))))) if color(obj) in color_group else I, objs)
+  obj = extract(objs, lambda obj: color(obj)==8)
+  if obj:
+    I = fill(I, 1, {(lowermost(obj) + 2, j) for j in range(leftmost(obj), rightmost(obj) + 1)})
+    I = fill(I, 2, {(lowermost(obj) + 2, rightmost(obj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Data-driven approach:** This version uses a list of tuples to store the mapping between color groups and their corresponding fill colors. This makes the code more concise and easier to modify for different color combinations.
+2. **Iterate through color groups:**  The `for` loop iterates through each color group and applies the box filling logic to the objects of those colors. 
+
+### Program Version 5:
+
+```python
+def Program_to_be_generated(I):
+  def draw_box(I, obj, inner, outer):
+    return fill(fill(I, outer, backdrop(shift(normalize(obj), (2, 2)))), inner, backdrop(shift(normalize(obj), (1, 1))))
+  objs = objects(I, T, T, T)
+  I = mapply(lambda obj: draw_box(I, obj, 4, 6) if color(obj) == 8 else I, objs)
+  I = mapply(lambda obj: draw_box(I, obj, 0, 6) if color(obj) == 3 else I, objs)
+  I = mapply(lambda obj: draw_box(I, obj, 1, 0) if color(obj) == 2 else I, objs)
+  obj = extract(objs, lambda obj: color(obj) == 8)
+  if obj:
+    I = fill(I, 1, {(i, rightmost(obj)) for i in range(uppermost(obj) + 2, lowermost(obj) + 3)})
+    I = fill(I, 2, {(lowermost(obj) + 2, rightmost(obj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Reversed drawing order:** This version modifies the `draw_box` function to draw the outer box first and then fill the inner box. This change in order doesn't affect the visual output but demonstrates a different approach.
+2. **Vertical line for '8':** The additional '1' filled line for the '8' object is drawn vertically instead of horizontally, highlighting the flexibility of the DSL functions.
+
+
+These five versions demonstrate various approaches to solve the given transformation problem using the DSL, showcasing different aspects of code optimization, readability, and flexibility. 

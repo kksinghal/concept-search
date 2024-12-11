@@ -1,0 +1,165 @@
+## Transformation Analysis:
+
+The transformation involves recoloring a portion of each object in the input grid.  The recoloring logic differs depending on whether the object is wider than it is tall (horizontal) or taller than it is wide (vertical).
+
+**Horizontal Objects:**
+
+-  A horizontal section of the object, spanning approximately the middle third of its width, is re-colored to the value '2'.
+
+**Vertical Objects:**
+
+- A single horizontal row of the object, located approximately one-third of the way down from the top, is re-colored to the value '2'.
+
+
+## Program Version 1
+
+**Code:**
+
+```python
+def program(I):
+  objs = objects(I, T, T, T)
+  return paint(I,
+               merge(apply(lambda obj:
+                            branch(
+                              portrait(obj),
+                              recolor(2,
+                                      frozenset((v, (uppermost(obj) + height(obj) // 3, j))
+                                                for v, (i, j) in obj)),
+                              recolor(2,
+                                     frozenset((v, (i, leftmost(obj) + width(obj) // 3 + k))
+                                               for v, (i, j) in obj
+                                               for k in range(width(obj) // 3)))),
+                            objs)))
+```
+
+**Explanation:**
+
+1. **Identify Objects:** It identifies all distinct objects in the grid using `objects(I, T, T, T)`.
+2. **Iterate and Transform:** It iterates through each identified object (`obj`).
+3. **Determine Orientation:** It uses `portrait(obj)` to check if the object is taller than it is wide. 
+    - If **True** (vertical object), it recolors a single row at one-third of the object's height using `recolor` and `uppermost`.
+    - If **False** (horizontal object), it recolors a section spanning approximately the middle third of the object's width using `recolor`, `leftmost`, and `width`.
+4. **Merge and Paint:** Finally, it merges all the transformed objects using `merge` and paints them back onto the original grid using `paint`.
+
+
+## Program Version 2
+
+**Code:**
+
+```python
+def program(I):
+  objs = objects(I, T, T, T)
+  return paint(I, 
+               merge(apply(lambda obj:
+                           branch(
+                              width(obj) > height(obj),
+                              recolor(2,
+                                     frozenset((v, (i, j))
+                                              for v, (i, j) in obj
+                                              if (j >= leftmost(obj) + width(obj) // 3) and (j < leftmost(obj) + 2 * width(obj) // 3))),
+                              recolor(2, 
+                                     frozenset((v, (i, j)) 
+                                               for v, (i, j) in obj 
+                                               if i == uppermost(obj) + height(obj) // 3))),
+                           objs))) 
+```
+
+**Explanation:**
+
+1. **Object Identification:** Like Version 1, it begins by identifying objects in the grid (`objects`).
+2. **Iterate and Branch:** It iterates through each object and uses a conditional (`branch`) to apply different recoloring logic based on the object's orientation.
+3. **Orientation Check:** Instead of `portrait(obj)`, it directly compares `width(obj)` and `height(obj)` to determine if the object is wider than it is tall.
+4. **Horizontal Recoloring:** For wider objects, it uses a filter within `recolor` to identify cells within the middle third of the object's width and changes their value to '2'.
+5. **Vertical Recoloring:** For taller objects, it uses a filter within `recolor` to identify cells in the row one-third down from the top and changes their value to '2'.
+6. **Combine and Paint:**  Similar to Version 1, it merges the modified objects and paints them onto the grid. 
+
+## Program Version 3
+
+**Code:**
+
+```python
+def program(I):
+  transformed_objs = set()
+  for obj in objects(I, T, T, T):
+    if width(obj) > height(obj):  
+      transformed_objs.add(recolor(2, 
+                                   frozenset((v, (i, j)) 
+                                             for v, (i, j) in obj 
+                                             if j in interval(leftmost(obj) + width(obj) // 3, leftmost(obj) + 2 * width(obj) // 3, 1))))
+    else:  
+      transformed_objs.add(recolor(2, 
+                                   frozenset((v, (uppermost(obj) + height(obj) // 3, j)) 
+                                             for v, (i, j) in obj)))
+  return paint(I, merge(transformed_objs))
+```
+
+**Explanation:**
+
+This version uses a more explicit loop structure and set operations for object manipulation:
+
+1. **Initialize and Iterate:**  It initializes an empty set (`transformed_objs`) and then iterates through each object in the grid (`objects`).
+2. **Orientation-Specific Recoloring:** The code checks the orientation of each object (`width(obj) > height(obj)`). Based on the orientation, it applies `recolor` to modify either a horizontal section (for wide objects) or a single row (for tall objects).
+3. **Add to Transformed Set:** The `recolor` operation generates a modified object, which is then added to the `transformed_objs` set. 
+4. **Paint Modified Objects:** After processing all objects, the code merges the `transformed_objs` set and paints them onto the original grid using `paint`.
+
+
+## Program Version 4
+
+**Code:**
+
+```python
+def program(I):
+    return paint(I, 
+                 merge(apply(lambda obj:
+                              branch(
+                                  greater(width(obj), height(obj)),
+                                  recolor(2,
+                                          prapply(lambda i, j:
+                                                    (i, j) if (j >= leftmost(obj) + width(obj) // 3) and (j < leftmost(obj) + 2 * width(obj) // 3)
+                                                    else None,
+                                                    totuple(range(height(obj))),
+                                                    totuple(range(width(obj))))),
+                                  recolor(2,
+                                          frozenset((v, (uppermost(obj) + height(obj) // 3, j))
+                                                    for v, (i, j) in obj))),
+                              objects(I, T, T, T))))
+```
+
+**Explanation:**
+
+This version maintains a similar structure to the previous ones but introduces `prapply` for a different approach to horizontal recoloring:
+
+1. **Identify Objects and Apply Transformation:** Similar to previous versions, it identifies objects using `objects` and iterates over them using `apply`. 
+2. **Orientation Check:** It determines object orientation using `greater(width(obj), height(obj))`.
+3. **Horizontal Recoloring with `prapply`:** For wider objects, it utilizes `prapply` to iterate over a cartesian product of row and column indices. Within `prapply`, a lambda function checks if the column index `j` falls within the middle third of the object's width. If so, it returns the index `(i, j)`; otherwise, it returns `None`.  The `recolor` function then uses the resulting indices to change the color of the appropriate cells.
+4. **Vertical Recoloring:** Vertical recoloring remains similar to previous versions, using `recolor` and filtering based on row index.
+5. **Merge and Paint:** As before, it merges the transformed objects and paints them onto the input grid.
+
+## Program Version 5
+
+**Code:**
+
+```python
+def program(I):
+  return paint(I,
+                merge(apply(lambda obj: 
+                             recolor(2, 
+                                    frozenset((v, (i, j)) 
+                                              for v, (i, j) in obj 
+                                              if branch(
+                                                  greater(width(obj), height(obj)),
+                                                  (j >= leftmost(obj) + width(obj) // 3) and (j < leftmost(obj) + 2 * width(obj) // 3),
+                                                  i == uppermost(obj) + height(obj) // 3))),
+                             objects(I, T, T, T))))
+```
+
+**Explanation:**
+
+This version simplifies the code structure by embedding the orientation check and recoloring logic directly within the `recolor` function:
+
+1. **Identify Objects and Apply Transformation:** It identifies all objects in the grid using `objects` and applies a transformation to each using `apply`.
+2. **Recolor with Embedded Logic:** Within `recolor`, it uses a `branch` statement to decide which cells to recolor based on the object's orientation. The conditions within `branch` determine whether to recolor a horizontal section (if `width(obj) > height(obj)`) or a single row (otherwise).
+3. **Merge and Paint:** Finally, it merges the transformed objects using `merge` and paints them back onto the original grid using `paint`.
+
+
+These five versions provide different approaches to achieve the desired transformation using the DSL. They demonstrate the flexibility of the language and showcase various techniques for manipulating objects and grids.

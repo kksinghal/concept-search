@@ -1,0 +1,140 @@
+## Transformation Analysis:
+
+The transformation connects all cells of the same object (excluding background) that lie on the same vertical line as the topmost cell of that object. 
+
+**Input 0:**
+
+* **Object 1 (value 3):** The topmost 3s are in the middle.  The transformation connects them vertically, extending the line of 3s to the right edge of the object.
+* **Object 2 (value 6):** The topmost 6 is on the second row. The transformation connects it vertically downwards. 
+* **Object 3 (value 1):** No change as they are single cells.
+
+**Input 1:**
+
+* **Object 1 (value 7):** The topmost 7 is on the first row. The transformation connects it vertically downwards.
+* **Object 2 (value 8):** The topmost 8 is on the first row. The transformation connects it vertically downwards.
+* **Object 3 (value 3):** The topmost 3s are on the third row. The transformation connects them horizontally to the right, reaching the edge of the object (8).
+
+**Input 2:**
+
+* **Object 1 (value 1):** The topmost 1 is on the second row. The transformation connects it vertically downwards.
+* **Object 2 (value 3):** No change as the topmost 3s don't have any other 3s below them within the same object.
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)  # Extract objects, excluding background
+  painted = set()
+  for obj in objs:
+    top_row = uppermost(obj) # Find the topmost row of the object
+    for cell in toindices(obj):
+      if cell[0] == top_row: # If the cell is on the topmost row
+        down_line = connect(cell, (lowermost(obj), cell[1])) # Connect downwards
+        for down_cell in down_line:
+          if down_cell in toindices(obj): # Only paint if the cell belongs to the object
+            painted.add(down_cell)
+  O = paint(I, recolor(color(first(toobject(painted, I))), painted)) # Paint the connected cells
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, T, T, T)` identifies distinct objects in the grid, excluding background.
+2. **Iterate and Connect:** For each object, find its `uppermost` row. Iterate through its cells, and if a cell lies on the topmost row, connect it downwards to the `lowermost` row using `connect`.
+3. **Conditional Painting:**  Before painting, check if each cell in the downward line belongs to the current object (`down_cell in toindices(obj)`). This ensures we only connect cells within the same object.
+4. **Paint:** Finally, `paint` the grid using the color of the first connected cell, effectively creating the vertical line connections.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  lines = set()
+  for obj in objs:
+    for j in range(width(obj)): # Iterate through columns of the object's bounding box
+      top_cell = (uppermost(obj), j)
+      if top_cell in toindices(obj): # If there's a cell on the topmost row in this column
+        line = connect(top_cell, (lowermost(obj), j)) # Draw a vertical line downwards
+        lines.add(line)
+  O = paint(I, merge(apply(lambda line: recolor(color(first(toobject(line, I))), line), lines)))
+  return O
+```
+
+**Explanation:**
+
+1. **Object and Line Initialization:** Similar to version 1, it starts by identifying objects and initializing an empty set `lines` to store the lines to be drawn.
+2. **Column-wise Iteration:** Instead of iterating through all cells, this version iterates through each column (`j`) within the object's bounding box (`width(obj)`).
+3. **Top Cell Detection:** It checks if there's a cell belonging to the object on the topmost row (`uppermost(obj)`) for the current column (`j`).
+4. **Line Creation:** If a top cell exists, it creates a vertical line using `connect` from the top cell to the bottom row (`lowermost(obj)`) of the object in that column.
+5. **Painting:**  The `paint` function is used to draw the lines on the grid, using the color of the first cell in each line.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  painted = set()
+  for obj in objs:
+    upper_indices = {(i, j) for i, j in toindices(obj) if i == uppermost(obj)} # Find all top indices
+    for i, j in upper_indices:
+      for k in range(i + 1, height(I)): # Check downwards from each top index
+        if (k, j) in toindices(obj):
+          painted.add((k, j))
+  O = paint(I, recolor(color(first(toobject(painted, I))), painted)) 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Top Indices:** Instead of iterating through all cells, this version directly identifies the indices of all cells on the topmost row of each object (`upper_indices`).
+2. **Downward Check:**  For each `(i, j)` in `upper_indices`, it iterates downwards (increasing `k` from `i+1`) within the grid's height (`height(I)`).
+3. **Conditional Painting:** If a cell `(k, j)` belongs to the current object (`(k, j) in toindices(obj)`), it's added to the `painted` set. 
+4. **Paint:** Finally, the `paint` function is used to color the connected cells.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  connected = set()
+  for obj in objs:
+    top_row = uppermost(obj)
+    bottom_row = lowermost(obj)
+    for j in range(width(I)):
+      if (top_row, j) in toindices(obj): # If a cell exists on the top row of this column
+        connected |= {(i, j) for i in range(top_row, bottom_row + 1) if (i, j) in toindices(obj)}
+  O = paint(I, recolor(color(first(toobject(connected, I))), connected))
+  return O
+```
+
+**Explanation:**
+
+1. **Find Top and Bottom Rows:** For each object, this version identifies the `uppermost` and `lowermost` rows.
+2. **Column-wise Iteration and Connection:**  It iterates through each column (`j`) of the grid's width (`width(I)`). If a cell exists on the topmost row (`(top_row, j) in toindices(obj)`), it directly includes all cells from the top row to the bottom row in that column, belonging to the current object, in the `connected` set.
+3. **Paint:** The `paint` function then colors all connected cells.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  lines = []
+  for obj in objs:
+    top_indices = [j for i, j in toindices(obj) if i == uppermost(obj)]
+    for j in top_indices:
+      lines.append(connect((uppermost(obj), j), (lowermost(obj), j)))
+  O = I
+  for line in lines:
+    O = paint(O, recolor(color(first(toobject(line, I))), line))
+  return O 
+```
+
+**Explanation:**
+
+1. **Store Lines:** Instead of directly painting, this version first identifies the vertical lines to be drawn and stores them in the `lines` list. 
+2. **Iterative Painting:**  It then iterates through the `lines` list and paints each line individually on a copy of the input grid (`O`). This sequential painting approach achieves the desired transformation.
+
+
+These five versions showcase different approaches to achieve the same transformation, demonstrating diversity in utilizing the provided DSL functions. Each version focuses on a distinct aspect of the problem, offering unique ways to process and manipulate the input grid.

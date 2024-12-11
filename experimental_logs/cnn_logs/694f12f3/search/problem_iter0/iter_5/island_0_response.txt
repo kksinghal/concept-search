@@ -1,0 +1,158 @@
+## Transformation Analysis:
+
+The transformation focuses on recoloring the background surrounding objects within the input grid. It identifies objects as connected components of non-background digits and then fills the area within the object's bounding box, excluding the object itself, with a specific color. 
+
+* **Color Assignment:** Each object is assigned a unique color based on its position relative to the grid's horizontal center. Objects above the center line receive one color, while those below receive a different color.
+* **Background Preservation:** The transformation only affects the background cells; the original object pixels retain their colors.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the "Program_to_be_generated" code along with their explanations:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  """
+  This version leverages the 'objects' function with 'univalued' set to True to identify individual objects. 
+  It then uses 'centerofmass' to determine an object's position relative to the grid's horizontal center and 
+  recolors the background accordingly.
+  """
+  O = I
+  for i, obj in enumerate(objects(I, T, F, T)):
+    center_j = centerofmass(obj)[1]
+    grid_center_j = width(I) // 2
+    new_color = 1 if center_j < grid_center_j else 2
+    O = fill(O, new_color, difference(backdrop(obj), box(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` identifies connected components of non-background digits as individual objects.
+2. **Determine Position and Recolor:** For each object:
+    - `centerofmass(obj)[1]` finds the horizontal center of the object.
+    - `width(I) // 2` calculates the horizontal center of the grid.
+    - Based on the object's position relative to the grid's center, it assigns `new_color` as 1 (left) or 2 (right).
+    - `fill(O, new_color, difference(backdrop(obj), box(obj)))` colors the background within the object's bounding box, excluding the object itself, with the `new_color`.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  """
+  This version iterates through each cell in the grid. If a cell is not the background color, it identifies the 
+  object to which the cell belongs and determines the object's position relative to the grid's center 
+  using 'leftmost' and 'rightmost'. The background is then recolored accordingly.
+  """
+  O = I
+  bg = mostcolor(I)
+  h, w = len(I), len(I[0])
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != bg:
+        obj = next((obj for obj in objects(I, T, F, T) if (i, j) in toindices(obj)), None)
+        left = leftmost(obj)
+        right = rightmost(obj)
+        new_color = 1 if (left + right) // 2 < w // 2 else 2
+        O = fill(O, new_color, difference(backdrop(obj), box(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate Through Cells:** The program iterates through each cell in the grid.
+2. **Identify Object and Position:** If a cell is not the background color:
+    - It finds the object containing the current cell using list comprehension over `objects(I, T, F, T)`.
+    - `leftmost(obj)` and `rightmost(obj)` find the leftmost and rightmost column indices of the object.
+    - It calculates the object's horizontal center and compares it to the grid's center to assign `new_color`.
+    -  It recolors the background within the object's bounding box using `fill`.
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  """
+  This version utilizes the 'partition' function to efficiently group cells into objects based on their 
+  color. It then determines each object's position relative to the grid's center using the average 
+  column index of its cells and recolors the background accordingly.
+  """
+  O = I
+  w = width(I)
+  for obj in partition(I):
+    if len(obj) > 0 and next(iter(obj))[0] != mostcolor(I):
+      avg_j = sum(j for _, (i, j) in obj) // len(obj)
+      new_color = 1 if avg_j < w // 2 else 2
+      O = fill(O, new_color, difference(backdrop(obj), box(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Group Cells into Objects:** `partition(I)` efficiently groups cells into objects based on their color.
+2. **Determine Position and Recolor:** For each non-background object:
+    - `avg_j` calculates the average column index of its cells, representing the object's horizontal center.
+    - It compares `avg_j` to the grid's center to assign `new_color`.
+    - It recolors the background within the object's bounding box using `fill`.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  """
+  This version uses a recursive approach to identify and recolor the background surrounding objects. 
+  It starts from the top-left corner and recursively explores connected cells, assigning colors 
+  based on their horizontal position relative to the grid's center.
+  """
+  h, w = len(I), len(I[0])
+  bg = mostcolor(I)
+  visited = set()
+  
+  def recolor_recursive(i, j, current_color):
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or I[i][j] == bg:
+      return
+    visited.add((i, j))
+    O[i][j] = current_color
+    for di, dj in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+      recolor_recursive(i + di, j + dj, current_color)
+  
+  O = [[bg for _ in range(w)] for _ in range(h)]
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != bg and (i, j) not in visited:
+        new_color = 1 if j < w // 2 else 2
+        recolor_recursive(i, j, new_color)
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Recursive Exploration:** It defines a recursive function `recolor_recursive` to explore connected cells.
+2. **Base Case:** The recursion stops if a cell is already visited, out of bounds, or the background color.
+3. **Recursive Steps:** It marks the current cell as visited, assigns the appropriate `current_color`, and recursively calls itself for neighboring cells.
+4. **Iteration and Color Assignment:** It iterates through each cell, and if it's a non-background, unvisited cell, it determines the `new_color` based on its horizontal position and initiates the recursive coloring.
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  """
+  This version uses 'hsplit' to divide the grid into two halves. 
+  It then processes each half, identifying objects and filling the background with the corresponding color. 
+  Finally, it merges the two halves using 'hconcat'.
+  """
+  left_half, right_half = hsplit(I, 2)
+  O_left = fill(left_half, 1, difference(asindices(left_half), merge(toindices(obj) for obj in objects(left_half, T, F, T))))
+  O_right = fill(right_half, 2, difference(asindices(right_half), merge(toindices(obj) for obj in objects(right_half, T, F, T))))
+  return hconcat(O_left, O_right)
+```
+
+**Explanation:**
+
+1. **Split the Grid:** `hsplit(I, 2)` divides the grid into two halves.
+2. **Process Each Half:** 
+    - It identifies objects within each half using `objects(left_half, T, F, T)` and `objects(right_half, T, F, T)`.
+    - `fill` function is used to color the background of each half with the corresponding color (1 for left, 2 for right).
+3. **Merge Halves:** `hconcat(O_left, O_right)` merges the two processed halves back into a single grid.
+
+These five versions demonstrate various approaches to achieve the desired transformation. Each utilizes different DSL functions and logic, providing a diverse set of solutions.

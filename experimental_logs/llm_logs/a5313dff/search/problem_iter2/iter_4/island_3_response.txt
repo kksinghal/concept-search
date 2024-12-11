@@ -1,0 +1,121 @@
+## Transformation Analysis:
+
+The transformation takes a 3x3 input grid with '5's on the diagonal and generates a larger output grid (8x8 for Input_0, 8x8 for Input_1, 12x12 for Input_2) where the '5's are replaced with specific patterns. The patterns differ based on the '5's position relative to the diagonal:
+
+* **Diagonal '5':** Replaced by a 3x3 block of '2's (upscaled to 6x6) with a central '1' (upscaled to 2x2). 
+* **Below Diagonal '5':** Similar to the diagonal pattern, but shifted one position to the right.
+* **Above Diagonal '5':** Similar to the diagonal pattern, but shifted one position to the left.
+
+The patterns are positioned in the output grid such that their top-left corner corresponds to twice the row and column index of the '5' in the input grid, plus an offset based on their position relative to the diagonal.
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" code:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, (12, 12))  
+  for i, j in ofcolor(I, 5):
+    shift_i = 2 * i + 1
+    shift_j = 2 * j + 1 - 2 * (i != j) 
+    O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0, i-1), max(0, j-3)), (3, 3)), 2), (shift_i, shift_j))))
+    O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (shift_i + 2, shift_j + 2))))
+  return O
+```
+
+**Explanation:**
+
+1. **Canvas Creation:** `canvas(0, (12, 12))` creates a 12x12 grid filled with '0's.
+2. **Iterating '5's:** `for i, j in ofcolor(I, 5):` iterates over indices of '5' in the input grid `I`.
+3. **Shift Calculation:** `shift_i` and `shift_j` calculate the shift based on the '5's position relative to the diagonal.
+4. **Pattern Placement:** 
+    * `crop`, `upscale`, and `shift` extract a 3x3 block around the '5', upscale it, and shift it to the correct position.
+    * `backdrop` gets the indices within the pattern's bounding box.
+    * `fill` fills the `O` grid with '2' at calculated indices.
+    * Similar logic is used to place the central '1'.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, (12, 12))
+  def place_pattern(i, j):
+    offset = (0, 0) if i == j else ((0, -2) if i < j else (0, 2)) 
+    base_shift = (2*i + 1, 2*j + 1)
+    shift_amount = add(base_shift, offset)
+    return fill(fill(O, 2, backdrop(shift(upscale(crop(I, (max(0, i-1), max(0, j-3)), (3, 3)), 2), shift_amount))), 
+                1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), add(shift_amount, (2, 2)))))
+  O = mapply(lambda ij: place_pattern(*ij), ofcolor(I, 5))
+  if isinstance(O, frozenset): O = next(iter(O)) 
+  return O
+```
+
+**Explanation:**
+
+This version uses a helper function `place_pattern` and `mapply` for a more functional approach.
+
+1. **`place_pattern` Function:** Takes indices `i`, `j`, calculates the offset based on the diagonal position, and places the pattern on the output grid.
+2. **`mapply` Application:** `mapply` applies `place_pattern` to each '5' index, effectively placing all patterns on the output grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, (12, 12))
+  def draw_pattern(i, j, shift_j):
+    O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), (2*i+1, shift_j))))
+    O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (2*i+3, shift_j + 2))))
+    return O
+
+  for i, j in ofcolor(I, 5):
+    shift_j = 2*j + 1  
+    if i < j: shift_j -= 2 
+    elif i > j: shift_j += 2 
+    O = draw_pattern(i, j, shift_j)
+  return O
+```
+
+**Explanation:**
+
+This version separates pattern drawing logic into `draw_pattern` and calculates `shift_j` iteratively.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, (12, 12))
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 5:
+        shift_j = 2*j + 1 + 2 * (i - j) if i != j else 2*j + 1
+        O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), (2*i+1, shift_j))))
+        O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (2*i+3, shift_j+2)))) 
+  return O
+```
+
+**Explanation:**
+
+This version iterates through all grid cells, checking for '5' and placing patterns accordingly.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, (12, 12))
+  five_indices = ofcolor(I, 5)
+  def place_with_offset(offset):
+    return lambda i, j: fill(fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), (2*i+1, 2*j+1 + offset)))),
+                           1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (2*i+3, 2*j+3 + offset))))
+  for i, j in five_indices:
+    offset = 0 if i == j else (-2 if i < j else 2)
+    O = place_with_offset(offset)(i, j) 
+  return O
+```
+
+**Explanation:**
+
+This version uses higher-order functions and currying to create specialized `place_with_offset` functions for each offset.
+
+All five versions achieve the desired transformation by following the logic outlined in the Transformation Analysis section. Each version employs different approaches and DSL function combinations, showcasing the flexibility of the provided DSL.

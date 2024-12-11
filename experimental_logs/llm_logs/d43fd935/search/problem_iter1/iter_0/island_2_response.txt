@@ -1,0 +1,154 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:** The transformation involves identifying objects formed by the digit '1' and extending them horizontally to the right until they reach another object.
+
+**Input_1 to Output_1:** Similar to the first transformation, this time objects formed by the digit '7' are identified and extended horizontally to the right until encountering another object. Additionally, objects formed by the digit '8' are extended horizontally to the left until reaching another object.
+
+**Input_2 to Output_2:**  The objects formed by the digit '1' are identified and extended vertically downwards until encountering another object. 
+
+## Program Versions:
+
+**Program Version 1**
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, True, False, True)
+    bg = mostcolor(I)
+    for obj in objs:
+        c = color(obj)
+        leftmost_j = leftmost(obj)
+        rightmost_j = rightmost(obj)
+        for j in range(leftmost_j, rightmost_j + 1):
+            for i in range(len(I)):
+                if (i, j) in toindices(obj):
+                    break
+                if I[i][j] == bg:
+                    I = fill(I, c, {(i, j)})
+    return I
+```
+
+**Explanation:**
+
+1. **Identify objects:** The code first identifies all objects in the input grid `I` using the `objects` function. The parameters specify that we are looking for single-color objects (`True`), not considering diagonal connections (`False`), and excluding the background color (`True`).
+2. **Iterate through objects:** The code iterates through each identified object `obj`.
+3. **Determine object color and horizontal boundaries:** For each object, the code retrieves the object's color (`c`) and its leftmost (`leftmost_j`) and rightmost (`rightmost_j`) column indices.
+4. **Extend object horizontally:** The code then iterates through all grid cells within the object's horizontal boundaries and fills them with the object's color (`c`) if they are currently the background color (`bg`). This effectively extends the object horizontally to the right until it hits another object. 
+
+**Program Version 2**
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, True, False, True)
+    bg = mostcolor(I)
+    for obj in objs:
+        if portrait(obj):
+            direction = (1, 0)
+        else:
+            direction = (0, 1)
+        for loc in toindices(obj):
+            ray = shoot(loc, direction)
+            for i, j in ray:
+                if 0 <= i < len(I) and 0 <= j < len(I[0]):
+                    if I[i][j] == bg:
+                        I = fill(I, color(obj), {(i, j)})
+                    else:
+                        break
+                else:
+                    break
+    return I
+```
+
+**Explanation:**
+
+1. **Identify objects and background:** This version identifies objects and the background color similarly to Version 1.
+2. **Determine extension direction:** For each object, it determines if it's taller than it is wide (`portrait(obj)`). If so, it extends vertically (`direction = (1, 0)`), otherwise horizontally (`direction = (0, 1)`).
+3. **Shoot rays and extend:** It iterates through each cell (`loc`) of the object and "shoots" a ray (`shoot(loc, direction)`) in the determined direction. For each cell along the ray, it fills it with the object's color if it's currently the background color. The ray stops upon hitting another object or the grid boundary.
+
+**Program Version 3**
+
+**Code:**
+
+```python
+def solve(I):
+    transposed = dmirror(I)
+    O = solve_version_1(transposed)
+    return dmirror(O)
+```
+
+**Explanation:**
+
+1. **Transpose the grid:** This version first transposes the input grid using `dmirror(I)`. This effectively swaps rows and columns.
+2. **Apply horizontal extension:** It then applies a modified version of `solve_version_1` (assuming `solve_version_1` handles only horizontal extension) to the transposed grid.
+3. **Transpose back:** Finally, it transposes the result back to the original orientation using `dmirror(O)`. 
+
+This version cleverly utilizes existing functionality by transforming the problem into a scenario that can be solved by `solve_version_1`.
+
+**Program Version 4**
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, True, False, True)
+    bg = mostcolor(I)
+    for obj in objs:
+        for other_obj in objs:
+            if obj != other_obj:
+                if manhattan(obj, other_obj) == 2:
+                    connection_line = connect(centerofmass(obj), centerofmass(other_obj))
+                    for i, j in connection_line:
+                        if 0 <= i < len(I) and 0 <= j < len(I[0]):
+                            if I[i][j] == bg:
+                                I = fill(I, color(obj), {(i, j)})
+    return I
+```
+
+**Explanation:**
+
+1. **Identify objects and background:** This version identifies objects and the background color.
+2. **Find closely spaced objects:** It iterates through each pair of distinct objects (`obj` and `other_obj`) and checks if their Manhattan distance is 2, indicating a one-cell gap.
+3. **Connect with a line:** If a close pair is found, it draws a line (`connect`) between their centers of mass (`centerofmass`).
+4. **Fill the gap:** It then iterates through each cell on the line and fills it with the first object's color (`color(obj)`) if it's currently the background color.
+
+**Program Version 5**
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, True, False, True)
+    for obj in objs:
+        expansion = set(toindices(obj))
+        for _ in range(max(len(I), len(I[0]))):
+            new_expansion = set()
+            for i, j in expansion:
+                neighbors = {(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)}
+                for ni, nj in neighbors:
+                    if 0 <= ni < len(I) and 0 <= nj < len(I[0]):
+                        if I[ni][nj] == mostcolor(I):
+                            new_expansion.add((ni, nj))
+            if not new_expansion:
+                break
+            expansion.update(new_expansion)
+        I = fill(I, color(obj), frozenset(expansion))
+    return I
+
+```
+
+**Explanation:**
+
+1. **Identify objects:** This version identifies objects.
+2. **Iterative expansion:** For each object, it iteratively expands its area outwards. 
+    - It starts with the object's initial cells (`expansion`).
+    - In each iteration, it checks the four neighbors of each cell in `expansion`.
+    - If a neighbor is the background color, it's added to `new_expansion`.
+    - If `new_expansion` is empty, meaning no expansion occurred, the loop breaks.
+    - Otherwise, `new_expansion` is merged into `expansion`, and the process repeats.
+3. **Fill expanded area:** Finally, the expanded area is filled with the object's color.
+
+
+These five program versions offer diverse approaches to achieve the desired transformation, utilizing various combinations of DSL functions and logic. Each version provides a unique perspective on solving the problem, highlighting the flexibility and expressiveness of the provided DSL.

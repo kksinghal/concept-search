@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+The transformation focuses on recoloring the central columns of objects within the grid. 
+
+**Input_0:** 
+- The top object (4s) has its two central columns recolored to 1.
+- The bottom object (4s) has its two central columns recolored to 2.
+
+**Input_1:**
+- The top object (4s) has its two central columns recolored to 2.
+- The bottom object (4s) has its two central columns recolored to 1.
+
+**Generalization:**
+- The transformation identifies distinct objects within the grid.
+- For each object, it determines the central two columns based on the object's width.
+- It then recolors these central columns. The new color depends on the object's vertical position relative to other objects: the top object receives one color, and any other object receives a different color.
+
+## Code Generation:
+
+Here are five distinct versions of "Program_to_be_generated" to achieve this transformation, using only the functions provided in the DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  
+  def recolor_center_columns(obj, new_color):
+    leftmost_col = leftmost(obj)
+    central_cols = frozenset((i, j) for i, j in toindices(obj) 
+                             if leftmost_col + width(obj)//2 - 1 <= j <= leftmost_col + width(obj)//2)
+    return recolor(new_color, central_cols)
+
+  O = I
+  for i, obj in enumerate(sorted(objs, key=uppermost)):
+    new_color = 1 if i == 0 else 2 
+    recolored_obj = recolor_center_columns(obj, new_color)
+    O = paint(O, recolored_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** It uses `objects` to identify distinct objects, considering connected cells with the same value.
+2. **Recolor Central Columns:** The `recolor_center_columns` function calculates the central two columns and uses `recolor` to change their color.
+3. **Iterate and Paint:** It iterates through the objects, ordered by their vertical position (`uppermost`). The top object gets color 1, and subsequent objects receive color 2. It then paints the recolored objects back onto the grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = partition(I) - {frozenset({(mostcolor(I), (i, j)) for i, r in enumerate(I) for j, v in enumerate(r)})}
+
+  def recolor_center(obj, new_color):
+    _, w = shape(obj)
+    offset = (w - 2) // 2
+    return recolor(new_color, frozenset((i, j) for i, j in toindices(obj) 
+                                       if leftmost(obj) + offset <= j <= leftmost(obj) + offset + 1))
+
+  O = I
+  for i, obj in enumerate(sorted(objs, key=lambda obj: min(i for i, j in toindices(obj)))):
+    if len(obj) > 1: 
+      new_color = 1 if i == 0 else 2
+      recolored_obj = recolor_center(obj, new_color)
+      O = paint(O, recolored_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Isolate Objects:**  Uses `partition` to separate objects, then removes the background object.
+2. **Recolor Center:**  `recolor_center` calculates the central columns based on width and offsets, using `recolor` for the change.
+3. **Sorted Painting:**  Iterates over objects, sorted by their topmost row. The first object gets one color, the rest another. It then paints them onto the grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+
+  def recolor_middle(obj, new_color):
+    left, _ = ulcorner(obj)
+    right, _ = lrcorner(obj)
+    middle = (left + right) // 2
+    return recolor(new_color, frozenset((i, j) for i, j in toindices(obj) if j in (middle - 1, middle)))
+
+  output_grid = I
+  for i, obj in enumerate(sorted(objs, key=lambda x: min(x, key=lambda y: y[1])[1][0])):
+    output_grid = paint(output_grid, recolor_middle(obj, 1 if i == 0 else 2))
+  return output_grid 
+```
+
+**Explanation:**
+
+1. **Foreground Objects:**  `fgpartition` extracts objects, excluding the background.
+2. **Middle Recoloring:** `recolor_middle` finds the middle columns and recolors them using `recolor`.
+3. **Sorted Overpainting:** Iterates through objects, sorted by their uppermost row. The top object gets one color, others a different one.  Recolored objects are painted onto the output grid.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objects_list = sorted(objects(I, univalued=True, diagonal=False, without_bg=True), key=lambda obj: min([i for i, j in toindices(obj)]))
+
+  def color_central_columns(obj, new_color):
+    min_col = min([j for _, (i, j) in obj])
+    max_col = max([j for _, (i, j) in obj])
+    middle_col_1 = (min_col + max_col) // 2
+    middle_col_2 = middle_col_1 - 1 if (max_col - min_col) % 2 == 0 else middle_col_1 + 1
+    return frozenset({(v, (i, j)) if j not in [middle_col_1, middle_col_2] else (new_color, (i, j)) for v, (i, j) in obj})
+
+  output_grid = I
+  for idx, obj in enumerate(objects_list):
+    output_grid = paint(output_grid, color_central_columns(obj, 1 if idx == 0 else 2))
+
+  return output_grid
+```
+
+**Explanation:**
+
+1. **Extract and Sort:**  Extracts objects (excluding background) and sorts them based on their top row position.
+2. **Color Central:** `color_central_columns` finds and recolors the central two columns of an object.
+3. **Iterative Painting:** Iterates through sorted objects, coloring the central columns based on object's order. The top object gets one color, others another. The recolored objects are painted onto the grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_columns(obj, new_color):
+    min_j = leftmost(obj)
+    max_j = rightmost(obj)
+    middle_j = (min_j + max_j) // 2
+    return frozenset((color, (i, j)) if j != middle_j and j != (middle_j - (max_j - min_j) % 2)
+                      else (new_color, (i, j))
+                      for color, (i, j) in obj)
+
+  objects_in_grid = objects(I, univalued=True, diagonal=False, without_bg=True)
+  sorted_objects = sorted(objects_in_grid, key=lambda obj: min([i for i, j in toindices(obj)]))
+
+  output_grid = I
+  for i, obj in enumerate(sorted_objects):
+      output_grid = paint(output_grid, recolor_columns(obj, 1 if i == 0 else 2))
+
+  return output_grid
+
+```
+
+**Explanation:**
+
+1. **Central Column Recoloring:**  `recolor_columns` identifies and recolors the central two columns of an object.
+2. **Object Extraction and Sorting:**  Extracts objects (excluding background) from the grid and sorts them based on their top row position.
+3. **Iterative Recoloring and Painting:** Iterates through sorted objects, recoloring central columns based on the object's position. The first object receives one color, all others get a different color.  Finally, it paints the recolored objects back onto the grid. 
+
+
+These five versions provide distinct approaches to achieve the desired transformation using different combinations of DSL functions. Each version ensures the central columns of each object are identified and recolored based on their position relative to other objects.

@@ -1,0 +1,158 @@
+## Transformation Analysis:
+
+**Input 0 -> Output 0:** 
+The transformation involves the following steps:
+1. **Identify and separate single-cell objects:** Find all occurrences of the digit '3' that are not connected to any other '3'.
+2. **Shift these single-cell objects:** Move each identified single-cell object one cell diagonally down and to the right. 
+3. **Recolor:** Change the color of the original '3's to '2'.
+
+**Input 1 -> Output 1:**
+This transformation follows the same logic as above:
+1. **Identify and separate single-cell objects:** Find all single occurrences of the digit '3'.
+2. **Shift these single-cell objects:** Move each identified single-cell object one cell diagonally down and to the right.
+3. **Recolor:** Change the color of the original '3's to '2'.
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve_42a50994(I):
+    # Identify single-cell '3' objects
+    objs = objects(I, True, False, True)
+    single_cell_objs = sizefilter(objs, 1)
+
+    # Shift and recolor each single-cell object
+    shifted_objs = frozenset({recolor(2, shift(obj, (1,1))) for obj in single_cell_objs})
+
+    # Paint the shifted objects and replace original '3' with '2'
+    O = paint(replace(I, 3, 2), merge(shifted_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify single-cell '3' objects:**
+   - `objects(I, True, False, True)` finds all connected components (objects) in the grid where `True, False, True` specifies univalued objects, no diagonal connections, and exclusion of the background color.
+   - `sizefilter(objs, 1)` filters the objects to keep only those with a size of 1 (single-cell objects).
+2. **Shift and recolor each single-cell object:**
+   - `shift(obj, (1,1))` moves each object one cell down and one cell right.
+   - `recolor(2, ...)` changes the color of the shifted object to '2'.
+3. **Paint the shifted objects and replace original '3' with '2'**:
+   - `merge(shifted_objs)` combines all shifted objects into a single object.
+   - `replace(I, 3, 2)` replaces all occurrences of '3' in the input grid with '2'.
+   - `paint(..., ...)` paints the merged shifted objects onto the modified grid.
+
+**Program Version 2:**
+
+```python
+def solve_42a50994(I):
+    # Find indices of single-cell '3's
+    indices_3 = ofcolor(I, 3)
+    single_cell_indices = frozenset(
+        loc for loc in indices_3 if len(dneighbors(loc) & indices_3) == 0
+    )
+    
+    # Shift and recolor the indices
+    shifted_indices = frozenset(((i+1)%len(I), (j+1)%len(I[0])) for i, j in single_cell_indices)
+    
+    # Modify the grid
+    O = paint(fill(I, 0, single_cell_indices), recolor(2, shifted_indices))
+    return O
+```
+
+**Explanation:**
+
+1. **Find indices of single-cell '3's:**
+   - `ofcolor(I, 3)` retrieves the indices of all cells containing the value '3'.
+   - The loop filters for single-cell '3's by checking if their direct neighbors also contain '3'.
+2. **Shift and recolor the indices:**
+   - Similar to version 1, it shifts each index diagonally down and right.
+   - `recolor(2, ...)` assigns the color '2' to the shifted indices.
+3. **Modify the grid:**
+   - `fill(I, 0, single_cell_indices)` sets the original positions of single-cell '3's to '0'.
+   - `paint(..., ...)` paints the shifted indices with color '2' onto the modified grid.
+
+**Program Version 3:**
+
+```python
+def solve_42a50994(I):
+    # Create a blank canvas
+    O = canvas(0, shape(I))
+
+    # Iterate through the grid and apply transformation
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if I[i][j] == 3 and all(I[i+di][j+dj] != 3 for di, dj in [(0,1), (1,0), (1,1), (-1,0), (0,-1), (-1,-1), (1,-1), (-1,1)] if 0 <= i + di < len(I) and 0 <= j + dj < len(I[0])):
+                O = paint(O, {(2, ((i + 1) % len(I), (j + 1) % len(I[0])))})
+            else:
+                O = paint(O, {(I[i][j], (i, j))})
+    return O
+```
+
+**Explanation:**
+
+1. **Create a blank canvas:** `canvas(0, shape(I))` creates a new grid of the same size as the input, filled with '0's.
+2. **Iterate and transform:** It iterates through every cell of the input grid.
+   - If a cell contains '3' and has no adjacent '3's (checked using the list of relative neighbor coordinates), it paints '2' diagonally down and right on the output canvas.
+   - Otherwise, it copies the original value and position to the output canvas.
+
+**Program Version 4:**
+
+```python
+def solve_42a50994(I):
+  # Extract objects
+  objs = objects(I, True, False, True)
+  
+  # Differentiate single-cell objects from others
+  single_cells = sizefilter(objs, 1)
+  other_objs = objs - single_cells
+  
+  # Apply transformation to single-cell objects
+  shifted_objs = mapply(lambda obj: shift(recolor(2, obj), (1,1)), single_cells)
+  
+  # Combine and paint all objects onto a blank canvas
+  O = paint(paint(canvas(0, shape(I)), merge(other_objs)), merge(shifted_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Extract objects:** Similar to previous versions, it identifies objects in the input grid.
+2. **Differentiate single-cell objects:** It separates single-cell objects from others.
+3. **Apply transformation to single-cell objects:** `mapply` applies the `shift` and `recolor` functions to each single-cell object.
+4. **Combine and paint:** It paints the original multi-cell objects and then the transformed single-cell objects onto a blank canvas.
+
+**Program Version 5:**
+
+```python
+def solve_42a50994(I):
+    # Find locations of single-cell '3's
+    single_cell_locs = frozenset(
+        (i, j)
+        for i in range(len(I))
+        for j in range(len(I[0]))
+        if I[i][j] == 3 and sum(I[i + di][j + dj] == 3 for di, dj in [(0, 1), (1, 0), (1, 1), (-1, 0), (0, -1), (-1, -1), (1, -1), (-1, 1)] if 0 <= i + di < len(I) and 0 <= j + dj < len(I[0])) == 0
+    )
+
+    # Create a new grid by applying the transformation
+    O = tuple(
+        tuple(
+            2 if (i, j) in {(x + 1, y + 1) for x, y in single_cell_locs} else (0 if (i, j) in single_cell_locs else I[i][j])
+            for j in range(len(I[0]))
+        )
+        for i in range(len(I))
+    )
+    return O
+```
+
+**Explanation:**
+
+1. **Find locations of single-cell '3's:** It iterates through the grid and finds indices of single-cell '3's by checking for adjacent '3's.
+2. **Create a new grid with transformation:** It creates a new grid using nested list comprehensions:
+   - If a cell's index is one cell down and right of a single-cell '3' location, it sets the value to '2'.
+   - If a cell's index matches a single-cell '3' location, it sets the value to '0'.
+   - Otherwise, it copies the value from the input grid.
+
+
+These five program versions demonstrate different approaches to achieve the desired transformation, utilizing various DSL functions and logic. Each version provides a unique solution while adhering to the DSL constraints. 

@@ -1,0 +1,121 @@
+## Transformation Analysis:
+
+The transformation identifies the outer perimeter cells of each connected object (considering only directly adjacent cells, not diagonals). Then, it changes the color of these perimeter cells to 1 while leaving the internal cells of the object unchanged. 
+
+**Example:**
+
+In Input_0, the '8's form a single connected object. The transformation identifies the outer perimeter cells of this object and changes their values to '1'. The internal '8's remain unchanged.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+    # Find all objects
+    objs = objects(I, T, F, T) 
+    # Find the outer perimeter indices of each object
+    perimeter_indices = mapply(lambda obj: delta(toindices(obj)), objs)
+    # Fill the perimeter indices with 1
+    O = fill(I, ONE, perimeter_indices)
+    return O 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`**: Identifies all connected objects in the grid `I`. `T, F, T` specifies objects are univalued, not diagonally connected, and without background.
+2. **`perimeter_indices = mapply(lambda obj: delta(toindices(obj)), objs)`**: For each object, it calculates the difference between its bounding box (`backdrop`) and its actual indices (`toindices`), effectively finding the perimeter.
+3. **`O = fill(I, ONE, perimeter_indices)`**:  Fills the identified perimeter indices in the original grid `I` with the value `ONE` (which is 1).
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  # Find indices of all non-background cells
+  fg_indices = toindices(objects(I, T, F, T))
+  # Find indices adjacent to non-background cells
+  adjacent_indices = mapply(dneighbors, fg_indices)
+  # Identify perimeter cells by finding adjacent indices not part of the objects
+  perimeter_indices = difference(adjacent_indices, fg_indices)
+  # Fill perimeter cells with 1
+  O = fill(I, ONE, perimeter_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **`fg_indices = toindices(objects(I, T, F, T))`**:  Gets the indices of all non-background cells by finding all objects and extracting their indices.
+2. **`adjacent_indices = mapply(dneighbors, fg_indices)`**: Finds all indices directly adjacent to the non-background cells.
+3. **`perimeter_indices = difference(adjacent_indices, fg_indices)`**:  Identifies perimeter indices by keeping only the adjacent indices that are not part of the original object cells.
+4. **`O = fill(I, ONE, perimeter_indices)`**: Fills the identified perimeter indices with 1.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  # Create a canvas of the same size as the input, filled with 1s
+  O = canvas(ONE, shape(I))
+  # Find all objects
+  objs = objects(I, T, F, T)
+  # Fill the area covered by objects in the new canvas with the original values
+  O = mapply(lambda obj: paint(O, obj), objs)
+  return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(ONE, shape(I))`**: Creates a new grid `O` with the same dimensions as input `I`, filled entirely with 1s.
+2. **`objs = objects(I, T, F, T)`**:  Identifies all connected objects in the input grid `I`.
+3. **`O = mapply(lambda obj: paint(O, obj), objs)`**:  Paints each object from the input grid onto the new canvas `O`. This overwrites the 1s with the object's original values, effectively leaving only the perimeter as 1s.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  # Find all object indices
+  obj_indices = toindices(objects(I, T, F, T))
+  # Check each cell in the grid
+  O = canvas(ZERO, shape(I))
+  h, w = shape(I)
+  for i in range(h):
+    for j in range(w):
+      # If a cell is background and has a directly adjacent non-background cell, mark it as 1
+      if (i,j) not in obj_indices and len(intersection(dneighbors((i, j)), obj_indices)) > 0:
+        O = fill(O, ONE, {(i,j)})
+      else:
+        O = fill(O, index(I, (i, j)), {(i,j)})
+  return O
+```
+
+**Explanation:**
+
+1. **`obj_indices = toindices(objects(I, T, F, T))`**:  Extracts the indices of all object cells.
+2. **`O = canvas(ZERO, shape(I))`**: Creates an empty canvas `O` of the same size as the input.
+3. **Loop through each cell**: Iterates through each cell of the grid.
+    - If the cell is not part of an object (`(i,j) not in obj_indices`) and has at least one directly adjacent neighbor that is part of an object (`len(intersection(dneighbors((i, j)), obj_indices)) > 0`), it's a perimeter cell and is filled with 1.
+    - Otherwise, the cell takes the original value from the input grid.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  # Define a function to check if a cell is on the perimeter of an object
+  def is_perimeter(i, j, obj_indices):
+    return (i, j) not in obj_indices and len(intersection(dneighbors((i, j)), obj_indices)) > 0
+  # Find all object indices
+  obj_indices = toindices(objects(I, T, F, T))
+  # Apply the is_perimeter function to each cell of the grid
+  O = prapply(lambda i, j: ONE if is_perimeter(i, j, obj_indices) else index(I, (i, j)), *shape(I))
+  return tuple(totuple(row) for row in totuple(O)) 
+```
+
+**Explanation:**
+
+1. **`is_perimeter` function**:  Defines a helper function to determine if a cell at `(i, j)` is a perimeter cell.  It's the same logic as in Version 4.
+2. **`obj_indices = toindices(objects(I, T, F, T))`**: Extracts the indices of all object cells.
+3. **`O = prapply(...)`**:  Applies the `is_perimeter` function to every possible cell coordinate generated from the grid's shape using `prapply`. This creates a set of sets, where each inner set represents a row, and each element is either 1 (perimeter) or the original cell value.
+4. **`return tuple(totuple(row) for row in totuple(O))`**: Converts the set of sets into the desired grid (tuple of tuples) format. 
+
+These five program versions offer different approaches to achieve the same transformation, showcasing the flexibility of the DSL. Each version uses a distinct combination of functions and logic, demonstrating a variety of ways to solve the problem. 

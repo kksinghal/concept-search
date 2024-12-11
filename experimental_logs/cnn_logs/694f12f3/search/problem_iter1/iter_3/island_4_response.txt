@@ -1,0 +1,148 @@
+## Transformation Analysis:
+
+The transformation appears to apply two distinct operations on the input grid, based on the vertical positioning of objects:
+
+**Top Objects:** For objects located in the top half of the grid, a vertical line is drawn across the middle two columns of the object, using the value '1'.
+
+**Bottom Objects:** For objects located in the bottom half of the grid, the upper half of the object is filled with the value '2'.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)
+  for obj in objs:
+    if uppermost(obj) < len(I) // 2:
+      I = fill(I, 1, connect((uppermost(obj) + 1, (leftmost(obj) + rightmost(obj)) // 2 - 1),
+                      (lowermost(obj) - 1, (leftmost(obj) + rightmost(obj)) // 2 - 1)))
+      I = fill(I, 1, connect((uppermost(obj) + 1, (leftmost(obj) + rightmost(obj)) // 2),
+                      (lowermost(obj) - 1, (leftmost(obj) + rightmost(obj)) // 2)))
+    else:
+      I = fill(I, 2, 
+               frozenset((i, j) for i in range(uppermost(obj), uppermost(obj) + height(obj) // 2)
+                                for j in range(leftmost(obj), rightmost(obj) + 1)))
+  return I
+```
+
+**Explanation:**
+
+1. **Object Identification:** The program starts by identifying all objects within the input grid `I`.
+2. **Top Object Processing:** For each object, it checks if it's located in the top half. If it is, two vertical lines are drawn using the `fill` function and `connect` functions to connect the top and bottom points of the middle two columns.
+3. **Bottom Object Processing:** If the object is in the bottom half, the upper half of the object is filled with '2' using the `fill` function. The area to be filled is determined using the `uppermost`, `height`, `leftmost`, and `rightmost` functions.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  h, w = len(I), len(I[0])
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != 0:
+        if i < h // 2:
+          if j in range((w // 2) - 1, (w // 2) + 1):
+            I = fill(I, 1, frozenset({(i,j)}))
+        else:
+          if i < (uppermost(frozenset({(i,j)})) + height(frozenset({(i,j)})) // 2):
+            I = fill(I, 2, frozenset({(i,j)}))
+  return I
+```
+
+**Explanation:**
+
+1. **Grid Iteration:**  This version iterates through each cell of the grid.
+2. **Non-Background Check:** It checks if the cell is not part of the background (value 0).
+3. **Top Half Processing:**  If the cell is in the top half and within the middle two columns, it's filled with '1'.
+4. **Bottom Half Processing:** If the cell is in the bottom half and within the upper half of its corresponding object, it's filled with '2'.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  top = tophalf(I)
+  bottom = bottomhalf(I)
+  top = fill(top, 1, connect((1, len(top[0]) // 2 - 1), (len(top) - 2, len(top[0]) // 2 - 1)))
+  top = fill(top, 1, connect((1, len(top[0]) // 2), (len(top) - 2, len(top[0]) // 2)))
+  bottom = fill(bottom, 2, frozenset((i, j) for i in range(height(bottom) // 2) for j in range(len(bottom[0]))))
+  return vconcat(top, bottom)
+```
+
+**Explanation:**
+
+1. **Splitting:** This version splits the input grid into top and bottom halves.
+2. **Top Half Processing:** Two vertical lines are drawn on the top half, similar to previous versions.
+3. **Bottom Half Processing:** The upper half of the bottom grid is directly filled with '2'.
+4. **Concatenation:** The processed halves are concatenated back together.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)
+  top_objs = sfilter(objs, lambda obj: uppermost(obj) < len(I) // 2)
+  bottom_objs = sfilter(objs, lambda obj: uppermost(obj) >= len(I) // 2)
+  for obj in top_objs:
+    center_j = (leftmost(obj) + rightmost(obj)) // 2
+    I = fill(I, 1, connect((uppermost(obj) + 1, center_j - 1), (lowermost(obj) - 1, center_j - 1)))
+    I = fill(I, 1, connect((uppermost(obj) + 1, center_j), (lowermost(obj) - 1, center_j)))
+  for obj in bottom_objs:
+    I = fill(I, 2, frozenset((i, j) for i in range(uppermost(obj), uppermost(obj) + height(obj) // 2)
+                            for j in range(leftmost(obj), rightmost(obj) + 1)))
+  return I 
+```
+
+**Explanation:**
+
+1. **Object Categorization:** This version first categorizes objects into `top_objs` and `bottom_objs` based on their vertical position.
+2. **Separate Processing:** It then processes each category separately, applying the appropriate transformation logic. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  return paint(
+      fill(I, 2, frozenset((i, j) for i in range(len(I) // 2, len(I)) for j in range(len(I[0])))),
+      recolor(
+          1,
+          mpapply(
+              lambda start, end: connect(start, end),
+              apply(
+                  lambda obj: (uppermost(obj) + 1, (leftmost(obj) + rightmost(obj)) // 2 - 1), 
+                  sfilter(objects(I, T, F, T), lambda obj: uppermost(obj) < len(I) // 2)
+                  ),
+              apply(
+                  lambda obj: (lowermost(obj) - 1, (leftmost(obj) + rightmost(obj)) // 2 - 1),
+                  sfilter(objects(I, T, F, T), lambda obj: uppermost(obj) < len(I) // 2)
+                  )
+              ) | 
+          mpapply(
+              lambda start, end: connect(start, end),
+              apply(
+                  lambda obj: (uppermost(obj) + 1, (leftmost(obj) + rightmost(obj)) // 2), 
+                  sfilter(objects(I, T, F, T), lambda obj: uppermost(obj) < len(I) // 2)
+                  ),
+              apply(
+                  lambda obj: (lowermost(obj) - 1, (leftmost(obj) + rightmost(obj)) // 2),
+                  sfilter(objects(I, T, F, T), lambda obj: uppermost(obj) < len(I) // 2)
+                  )
+              )
+          )
+      )
+```
+
+**Explanation:**
+
+1. **Bottom Half Filling:** It first fills the entire bottom half of the grid with '2'.
+2. **Top Half Line Drawing:**  It identifies top objects, calculates the start and end points of the vertical lines for each, and then paints them with '1' on top of the filled bottom half. 
+
+These five versions demonstrate different approaches and DSL function combinations to achieve the same transformation, ensuring diversity in the generated code. Each version tackles the problem from a slightly different angle, highlighting the flexibility and expressiveness of the DSL. 

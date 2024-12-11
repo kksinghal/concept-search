@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+**Input 0 to Output 0:** The transformation recolors the central 2x2 square of each 4x4 object. The top 4x4 object (color 4) has its central 2x2 square recolored to 1, while the bottom 4x4 object (color 4) has its central 2x2 recolored to 2.
+
+**Input 1 to Output 1:**  Similar to the previous transformation, this also recolors the central 2x2 square of each 4x4 object. The top 4x4 object (color 4) has its central 2x2 square recolored to 2, and the bottom 4x4 object (color 4) has its central 2x2 recolored to 1. 
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve_4be741c5(I):
+  objs = objects(I, T, F, T) 
+  recolored_objs = set()
+  for obj in objs:
+    if len(obj) == 16:
+      color_to_fill = 1 if uppermost(obj) < 5 else 2
+      recolored_objs.add(fill(I, color_to_fill, shift(inbox(obj), (-1, -1))))
+  O = I
+  for grid in recolored_objs:
+    O = paint(O, asobject(grid))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` identifies all connected objects in the input grid `I`.
+2. **Iterate and Recolor:**  Iterate over each object. If an object has a size of 16 (4x4), determine the recolor value (1 for top, 2 for bottom) based on its vertical position. Then, fill the object's `inbox` (shifted one unit up and left) with the chosen color.
+3. **Paint Recolored Objects:** Paint the recolored objects onto the original grid `I` to generate the output `O`.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve_4be741c5(I):
+  objs = objects(I, T, F, T)
+  new_objs = set()
+  for obj in objs:
+    if size(obj) == 16:
+      i, j = ulcorner(obj)
+      color_to_fill = 1 if i < 5 else 2
+      square_to_fill = frozenset({(i+1,j+1), (i+2,j+1), (i+1,j+2), (i+2,j+2)})
+      new_objs.add(recolor(color_to_fill, square_to_fill))
+  O = I
+  for obj in new_objs:
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Find 4x4 Objects:** Find all objects in the grid and filter for those with a size of 16 (4x4).
+2. **Determine Recolor Value:** For each 4x4 object, get its upper-left corner coordinates. If the row index is less than 5, set the recolor value to 1; otherwise, set it to 2.
+3. **Recolor Central Square:** Create a new object representing the central 2x2 square of the 4x4 object and recolor it using the determined value.
+4. **Paint New Objects:** Paint these new recolored squares onto a copy of the original grid to create the output grid.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve_4be741c5(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if shape(obj) == (4,4):
+      color_to_fill = 1 if uppermost(obj) < height(I) // 2 else 2
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (1, 1)))
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (1, 2)))
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (2, 1)))
+      O = underfill(O, color_to_fill, shift(ulcorner(obj), (2, 2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Locate 4x4 Objects:** Identify all connected objects and filter for those with a shape of (4,4).
+2. **Determine Recoloring Based on Position:** For each 4x4 object, determine the recolor value based on its vertical position relative to the grid's center.
+3. **Fill Central Cells:**  Directly fill the four central cells of the 4x4 object with the determined color using `underfill` to only affect background cells.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve_4be741c5(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != 0 and size(objects(crop(I, (max(0, i-1), max(0, j-1)), (3, 3)), T, F, T)) == 1:
+        color_to_fill = 1 if i < len(I) // 2 else 2
+        O = paint(O, {(color_to_fill, (i,j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Grid:** Iterate through each cell of the input grid.
+2. **Identify Central Cells:** Check if the current cell is part of an object and if the 3x3 region centered on the cell contains only one object. This identifies central cells of 4x4 objects.
+3. **Recolor Central Cells:** If the current cell is a central cell, determine the recolor value based on its vertical position.  Paint the cell with the determined color. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve_4be741c5(I):
+    objs = objects(I, T, F, T)
+    new_grid = canvas(0, shape(I))
+    for obj in objs:
+        if size(obj) == 16:
+            color_to_fill = 1 if uppermost(obj) < height(I) // 2 else 2
+            center_obj = shift(
+              crop(
+                canvas(1, (2, 2)),
+                 (0, 0),
+                 (2, 2)
+              ),
+              add(ulcorner(obj), (1, 1))
+            )
+            new_grid = paint(new_grid, recolor(color_to_fill, center_obj))
+        else:
+            new_grid = paint(new_grid, obj)
+    return new_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to previous versions, identify all connected objects in the grid.
+2. **Create Empty Canvas:** Generate an empty grid of the same size as the input, filled with the background color (0).
+3. **Process Objects:** Iterate through each object:
+   -  **Recolor 4x4 Objects:** If the object is a 4x4, calculate the appropriate recolor value. Create a new object representing the central 2x2 square, recolor it, and paint it onto the new grid.
+   -  **Preserve Other Objects:** If the object is not a 4x4, paint it directly onto the new grid without modification.
+4. **Return Modified Grid:** Return the modified grid as the output.
+
+
+These five code versions offer distinct approaches to achieving the desired transformations, showcasing the flexibility and power of the provided DSL. Each version leverages different function combinations and logic, ensuring zero similarity in their implementation.

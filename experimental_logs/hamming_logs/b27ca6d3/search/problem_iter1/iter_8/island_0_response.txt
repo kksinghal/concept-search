@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects formed by the digit '2' on the input grid and expanding them by one layer. This expansion only occurs into cells currently occupied by the digit '0', effectively replacing them with the digit '3'. 
+
+**Let's break it down:**
+
+* **Object Identification:** The code needs to identify connected regions of the digit '2'. Two '2's are considered connected if they are direct neighbors (up, down, left, right).
+* **One-Layer Expansion:**  For each identified '2' object, the transformation expands it outward by one layer. This means targeting the immediate neighboring cells.
+* **Conditional Fill:** The expansion is not unconditional. The neighboring cells are only filled with the digit '3' if they originally contain the digit '0'. 
+
+## Program to be Generated:
+
+Here are five distinct versions of the program using the provided DSL:
+
+**Version 1: Set-based approach**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer, filling only '0' cells.
+  """
+  objects = objects(I, univalued=True, diagonal=False, without_bg=False)
+  twos = sfilter(objects, lambda obj: color(obj) == 2)
+  expansion_zones = mpapply(lambda obj: sfilter(mapply(dneighbors, toindices(obj)), lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0])), twos)
+  return fill(I, 3, sfilter(expansion_zones, lambda loc: index(I, loc) == 0)) 
+```
+
+**Explanation:**
+
+1. **`objects(I, True, False, False)`:** Identifies all connected objects on the grid `I`, considering only direct neighbors and including background.
+2. **`sfilter(...)`:**  Filters the objects, keeping only those where the `color(obj)` is '2'.
+3. **`mpapply(lambda obj: sfilter(..., twos)`:** For each '2' object:
+    * `mapply(dneighbors, toindices(obj))`: Finds all direct neighbor indices for each cell in the object.
+    * `sfilter(...)`: Filters the neighbor indices, ensuring they fall within the grid boundaries.
+4. **`fill(...)`:** Fills the grid `I` with the value '3' at the `expansion_zones` indices, but only where the original `index(I, loc)` is '0'.
+
+**Version 2: Iterative Expansion**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer using iterative neighborhood expansion.
+  """
+  O = I
+  targets = ofcolor(I, 2)
+  while len(targets) > 0:
+    neighbors_to_fill = sfilter(merge(apply(dneighbors, targets)), lambda loc: index(O, loc) == 0)
+    O = fill(O, 3, neighbors_to_fill)
+    targets = sfilter(merge(apply(dneighbors, targets)), lambda loc: index(O, loc) == 2)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` creates a copy of the input grid. `targets = ofcolor(I, 2)` identifies all cells containing '2'.
+2. **Iterative Expansion:** The `while` loop continues as long as there are target ('2') cells.
+    * `sfilter(...)`: Identifies valid neighbor cells containing '0' for expansion.
+    * `fill(...)`: Fills the valid neighbor cells in the output grid `O` with '3'.
+    * Target Update: The `targets` set is updated to include only '2' cells that are neighbors of the newly filled cells, ensuring expansion continues outward.
+
+**Version 3: Recursive Flood Fill (simplified)**
+
+```python
+def Program_to_be_generated(I):
+    """
+    Expands '2' objects by one layer using a recursive flood fill approach.
+    """
+
+    def flood_fill(grid, i, j):
+        if i < 0 or i >= len(grid) or j < 0 or j >= len(grid[0]) or grid[i][j] != 0:
+            return grid
+        grid = fill(grid, 3, {(i, j)})
+        for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            grid = flood_fill(grid, i + di, j + dj)
+        return grid
+
+    O = I
+    for i, row in enumerate(I):
+        for j, val in enumerate(row):
+            if val == 2:
+                O = flood_fill(O, i, j)
+    return O
+```
+
+**Explanation:**
+
+1. **`flood_fill` Function:** This function recursively fills connected regions of '0' cells with '3'. 
+    * It checks for out-of-bounds indices and stops if the current cell is not '0'.
+    * It fills the current cell with '3'.
+    * It recursively calls itself for each direct neighbor.
+2. **Iterating and Filling:** The main function iterates through the grid. If it finds a '2', it calls `flood_fill` on that cell, effectively expanding the '2' object.
+
+
+**Version 4: Mask-based Expansion**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer using a mask-based approach.
+  """
+  mask = canvas(0, shape(I))
+  mask = fill(mask, 1, ofcolor(I, 2))
+  mask = fill(mask, 1, mpapply(dneighbors, ofcolor(mask, 1)))
+  return tuple(tuple(3 if mask[i][j] == 1 and I[i][j] == 0 else I[i][j] for j in range(len(I[0]))) for i in range(len(I)))
+```
+
+**Explanation:**
+
+1. **Mask Creation:** A `mask` grid of the same size as the input is created, filled with '0's.
+2. **Marking '2' Objects:** The `mask` is updated to mark the locations of '2' objects with '1's.
+3. **Expanding the Mask:** The mask is expanded by one layer by marking the direct neighbors of cells containing '1' with '1's.
+4. **Conditional Fill:** The final output grid is generated by iterating through the input grid. If the corresponding cell in the `mask` is '1' and the cell in the input grid is '0', it's replaced with '3'; otherwise, the original value is retained.
+
+**Version 5: Convolution-like Approach**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer using a convolution-like operation.
+  """
+  kernel = ((0, 1, 0),
+            (1, 1, 1),
+            (0, 1, 0))
+  h, w = len(I), len(I[0])
+  output = [[0 for _ in range(w)] for _ in range(h)]
+  for i in range(1, h - 1):
+    for j in range(1, w - 1):
+      if I[i][j] == 0 and any(I[i + di][j + dj] == 2 for di in range(-1, 2) for dj in range(-1, 2) if kernel[di + 1][dj + 1] == 1):
+        output[i][j] = 3
+      else:
+        output[i][j] = I[i][j]
+  return tuple(tuple(row) for row in output)
+```
+
+**Explanation:**
+
+1. **Kernel Definition:**  A 3x3 `kernel` is defined to represent the neighbor expansion pattern. 
+2. **Iteration and Convolution:** The code iterates through the input grid (excluding the border). For each cell:
+    * It checks if the current cell is '0' and if any of its neighbors, as defined by the `kernel`, are '2'.
+    * If both conditions are met, it marks the current cell in the `output` grid with '3'. 
+    * Otherwise, it retains the original value from the input grid. 
+
+These five versions demonstrate different approaches to achieving the same transformation, highlighting the flexibility and expressiveness of the provided DSL. 

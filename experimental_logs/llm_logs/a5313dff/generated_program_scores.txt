@@ -1,0 +1,2571 @@
+25.333333333333332, tensor(0.5134), Description: Fill the inside of each colored shape with the color 1. 
+:: def daafejcefcfdebbbbibgaebihieaiffa(I):
+    objs = objects(I, T, T, T)
+    for obj in objs:
+        indices = toindices(obj)
+        inner = indices - box(indices)
+        I = fill(I, 1, inner)
+    O = I
+    return O 
+ 
+37.0, tensor(1.1706), Description: For each colored shape in the input grid, draw a border around it using the same color as the shape. Then, fill the area inside the border with the color 1. 
+:: def eficgagddhefedfaaaeeabeadjabfefd(I):
+    objs = objects(I, T, T, T)
+    for obj in objs:
+        border = toobject(box(toindices(obj)), I)
+        I = cover(I, obj)
+        I = paint(I, border)
+        I = underfill(I, 1, border) 
+    O = I
+    return O
+ 
+42.0, tensor(1.9934), Description: For each colored shape in the input grid, fill the shape with the color 1. Then, for each shape, compare the original color of the shape to the color 1. If the colors are the same, keep the original color. If the colors are different, change the color to 0. 
+:: def ifaecbbcjaacejfcjggdagbbeaeijieh(I):
+    objs = objects(I, T, T, T)
+    filled = I
+    for obj in objs:
+        filled = fill(filled, 1, toindices(obj))
+    O = cellwise(I, filled, 0)
+    return O
+ 
+36.333333333333336, tensor(1.6930), Description: Downscale the input grid by a factor of 2, then upscale the result by a factor of 2. This effectively blurs the image. 
+:: def dbfehaifeefhejfejaehehhbcccjchea(I):
+    O = downscale(I, 2)
+    O = upscale(O, 2)
+    return O
+ 
+21.666666666666668, tensor(0.1248), Description: For each univalued object in the input grid, find any empty squares that are adjacent to the object and are not adjacent to any other object. Fill these squares with the color 1. 
+:: def geegacgfceacebbdjjjffbjbfficajcf(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  filled_indices = frozenset()
+  for obj in objs:
+    bbox = backdrop(obj)
+    for i, j in bbox:
+      if (i, j) not in toindices(obj) and all((i + di, j + dj) not in toindices(obj) for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if (i + di, j + dj) in bbox):
+        filled_indices = insert((i, j), filled_indices)
+  return fill(I, 1, filled_indices)
+ 
+48.666666666666664, tensor(0.0718), Description: For each univalued object in the input grid, fill the corresponding area in the output grid with the color 1. Then, for each cell in the input grid, compare the original color to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 1. 
+:: def dcdibcfjecdjecghafcdeddgfcdfbdef(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  filled_grid = canvas(1, shape(I))
+  for obj in objs:
+    filled_grid = paint(filled_grid, obj)
+  return cellwise(I, filled_grid, 1)
+ 
+16.0, tensor(1.1013), Description: For each object in the input grid, fill the interior of the object with the color 1. 
+:: def jfjfcedfhcdfeahiafdcecbdhhbeheeh(I):
+  objs = objects(I, T, F, F)  # Identify all objects in the grid
+  for obj in objs:
+    inner =  inbox(obj) # Identify the interior of the object
+    O = underfill(I, 1, inner)  # Fill the interior with '1'
+  return O
+ 
+8.666666666666666, tensor(1.1270), Description: For each color in the input grid, except for the most common color, find the object with that color and fill its interior with the color 1. 
+:: def ebcchbagdfhbecffidjiagbaidhajdce(I):
+    O = I
+    for n in palette(I): # Iterate through all colors present in the grid
+        if n != mostcommon(I):
+            obj =  objects(I, T, F, F) # Identify all objects
+            obj_n = extract(obj, lambda x: color(x) == n) # Extract object with color n
+            inner =  inbox(obj_n) # Identify the interior of the object
+            O = underfill(O, 1, inner)  # Fill the interior with '1'
+    return O
+ 
+40.333333333333336, tensor(1.0858), Description: For each object in the input grid, fill the cells that are inside the object but not on its border with the color 1. 
+:: def fbieiafdjiccefbjbhfdfbajfbfdagaf(I):
+    objs = objects(I, T, F, F) # Identify all objects in the grid
+    O = I
+    for obj in objs:
+        for i, row in enumerate(I): # Loop through rows
+            for j, val in enumerate(row): # Loop through columns
+                if (i,j) in toindices(obj) and (i,j) not in box(obj):
+                    O = fill(O, 1, {(i,j)}) # Fill cell with '1' if inside object but not on the border
+    return O
+ 
+57.0, tensor(0.6860), Description: For each object in the input grid, recolor the interior cells of the object to 1, keeping the border intact. Then, paint all the modified objects onto a blank canvas of the same size as the input grid. 
+:: def ajffcaajdcjcebhbadbdhhahfaeecbhd(I):
+    objs = objects(I, T, F, F)  # Extract objects from the grid
+    new_objs = frozenset() 
+    for obj in objs:
+        outer = box(obj) # Find the bounding box of each object
+        inner = obj - toobject(outer, I) # Get the interior cells
+        recolored_inner = recolor(1, inner) # Recolor interior cells to 1
+        new_objs = new_objs | {recolored_inner} # Add the modified object
+    O = paint(canvas(0, shape(I)), merge(new_objs)) # Paint all modified objects onto an empty canvas
+    return O
+ 
+18.333333333333332, tensor(1.1183), Description: For each cell in the input grid, if the cell is colored and at least one of its adjacent cells is black, keep the original color of the cell. Otherwise, if the cell is colored, change its color to 1. 
+:: def ciegcjaadgcfeebhabfjcbbhafbccadc(I):
+  h, w = len(I), len(I[0])
+  O = [[0 for _ in range(w)] for _ in range(h)]
+  for i in range(1, h - 1):
+    for j in range(1, w - 1):
+      if I[i][j] != 0 and (I[i-1][j] == 0 or I[i+1][j] == 0 or I[i][j-1] == 0 or I[i][j+1] == 0):
+        O[i][j] = I[i][j]
+      elif I[i][j] != 0:
+        O[i][j] = 1 
+  return tuple(tuple(row) for row in O)
+ 
+16.333333333333332, tensor(1.1223), Description: For each object in the input grid, if the object's color is 2, fill the interior of the object with the color 1. 
+:: def gajdabbfeaceeghdbfecajbehheaeddf(I):
+    objs = objects(I, T, F, F)
+    for obj in objs:
+        if color(obj) == TWO:
+            I = fill(I, ONE, inbox(toindices(obj)))
+    O = I
+    return O
+ 
+23.0, tensor(1.8842), Description: For each colored shape in the input grid, fill all the empty squares within the bounding box of the shape with the color 1. 
+:: def afabgeccdfhdefdjbaedjbadcdicefed(I):
+  objs = objects(I, T, T, T) # identify objects, excluding background
+  O = I # initialize output as input
+  for obj in objs:
+    bbox = backdrop(obj) # get bounding box of the object
+    for i, j in bbox:
+      if (i, j) not in toindices(obj): # if index is inside the bounding box but not part of the object
+        O = fill(O, 1, {(i, j)}) # fill with '1'
+  return O
+ 
+50.333333333333336, tensor(1.9933), Description: For each color in the input grid, except for the most common color, find the object with that color and fill all the empty squares within the bounding box of the object with the color 1. 
+:: def aadeefadabajedjiadccafcieahceead(I):
+  O = canvas(mostcolor(I), shape(I)) # create canvas filled with background color
+  for v in palette(I) - {mostcolor(I)}: # iterate over non-background colors
+    obj = frozenset((v, (i, j)) for i, r in enumerate(I) for j, c in enumerate(r) if c == v) # construct object
+    bbox = backdrop(obj) # get bounding box
+    for i, j in bbox:
+      if (i, j) not in toindices(obj): # if inside bounding box but not part of object
+        O = fill(O, 1, {(i, j)}) # fill with '1'
+  return O
+ 
+23.666666666666668, tensor(1.9928), Description: For each colored shape in the input grid, fill all the cells that are inside the shape but not on its border with the color 1. 
+:: def iebbffihcjebefccjddbjaadahcfgddc(I):
+  objs = objects(I, T, T, T) # identify objects
+  O = I # initialize output as input
+  for obj in objs:
+    for i in range(uppermost(obj) + 1, lowermost(obj)): # iterate over rows within object
+      for j in range(leftmost(obj) + 1, rightmost(obj)): # iterate over columns within object
+        O = fill(O, 1, {(i, j)}) # fill with '1'
+  return O
+ 
+12.666666666666666, tensor(1.9934), Description: For each colored shape in the input grid, fill the bounding box of the shape with the color 1, overwriting only the background. Then, for each cell in the input grid, compare the original color of the cell to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 0. 
+:: def iiedcaaaecdcebcfiihebabfijfabehf(I):
+  objs = objects(I, T, T, T) # identify objects
+  filled = I # initialize as input
+  for obj in objs:
+    filled = underfill(filled, 1, backdrop(obj)) # fill the bounding box, overwriting only background
+  O = cellwise(I, filled, 0) # use original value if it matches, otherwise '0'
+  return O
+ 
+11.0, tensor(0.1203), Description: For each univalued object in the input grid, fill all the cells that are inside the object but not on its border with the color 1. 
+:: def heafaicecjedefccaeddfejcecdhgfhh(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  filled_indices = frozenset()
+  for obj in objs:
+    for i in range(uppermost(obj) + 1, lowermost(obj)):
+      for j in range(leftmost(obj) + 1, rightmost(obj)):
+        if (i, j) not in toindices(obj):
+          filled_indices = insert((i, j), filled_indices)
+  return fill(I, 1, filled_indices)
+ 
+12.333333333333334, tensor(0.1214), Description: For each univalued object in the input grid, fill the interior of the object with the color 1. 
+:: def cbbddjiecjcdecacjdjeacadaiccbdbd(I):
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    I = underfill(I, 1, inbox(obj)) 
+  return I 
+ 
+9.666666666666666, tensor(0.1177), Description: For each univalued object in the input grid, fill all the cells that are inside the object but not on its border with the color 1. Then, return the first grid in the resulting list. 
+:: def ddggedihahgceefebhejfgdhabbebeef(I):
+  def fill_object(obj, grid):
+    for i in range(uppermost(obj) + 1, lowermost(obj)):
+      for j in range(leftmost(obj) + 1, rightmost(obj)):
+        if (i, j) not in toindices(obj):
+          grid = fill(grid, 1, {(i, j)})
+    return grid
+
+  return next(iter(apply(lambda obj: fill_object(obj, I), 
+                         objects(I, univalued=True, diagonal=False, without_bg=True)))) 
+ 
+25.333333333333332, tensor(0.4374), Description: For each object in the input grid, fill the interior of the object with the color 1. Then, for each cell in the input grid, compare the original color of the cell to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to the background color. 
+:: def efbjdgbeabbeeifdbahhfeeahfdddfeb(I):
+    objs = objects(I, T, F, F) # Identify all objects in the grid
+    filled_grids = []
+    for obj in objs:
+        bg = mostcolor(I) # Determine the background color
+        filled_grid = fill(I, 1, inbox(obj)) # Fill the inbox of the object with '1'
+        filled_grids.append(filled_grid)
+    O = I
+    for filled_grid in filled_grids:
+        O = cellwise(O, filled_grid, bg) # Restore the original object outlines
+    return O
+ 
+59.666666666666664, tensor(0.9350), Description: For each object in the input grid, fill the entire object with the color 1. Then, restore the original object outline by filling the border of the object with the color of the first cell in the border. 
+:: def ceeifdffeadfebgajcddadgeebhegeba(I):
+  objs = objects(I, T, F, F) # Identify all objects in the grid
+  O = I
+  for obj in objs:
+    border = difference(box(obj),inbox(obj)) # Identify the border of the object
+    O = fill(O, 1, obj) # Fill the entire object with 1
+    O = underfill(O, index(I, first(border)), border) # Restore the original object outline
+  return O
+ 
+78.0, tensor(1.0217), Description: For each object in the input grid, fill the inner part of the object (excluding the border) with the color 1. 
+:: def cbcadabfbfcjeaaeigefgefagfcjiaba(I):
+    objs = objects(I, T, F, F)
+    O = I
+    for obj in objs:
+        inner = difference(obj, box(obj))  # Find the inner part of the object
+        O = fill(O, 1, inner)  # Fill the inner part with '1'
+    return O
+ 
+76.0, tensor(1.1262), Description: For each object in the input grid, iterate through its cells. If a cell is not adjacent to any other cell within the object, fill it with the color of the cell itself. Otherwise, fill it with the color 1. 
+:: def dfcbbcfdcaiceaebjfaedjadceacjhii(I):
+  O = I
+  for obj in objects(I, T, F, F):
+    for i, j in toindices(obj):
+        if all((i + di, j + dj) not in toindices(obj) for di, dj in [(0,1),(1,0),(0,-1),(-1,0)]):
+          O = fill(O, index(I, (i, j)), {(i, j)})
+        else:
+          O = fill(O, 1, {(i, j)})
+  return O
+ 
+40.333333333333336, tensor(1.0528), Description: For each object in the input grid, paint the border of the object onto a canvas filled with the color 1. This effectively creates a grid where the borders of all objects are highlighted with the original color, while the rest of the grid is filled with the color 1. 
+:: def jfdfefcfbcdiejdcaicffahhfcddbhhg(I):
+    objs = objects(I, T, F, F)
+    O = canvas(1, shape(I))  # Create a canvas filled with '1'
+    for obj in objs:
+        O = underpaint(O, toobject(box(obj), I)) # Paint the object border over the canvas
+    return O
+ 
+18.666666666666668, tensor(1.1277), Description: For each object in the input grid, iterate through its cells. If a cell has the same color as all its direct neighbors, fill it with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def ffdadbfddchjebcibhbbhiicbfaacbfe(I):
+  objs = objects(I, T, F, F)
+  inner_cells = set()
+  for obj in objs:
+    for c, (i, j) in obj:
+      neighbors_indices = dneighbors((i, j)) # Get direct neighbors
+      if all((I[x][y] == c if 0 <= x < len(I) and 0 <= y < len(I[0]) else False) for x, y in neighbors_indices): # Check if all direct neighbors have the same color
+        inner_cells.add((i, j))
+  O = underfill(I, 1, frozenset(inner_cells))
+  return O
+ 
+21.0, tensor(1.1243), Description: For each object in the input grid, fill all the cells that are inside the object but not on its border with the color 1. 
+:: def gceegjdcfjcbeebcaejedfffcaficabj(I):
+  objs = objects(I, T, F, F)
+  fill_area = set()
+  for obj in objs:
+    for i in range(uppermost(obj) + 1, lowermost(obj)):
+      for j in range(leftmost(obj) + 1, rightmost(obj)):
+        fill_area.add((i, j)) # Add indices within the object bounds
+  O = underfill(I, 1, frozenset(fill_area)) # Fill inner area
+  return O
+ 
+25.333333333333332, tensor(1.1291), Description: For each object in the input grid, if the object's color is 2, fill the interior of the object (excluding the border) with the color 1. 
+:: def fddaehhfbhifeeggafejahccjhfabcjd(I):
+  objs = objects(I, T, F, F)  # Extract all objects 
+  O = I  # Initialize output as input
+  for obj in objs:
+    if color(obj) == TWO:  # Check if the object is made of '2's
+      perimeter = box(toindices(obj))  # Get perimeter indices
+      inner_cells = difference(toindices(obj), perimeter)  # Get inner cell indices
+      O = fill(O, ONE, inner_cells)  # Fill inner cells with '1'
+  return O
+ 
+34.666666666666664, tensor(1.1260), Description: For each cell in the input grid, if the cell is colored 2 and has at least one adjacent cell also colored 2, fill that cell with the color 1. Otherwise, keep the original color. 
+:: def cfdchfhhehjiejcbbjadjaeddacdgdaj(I):
+  O = I 
+  for i in range(1, len(I)-1):  # Iterate through rows (excluding borders)
+    for j in range(1, len(I[0])-1):  # Iterate through columns (excluding borders)
+      if I[i][j] == TWO and (I[i-1][j] == TWO or I[i+1][j] == TWO or I[i][j-1] == TWO or I[i][j+1] == TWO):
+        O = fill(O, ONE, {(i, j)})  # If cell is '2' and has adjacent '2', fill with '1'
+  return O
+ 
+21.0, tensor(0.2770), Description: For each colored shape in the input grid, fill the area inside the bounding box of the shape, excluding the shape itself, with the color 1. 
+:: def becfbffjefbgejaejbaecjajhdeafhhb(I):
+  O = I # Initialize output as input
+  for obj in objects(I, T, T, T): # Iterate over objects
+    O = underfill(O, ONE, backdrop(obj) - toindices(obj)) # Fill bounding box interior with '1'
+  return O
+ 
+16.333333333333332, tensor(1.9745), Description: For each colored shape in the input grid, paint the shape onto a canvas filled with the background color. Then, fill the interior of the shape with the color 1. This effectively creates a grid where all colored shapes are highlighted with their original color, while the interior of each shape is filled with the color 1. 
+:: def iedbacbjffifeddibefgiadbibcgccja(I):
+  O = canvas(mostcolor(I), shape(I)) # Canvas filled with background
+  for obj in objects(I, T, T, T): # Iterate over objects
+    O = paint(O, obj) # Paint object on the canvas
+    O = fill(O, ONE, inbox(toindices(obj))) # Fill inbox of object with '1'
+  return O
+ 
+18.666666666666668, tensor(0.1306), Description: For each univalued object in the input grid, iterate through its cells. If a cell is surrounded by four cells of the same color (including itself), fill it with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def bfhaajjeigbeegbdiadccefcjdfeahaa(I):
+  objs = objects(I, True, False, False)
+  for obj in objs:
+    for v, (i, j) in obj:
+      if len(dneighbors((i,j)) & toindices(obj)) == 4:
+        I = fill(I, 1, {(i,j)})
+  O = I
+  return O
+ 
+50.0, tensor(0.6840), Description: For each object in the input grid, recolor the interior cells of the object to 1, keeping the border intact. Then, paint all the modified objects onto a blank canvas of the same size as the input grid. 
+:: def aijcjieeccjeecccbeahgddeaaaddjci(I):
+    O = canvas(mostcolor(I), shape(I))  # Create a blank canvas
+    for obj in objects(I, T, F, F):
+        O = paint(O, recolor(1, difference(obj, box(obj))))  # Paint interiors directly onto the canvas
+        O = underpaint(O, obj)  # Overlay the original objects to restore the borders
+    return O
+ 
+21.0, tensor(1.7835), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def hhacfgaecddeeacaaibbcaedcddihadf(I):
+    O = I 
+    for obj in objects(I, T, F, F):
+        O = underfill(O, 1, difference(backdrop(obj), box(obj)))
+    return O
+ 
+35.333333333333336, tensor(1.1277), Description: For each object in the input grid, iterate through its cells. If a cell has the same color as all its direct neighbors, fill it with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def ebcifhccddfbecaejecbbddjfcabhiea(I):
+  objs = objects(I, T, F, F)  # Get all connected objects
+  inner_cells = set()
+  for obj in objs:
+    for value, (i, j) in obj:
+      neighbors_indices = dneighbors((i, j))
+      valid_neighbors = [(x,y) for x,y in neighbors_indices if 0 <= x < len(I) and 0 <= y < len(I[0])]
+      if all(I[x][y] == value for x, y in valid_neighbors):
+        inner_cells.add((i, j))
+  O = underfill(I, 1, frozenset(inner_cells))  # Fill 1s in the inner cells
+  return O
+ 
+24.333333333333332, tensor(1.1272), Description: For each cell in the input grid, if the cell has the same color as all its four direct neighbors, fill it with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def ajdcbcihgedaedeaacbbjdhjecjejdda(I):
+  h, w = len(I), len(I[0])
+  O = canvas(0, (h, w))  # Create an empty grid
+  for i in range(1, h-1):
+    for j in range(1, w-1):
+      if I[i][j] == I[i-1][j] == I[i+1][j] == I[i][j-1] == I[i][j+1]:
+        O = fill(O, 1, {(i, j)}) # Fill with 1 if all neighbors match
+      else:
+        O = fill(O, I[i][j], {(i, j)}) # Otherwise, keep original value
+  return O
+ 
+23.0, tensor(1.1313), Description: For each object in the input grid, if the object's color is 2, fill the cells that are directly adjacent to the object (its delta) with the color 1. Otherwise, keep the original color. 
+:: def aefebhaicaedeffdbbicdhfdcdfadbad(I):
+    objs = objects(I, T, F, F)  # Extract all objects from the grid
+    O = I  # Initialize output as input
+    for obj in objs:
+        if color(obj) == TWO:  # Check if the object is made of '2's
+            O = fill(O, ONE, delta(toindices(obj)))  # Fill the delta of the object with '1's
+    return O
+ 
+23.666666666666668, tensor(1.1301), Description: Fill the interior of all objects with the color 2 with the color 1, excluding the border. Then, remove the border of the objects with the color 2. 
+:: def edgjicgfafgfeafbifiacgccfbfihbaf(I):
+  return fill(I, ONE, difference(ofcolor(I, TWO), mapply(box, objects(I, T, F, F)))) # One-liner combining steps
+ 
+9.333333333333334, tensor(1.1176), Description: For each object in the input grid, if the object's color is 2, fill the cells that are inside the object but not on its border with the color 1. 
+:: def cbbfcejieeejeggfiffcebiahdfdcdbg(I):
+  for obj in objects(I, T, F, F):
+    if color(obj) == TWO:
+      for i in range(1, height(obj)-1):
+        for j in range(1, width(obj)-1):
+          if index(subgrid(obj, I), (i, j)) == ZERO:
+            I = fill(I, ONE, {(i + uppermost(obj), j + leftmost(obj))})
+  return I
+ 
+48.666666666666664, tensor(1.9932), Description: For each colored shape in the input grid, paint the shape onto a canvas filled with the color 1. This effectively creates a grid where all colored shapes are highlighted with their original color, while the rest of the grid is filled with the color 1. 
+:: def aabagedhgfgeegdbadcefeceidbfcecd(I):
+  O = canvas(ONE, shape(I)) # Create a canvas of '1's with the input's shape
+  for obj in objects(I, T, T, T): # Iterate over objects
+    O = paint(O, obj) # Paint the original object over the '1' canvas 
+  return O
+ 
+23.0, tensor(0.1232), Description: For each univalued object in the input grid, fill the cells that are directly adjacent to the object (its delta) with the color 1. Otherwise, keep the original color. 
+:: def fcabeccibcajegjcbffiihjbbcfejhge(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  return fill(I, 1, mapply(lambda obj: delta(toindices(obj)), objs)) 
+ 
+50.333333333333336, tensor(0.1279), Description: For each univalued object in the input grid, find all the empty squares within the bounding box of the object, excluding the object itself. Fill these squares with the color 1. 
+:: def cbccfdcgdcfdedabajebiadcdbgaabff(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavity = frozenset()
+  for obj in objs:
+    cavity = cavity | (backdrop(obj) - obj)
+  return fill(I, 1, cavity)
+ 
+18.666666666666668, tensor(1.1247), Description: For each object in the input grid, find the inner indices of the object by checking if all direct neighbors of a cell are also part of the object. Fill these inner indices with the color 1. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def cdeaeghfeeddedhgafgeeadhddeijaih(I):
+  objs = objects(I, T, F, F)  # Get all objects
+  O = I
+  for obj in objs:
+    obj_indices = toindices(obj)
+    inner_indices = frozenset(
+      loc for loc in obj_indices if all(n in obj_indices for n in dneighbors(loc))
+    )  # Find inner indices by checking if all direct neighbors are part of the object
+    O = fill(O, 1, inner_indices)  # Fill inner indices with '1'
+  return O
+ 
+14.333333333333334, tensor(1.1193), Description: For each object in the input grid, paint the object onto a canvas filled with the color 1. This effectively creates a grid where all colored shapes are highlighted with their original color, while the rest of the grid is filled with the color 1. 
+:: def idjdiiadhddeecgbjfcddbdcdfifeafd(I):
+    O = canvas(1, shape(I)) # Create a canvas filled with '1'
+    objs = objects(I, T, F, F) # Get all objects
+    for obj in objs:
+        O = underpaint(O, obj) # Paint the original object on the canvas only where the canvas has background color ('1' in this case)
+    return O
+ 
+42.0, tensor(1.1236), Description: For each cell in the input grid, if the cell is colored and has at least one adjacent cell that is black, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def eafghfeaefdcefidjdjbbbigddggffbi(I):
+  O = canvas(0, shape(I))  # Create an empty canvas
+  for i in range(1, len(I) - 1):  # Iterate through rows (excluding borders)
+    for j in range(1, len(I[0]) - 1):  # Iterate through columns (excluding borders)
+      if I[i][j] != 0 and any(I[i + di][j + dj] == 0 for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+        O = paint(O, {(1, (i, j))})  # Paint a cell with '1' if it's non-background and has a background neighbor
+      else:
+        O = paint(O, {(I[i][j], (i, j))}) # Otherwise, keep the original color
+  return O
+ 
+78.0, tensor(1.1198), Description: For each object in the input grid, iterate through its cells. If a cell has at least one neighbor that is black (color 0), paint that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are on the border of a colored object. 
+:: def hehbabaaadfeeibjbejehbcajafjeahj(I):
+  O = I
+  objs = objects(I, T, F, F)
+  for obj in objs:
+    for cell in obj:
+      i, j = cell[1]
+      neighbors_indices = {(i-1, j), (i+1, j), (i, j-1), (i, j+1)}
+      neighbors_values = {index(I, (a, b)) for a, b in neighbors_indices}
+      if 0 in neighbors_values:
+        O = paint(O, {(1, (i, j))})
+  return O
+ 
+42.0, tensor(1.1236), Description: For each cell in the input grid, if the cell is colored and has at least one adjacent cell that is black, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def fhbcfhifbeeceaabjjgfabbfefcegjdh(I):
+  padded_grid = canvas(0, (height(I) + 2, width(I) + 2))  # Create a padded grid with background
+  padded_grid = paint(padded_grid, shift(asobject(I), (1, 1)))  # Place the input grid in the center
+  O = canvas(0, shape(I))  # Create an empty output grid
+  for i in range(1, height(padded_grid) - 1):
+    for j in range(1, width(padded_grid) - 1):
+      if padded_grid[i][j] != 0 and any(padded_grid[i + di][j + dj] == 0 for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+        O = paint(O, {(1, (i - 1, j - 1))})  # Paint '1' if non-background and has background neighbor
+      else:
+        O = paint(O, {(padded_grid[i][j], (i - 1, j - 1))}) # Keep original color otherwise
+  return O
+ 
+14.666666666666666, tensor(1.0800), Description: For each object in the input grid, if the object's color is 2 and all its direct neighbors are not 2, fill the object's indices with the color 1. This effectively highlights the interior cells of objects with color 2 that are completely surrounded by a different color. 
+:: def afcahaiefbbaeiegifjagddhgageddca(I):
+  objs = objects(I, T, F, F)
+  def is_inner(obj):
+    return color(obj) == TWO and all(index(I, (i + di, j + dj)) != TWO for (i, j) in toindices(obj) for di, dj in [(0,1),(0,-1),(1,0),(-1,0)])
+  inner_objs = sfilter(objs, is_inner)
+  return fill(I, ONE, merge(apply(toindices, inner_objs)))
+ 
+21.666666666666668, tensor(0.9251), Description: For each object in the input grid, if the object's color is 2 and it has no direct neighbors with the same color (i.e., it's completely surrounded by a different color), fill the object's indices with the color 1. This effectively highlights the interior cells of objects with color 2 that are completely surrounded by a different color. 
+:: def acfgaedadgdieefbbajjdbbdegfbfgec(I):
+  objs = objects(I, T, F, F) # Identify all objects in the grid
+  inner_objs = sfilter(objs, lambda obj: color(obj) == TWO and size(intersection(dneighbors((0,0)), normalize(toindices(obj)))) == 0) # Find inner '2' objects
+  O = I
+  for obj in inner_objs:
+    O = fill(O, ONE, toindices(obj))  # Fill inner areas of '2' objects with '1'
+  return O
+ 
+50.333333333333336, tensor(1.7177), Description: For each colored shape in the input grid, fill the bounding box of the shape with the color 1, overwriting only the background. This effectively creates a grid where the bounding boxes of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def cbcijfbcbbbgebejidffeabifdbhjabc(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a canvas filled with the background color
+  for obj in objects(I, T, T, T): # Iterate over all objects
+    O = underfill(O, ONE, backdrop(obj)) # Fill the bounding box of each object with '1', only overwriting background
+  return O
+ 
+19.0, tensor(0.2925), Description: For each univalued object in the input grid, fill the cells that are directly adjacent to the object (its delta) with the color 1, but only if those cells are within the bounding box of the object. Then, return the last grid in the resulting list. This effectively highlights the interior cells of objects that are completely surrounded by a different color. 
+:: def ajcieifieedeefebjabacffjjfejdcdc(I):
+  def modify_grid(grid, obj):
+    filled_obj = recolor(1, delta(obj) & backdrop(obj))
+    return paint(grid, filled_obj)
+
+  return last(apply(lambda obj: modify_grid(I, obj), objects(I, univalued=True, diagonal=False, without_bg=True)))
+ 
+11.333333333333334, tensor(1.1172), Description: For each object in the input grid, if the object's color is 2, fill the interior of the object with the color 1. 
+:: def jbiiafedaaceedgaihefabbefefiaacf(I):
+  objs = objects(I, T, F, F) # Identify all objects in the grid
+  O = I 
+  for obj in objs:
+    if color(obj) == TWO: # Focus on objects made of '2'
+      O = underfill(O, ONE, inbox(obj)) # Fill the interior with '1'
+  return O
+ 
+43.333333333333336, tensor(1.0255), Description: For each object in the input grid, if the object's color is 2, fill the interior of the object with the color 1. Otherwise, keep the object unchanged. Then, paint all the objects onto a blank canvas of the same size as the input grid, using the most common color as the background. This effectively creates a grid where all objects with color 2 have their interiors filled with the color 1, while other objects and the background remain unchanged. 
+:: def dcahbaechccceaceicecdaddjcgbcbce(I):
+  objs = partition(I) # Divide the grid based on color
+  filled_objs = set()
+  for obj in objs:
+    if color(obj) == TWO: # Find '2' objects
+      filled_objs.add(recolor(ONE, inbox(obj))) # Create new objects with '1' interiors
+    else:
+      filled_objs.add(obj) # Keep other objects unchanged
+  O = canvas(mostcolor(I), shape(I)) # Create an empty canvas
+  for obj in filled_objs:
+    O = paint(O, obj) # Paint all objects onto the canvas
+  return O
+ 
+36.333333333333336, tensor(1.0822), Description: For each cell in the input grid, if the cell is colored 2 and has at least one adjacent cell that is not colored 2, fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are on the border of a colored object with color 2. 
+:: def ifaaheieadiceejaihccaabcifbjeahi(I):
+  O = I
+  for i in range(1, height(I)-1): # Iterate through inner rows
+    for j in range(1, width(I)-1): # Iterate through inner columns
+      if index(I, (i,j)) == TWO and any(index(I,(ni,nj)) != TWO for ni, nj in neighbors((i,j))):
+        O = fill(O, ONE, {(i, j)}) # Fill with '1' if it's a '2' bordering a non-'2' cell
+  return O
+ 
+42.0, tensor(1.1058), Description: For each cell in the input grid, if the cell is colored 2 and has at least one direct neighbor that is not colored 2, fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are on the border of a colored object with color 2. 
+:: def abicgeaceaffecbgiicaigbiicfbchcc(I):
+    O = I
+    two_indices = ofcolor(I, TWO)  # Get indices of all '2's
+    for i, j in two_indices:
+        if any((ni, nj) not in two_indices for ni, nj in dneighbors((i, j))):
+            O = fill(O, ONE, {(i, j)})  # Fill with '1' if a direct neighbor is not a '2'
+    return O
+ 
+40.666666666666664, tensor(0.9058), Description: For each object in the input grid, if the object's color is 2, fill the interior of the object with the color 1. Then, for each cell in the input grid, compare the original color of the cell to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 1. This effectively creates a grid where all objects with color 2 have their interiors filled with the color 1, while other objects and the background remain unchanged. 
+:: def debgddaabjgbegfeicbbfcfjacbicbjb(I):
+  mask = canvas(ZERO, shape(I)) # Create a blank mask
+  objs = objects(I, T, F, F) # Find all objects
+  for obj in objs:
+    if color(obj) == TWO: # Select '2' objects
+      mask = paint(mask, recolor(ONE, inbox(obj))) # Mark object interiors on the mask
+  O = cellwise(I, mask, ONE) # Combine the grid with the mask, filling with '1' where the mask has '1'
+  return O
+ 
+42.0, tensor(1.9932), Description: For each cell in the input grid, if the cell is colored and has at least one adjacent cell that is black, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def idcdadhfabfaedecjehafhjdeaegacbe(I):
+  O = I
+  bg = mostcolor(I) # Identify background color
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if index(I, (i,j)) != bg and any(index(I, (ni,nj)) == bg for ni, nj in neighbors((i,j))):
+        O = fill(O, ONE, {(i,j)}) # Fill cell with '1' if it's not background and has a background neighbor
+  return O
+ 
+21.0, tensor(0.1248), Description: For each univalued object in the input grid, find any empty squares that are adjacent to the object and are not adjacent to any other object. Fill these squares with the color 1. 
+:: def cehfccdafecjeibaajcbhdcggdiijcfe(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavity_indices = mapply(lambda obj: backdrop(obj) - toindices(obj), objs)
+  cavity_indices = sfilter(cavity_indices, lambda loc: all((i + di, j + dj) not in toindices(obj) for obj in objs for i, j in [loc] for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if (i + di, j + dj) in backdrop(obj)))
+  O = fill(I, 1, cavity_indices)
+  return O
+ 
+29.0, tensor(1.0445), Description: Find all the empty squares that are adjacent to a square with the color 2. Fill these squares with the color 1. 
+:: def acjfadaaidghedcejeighcacfjccgdfg(I):
+    twos = ofcolor(I, TWO)  # Find all '2' indices
+    def is_hole(i, j):
+        return (i, j) not in twos and any((x, y) in twos for x, y in neighbors((i, j)))  # Check if index is not '2' but has a neighboring '2'
+    holes = frozenset((i, j) for i in range(len(I)) for j in range(len(I[0])) if is_hole(i, j))  # Find all holes
+    return fill(I, ONE, holes)  # Fill the holes with '1's
+ 
+42.0, tensor(1.1109), Description: For each cell in the input grid, if the cell is colored 2 and has at least one direct neighbor that is not colored 2, fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are on the border of a colored object with color 2. 
+:: def dbajaciffahieiccicjjabjfcjafbibc(I):
+    def is_interior(i, j):
+        if index(I, (i, j)) != TWO:
+            return False
+        queue = [(i, j)]
+        visited = set()
+        while queue:
+            x, y = queue.pop()
+            if (x, y) in visited:
+                continue
+            visited.add((x, y))
+            for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                nx, ny = x + di, y + dj
+                if 0 <= nx < len(I) and 0 <= ny < len(I[0]) and index(I, (nx, ny)) == TWO and (nx, ny) not in visited:
+                    queue.append((nx, ny))
+        return any(index(I, (x, y)) != TWO for x, y in neighbors((i, j)))
+    holes = frozenset((i, j) for i in range(len(I)) for j in range(len(I[0])) if is_interior(i, j))
+    return fill(I, ONE, holes)
+ 
+29.333333333333332, tensor(0.0415), Description: For each object in the input grid, paint the object onto a canvas filled with the background color. This effectively creates a grid where all colored shapes are highlighted with their original color, while the rest of the grid is filled with the background color. 
+:: def hdfefcefbjfdeeifaeadiedciheigddf(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, T, F, F):
+    border = box(obj)
+    for c, (i, j) in obj:
+      if (i, j) not in border:
+        O = paint(O, {(c, (i, j))})
+  return O
+ 
+42.0, tensor(1.1228), Description: For each cell in the input grid, if the cell is colored and has the same color as all its direct neighbors, paint that cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def afcaehbibbaeeaafjddhfihdbeibabdc(I):
+  inner_cells = frozenset()
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] != 0 and all(I[i + di][j + dj] == I[i][j] for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]):
+        inner_cells = insert(inner_cells, (i, j))
+  return paint(canvas(0, shape(I)), {(1, index) for index in inner_cells}) 
+ 
+48.666666666666664, tensor(0.9437), Description: For each object in the input grid, if the object's color is 2, paint the object onto a canvas filled with the color 1. Then, for each cell in the input grid, compare the original color of the cell to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 1. This effectively creates a grid where all objects with color 2 are highlighted with their original color, while other objects and the background are filled with the color 1. 
+:: def badecaigbcacecdbbaeadefbdbedbbdd(I):
+  objs = objects(I, T, F, F)
+  O = canvas(ONE, shape(I))
+  for obj in objs:
+    if color(obj) == TWO:
+      O = paint(O, obj)
+  return cellwise(I, O, ONE) 
+ 
+32.0, tensor(0.9671), Description: For each cell in the input grid, if the cell is colored 2 and has two adjacent cells also colored 2, either horizontally or vertically, fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are part of a horizontal or vertical line of '2's. 
+:: def jebhcjddaadbecbfjbjccejgjebfbijb(I):
+  O = I
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] == TWO and ((I[i-1][j] == TWO and I[i+1][j] == TWO) or (I[i][j-1] == TWO and I[i][j+1] == TWO)):
+        O = fill(O, ONE, {(i, j)})
+  return O
+ 
+40.666666666666664, tensor(0.0718), Description: For each univalued object in the input grid, fill the corresponding area in the output grid with the color 1. Then, for each cell in the input grid, compare the original color to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 1. 
+:: def edjjeeedajaaechcjicgfbbdhdfahfga(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavity_grid = canvas(0, shape(I))
+  for obj in objs:
+    cavity_grid = underfill(cavity_grid, 1, inbox(obj))
+  return cellwise(I, cavity_grid, 1)
+ 
+24.666666666666668, tensor(0.2770), Description: For each colored shape in the input grid, fill the area inside the bounding box of the shape, excluding the shape itself, with the color 1. 
+:: def cjfeddiadfbbefafbdfjaehecaiccach(I):
+  return fill(I, ONE, mapply(lambda x: difference(box(toindices(x)), toindices(x)), objects(I, T, T, T))) 
+ 
+40.0, tensor(0.1487), Description: For each univalued object in the input grid, find the cells that are directly adjacent to the object (its delta) but are also within the bounding box of the object. Fill these cells with the color 1. This effectively highlights the interior cells of objects that are completely surrounded by a different color. 
+:: def iccfcbdbbaeeecediggfdgahbcbbchdi(I):
+  def fill_cavity(obj):
+    return delta(obj) & backdrop(obj)
+  
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  cavity_indices = mfilter(objs, fill_cavity)
+  return fill(I, 1, cavity_indices)
+ 
+12.333333333333334, tensor(0.9995), Description: For each univalued object in the input grid, if the object has more than one cell, fill the interior of the object with the color 1. Then, paint the original object onto a blank canvas of the same size as the input grid. This effectively creates a grid where all univalued objects with more than one cell have their interiors filled with the color 1, while other objects and the background remain unchanged. 
+:: def eabajfjficbfeehcifdbeedgdjaaffgj(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    if len(obj) > 1:
+      O = underpaint(O, recolor(1, inbox(obj)))
+    O = paint(O, obj)
+  return O
+ 
+25.333333333333332, tensor(1.1265), Description: For each univalued object in the input grid, if the object has more than one cell, fill the interior of the object with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of univalued objects that are larger than a single cell. 
+:: def ceedheghcijceegjibbdcccebafdbibf(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    if len(obj) > 1:
+      for i in range(uppermost(obj) + 1, lowermost(obj)):
+        for j in range(leftmost(obj) + 1, rightmost(obj)):
+          if (i, j) in toindices(obj):
+            O = paint(O, {(1, (i, j))}) 
+  return O
+ 
+40.333333333333336, tensor(1.7813), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def dbbdbhaabcbiedcfiaehaahbiifhbach(I):
+  def process_obj(obj):
+    return recolor(ONE, difference(backdrop(obj), toindices(obj)))
+  return paint(I, merge(apply(process_obj, objects(I, T, F, F))))
+ 
+39.0, tensor(0.8964), Description: For each object in the input grid, if the object has a hole (empty cells within its bounding box), fill the hole with the color 1. Otherwise, keep the object unchanged. Then, paint all the modified objects onto a blank canvas of the same size as the input grid. This effectively creates a grid where all objects with holes have their interiors filled with the color 1, while other objects and the background remain unchanged. 
+:: def hdfdbbddhjdiegdejhhhbhihbdabfhdc(I):
+  def fill_if_hole(obj):
+    hole = difference(backdrop(obj), toindices(obj))
+    return recolor(ONE, hole) if hole else obj
+  return paint(I, merge(apply(fill_if_hole, objects(I, T, F, F))))
+ 
+11.333333333333334, tensor(1.0586), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. Then, paint the original object back onto the grid. This effectively creates a grid where the bounding boxes of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def bjcfaeabhafaeddgbbaiaefbjegicdib(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a canvas filled with the background color
+  for obj in objects(I, T, F, F):  # Iterate over each object
+    O = underfill(O, 1, difference(backdrop(obj), box(obj))) # Fill the interior of the bounding box with 1
+    O = paint(O, obj)  # Paint the original object back onto the grid
+  return O
+ 
+44.666666666666664, tensor(1.7835), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def jcjdbafjcbdjeaeabdfcccfhdgjcejca(I):
+  O = I  # Initialize output grid as a copy of the input
+  for obj in objects(I, T, F, F):  # Iterate over each object
+    for loc in difference(backdrop(obj), box(obj)): # Iterate over interior indices 
+      O = paint(O, {(1, loc)})  # Paint each interior index with 1 
+  return O
+ 
+23.333333333333332, tensor(1.0586), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. Then, paint the original object back onto the grid. This effectively creates a grid where the bounding boxes of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def hdcdjffjdbgeeijcjeddebdbajeicfdd(I):
+  O = canvas(mostcolor(I), shape(I))  # Create a canvas filled with the background color
+  for obj in objects(I, T, F, F):  # Iterate over each object
+    for i in range(uppermost(obj) + 1, lowermost(obj)): # Iterate through rows within bounding box
+      for j in range(leftmost(obj) + 1, rightmost(obj)): # Iterate through columns within bounding box
+        if (i, j) not in toindices(obj):  # Check if cell belongs to the object
+          O = paint(O, {(1, (i, j))})  # If not part of the object, fill with 1
+    O = paint(O, obj)  # Paint the original object back onto the grid
+  return O
+ 
+12.666666666666666, tensor(0.8587), Description: For each object in the input grid, if the object has more than one cell, fill the interior of the object with the color 1. Then, paint the original object onto a blank canvas of the same size as the input grid. This effectively creates a grid where all objects with more than one cell have their interiors filled with the color 1, while other objects and the background remain unchanged. 
+:: def eafjadjdadhbeecfjehfdejcaffhjdba(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    if len(obj) > 1:
+      O = paint(O, recolor(1, inbox(obj)))
+    O = paint(O, obj)
+  return O
+ 
+12.666666666666666, tensor(1.9352), Description: For each colored shape in the input grid, fill the shape with the color 1. 
+:: def fcjjcahbfbjdejjdbdcahebajihbfifa(I):
+    objs = objects(I, T, T, T)  
+    for obj in objs:
+        I = underfill(I, 1, toindices(obj)) 
+    O = I
+    return O
+ 
+34.666666666666664, tensor(1.9352), Description: For each cell in the input grid, if the cell is colored 2 and has at least one adjacent cell also colored 2, fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are part of a connected group of '2's. 
+:: def deejcdhdfeacefeeidjjdedadebieajb(I):
+    O = I
+    for i in range(1, len(I) - 1):
+        for j in range(1, len(I[0]) - 1):
+            if I[i][j] == 2 and (I[i-1][j] == 2 or I[i+1][j] == 2 or I[i][j-1] == 2 or I[i][j+1] == 2):
+                O = fill(O, 1, {(i,j)})
+    return O
+ 
+37.0, tensor(1.9088), Description: For each colored shape in the input grid, if the shape's color is 2, draw a bounding box around the shape using the color 2. Then, fill the interior of the shape (excluding the bounding box) with the color 1. This effectively creates a grid where all shapes with color 2 have a bounding box drawn around them, and their interiors are filled with the color 1. 
+:: def cabhegddedbiefhcihfaabfaeibahaei(I):
+    O = canvas(0, shape(I)) 
+    for obj in objects(I, T, T, T):
+        if color(obj) == 2:
+            O = paint(O, recolor(2, box(toindices(obj))))
+            O = paint(O, recolor(1, toindices(obj) - box(toindices(obj))))
+    return O
+ 
+27.0, tensor(1.9866), Description: Fill the interior of the object with color 2 with the color 1, excluding the border. 
+:: def agedfchibecdebcdidbgebdfcfehbfbb(I):
+  obj = ofcolor(I, 2)
+  interior = difference(obj, box(obj))
+  O = fill(I, 1, interior)
+  return O
+ 
+12.666666666666666, tensor(1.9862), Description: For each cell in the input grid, if the cell is colored 2 and all its direct neighbors are not black (color 0), fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects with color 2 that are completely surrounded by a different color. 
+:: def afdadfffehifecicigjcbdeehfbcfgfe(I):
+  O = I
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] == 2 and all(I[i+di][j+dj] != 0 for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]):
+        O = fill(O, 1, {(i,j)})
+  return O
+ 
+42.0, tensor(1.9819), Description: Invert the colors of the input grid, replacing black with 2 and vice versa. Then, fill the interior of all univalued objects (excluding the background) with the color 1. Finally, invert the colors again, replacing 2 back to 0. This effectively highlights the interior of all objects in the input grid with the color 1. 
+:: def ieffcajchcaeeafiafdcfhbaigffacfb(I):
+  inverted = replace(I, 0, 2)
+  filled = fill(inverted, 1, toindices(objects(inverted, True, False, True)))
+  O = replace(filled, 2, 0)
+  return O
+ 
+25.333333333333332, tensor(1.9876), Description: For each univalued object in the input grid, fill the interior of the object with the color 1, excluding the border. 
+:: def ciijiafgbfebefjdajdghjffhcjeebjd(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for obj in objs:
+    outer = box(obj)
+    inner = difference(toindices(obj), outer)
+    I = fill(I, 1, inner)
+  return I
+ 
+40.333333333333336, tensor(1.8183), Description: For each univalued object in the input grid, fill the bounding box of the object with the color 1, overwriting only the background. This effectively creates a grid where the bounding boxes of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def cijiadfegabaecaebeegfcedabahhacd(I):
+  bg = mostcolor(I)
+  filled = fill(I, 1, asindices(I))
+  objs = objects(filled, univalued=True, diagonal=False, without_bg=False)
+  for obj in objs:
+    if color(obj) != bg:
+      outer = box(obj)
+      I = underfill(I, 1, outer)
+  return I
+ 
+19.666666666666668, tensor(1.9818), Description: For each univalued object in the input grid, iterate through its cells. If a cell has more than one neighboring cell with a color different from the background color, fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are on the border of a colored object and have at least two neighbors with different colors. 
+:: def bdfgfeaiffcaefcajbhdadfaecefhfca(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for obj in objs:
+    for c in toindices(obj):
+      if len({index(I, n) for n in neighbors(c)} - {mostcolor(I)}) > 1:
+        I = fill(I, 1, {c})
+  return I
+ 
+25.333333333333332, tensor(0.7515), Description: Fill the interior of the largest colored shape in the input grid with the color 1, excluding the border. 
+:: def fccdcdegcecdeeebjiddcbaedeaheeec(I):
+    obj = objects(I, F, T, T)  # Extract all objects
+    main_obj = argmax(obj, size)  # Find the largest object
+    border = box(main_obj)  # Get the border indices of the object
+    interior = difference(toindices(main_obj), border)  # Find interior indices
+    O = fill(I, 1, interior)  # Fill interior with '1'
+    return O
+ 
+12.333333333333334, tensor(0.7515), Description: Fill the interior of the largest colored shape in the input grid with the color 1, excluding the border. 
+:: def deaheefbdbcfebciabfifcceebfjjfid(I):
+  obj = objects(I, F, T, T)
+  main_obj = argmax(obj, size)
+  inner_box = inbox(main_obj) # Find indices within the object's bounding box
+  O = underfill(I, 1, inner_box) # Fill background cells within the box with '1'
+  return O
+ 
+32.666666666666664, tensor(0.7465), Description: Downscale the input grid by a factor of 2, effectively merging interior cells of the same color. Then, upscale the downscaled grid by a factor of 2, filling in the new cells with the dominant color from the downscaled grid. Finally, compare the original input grid with the upscaled grid. If the colors match, keep the original color. If they don't match, change the color to 1. This process effectively blurs the image by averaging the colors of neighboring cells. 
+:: def jeabeihfbabeeicfiegabfdgdjbbcbde(I):
+  downscaled = downscale(I, 2) # Downscale, merging interior cells
+  upscaled = upscale(downscaled, 2) # Upscale, filling with the dominant color
+  O = cellwise(I, upscaled, 1) # Use original values unless they match upscaled, then use '1'
+  return O
+ 
+36.333333333333336, tensor(1.9489), Description: For each cell in the input grid, if the cell is colored 2 and all its direct neighbors are either 2 or 0 (black), fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects with color 2 that are completely surrounded by either the same color or black. 
+:: def eagceebicegdeddeadgfeacbcifcdbcb(I):
+  O = I
+  indices = ofcolor(I, 2) # Get all indices of '2'
+  for index in indices:
+    n = neighbors(index)  # Get neighbors of each '2'
+    if all(0 <= i < len(I) and 0 <= j < len(I[0]) and (I[i][j] == 2 or I[i][j] == 0) for i, j in n):
+      O = fill(O, 1, {index}) # If all neighbors are '2' or '0', fill with '1'
+  return O
+ 
+42.0, tensor(1.9497), Description: Fill the interior of all objects with the color 2 with the color 1, excluding the border. Then, remove the border of the objects with the color 2. 
+:: def edbjfigcfegaecfhaabhjcacbfgcedje(I):
+    two_indices = ofcolor(I, 2)
+    boundary = mapply(neighbors, two_indices) - two_indices
+    inner = two_indices - boundary
+    return fill(I, 1, inner)
+ 
+40.333333333333336, tensor(1.9485), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. 
+:: def fbfehcchdfffebaiibijbbjggbdijegg(I):
+  objs = objects(I, T, T, F)  # Get all objects, including background
+  bg = mostcommon(I)         # Identify the background color
+  for obj in objs:
+    if color(obj) != bg:      # Ignore the background object
+      indices = toindices(obj)
+      outer = box(indices)    
+      inner = indices - outer  
+      I = fill(I, 1, inner) 
+  return I
+ 
+12.333333333333334, tensor(1.9345), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. 
+:: def bhfaibghbdbbeedaabfecadejacihdee(I):
+  objs = objects(I, T, T, T)  # Extract all objects from the input
+  for obj in objs:
+    I = underfill(I, 1, inbox(obj)) # Fill the inbox of each object with '1'
+  O = I
+  return O
+ 
+36.333333333333336, tensor(1.9353), Description: For each cell in the input grid, if the cell is colored and has at least one adjacent cell that is black, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def fjcbcfaaadfaeebjadefjafdbfdfgeba(I):
+  O = I
+  for i in range(1, len(I)-1):
+    for j in range(1, len(I[0])-1):
+      if index(I, (i,j)) != mostcolor(I) and any(index(I, (ni,nj)) == mostcolor(I) for ni, nj in neighbors((i,j))):
+        O = fill(O, 1, {(i,j)})
+  return O
+ 
+40.666666666666664, tensor(1.9183), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. Then, paint all the modified objects onto a blank canvas of the same size as the input grid, using the most common color as the background. This effectively creates a grid where all objects have their interiors filled with the color 1, while the original background remains unchanged. 
+:: def eeafdgccebbdegdgjddcehecgdcabhjb(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a blank canvas
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    O = paint(O,  recolor(1, inbox(obj)))  # Paint the inbox of each object with '1' on the canvas
+  return O
+ 
+16.333333333333332, tensor(1.9345), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. 
+:: def bccbfbbbfabcecfbahcecehaahjfejfe(I):
+  objs = objects(I, T, T, T)
+  filled_indices = set()
+  for obj in objs:
+    filled_indices.update(inbox(obj))  # Collect all inbox indices
+  O = fill(I, 1, frozenset(filled_indices)) # Fill all collected indices with '1' in one go
+  return O
+ 
+53.333333333333336, tensor(1.7758), Description: For each univalued object in the input grid, draw a bounding box around the object using the color 0 (black). Then, paint the original object back onto the grid. This effectively creates a grid where all univalued objects have a black bounding box drawn around them, while the shapes themselves and the original background remain unchanged. 
+:: def djefidfcbjjiedghbdacigafdjhfcdib(I):
+  O = canvas(1, shape(I))
+  for obj in objects(I, True, False, True):
+    O = paint(O, recolor(0, box(toindices(obj))))
+    O = underpaint(O, obj)
+  return O
+ 
+23.0, tensor(1.9890), Description: For each univalued object in the input grid, fill the cells that are directly adjacent to the object (its delta) with the color 1. Otherwise, keep the original color. This effectively highlights the cells that are on the border of a colored object. 
+:: def gbbadfegbdeeefbiicbeefhabaicbfde(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for obj in objs:
+    I = fill(I, 1, delta(toindices(obj)))
+  return I
+ 
+18.333333333333332, tensor(1.9670), Description: For each univalued object in the input grid, fill all the cells that are within the bounding box of the object and have the same color as the background with the color 1. This effectively highlights the interior cells of objects that are completely surrounded by the background color. 
+:: def ifefddfdfbfdeahaiiddadgabfacdeid(I):
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    ul = ulcorner(obj)
+    lr = lrcorner(obj)
+    for i in range(ul[0], lr[0] + 1):
+      for j in range(ul[1], lr[1] + 1):
+        if I[i][j] == mostcolor(I):
+          I = fill(I, 1, {(i, j)})
+  return I
+ 
+21.0, tensor(1.8183), Description: For each univalued object in the input grid, fill the bounding box of the object with the color 1, overwriting only the background. This effectively creates a grid where the bounding boxes of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def fdecffecdfcieddciijgbdegheeacfcc(I):
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    I = underfill(I, 1, backdrop(toindices(obj)))
+  return I
+ 
+48.666666666666664, tensor(1.9962), Description: For each univalued object in the input grid, paint the object onto a canvas filled with the background color. Then, fill all the remaining empty cells in the canvas with the color 1. This effectively creates a grid where all univalued objects are highlighted with their original color, while the rest of the grid is filled with the color 1. 
+:: def cgbcadjdeejcedjaagdefjaaiaffgcbf(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  bg = mostcolor(I)
+  new_grid = canvas(bg, shape(I))
+  for obj in objs:
+    new_grid = paint(new_grid, obj)
+  return fill(new_grid, 1, difference(asindices(I), toindices(merge(objs))))
+ 
+12.666666666666666, tensor(1.9824), Description: For each cell in the input grid, if the cell is colored and has at least one adjacent cell that is black, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def gbbfcdhfaagbefhgaabdddbaadahfjfb(I):
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != mostcolor(I) and any(I[k][l] == mostcolor(I) for k, l in backdrop({(i, j)})):
+        I = fill(I, 1, {(i, j)})
+  return I
+ 
+23.0, tensor(1.8048), Description: Fill the area inside the bounding box of the largest colored shape in the input grid with the color 1, excluding the shape itself. 
+:: def ageehccddccieedeiebccaehcbeiabbj(I):
+  obj = objects(I, F, T, T) # Extract objects, ignoring diagonals and background
+  main_obj = argmax(obj, size) # Find the largest object
+  bbox = backdrop(main_obj) # Get the bounding box indices of the largest object
+  fill_area = difference(bbox, toindices(main_obj)) # Find the difference between the bounding box and the object
+  O = fill(I, 1, fill_area) # Fill the difference area with '1'
+  return O
+ 
+50.666666666666664, tensor(0.9066), Description: Fill the entire grid with the color 1. Then, paint the largest colored shape back onto the grid, overwriting the color 1 only where the shape exists. This effectively creates a grid where the largest colored shape is highlighted with its original color, while the rest of the grid is filled with the color 1. 
+:: def gbhcadfbjiggeihcibdiejbhbjaccehf(I):
+  obj = objects(I, F, T, T)
+  main_obj = argmax(obj, size)
+  O = fill(I, 1, asindices(I))
+  O = underpaint(O, main_obj)
+  return O
+ 
+12.666666666666666, tensor(1.9492), Description: For each cell in the input grid, if the cell is colored and all its four direct neighbors have the same color, fill it with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def egdbbhdaehgdejfjbefifdadbdaaabda(I):
+  O = I
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] != 0 and I[i-1][j] == I[i][j] and I[i+1][j] == I[i][j] and I[i][j-1] == I[i][j] and I[i][j+1] == I[i][j]:
+        O = fill(O, 1, {(i, j)}) # Fill with 1 if surrounded by the same color
+  return O
+ 
+42.0, tensor(1.9495), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. Then, for each cell in the input grid, compare the original color of the cell to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 0. This effectively creates a grid where all objects have their interiors filled with the color 1, while the borders and the original background remain unchanged. 
+:: def jagdecdaebdfedacjdahcdeehcffaebb(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, T, T, T):
+    O = paint(O, recolor(1, toindices(obj) - box(obj)))
+  return cellwise(I, O, 0) 
+ 
+48.333333333333336, tensor(1.9292), Description: For each colored shape in the input grid, paint the delta (direct neighbors) of the shape with the color 1, but only if the neighbor is the background color. This effectively creates a grid where the borders of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def bahiabedjdgiefeeiehbcabaahghabbf(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a blank canvas with background color
+  for obj in objects(I, T, T, T): # Iterate through each object
+    O = paint(O, toobject(delta(obj), replace(I, mostcolor(I), 1))) # Paint '1' on delta of each object
+  return O
+ 
+23.0, tensor(1.6454), Description: For each colored shape in the input grid, fill the cells that are directly adjacent to the shape (its delta) with the color 1, but only if those cells are within the bounds of the grid. This effectively highlights the interior cells of objects that are completely surrounded by a different color. 
+:: def acihhbijcdbfejefiaafbddefhbahidc(I):
+  O = I  # Copy the input grid
+  for obj in objects(I, T, T, T):
+    inner_indices = delta(obj) # Find the interior indices of each object
+    for i, j in inner_indices:
+      if 0 <= i < len(O) and 0 <= j < len(O[0]): # Check if the indices are within bounds
+        O = fill(O, 1, {(i, j)}) # Fill each interior cell with '1'
+  return O
+ 
+25.333333333333332, tensor(1.9876), Description: For each univalued object in the input grid, fill the interior of the object with the color 1, excluding the border. 
+:: def fbahccdhgbfaeiedieeafjiaieifiaic(I):
+  objs = objects(I, True, False, True)
+  O = I
+  for obj in objs:
+    indices = toindices(obj)
+    border = box(indices)
+    interior = difference(indices, border)
+    O = fill(O, 1, interior)
+  return O
+ 
+48.666666666666664, tensor(1.9826), Description: For each univalued object in the input grid, paint the object onto a canvas filled with the color 1. This effectively creates a grid where all colored shapes are highlighted with their original color, while the rest of the grid is filled with the color 1. 
+:: def bgcebbccdgjdeidciaidafabafgbcbbb(I):
+    O = canvas(1, shape(I))  # Start with a canvas filled with '1'
+    for obj in objects(I, True, False, True):
+        O = underpaint(O, obj)  # Paint the original object colors back onto the canvas
+    return O
+ 
+26.0, tensor(1.9820), Description: For each cell in the input grid, if the cell is the background color and has at least one adjacent cell that is not the background color, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def hffjhgffiabcebjhaceacdgebeaecbhc(I):
+    """
+    Iterates through each cell, changing it to '1' if it's a background 
+    cell adjacent to a different color.
+    """
+    h, w = len(I), len(I[0])
+    O = canvas(mostcolor(I), (h, w))  # Create an empty canvas
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] != mostcolor(I):
+                O = paint(O, {(I[i][j], (i, j))}) # Paint non-background cells
+            else:
+                for n in dneighbors((i, j)):
+                    if 0 <= n[0] < h and 0 <= n[1] < w and I[n[0]][n[1]] != mostcolor(I):
+                        O = paint(O, {(1, (i, j))}) # Paint border cells
+                        break
+    return O
+ 
+24.333333333333332, tensor(1.9858), Description: For each object in the input grid, find the cells that are on the border of the object (using the bounding box and the object's indices). Fill these border cells with the color 1. This effectively highlights the borders of all colored objects in the grid. 
+:: def ihhdcebeebgceddabdeegfdcadfabcjh(I):
+  """
+  Utilizes object outlines and the delta to identify and fill border cells. 
+  """
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  outlines = mapply(box, objs)
+  border_cells = outlines & asindices(I) - toindices(merge(objs))
+  return fill(I, 1, border_cells)
+ 
+28.333333333333332, tensor(1.9820), Description: For each cell in the input grid, if the cell is the background color and has at least one adjacent cell that is not the background color, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def ffhjdhfadaafejbfifahbgeigajcbehc(I):
+    """
+    Uses convolution-like approach to detect and mark border cells.
+    """
+    h, w = len(I), len(I[0])
+    O = [list(row) for row in I] # Convert to mutable list
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] == mostcolor(I):
+                for di in [-1, 1]:
+                    for dj in [-1, 1]:
+                        ni, nj = i + di, j + dj
+                        if 0 <= ni < h and 0 <= nj < w and I[ni][nj] != mostcolor(I):
+                            O[i][j] = 1
+                            break  
+    return tuple(tuple(row) for row in O) # Convert back to tuple
+ 
+52.666666666666664, tensor(1.8261), Description: Find the largest object in the input grid. Shift this object one cell to the right, one cell to the left, one cell up, and one cell down. Fill with the color 1 any cells in the input grid that overlap with the shifted objects. This effectively highlights the cells that are directly adjacent to the largest object in the input grid. 
+:: def iaebbdfcfgedeedcihhhhccegdbbdhge(I):
+  objs = objects(I, False, True, True) # Find all objects, ignoring the background
+  largest = argmax(objs, size) # Find the largest object
+  shifted_right = shift(largest, (0, 1)) # Shift the largest object one cell to the right
+  shifted_left = shift(largest, (0, -1)) # Shift the largest object one cell to the left
+  shifted_up = shift(largest, (-1, 0)) # Shift the largest object one cell up
+  shifted_down = shift(largest, (1, 0)) # Shift the largest object one cell down
+  combined_shifts = combine(combine(shifted_right, shifted_left), combine(shifted_up, shifted_down)) 
+  O = fill(I, 1, intersection(toindices(combined_shifts), asindices(I))) # Fill overlapping areas and grid cells with 1
+  return O 
+ 
+28.0, tensor(1.0466), Description: Find the largest object in the input grid. Fill all the cells that are directly adjacent to the largest object (its delta) but are not part of the object itself with the color 1. This effectively highlights the cells that are directly surrounding the largest object in the grid. 
+:: def cfbjidjjijhbejfbabjcafbcedjjchid(I):
+  objs = objects(I, False, True, True) # Extract all objects, ignoring the background.
+  largest_obj = argmax(objs, size) # Find the largest object.
+  interior = set()
+  for x, (i, j) in largest_obj:
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        new_loc = (i + di, j + dj)
+        if new_loc not in toindices(largest_obj) and 0 <= new_loc[0] < len(I) and 0 <= new_loc[1] < len(I[0]):
+          interior.add(new_loc)
+  O = fill(I, 1, frozenset(interior))
+  return O
+ 
+36.0, tensor(0.7515), Description: Fill the interior of the largest colored shape in the input grid with the color 1, excluding the border. 
+:: def haeicjjahafhegjcibigfccbcaffcjag(I):
+  obj = objects(I, False, True, True) # Extract objects, ignoring the background
+  largest = argmax(obj, size) # Find the largest object
+  bbox = backdrop(largest) # Get bounding box indices of the largest object
+  border = difference(bbox, shift(bbox, (1, 1))) # Calculate the border indices
+  interior = difference(bbox, border) # The interior is the difference between the bounding box and the border
+  O = fill(I, 1, intersection(interior, asindices(I))) # Fill the interior indices that are within the grid
+  return O
+ 
+23.0, tensor(1.7755), Description: For each colored shape in the input grid, fill the cells that are directly adjacent to the shape (its delta) with the color 1. This effectively highlights the interior cells of objects that are completely surrounded by a different color. 
+:: def bjediccfiifjeabjaddggafdeaaaheij(I):
+  return paint(
+    I, 
+    merge({
+      recolor(
+        1,
+        delta(toindices(obj))
+      ) 
+      for obj in objects(I, T, T, T)
+    })
+  )
+ 
+21.0, tensor(0.2938), Description: For each colored shape in the input grid, fill the cells within the bounding box of the shape that are not the same color as the shape with the color 1. This effectively highlights the cells that are adjacent to the shape but are not part of the shape itself. 
+:: def cbeidddjeaaceajjjigeceacjbhjjaff(I):
+  return paint(
+    I,
+    merge({
+      recolor(
+        1,
+        sfilter(
+          backdrop(toindices(obj)),
+          lambda loc: index(I, loc) != mostcolor(obj) 
+        )
+      ) for obj in objects(I, T, T, T)
+    })
+  )
+ 
+41.666666666666664, tensor(1.9183), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. Then, paint all the modified objects onto a blank canvas of the same size as the input grid, using the most common color as the background. This effectively creates a grid where all objects have their interiors filled with the color 1, while the original background remains unchanged. 
+:: def bhaaebageabdegdaaadadaibbciheihf(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a blank canvas
+  objs = objects(I, T, T, T)
+  largest_obj = argmax(objs, size) # Find the largest object
+  O = paint(O, recolor(1, inbox(largest_obj))) # Paint the inbox of the largest object with '1'
+  return O
+ 
+17.333333333333332, tensor(1.8809), Description: Fill the interior of the largest colored shape in the input grid with the color 1, excluding the border. 
+:: def icfeffcdgaibebbjjdccjeffhffffidj(I):
+  objs = objects(I, T, T, T)
+  largest_obj = argmax(objs, size) # Find the largest object
+  return fill(I, 1, inbox(largest_obj)) # Fill the inbox of the largest object with '1' directly on the input
+ 
+23.666666666666668, tensor(0.3140), Description: For each univalued object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def gacbafceecdfecdbaejaafjeffgfgade(I):
+  return paint(I, merge(apply(lambda obj: recolor(1, difference(backdrop(toindices(obj)), box(toindices(obj)))), objects(I, True, False, True))))
+ 
+15.0, tensor(1.9820), Description: For each cell in the input grid, if the cell is the background color and has at least one adjacent cell that is not the background color, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def egifiageaifdeibbbdghafdcibibfejf(I):
+  filled_grid = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if i > 0 and j > 0 and i < len(I) - 1 and j < len(I[0]) - 1:  
+        if I[i][j] == mostcolor(I) and (I[i-1][j] != mostcolor(I) or I[i+1][j] != mostcolor(I) or I[i][j-1] != mostcolor(I) or I[i][j+1] != mostcolor(I)):
+          filled_grid = fill(filled_grid, 1, {(i, j)})
+  return filled_grid
+ 
+14.666666666666666, tensor(1.8252), Description: Find the largest object in the input grid. Shift this object one cell to the right and one cell down. Fill with the color 1 any cells in the input grid that overlap with the shifted objects. This effectively highlights the cells that are directly adjacent to the largest object in the input grid, but only on the right and bottom sides. 
+:: def aebjajhdfjjdeajdiaccediehficddba(I):
+  objs = objects(I, False, True, True)  # Extract objects
+  largest = argmax(objs, size)  # Find the largest object
+  shifted_right = shift(largest, (0, 1)) # Shift the object right
+  shifted_down = shift(largest, (1, 0)) # Shift the object down
+  intersection = toindices(largest) & toindices(shifted_right) & toindices(shifted_down) # Find interior by intersection
+  O = fill(I, 1, intersection) # Fill the interior
+  return O
+ 
+12.666666666666666, tensor(1.0486), Description: For each object in the input grid, iterate through its cells. If a cell is completely surrounded by other cells of the same color (including itself), fill it with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects that are completely surrounded by the same color. 
+:: def fifffafbdcagedfabccihcfahhgehcjb(I):
+  objs = objects(I, False, True, True)  # Extract objects
+  largest = argmax(objs, size)  # Find the largest object
+  interior = set()
+  for i, j in toindices(largest):  # Iterate over object indices
+    if (i + 1, j) in toindices(largest) and (i, j + 1) in toindices(largest) and (i - 1, j) in toindices(largest) and (i, j - 1) in toindices(largest):
+      interior.add((i, j))  # Check if surrounded; add to interior
+  O = fill(I, 1, frozenset(interior))  # Fill interior with '1's
+  return O 
+ 
+37.333333333333336, tensor(1.9088), Description: For each colored shape in the input grid, if the shape's color is 2, draw a bounding box around the shape using the color 2. Then, fill the interior of the shape (excluding the bounding box) with the color 1. This effectively creates a grid where all shapes with color 2 have a bounding box drawn around them, and their interiors are filled with the color 1. 
+:: def bbbceacadfhfeiacjfdcbbaiaadieebh(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, T, T, T):
+    if color(obj) == 2:
+      O = paint(O, recolor(2, box(toindices(obj))))
+      O = underpaint(O, recolor(1, toindices(obj))) 
+  return O
+ 
+61.666666666666664, tensor(1.9116), Description: For each colored shape in the input grid, if the shape's color is 2, fill the shape with the color 1. Then, draw a border around the shape using the color 2. This effectively creates a grid where all shapes with color 2 have a bounding box drawn around them, and their interiors are filled with the color 1. 
+:: def ebceedbiedddejbeafechbhbdaaaieeb(I):
+    O = I
+    for obj in objects(I, T, T, T):
+        if color(obj) == 2:
+            O = paint(O, recolor(1, toindices(obj)))
+            O = paint(O, recolor(2, delta(toindices(obj))))
+    return O
+ 
+67.66666666666667, tensor(1.8411), Description: For each object in the input grid, fill the cells that are directly adjacent to the object (its delta) with the color 1. This effectively highlights the cells that are on the border of a colored object. 
+:: def fciagabacfgaeiadagecfjjhfagbafee(I):
+    objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+    return fill(I, 1, difference(asindices(I), mapply(lambda o: delta(toindices(o)), objs)))
+ 
+19.333333333333332, tensor(0.4568), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards. This effectively creates a striped pattern within each colored shape. 
+:: def cicjeibfcccaecdjafdgdfieabggajjd(I):
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    if width(obj) >= height(obj):
+      for j in range(1, width(obj), 2):
+        I = fill(I, 1, {(i, leftmost(obj) + j) for i in range(uppermost(obj) + 1, lowermost(obj))})
+    else:
+      for i in range(1, height(obj), 2):
+        I = fill(I, 1, {(uppermost(obj) + i, j) for j in range(leftmost(obj) + 1, rightmost(obj))})
+  return I 
+ 
+22.333333333333332, tensor(0.4568), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards. This effectively creates a striped pattern within each colored shape. 
+:: def bcagbaaaafcdeaabbaefiageebhfhfbc(I):
+  for obj in objects(I, T, T, T):
+    indices = toindices(obj)
+    if width(obj) >= height(obj):
+      inner_columns = {(i, j) for (i, j) in indices if leftmost(obj) + 1 <= j <= rightmost(obj) - 1 and (j - leftmost(obj)) % 2 == 1}
+      I = fill(I, 1, inner_columns)
+    else:
+      inner_rows = {(i, j) for (i, j) in indices if uppermost(obj) + 1 <= i <= lowermost(obj) - 1 and (i - uppermost(obj)) % 2 == 1}
+      I = fill(I, 1, inner_rows)
+  return I
+ 
+14.0, tensor(0.4599), Description: For each colored shape in the input grid, if the shape is taller than it is wide, fill the cells to the right of the shape with the color 1, up to the edge of the bounding box. If the shape is wider than it is tall, fill the cells below the shape with the color 1, up to the edge of the bounding box. This effectively creates a border around each shape, extending outwards in the direction of the shape's longer side. 
+:: def fiagcbdfbdfdejdaideccfgadfdfigei(I):
+    for obj in objects(I, T, T, T):
+        if portrait(obj):
+            I = paint(I, recolor(1, intersection(inbox(obj), shift(toindices(obj), (1, 0)))))
+        else:
+            I = paint(I, recolor(1, intersection(inbox(obj), shift(toindices(obj), (0, 1)))))
+    return I
+ 
+15.333333333333334, tensor(0.4568), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards. This effectively creates a striped pattern within each colored shape. 
+:: def eddbceacebbaeddgibfdbiaadeccjchj(I):
+  for obj in objects(I, T, T, T):
+    h, w = shape(obj)
+    for i in range(1, h - 1):
+      for j in range(1, w - 1):
+        if (w >= h and j % 2 == 1) or (h > w and i % 2 == 1):
+          I = fill(I, 1, {(uppermost(obj) + i, leftmost(obj) + j)})
+  return I
+ 
+42.0, tensor(1.9345), Description: For each colored shape in the input grid, fill the interior of the shape (excluding the border) with the color 1. 
+:: def hbidbfebafggebiiiahfifiebjbcbaac(I):
+  objs = objects(I, T, T, T)
+  inbox_indices = mfilter(objs, inbox) # Get all inbox indices
+  return fill(I, 1, inbox_indices) # Fill inbox indices with 1
+ 
+23.666666666666668, tensor(1.4772), Description: For each colored shape in the input grid, find the border of the shape. Then, fill the cells that are directly adjacent to the border (its delta) with the color 1. This effectively creates a grid where the borders of all colored shapes are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def aaeacddhcgjceicdiheaiebejdddadbc(I):
+  objs = objects(I, T, T, T)
+  filled_grid = I
+  for obj in objs:
+    border = difference(box(obj), inbox(obj)) # Find the object's border
+    filled_grid = fill(filled_grid, 1, delta(border)) # Fill the area inside the border with 1
+  return filled_grid
+ 
+78.0, tensor(1.9880), Description: For each object in the input grid, identify the border cells (cells that have at least one neighbor with a different color). Then, fill all the cells that are not part of the border with the color 1. This effectively highlights the interior of all colored objects in the grid. 
+:: def bdfeecjjdaabefadifbgbfcbjgfgfbhf(I):
+  all_cells = asindices(I)
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  border_cells = mapply(lambda obj: sfilter(toindices(obj), lambda c: size(intersection(dneighbors(c), toindices(obj))) < 4), objs)
+  interior_cells = difference(all_cells, merge(border_cells))
+  return fill(I, 1, interior_cells)
+ 
+36.333333333333336, tensor(1.9824), Description: For each cell in the input grid, if the cell is colored and has at least one adjacent cell that is black, paint the cell with the color 1. Otherwise, keep the original color of the cell. This effectively highlights the cells that are on the border of a colored object. 
+:: def ghjbdefdhcfdeiajiefebhcibaiaafeb(I):
+    O = I
+    for i in range(1, height(I)-1):
+        for j in range(1, width(I)-1):
+            if index(I,(i,j)) != 0 and any(index(I,(i+di,j+dj)) == 0 for di,dj in [(0,1),(0,-1),(1,0),(-1,0)]):
+                O = paint(O, {(1,(i,j))})
+    return O 
+ 
+40.0, tensor(0.8025), Description: Fill the interior of the largest object in the input grid with the color 1, excluding the border. 
+:: def igfbfffibajhedgfbaceafdecdahdega(I):
+  obj = argmax(objects(I, False, True, True), size)  # Find the largest object
+  outer = toindices(obj)
+  inner =  outer - apply(dneighbors, outer)  # Find indices that are part of the object but not adjacent to any other object
+  O = fill(I, 1, inner)
+  return O
+ 
+23.333333333333332, tensor(0.4468), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right, excluding the rightmost column. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards, excluding the bottommost row. This effectively creates a striped pattern within each colored shape, leaving the outermost row or column untouched. 
+:: def jahdabdfegebeeaeafhdcfedacefibja(I):
+  for obj in objects(I, T, T, T):
+    if width(obj) >= height(obj):
+      I = paint(I, recolor(1, sfilter(toindices(obj), lambda loc: loc[1] % 2 == 1 and loc[1] != rightmost(obj))))
+    else:
+      I = paint(I, recolor(1, sfilter(toindices(obj), lambda loc: loc[0] % 2 == 1 and loc[0] != lowermost(obj))))
+  return I 
+ 
+27.333333333333332, tensor(0.4568), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards. This effectively creates a striped pattern within each colored shape. 
+:: def icbeiicibachecddbfeadcbddgcffbad(I):
+  for obj in objects(I, T, T, T):
+    orientation = 'horizontal' if width(obj) >= height(obj) else 'vertical'
+    for offset in range(1, (width(obj) if orientation == 'horizontal' else height(obj)), 2):
+      if orientation == 'horizontal':
+        I = fill(I, 1, {(i, leftmost(obj) + offset) for i in range(uppermost(obj), lowermost(obj) + 1)})
+      else:
+        I = fill(I, 1, {(uppermost(obj) + offset, j) for j in range(leftmost(obj), rightmost(obj) + 1)})
+  return I
+ 
+24.666666666666668, tensor(0.4568), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards. This effectively creates a striped pattern within each colored shape. 
+:: def geddchajbediebecjdjiccdbbhiifejj(I):
+  for obj in objects(I, T, T, T):
+    I = paint(I, recolor(1, 
+                           (sfilter(toindices(obj), lambda loc: (loc[1] - leftmost(obj)) % 2 == 1) 
+                            if width(obj) >= height(obj) 
+                            else sfilter(toindices(obj), lambda loc: (loc[0] - uppermost(obj)) % 2 == 1))))
+  return I
+ 
+21.333333333333332, tensor(0.4568), Description: For each colored shape in the input grid, if the shape is wider than it is tall, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. If the shape is taller than it is wide, fill every other cell in the shape's interior with the color 1, starting from the topmost row and moving downwards. This effectively creates a striped pattern within each colored shape. 
+:: def hcccaffcccdaefeijedjfcaieeedfecb(I):
+  return paint(I, merge({recolor(1, sfilter(shift(toindices(obj), (-uppermost(obj), -leftmost(obj))), lambda loc: loc[1] % 2 == 1)) 
+                      if width(obj) >= height(obj) 
+                      else recolor(1, sfilter(shift(toindices(obj), (-uppermost(obj), -leftmost(obj))), lambda loc: loc[0] % 2 == 1)) 
+                      for obj in objects(I, T, T, T)}))
+ 
+23.0, tensor(0.3140), Description: For each univalued object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def fadajbfeejbgeeacbhfhbcbbiadeeehb(I):
+  def fill_interior(obj):
+    return difference(backdrop(toindices(obj)), toindices(obj))
+  return paint(I, merge(apply(lambda obj: recolor(1, fill_interior(obj)), objects(I, True, False, True)))) 
+ 
+11.0, tensor(0.3241), Description: For each univalued object in the input grid, fill the area inside the bounding box of the object, excluding the object itself and its immediate border, with the color 1. 
+:: def cieiabgecddeehdfbeaffecajbadbbjg(I):
+  objs = objects(I, True, False, True)
+  return paint(I, merge(apply(lambda obj: recolor(1, difference(backdrop(toindices(obj)), combine(toindices(obj), box(toindices(obj))))), objs)))
+ 
+41.333333333333336, tensor(0.4520), Description: For each colored shape in the input grid, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. This effectively creates a striped pattern within each colored shape. 
+:: def ehfbihdcehaeefecichiehciaedebebi(I):
+  for obj in objects(I, T, T, T):
+    for j in range(leftmost(obj), rightmost(obj) + 1, 2):
+      I = fill(I, 1, {(i, j) for i in range(uppermost(obj), lowermost(obj) + 1)})
+  return I
+ 
+50.333333333333336, tensor(0.3443), Description: For each colored shape in the input grid, fill every other cell in the shape's interior with the color 1, starting from the leftmost column and moving towards the right. Then, for each cell in the input grid, compare the original color to the color in the corresponding cell in the output grid. If the colors are the same, keep the original color. If the colors are different, change the color to 1. This effectively creates a striped pattern within each colored shape, while also highlighting any cells that were changed. 
+:: def facdaigfccfhebibajcicfdbjjbagecg(I):
+  return cellwise(I, 
+                  paint(canvas(0, shape(I)), 
+                        merge({recolor(1, {(i, j) for i in range(uppermost(obj), lowermost(obj) + 1)}) 
+                               for obj in objects(I, T, T, T) for j in range(leftmost(obj), rightmost(obj) + 1, 2)})), 
+                  1) 
+ 
+32.666666666666664, tensor(0.4575), Description: For each colored shape in the input grid, draw a vertical line of color 1 through the center of the shape, extending from the topmost row to the bottommost row. The line should pass through every other cell within the shape's bounds. This effectively creates a grid where each colored shape has a vertical line of color 1 running through its center. 
+:: def gddcibahgjebebbfbcaaegbciddeddhe(I):
+  lined_grid = I
+  for obj in objects(I, T, T, T):
+    for j in range(leftmost(obj) + 1, rightmost(obj) + 1):
+      if even(j - leftmost(obj)):
+        lined_grid = fill(lined_grid, 1, connect((uppermost(obj), j), (lowermost(obj), j)))
+  return lined_grid
+ 
+18.666666666666668, tensor(1.0388), Description: Fill the entire grid with the color 1. Then, for each cell in the grid, if the cell has a different color than its direct neighbors, restore the original color of that cell. This effectively creates a grid where the interior of the largest object is filled with the color 1, while the borders of all objects are restored to their original colors. 
+:: def fehdggfiigfcecgfajefijbdbdaagjac(I):
+  obj = argmax(objects(I, False, True, True), size)  # Find the largest object
+  if not obj:
+    return I
+  O = canvas(1, shape(I))  # Create a canvas filled with 1s
+  for i, j in asindices(I):
+    if any(index(I, (i + di, j + dj)) != index(I, (i, j)) for di, dj in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+      O = fill(O, I[i][j], {(i, j)}) # Restore original values for non-interior cells
+  return O
+ 
+9.333333333333334, tensor(0.2653), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def ffjeefddcfeieciijfgfjcdacbjcgaec(I):
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    I = underfill(I, 1, difference(backdrop(obj), box(obj)))
+  return I
+ 
+23.666666666666668, tensor(0.2653), Description: For each object in the input grid, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. 
+:: def hhdadjdadidjeadaiecfgdjafdgagibb(I):
+  return paint(I, merge(apply(lambda obj: recolor(1, difference(backdrop(obj), box(obj))), objects(I, univalued=False, diagonal=False, without_bg=True))))
+ 
+20.666666666666668, tensor(1.7891), Description: Find the largest object in the input grid. For each corner of this object, shift the corner one cell diagonally (down and right). Fill the interior of the largest object with the color 1, excluding the area covered by the shifted corners. This effectively highlights the interior of the largest object, excluding a small area around its corners. 
+:: def afadhjebhfcdeebfbabajgacjbbfehdh(I):
+  obj = argmax(objects(I, False, True, True), size)
+  if obj is None:
+    return I
+  inner = toindices(obj) - mapply(delta, apply(rbind(shift, (1,1)), apply(corners, {obj})))
+  return fill(I, 1, inner)
+ 
+53.333333333333336, tensor(1.7220), Description: For each colored shape in the input grid, fill the cells that are directly adjacent to the shape (its delta) with the color 1, but only if those cells are within the bounds of the grid. This effectively highlights the interior cells of objects that are completely surrounded by a different color. 
+:: def bbieecffhbidecdcahebcbdficehccfb(I):
+  return paint(I, 
+               merge({recolor(1, 
+                              intersection(dneighbors(loc),
+                                          asindices(I)))
+                      for obj in objects(I, T, T, T) 
+                      for loc in toindices(obj)}))
+ 
+21.0, tensor(0.6604), Description: Fill the entire grid with the color 1. Then, for each univalued object in the grid that has the color 1, fill the area inside the bounding box of the object, excluding the object itself, with the color 1. This effectively creates a grid where the bounding boxes of all shapes with color 1 are highlighted with the color 1, while the shapes themselves and the original background remain unchanged. 
+:: def fjhacbdhecgaeageahcfdadbgbaaebfg(I):
+  bg = mostcolor(I)
+  filled = fill(I, 1, asindices(I))
+  objs = objects(filled, univalued=True, diagonal=False, without_bg=False)
+  for obj in objs:
+    if color(obj) == 1:
+      I = underfill(I, 1, difference(backdrop(obj), box(obj)))
+  return I
+ 
+44.666666666666664, tensor(1.0483), Description: For each object in the input grid, if the object has more than one cell and is completely surrounded by cells of the same color (including itself), fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects that are completely surrounded by the same color and have more than one cell. 
+:: def dbafbdbjafbeecigjdfcfcdhaafcbbge(I):
+  O = I  
+  for obj in objects(I, univalued = False, diagonal=False, without_bg=False):
+    if size(obj) > 1:
+      for (v, (i, j)) in obj:
+        if sum((i + di, j + dj) in toindices(obj) for di, dj in [(0,1),(1,0),(0,-1),(-1,0)]) == 4:
+          O = fill(O, 1, {(i,j)})
+  return O 
+ 
+30.666666666666668, tensor(1.0483), Description: For each object in the input grid, if the object has more than one cell and is completely surrounded by cells of the same color (including itself), fill that cell with the color 1. Otherwise, keep the original color. This effectively highlights the interior cells of objects that are completely surrounded by the same color and have more than one cell. 
+:: def gehadebdgfeeeddfjgeheedeacbedjad(I):
+  O = I
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=False):
+    if size(obj) > 1:
+      for x,y in toindices(obj):
+        if all(index(I, (x+i, y+j)) == color(obj) for i in [-1,0,1] for j in [-1,0,1] if (i,j)!=(0,0) and 0<=x+i<len(I) and 0<=y+j<len(I[0])):
+          O = fill(O, 1, {(x,y)})
+  return O
+ 
+58.0, tensor(0.8463), Description: Downscale the input grid by a factor of 2, effectively merging interior cells of the same color. Then, upscale the downscaled grid by a factor of 2, filling in the new cells with the dominant color from the downscaled grid. Finally, compare the original input grid with the upscaled grid. If the colors match, change the color to 1. If they don't match, keep the original color. This process effectively blurs the image by averaging the colors of neighboring cells. 
+:: def gdcghdbjhfchecbbaejfagdifbdeaaeh(I):
+    downscaled = downscale(I, 2)
+    upscaled = upscale(downscaled, 2)
+    O = I
+    for i in range(len(I)):
+      for j in range(len(I[0])):
+        if I[i][j] == upscaled[i][j]:
+          O = fill(O, 1, {(i,j)})
+    return O
+ 
+11.666666666666666, tensor(0.3352), Description: For each colored shape in the input grid, fill the area inside the bounding box of the shape, excluding the shape itself, with the color 1. 
+:: def jdhehfcadaadeedajbedbdbcedaafbcc(I):
+  return paint(I, 
+               merge({recolor(1, 
+                              difference(inbox(toindices(obj)),
+                                        toindices(obj)))
+                      for obj in objects(I, T, T, T)}))
+ 
+12.333333333333334, tensor(0.3352), Description: For each colored shape in the input grid, fill the area inside the bounding box of the shape, excluding the shape itself, with the color 1. 
+:: def bdicdcdfbbciebefijfejcfceajjaide(I):
+  for obj in objects(I, T, T, T):
+    I = underfill(I, 1, difference(inbox(toindices(obj)), toindices(obj)))
+  return I
+ 
+87.33333333333333, tensor(1.8103), Description: Create a 2h x 2w grid (where h and w are the height and width of the input grid). Fill the top-left quadrant with the same color as the first univalued object in the input grid. Then, create a hole in the center of this quadrant by removing a square of the same size as the original object. Finally, combine this modified quadrant with the original input grid to create the output grid. 
+:: def acafbdadecjaecafihhbfbdibgdcbjfe(I):
+    obj = first(objects(I, univalued=True, diagonal=False, without_bg=True))
+    obj_color = color(obj)
+    h, w = shape(obj)
+    output_canvas = canvas(0, (h * 2, w * 2)) 
+    filled_rect = canvas(obj_color, (h, w))
+    # ... further code to create the hole and combine elements ...
+    return output_canvas 
+ 
+61.333333333333336, tensor(0.0692), Description: Find the smallest object in the input grid.  Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if there are less than 3 objects in the input, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2. Fill the cell one space to the left and one space above the center of the upscaled object with color 1. If there are 2 objects in the input, paint the upscaled object again, shifted 4 spaces down from its original position. If there are 3 objects in the input, paint the upscaled object again, shifted 3 spaces to the right and 3 spaces down, and then paint the upscaled object again, shifted 9 spaces to the right and 3 spaces up. 
+:: def fcefdcdbddfdegjhaiefcjfhbcbdahhj(I):
+  objs = objects(I, True, True, True)
+  obj = argmin(objs, size)
+  upscaled_obj = upscale(obj, 3)
+  canvas_size = (8, 8) if len(objs) < 3 else (12, 12)
+  O = canvas(0, canvas_size)
+  O = paint(O, recolor(2, upscaled_obj))
+  O = fill(O, 1, shift((centerofmass(upscaled_obj),), (-1, -1)))
+  if len(objs) == 2:
+    O = paint(O, recolor(2, shift(upscaled_obj, (0, -4))))
+  elif len(objs) == 3:
+    O = paint(O, recolor(2, shift(upscaled_obj, (3, 3))))
+    O = paint(O, recolor(2, shift(upscaled_obj, (9, -3))))
+  return O
+ 
+70.0, tensor(0.0740), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with the same size as the upscaled object. Paint the upscaled object onto the canvas with color 2. Fill the cell one space to the left and one space above the center of the upscaled object with color 1. If there are 2 objects in the input, horizontally concatenate the canvas with a blank canvas of the same height and 4 columns. Then, paint the upscaled object again, shifted 3 spaces to the right from its original position. If there are 3 objects in the input, vertically concatenate the canvas with a blank canvas of 3 rows and the same width. Then, horizontally concatenate the canvas with a blank canvas of the same height and 3 columns. Then, paint the upscaled object again, shifted 3 spaces to the right and 3 spaces down, and then paint the upscaled object again, shifted 9 spaces to the right and 3 spaces up. 
+:: def gcbafceejbhaeggejhfjffibbfbabgab(I):
+  objs = objects(I, True, True, True)
+  obj = argmin(objs, size)
+  upscaled_obj = upscale(obj, 3)
+  O = canvas(0, shape(upscaled_obj))
+  O = paint(O, recolor(2, upscaled_obj))
+  O = fill(O, 1, shift((centerofmass(upscaled_obj),), (-1, -1)))
+  if len(objs) == 2:
+    O = hconcat(O, canvas(0, (height(O), 4)))
+    O = paint(O, recolor(2, shift(upscaled_obj, (0, 3))))
+  elif len(objs) == 3:
+    O = vconcat(O, canvas(0, (3, width(O))))
+    O = hconcat(O, canvas(0, (height(O), 3)))
+    O = paint(O, recolor(2, shift(upscaled_obj, (3, 3))))
+    O = paint(O, recolor(2, shift(upscaled_obj, (9, -3))))
+  return O
+ 
+54.666666666666664, tensor(0.0585), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if there are less than 3 objects in the input, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2. Fill the cell at the center of the upscaled object with color 1. If there are 2 objects in the input, paint the upscaled version of the second object onto the canvas, shifted by 4 spaces in the direction of the second object relative to the first object. If there are 3 objects in the input, paint the upscaled version of the third object onto the canvas, shifted by 8 spaces in the direction of the third object relative to the first object. Fill the cell one space to the left and one space above the center of each upscaled object with color 1. 
+:: def gefejieehfaheehjicfbhigbahieiche(I):
+  objs = objects(I, True, True, True)
+  obj1 = argmin(objs, size)
+  upscaled_obj1 = upscale(obj1, 3)
+  canvas_size = (8, 8) if len(objs) < 3 else (12, 12)
+  O = canvas(0, canvas_size)
+  O = paint(O, recolor(2, shift(upscaled_obj1, (1, 1))))
+  O = fill(O, 1, shift((centerofmass(upscaled_obj1),), (0, 0)))
+  if len(objs) > 1:
+    obj2 = other(objs, obj1)
+    upscaled_obj2 = upscale(obj2, 3)
+    rel_pos = position(obj1, obj2)
+    offset = multiply(rel_pos, (4, 4))
+    O = paint(O, recolor(2, shift(upscaled_obj2, offset)))
+    O = fill(O, 1, shift((centerofmass(upscaled_obj2),), add(offset, (-1, -1))))
+  if len(objs) > 2:
+    obj3 = other(remove(objs, obj1), obj2)
+    upscaled_obj3 = upscale(obj3, 3)
+    rel_pos = position(obj1, obj3)
+    offset = multiply(rel_pos, (8, 8))
+    O = paint(O, recolor(2, shift(upscaled_obj3, offset)))
+    O = fill(O, 1, shift((centerofmass(upscaled_obj3),), add(offset, (-1, -1))))
+  return O
+ 
+82.33333333333333, tensor(0.9014), Description: Enlarge the first colored object in the input grid by a factor of 2. Then, replicate this enlarged object vertically if the original object is taller than it is wide, or horizontally if the original object is wider than it is tall. The replication should be done in a way that the enlarged objects are placed next to each other, with a single empty cell between them. The output grid should be sized to accommodate the replicated objects. 
+:: def djccejiafgaheehgbjdfbiabeaifeefd(I):
+  obj = first(objects(I, T, F, T))  # Extract the object
+  color_obj = color(obj)
+  shape_obj = shape(obj) 
+  enlarged_obj = upscale(obj, 2)  # Enlarge object 
+  
+  # Determine replication pattern and adjust dimensions
+  if shape_obj[0] > shape_obj[1]: # Vertical replication
+    replication_factor = 2
+    new_width = (shape_obj[1] * 2) + 1 
+    new_height = (shape_obj[0] * replication_factor) + (replication_factor - 1)
+  else:  # Horizontal replication
+    replication_factor = 3 
+    new_width = (shape_obj[1] * replication_factor) + (replication_factor - 1)
+    new_height = (shape_obj[0] * 2) + 1 
+  
+  canvas_grid = canvas(ZERO, (new_height, new_width))  # Create output canvas
+  
+  # Replicate the object
+  for i in range(replication_factor):
+    offset = (i * (shape_obj[0] * 2 + 1), 0) if shape_obj[0] > shape_obj[1] else (0, i * (shape_obj[1] * 2 + 1))
+    canvas_grid = paint(canvas_grid, shift(enlarged_obj, offset))
+
+  O = canvas_grid
+  return O
+ 
+58.666666666666664, tensor(0.1549), Description: Find the first univalued object in the input grid. Upscale this object by a factor of 2. Create a canvas with a size of 8x8. Paint the upscaled object onto the canvas, shifted so that its center is aligned with the center of the canvas. 
+:: def jbdfhicccdfbecbbbbigacfifaecjedi(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    obj = first(objs)
+    obj = upscale(obj, 2)
+    c = centerofmass(obj)
+    O = canvas(0, (8, 8))
+    O = paint(O, shift(obj, subtract((3, 3), c)))
+    return O
+ 
+59.333333333333336, tensor(0.1731), Description: Create an 8x8 grid. Fill in the 2x2 squares along the diagonal with the color 2. For squares above the diagonal, fill in the 2x2 squares with the color 2, but shift them one cell to the left. For squares below the diagonal, fill in the 2x2 squares with the color 2, but shift them one cell to the right. 
+:: def deijfhcceecceaabidcafhehiicedeae(I):
+    O = canvas(0, (8, 8))
+    for i in range(3):
+        for j in range(3):
+            if i == j:
+                for k in range(2 * i, 2 * i + 2):
+                    for l in range(2 * j, 2 * j + 2):
+                        O = fill(O, 2, {(k + 1, l + 1)})
+            elif i + 1 == j:
+                for k in range(2 * i, 2 * i + 2):
+                    for l in range(2 * j, 2 * j + 2):
+                        O = fill(O, 2, {(k + 1, l)})
+            else:
+                for k in range(2 * i, 2 * i + 2):
+                    for l in range(2 * j, 2 * j + 2):
+                        O = fill(O, 2, {(k + 1, l - 1)})
+    return O
+ 
+58.666666666666664, tensor(0.2818), Description: For each gray square in the input grid, create a 2x2 block of color 2 in the output grid. The position of this block is determined by shifting the original gray square's position by (1, -i + j), where (i, j) are the coordinates of the gray square in the input grid. This creates a pattern where the 2x2 blocks are shifted diagonally in a specific way based on the original gray square's position. 
+:: def hjgchabbaecaeccgbbhaaebcfghagbdc(I):
+    O = canvas(0, (8, 8))
+    for i, j in ofcolor(I, 5):
+        block = {(2 * i, 2 * j), (2 * i + 1, 2 * j), (2 * i, 2 * j + 1), (2 * i + 1, 2 * j + 1)}
+        O = fill(O, 2, shift(block, (1, - i + j)))
+    return O
+ 
+87.33333333333333, tensor(1.4864), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions twice the size of the original object. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1. Then, repaint the original object onto the canvas with its original color. This effectively creates a grid where the original object is enlarged and has its interior filled with the color 1, while the border remains the same. 
+:: def aafibjaaiecgeiidaaiacffhcafdfbfg(I):
+    obj = first(objects(I, F, F, T))  # Extract the object
+    color_obj = color(obj)
+    upscaled_obj = upscale(obj, 2)  # Upscale the object
+    canvas_dims = multiply(shape(obj), 2) # Get canvas dimensions
+    O = paint(canvas(0, canvas_dims), recolor(2, upscaled_obj)) # Paint upscaled object on canvas
+    O = underfill(O, 1, shift(inbox(upscaled_obj), (1, 1)))  # Fill the interior with 1s 
+    O = fill(O, color_obj, obj) # Repaint the original object
+    return O
+ 
+61.666666666666664, tensor(0.0489), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions twice the size of the original object, using the background color. Center the upscaled object on the canvas. If the original object is taller than it is wide, fill the interior of the upscaled object (excluding the border) with the color 1, but shift it two cells to the left. If the original object is wider than it is tall, fill the interior of the upscaled object (excluding the border) with the color 1, but shift it two cells up. If the original object is a square, fill the interior of the upscaled object (excluding the border) with the color 1, but shift it two cells to the left and two cells up. 
+:: def cfafabbhbdhfefgbaadfejcaadbejbjh(I):
+    obj = first(fgpartition(I))
+    color_obj = color(obj)
+    color_bg = mostcolor(I)
+    h, w = shape(obj)
+    canvas_dims = (max(h, w) * 2 + 2, max(h, w) * 2 + 2) 
+    O = canvas(color_bg, canvas_dims)
+    center_offset = (canvas_dims[0]//2 - h//2 - h%2, canvas_dims[1]//2 - w//2 - w%2)
+    
+    if h > w:
+        # Vertical Expansion (Similar to Input_1)
+        O = paint(O, shift(upscale(obj, 2), center_offset))
+        inner_obj = recolor(1, shift(crop(O, (center_offset[0]+2, center_offset[1]+1), (h*2-4, w*2-2)), (-2, 0)))
+        O = paint(O, inner_obj)
+    elif w > h:
+        # Horizontal Expansion (Similar to Input_0)
+        O = paint(O, shift(upscale(obj, 2), center_offset))
+        inner_obj = recolor(1, shift(crop(O, (center_offset[0]+1, center_offset[1]+2), (h*2-2, w*2-4)), (0, -2)))
+        O = paint(O, inner_obj)
+    else:
+        # Cross Expansion (Similar to Input_2)
+        O = paint(O, shift(upscale(obj, 2), center_offset))
+        inner_obj = recolor(1, shift(crop(O, (center_offset[0]+2, center_offset[1]+2), (h*2-4, w*2-4)), (-2, -2)))
+        O = paint(O, inner_obj)
+        
+    return O
+ 
+89.33333333333333, tensor(0.8951), Description: Upscale the first colored object in the input grid by a factor of 4. Create a canvas with a size of 8x8 if the object is taller than it is wide, otherwise create a canvas with a size of 12x8. Paint the upscaled object onto the canvas, replicating it in a grid pattern. If the object is taller than it is wide, replicate it vertically in two rows of two upscaled objects each. If the object is wider than it is tall, replicate it horizontally in four columns of two upscaled objects each. 
+:: def aheadefccafjebcfjfdjbiahbdcghifd(I):
+  obj = first(objects(I, T, F, T))
+  color_obj = color(obj)
+  canvas_size = (8, 8) if height(obj) > width(obj) else (12, 8)
+  output_grid = canvas(ZERO, canvas_size)
+  
+  for i in range(2 if height(obj) > width(obj) else 4):
+    for j in range(2 if height(obj) > width(obj) else 3):
+      offset = (i * 4, j * 4) if height(obj) > width(obj) else (i * 3, j * 4)
+      output_grid = paint(output_grid, shift(upscale(obj, 4), offset))
+  
+  O = output_grid
+  return O
+ 
+82.66666666666667, tensor(1.1924), Description: Upscale the first colored object in the input grid by a factor of 4 if the object is taller than it is wide, otherwise upscale it by a factor of 3. Create a canvas with a size of 8x8 if the object is taller than it is wide, otherwise create a canvas with a size of 12x8. Paint the upscaled object onto the canvas, replicating it in a checkerboard pattern. If the object is taller than it is wide, paint the upscaled object in every other 4x4 block. If the object is wider than it is tall, paint the upscaled object in every other 3x4 block. 
+:: def cicgeahfajbdeedjidedbeaieiabifed(I):
+  obj = first(objects(I, T, F, T))
+  color_obj = color(obj)
+  canvas_size = (8, 8) if height(obj) > width(obj) else (12, 8)
+  output_grid = canvas(ZERO, canvas_size)
+  
+  for i in range(canvas_size[0]):
+    for j in range(canvas_size[1]):
+      if (i // 4) % 2 == (j // 4) % 2 and height(obj) > width(obj):
+        output_grid = paint(output_grid, shift(upscale(obj, 4), (i, j)))
+      elif (i // 3) % 4 == (j // 4) % 3 and height(obj) <= width(obj):
+        output_grid = paint(output_grid, shift(upscale(obj, 3), (i, j)))
+  
+  O = output_grid
+  return O 
+ 
+72.0, tensor(0.9083), Description: Upscale the first colored object in the input grid by a factor of 4 if the object is taller than it is wide, otherwise upscale it by a factor of 3. Create a canvas with a size of 8x8 if the object is taller than it is wide, otherwise create a canvas with a size of 12x8. Paint the upscaled object onto the canvas, replicating it in a pattern where each upscaled object is placed in a grid of the same size as the upscaled object, starting from the top left corner and moving across and down. 
+:: def dcbdfdgaaajeeefbjbbddcedefecbcah(I):
+  obj = first(objects(I, T, F, T))
+  color_obj = color(obj)
+  canvas_size = (8, 8) if height(obj) > width(obj) else (12, 8)
+  upscale_factor = 4 if height(obj) > width(obj) else 3
+  enlarged_obj = upscale(obj, upscale_factor)
+  output_grid = canvas(ZERO, canvas_size)
+  
+  occurrences_set = occurrences(canvas(ZERO, (canvas_size[0] + upscale_factor, canvas_size[1] + upscale_factor)), enlarged_obj)
+  for occurrence in occurrences_set:
+    offset = (occurrence[0] % upscale_factor, occurrence[1] % upscale_factor)
+    output_grid = paint(output_grid, shift(enlarged_obj, offset))
+  
+  O = output_grid
+  return O
+ 
+112.0, tensor(1.1924), Description: Upscale the first colored object in the input grid by a factor of 4 if the object is taller than it is wide, otherwise upscale it by a factor of 3. Create a canvas with a size of 8x8 if the object is taller than it is wide, otherwise create a canvas with a size of 12x8. Paint the upscaled object onto the canvas, replicating it in a checkerboard pattern. If the object is taller than it is wide, paint the upscaled object in every other 4x4 block. If the object is wider than it is tall, paint the upscaled object in every other 3x4 block. 
+:: def cfcdagdjhdeeejcgjjcdedejgjefgbha(I):
+  obj = first(objects(I, T, F, T))
+  color_obj = color(obj)
+  upscale_factor = 4 if height(obj) > width(obj) else 3
+  enlarged_obj = upscale(obj, upscale_factor)
+  canvas_size = (8, 8) if height(obj) > width(obj) else (12, 8)
+  
+  if height(obj) > width(obj):
+    output_grid = tuple(
+        tuple(ONE if (i // 4) % 2 == (j // 4) % 2 else ZERO for j in range(canvas_size[1])) 
+        for i in range(canvas_size[0])
+    )
+  else:
+    output_grid = tuple(
+        tuple(ONE if (i // 3) % 4 == (j // 4) % 3 else ZERO for j in range(canvas_size[1])) 
+        for i in range(canvas_size[0])
+    )
+  
+  O = paint(canvas(ZERO, canvas_size), recolor(color_obj, asobject(output_grid)))
+  return O
+ 
+80.66666666666667, tensor(1.4756), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions four times the size of the original object. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1. Then, repaint the original object onto the canvas with its original color. This effectively creates a grid where the original object is enlarged and has its interior filled with the color 1, while the border remains the same. 
+:: def eccddifddeebebaijeibcbaghbafbhfe(I):
+  obj = first(objects(I, F, F, T))
+  color_obj = color(obj)
+  upscaled_obj = upscale(obj, 2)
+  O = canvas(0, multiply(shape(obj), 4)) 
+  O = paint(O, recolor(1, shift(inbox(upscaled_obj), (1, 1))))
+  O = paint(O, recolor(2, upscaled_obj))
+  O = paint(O, recolor(color_obj, obj))
+  return O
+ 
+90.0, tensor(0.7906), Description: Upscale the first colored object in the input grid by a factor of 4. Create a canvas with dimensions four times the size of the input grid. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1, but shift it one cell to the right and one cell down. 
+:: def fejijejbcafbebfdiehcgjcacbjagbeb(I):
+  obj = first(objects(I, F, F, T))
+  O = canvas(0, (height(I)*4, width(I)*4))
+  O = paint(O, recolor(2, upscale(obj, 4)))
+  O = paint(O, recolor(1, shift(inbox(upscale(obj, 2)), (1, 1))))
+  return O
+ 
+74.33333333333333, tensor(0.7937), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus an additional 4 cells in both height and width. Paint the upscaled object onto the canvas with color 2, shifted 2 cells to the right and 2 cells down. Fill the interior of the upscaled object (excluding the border) with the color 1, but shift it one cell to the right and one cell down. 
+:: def bbeedegciaeaeeejajaidbeecahbgaja(I):
+  obj = first(objects(I, F, F, T))
+  O = canvas(0, add(multiply(shape(I), 2), (4, 4))) 
+  O = paint(O, recolor(2, shift(upscale(obj, 2), (2, 2)))) 
+  O = paint(O, recolor(1, shift(inbox(upscale(obj, 2)), (3, 3))))
+  return O
+ 
+92.33333333333333, tensor(0.7923), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions four times the size of the input grid. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1, but shift it one cell to the right and one cell down. 
+:: def ddabcacceggcefbgicdieadcejbeedad(I):
+  obj = first(objects(I, F, F, T))
+  upscaled_obj = upscale(obj, 2)
+  box_offset = (1, 1) 
+  canvas_size = (height(I) * 4, width(I) * 4)
+  O = canvas(0, canvas_size)
+  O = paint(O, recolor(1, shift(inbox(upscaled_obj), box_offset))) 
+  O = paint(O, recolor(2, upscaled_obj))
+  return O 
+ 
+80.66666666666667, tensor(0.7903), Description: Upscale the first colored object in the input grid by a factor of 4. Create a canvas with dimensions four times the size of the original object. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1, but shift it one cell to the right and one cell down. 
+:: def dcdahdbbcfeceifbbcbaebihbfeaiccg(I):
+  obj = first(objects(I, F, F, T))
+  c = color(obj)
+  s = shape(obj)
+  O = canvas(0, (s[0]*4, s[1]*4))
+  O = paint(O, recolor(2, upscale(obj, 4)))
+  O = paint(O, recolor(1, shift(inbox(upscale(obj, 2)), add(s, (1, 1)))))
+  return O
+ 
+67.33333333333333, tensor(0.0336), Description: Upscale the object with the least common color by a factor of 3. Create a canvas twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Fill the interior of the upscaled object (excluding the border) with the background color, but shift it two cells to the right and two cells down. Then, paint the upscaled object onto the canvas with its original color. This effectively creates a grid where the object with the least common color is enlarged and has a hollow rectangle in its center, while the rest of the grid is filled with the most common color. 
+:: def agfcacdcgadaefbaiddajdadjfefffgd(I):
+  # Determine object color and background color
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+
+  # Create a larger canvas based on input size
+  canvas_size = (len(I) * 2 + 2, len(I[0]) * 2 + 2) 
+  O = canvas(bg_color, canvas_size)
+
+  # Extract and normalize the object
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+
+  # Determine object position offset based on input
+  offset = multiply(ulcorner(obj), (4, 4)) 
+
+  # Create the outer shape of the transformed object
+  outer_shape = upscale(obj, 3)
+  outer_shape = shift(outer_shape, offset)
+
+  # Create the inner hollow rectangle
+  inner_shape = upscale(obj, 1)
+  inner_shape = shift(inner_shape, add(offset, (2, 2)))
+  
+  # Paint the object onto the canvas
+  O = paint(O, recolor(obj_color, outer_shape))
+  O = paint(O, recolor(bg_color, inner_shape))
+  return O
+ 
+62.0, tensor(0.0426), Description: Upscale the object with the least common color by a factor of 1. Create a canvas twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Fill the interior of the upscaled object (excluding the border) with the background color, but shift it two cells to the right and two cells down. Then, paint the upscaled object onto the canvas with its original color. This effectively creates a grid where the object with the least common color is enlarged and has a hollow rectangle in its center, while the rest of the grid is filled with the most common color. 
+:: def fhbfagbbhcbdefdeajdecfhfeefdaajb(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  canvas_size = astuple(len(I) * 2 + 2, len(I[0]) * 2 + 2)
+  O = canvas(bg_color, canvas_size)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+
+  # Calculate offset using center of mass
+  offset = subtract(multiply(centerofmass(obj), (4, 4)), (1, 1))
+
+  # Use loops to create the transformed object
+  for i in range(3):
+    for j in range(3):
+      if not (i == 1 and j == 1):
+        temp_obj = upscale(obj, 1)
+        temp_obj = shift(temp_obj, add(offset, (i * 2, j * 2)))
+        O = paint(O, recolor(obj_color, temp_obj))
+  return O
+ 
+157.33333333333334, tensor(1.9844), Description: Create a canvas with dimensions four times the size of the object with the least common color, plus 2 cells in both height and width, using the most common color as the background. Fill the canvas with the least common color, but only in the cells that are at odd indices in both rows and columns (starting from 1). Then, fill the canvas with the most common color, but only in the cells that are at odd indices in both rows and columns (starting from 3). This effectively creates a grid where the object with the least common color is enlarged and has a hollow rectangle in its center, while the rest of the grid is filled with the most common color. 
+:: def hjbibabcjcdcejefjafcedibgbcebfcb(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = toobject(ofcolor(I, obj_color), I)
+
+  # Calculate output size based on object dimensions
+  output_size = add(multiply(shape(obj), (4, 4)), (2, 2))
+  O = canvas(bg_color, output_size)
+  
+  # Directly paint the object with specific dimensions
+  O = underfill(O, obj_color,  product(interval(1, output_size[0]-1, 2), interval(1, output_size[1]-1, 2)))
+  O = underfill(O, bg_color, product(interval(3, output_size[0]-3, 2), interval(3, output_size[1]-3, 2)))
+
+  return O
+ 
+92.33333333333333, tensor(0.0342), Description: Upscale the object with the least common color by a factor of 3. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Fill the interior of the upscaled object (excluding the border) with the background color, but shift it two cells to the right and two cells down. Then, paint the upscaled object onto the canvas with its original color. This effectively creates a grid where the object with the least common color is enlarged and has a hollow rectangle in its center, while the rest of the grid is filled with the most common color. 
+:: def ahbbcifcbhjbefbabeffdfjfihjbafae(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+
+  # Determine the scaling factor for the object
+  scale_factor = 3
+
+  # Create the outer and inner shapes with scaling
+  outer_shape = upscale(obj, scale_factor)
+  inner_shape = upscale(obj, scale_factor - 2)
+
+  # Calculate the offset for positioning 
+  offset = subtract(multiply(centerofmass(outer_shape), (1, 1)), centerofmass(inner_shape))
+  inner_shape = shift(inner_shape, offset)
+
+  # Create and paint the canvas
+  canvas_size = add(shape(outer_shape), (2, 2))
+  O = canvas(bg_color, canvas_size)
+  O = paint(O, recolor(obj_color, shift(outer_shape, (1, 1))))
+  O = paint(O, recolor(bg_color, shift(inner_shape, (1, 1))))
+  return O 
+ 
+70.33333333333333, tensor(1.9840), Description: Create an 8x8 grid with the most common color as the background.  For each cell in the output grid, calculate the corresponding cell in the input grid by dividing the output cell's coordinates by 4 and adding the upper-left corner coordinates of the object with the least common color. If the corresponding cell in the input grid is part of the object with the least common color and is not within the inner 2x2 square of the output grid, paint the output cell with the least common color. This effectively creates a scaled-up version of the object with the least common color, with a hollow 2x2 square in the center. 
+:: def chabgghbaiigegdcbidgfaeaibfbddfa(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj_indices = ofcolor(I, obj_color)
+  output_size = (8, 8)  # Fixed output size for this version
+
+  # Function to check if an index is within the object's bounding box
+  def in_bbox(idx,  obj_ul,  obj_lr):
+    return obj_ul[0] <= idx[0] <= obj_lr[0] and obj_ul[1] <= idx[1] <= obj_lr[1]
+
+  # Calculate object bounding box corners
+  obj_ul = ulcorner(obj_indices)
+  obj_lr = lrcorner(obj_indices)
+
+  O = canvas(bg_color, output_size)
+  for i in range(output_size[0]):
+    for j in range(output_size[1]):
+      # Calculate corresponding index in the input grid
+      input_i = i // 4 + obj_ul[0] 
+      input_j = j // 4 + obj_ul[1]
+      
+      # Paint based on bounding box and input grid values
+      if in_bbox((input_i, input_j), obj_ul, obj_lr) and (input_i, input_j) in obj_indices:
+        if not (1 < i % 8 < 7 and 1 < j % 8 < 7):
+          O = fill(O, obj_color, {(i, j)})
+  return O
+ 
+92.0, tensor(0.7923), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions four times the size of the input grid. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1, but shift it one cell to the right and one cell down. 
+:: def iaebefcdebhgegdejbcejgbfaeagficf(I):
+  obj = first(objects(I, F, F, T))
+  O = canvas(0, (height(I)*4, width(I)*4))
+  O = paint(O, recolor(2, upscale(obj, 2)))
+  O = paint(O, recolor(1, shift(inbox(upscale(obj, 1)), (1, 1))))
+  return O
+ 
+71.66666666666667, tensor(0.7927), Description: Upscale the first colored object in the input grid by a factor of 2. Create a canvas with dimensions twice the size of the input grid. Paint the upscaled object onto the canvas with color 2. Fill the interior of the upscaled object (excluding the border) with the color 1, but shift it one cell to the right and one cell down. 
+:: def dihdbbhefacheecfajjjeafhaffcedea(I):
+  obj = first(objects(I, F, F, T))
+  factor = 2
+  O = canvas(0, multiply(shape(I), factor))
+  O = paint(O, recolor(2, upscale(obj, factor)))
+  O = paint(O, recolor(1, shift(inbox(obj), (factor//2, factor//2))))
+  return O
+ 
+92.66666666666667, tensor(1.6897), Description: Upscale the object with the least common color by a factor equal to its size. Create a canvas with dimensions twice the size of the upscaled object, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, paint the upscaled object onto the canvas with its original color. This effectively creates a grid where the object with the least common color is enlarged, while the rest of the grid is filled with the most common color. 
+:: def daaebjdihahceefeijjchfeahbfahahi(I):
+    obj_color = leastcolor(I)  # Get object color
+    bg_color = mostcolor(I)  # Get background color
+    obj = normalize(toobject(ofcolor(I, obj_color), I))  # Extract object
+    upscale_factor = len(obj)  # Upscale factor based on object size
+    upscaled_obj = upscale(obj, upscale_factor)  # Upscale the object
+    canvas_size = add(shape(upscaled_obj), (2, 2)) # Calculate canvas size
+    O = canvas(bg_color, canvas_size)  # Create canvas
+    O = paint(O, recolor(obj_color, shift(upscaled_obj, (1, 1)))) # Paint upscaled object
+    return O 
+ 
+62.0, tensor(1.7175), Description: Upscale the object with the least common color by a factor equal to the sum of its row and column indices plus 2. Create a canvas with dimensions twice the size of the upscaled object, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, paint the upscaled object onto the canvas with its original color. This effectively creates a grid where the object with the least common color is enlarged, while the rest of the grid is filled with the most common color. The scaling factor is determined by the object's position in the input grid, making the object larger if it's located further from the top-left corner. 
+:: def dadacajdcgceefaabahcbcgibejgeedb(I):
+    obj_color = leastcolor(I)
+    bg_color = mostcolor(I)
+    obj = normalize(toobject(ofcolor(I, obj_color), I))
+    i, j = ulcorner(obj) # Get object position
+    upscale_factor = i + j + 2 # Calculate upscale factor based on position
+    upscaled_obj = upscale(obj, upscale_factor)
+    canvas_size = add(shape(upscaled_obj), (2, 2))
+    O = canvas(bg_color, canvas_size)
+    O = paint(O, recolor(obj_color, shift(upscaled_obj, (1, 1))))
+    return O
+ 
+92.33333333333333, tensor(0.0358), Description: Upscale the object with the least common color by a factor equal to its size. Create a canvas with dimensions twice the size of the upscaled object, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, create a smaller version of the object, upscaled by a factor of 1, and shift it to the center of the upscaled object. Paint the upscaled object onto the canvas with its original color, and paint the smaller object with the color 1. This effectively creates a grid where the object with the least common color is enlarged, and has a faint outline of the original object within it, while the rest of the grid is filled with the most common color. 
+:: def cjbggdfcjacjebgdibjadbdgcabheaea(I):
+    obj_color = leastcolor(I)
+    bg_color = mostcolor(I)
+    obj = normalize(toobject(ofcolor(I, obj_color), I))
+    upscale_factor = len(obj) 
+    upscaled_obj = upscale(obj, upscale_factor)
+    inner_obj = shift(upscale(obj, 1), (upscale_factor // 2, upscale_factor // 2)) # Create inner object
+    canvas_size = add(shape(upscaled_obj), (2, 2))
+    O = canvas(bg_color, canvas_size)
+    O = paint(O, recolor(obj_color, shift(upscaled_obj, (1, 1))))
+    O = paint(O, recolor(1, inner_obj)) # Paint the faint outline
+    return O
+ 
+99.0, tensor(0.3260), Description: Upscale the object with the least common color by a factor equal to its size. Create a canvas with dimensions twice the size of the upscaled object, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, horizontally mirror the upscaled object and combine it with the original upscaled object. Paint the combined object onto the canvas with its original color. This effectively creates a grid where the object with the least common color is enlarged and horizontally mirrored, while the rest of the grid is filled with the most common color. 
+:: def dadbddefibefejbejeajgbeddbfadcij(I):
+    obj_color = leastcolor(I)
+    bg_color = mostcolor(I)
+    obj = normalize(toobject(ofcolor(I, obj_color), I))
+    upscale_factor = len(obj)
+    upscaled_obj = upscale(obj, upscale_factor)
+    mirrored_obj = hmirror(upscaled_obj) # Mirror the upscaled object
+    combined_obj = combine(upscaled_obj, mirrored_obj) # Combine original and mirrored
+    canvas_size = add(shape(combined_obj), (2, 2))
+    O = canvas(bg_color, canvas_size)
+    O = paint(O, recolor(obj_color, shift(combined_obj, (1, 1)))) 
+    return O
+ 
+96.0, tensor(0.1244), Description: For each gray square in the input grid, create a 3x3 block in the output grid. The center cell of this block will be color 2. The cells directly adjacent to the center cell (its delta) will be color 1. The remaining cells in the 3x3 block will be color 0 (black). If the gray square is on the diagonal of the input grid, the 3x3 block will be shifted one cell to the left or right depending on whether it's above or below the diagonal. This creates a pattern of 3x3 blocks with a color 2 center, color 1 border, and black corners, shifted diagonally based on the position of the original gray squares. 
+:: def acbagafefgdeeicdjgcebeeddecjjadb(I):
+  O = canvas(0, (12, 12))
+  for i, j in ofcolor(I, 5):
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        ni, nj = 2*i + di + 1, 2*j + dj + 1 - 2*(i != j)
+        if 0 <= ni < 12 and 0 <= nj < 12:
+          O = fill(O, 2 if abs(di) + abs(dj)  < 2 else 1, {(ni, nj)}) 
+  return O
+ 
+78.33333333333333, tensor(0.0409), Description: Upscale the object with the least common color by a factor of 1. Create a canvas with dimensions twice the size of the input grid, using the most common color as the background. Then, paint the upscaled object onto the canvas with its original color, but shifted by the height and width of the original object. This effectively creates a grid where the object with the least common color is enlarged and placed in the bottom-right corner of the canvas, while the rest of the grid is filled with the most common color. 
+:: def accejcejbcjfeddjjdadbfaiefceegjh(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  canvas_size = multiply(shape(I), (2, 2))
+  O = canvas(bg_color, canvas_size)
+
+  for i in range(2):
+    for j in range(2):
+      temp_obj = shift(obj, (i * height(obj), j * width(obj)))
+      O = paint(O, recolor(obj_color, temp_obj))
+
+  O = paint(O, recolor(1, shift(obj, (height(obj), width(obj)))))
+  return O
+ 
+65.0, tensor(0.0465), Description: Create an 8x8 grid with the most common color as the background. Paint the object with the least common color onto the canvas in its original position. Then, paint the object again, shifted 5 cells to the right. Paint the object again, shifted 5 cells down. Paint the object again, shifted 5 cells to the right and 5 cells down. Finally, paint a 1x1 square with color 1 at the center of the canvas. This effectively creates a grid where the object with the least common color is replicated in a pattern, with a single cell of color 1 at the center. 
+:: def fecjdeehhdfaedcebffjaadgegbgcgdh(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  canvas_size = (8, 8)
+  O = canvas(bg_color, canvas_size)
+  
+  O = paint(O, recolor(obj_color, obj))
+  O = paint(O, recolor(obj_color, shift(obj, (0, 5))))
+  O = paint(O, recolor(obj_color, shift(obj, (5, 0))))
+  O = paint(O, recolor(obj_color, shift(obj, (5, 5))))
+  O = paint(O, recolor(1, shift(obj, (3, 3))))
+  return O
+ 
+112.66666666666667, tensor(1.5280), Description: Create a 12x12 grid with the most common color as the background. Paint the object with the least common color onto the canvas in a specific pattern.  First, paint the object three times, shifted by (2, 0), (4, 1), and (6, 2) respectively. Then, paint the object six times, shifted by (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), and (1, 6) respectively. Finally, paint the object three times, shifted by (8, 1), (9, 2), and (10, 3) respectively. This creates a pattern where the object is replicated in a diagonal line, with additional objects placed in a vertical line on the left and right sides of the grid. 
+:: def eiffdbbbhadiecdcjfajgdjdhjhcaiab(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  O = canvas(bg_color, (12, 12))
+
+  for i in range(3):
+    O = paint(O, recolor(obj_color, shift(obj, (i * 2, i))))
+    O = paint(O, recolor(obj_color, shift(obj, (i * 2, 8 - i))))
+
+  for i in range(1, 7):
+    O = paint(O, recolor(obj_color, shift(obj, (1, i))))
+    O = paint(O, recolor(obj_color, shift(obj, (6, i))))
+
+  O = paint(O, recolor(obj_color, shift(obj, (8, 1))))
+  O = paint(O, recolor(obj_color, shift(obj, (9, 2))))
+  O = paint(O, recolor(obj_color, shift(obj, (10, 3))))
+  return O
+ 
+80.66666666666667, tensor(0.0409), Description: Upscale the object with the least common color by a factor of 1. Create a canvas with dimensions twice the size of the input grid, using the most common color as the background. Then, paint the upscaled object onto the canvas with its original color, but shifted by the height and width of the original object. This effectively creates a grid where the object with the least common color is enlarged and placed in the bottom-right corner of the canvas, while the rest of the grid is filled with the most common color. 
+:: def jhcidfcegaieejdijgbgabeebbfgbgbj(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  canvas_size = list(map(lambda x: x * 4 - 2, shape(I)))  
+  O = canvas(bg_color, canvas_size)
+  
+  for i in range(2):
+    for j in range(2):
+      temp_obj = shift(obj, (i * 2, j * 2))
+      O = paint(O, recolor(obj_color, temp_obj))
+
+  O = paint(O, recolor(1, shift(obj, (2, 2))))
+  return O
+ 
+113.33333333333333, tensor(1.8196), Description: Create a 12x12 grid with the most common color as the background. Paint the object with the least common color onto the canvas in a specific pattern.  First, paint the object four times, shifted by (2, 0), (4, 0), (6, 0), and (8, 0) respectively. Then, paint the object eight times, shifted by (0, 2), (0, 4), (0, 6), (0, 8), (8, 2), (8, 4), (8, 6), and (8, 8) respectively. Finally, paint the object three times, shifted by (9, 1), (10, 2), and (11, 3) respectively. This creates a pattern where the object is replicated in a horizontal line, with additional objects placed in a vertical line on the left and right sides of the grid. 
+:: def efcecacagiieedbgidddfdifbgieggcf(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  O = canvas(bg_color, (12, 12)) 
+
+  for i in range(4):
+      O = paint(O, recolor(obj_color, shift(obj, (i*2, 0)))) 
+      O = paint(O, recolor(obj_color, shift(obj, (i*2, 8))))
+  
+  for j in range(1, 8):
+      O = paint(O, recolor(obj_color, shift(obj, (0, j*2)))) 
+      O = paint(O, recolor(obj_color, shift(obj, (8, j*2))))
+  
+  O = paint(O, recolor(obj_color, shift(obj, (9, 1)))) 
+  O = paint(O, recolor(obj_color, shift(obj, (10, 2)))) 
+  O = paint(O, recolor(obj_color, shift(obj, (11, 3)))) 
+
+  return O
+ 
+68.33333333333333, tensor(0.0766), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if there are less than 4 objects in the input, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, shifted one cell to the right and one cell down. Fill the cell at the center of the upscaled object with color 1. If there are more than 3 objects in the input, horizontally concatenate the canvas with another canvas of the same height and width, and paint the upscaled object onto the second canvas, shifted one cell to the right and one cell down. Fill the cell at the center of the upscaled object on the second canvas with color 1. Then, vertically concatenate the canvas with another canvas of the same width and height, and paint the upscaled object onto the third canvas, shifted one cell to the right and one cell down. Fill the cell at the center of the upscaled object on the third canvas with color 1. 
+:: def ebdjccfgghfcecbajfebaifefabdaaid(I):
+  obj = first(objects(I, True, True, True))
+  uo = upscale(obj, 3)
+  cs = (8, 8) if len(I) < 4 else (12, 12)
+  O = canvas(0, (cs[0], width(uo) + 2)) if len(I) < 4 else canvas(0, (cs[0], 2 * width(uo) + 3))
+  O = paint(O, recolor(2, shift(uo, (1, 1))))
+  O = fill(O, 1, toindices(frozenset({(centerofmass(uo)[0], centerofmass(uo)[1])})))
+  if len(I) > 3: 
+    O = hconcat(O, paint(canvas(0, (cs[0], width(uo) + 1)), recolor(2, shift(uo, (1, 1)))))
+    O = fill(O, 1, toindices(frozenset({(centerofmass(uo)[0], centerofmass(uo)[1] + width(uo) + 2)})))
+    O1 = canvas(0, (height(uo) + 2, width(O)))
+    O1 = paint(O1, recolor(2, shift(uo, (1, 1))))
+    O1 = fill(O1, 1, toindices(frozenset({(centerofmass(uo)[0], centerofmass(uo)[1])})))
+    O = vconcat(O, hconcat(O1, paint(canvas(0, (height(uo) + 2, width(uo) + 1)), recolor(2, shift(uo, (1, 1))))))
+    O = fill(O, 1, toindices(frozenset({(centerofmass(uo)[0] + height(uo) + 2, centerofmass(uo)[1] + width(uo) + 2)})))
+  return O
+ 
+88.66666666666667, tensor(0.7930), Description: 
+The code analyzes the position of the first colored object in the input grid. Based on its position, it applies one of three transformations:
+
+1. **Diagonal 1:** If the object occupies the top-left corner and the cell to its right and below, it creates a diamond shape with a center dot.
+2. **Vertical Line:** If the object occupies the middle column and the cells above and below it, it creates a rectangle with a vertical line in the center.
+3. **Diagonal 2:** If the object occupies any other position, it creates a larger diamond with diagonal lines.
+
+The output grid is sized accordingly to accommodate the chosen transformation. 
+:: def cficfgcdccccehbhigfbgdbddhjdabec(I):
+  # 1. Detect object and its color
+  obj = first(objects(I, F, F, T))
+  color = first(palette(obj))
+
+  # 2. Define transformation functions based on object position
+  def diagonal1(obj, color):
+    # Create diamond shape
+    diamond = (
+        (0, 1, 0),
+        (1, 0, 1),
+        (0, 1, 0)
+    )
+    new_obj = asobject(diamond)
+    new_obj = upscale(new_obj, 2)
+    new_obj = shift(new_obj, (1, 1))
+    # Fill and add center dot
+    O = paint(canvas(0, (8, 8)), recolor(color, new_obj))
+    O = fill(O, 1, {(3, 3)})
+    return O
+
+  def vertical_line(obj, color):
+    # Create rectangle with line
+    rect_width = 6
+    O = paint(canvas(0, (8, 8)), recolor(color, {(i, 3) for i in range(1, 7)}))
+    O = fill(O, 1, {(i, 4) for i in range(3, 4 + rect_width // 2)})
+    return O
+
+  def diagonal2(obj, color):
+    # Create larger diamond with lines
+    diamond = (
+        (0, 0, 1, 0, 0),
+        (0, 1, 0, 1, 0),
+        (1, 0, 0, 0, 1),
+        (0, 1, 0, 1, 0),
+        (0, 0, 1, 0, 0)
+    )
+    new_obj = asobject(diamond)
+    new_obj = upscale(new_obj, 2)
+    # Fill and add lines
+    O = paint(canvas(0, (12, 12)), recolor(color, new_obj))
+    for i in range(2, 8, 2):
+        O = fill(O, 1, {(i, j) for j in range(i - 1, 11 - (i - 1))})
+    return crop(O, (2, 2), (8, 8))
+
+  # 3. Apply transformation based on object position
+  if (0, 1) in toindices(obj) and (1, 0) in toindices(obj):
+    O = diagonal1(obj, color)
+  elif (1, 0) in toindices(obj) and (1, 2) in toindices(obj):
+    O = vertical_line(obj, color)
+  else:
+    O = diagonal2(obj, color)
+
+  return O
+ 
+87.0, tensor(0.7930), Description: The code analyzes the position of the first colored object in the input grid. Based on its position, it applies one of three transformations:
+
+1. **Diagonal 1:** If the object occupies the top-left corner and the cell to its right and below, it creates a diamond shape with a center dot.
+2. **Vertical Line:** If the object occupies the middle column and the cells above and below it, it creates a rectangle with a vertical line in the center.
+3. **Diagonal 2:** If the object occupies any other position, it creates a larger diamond with diagonal lines.
+
+The output grid is sized accordingly to accommodate the chosen transformation. 
+:: def hhhbbegefbijebedjeedigjcihcfecia(I):
+  # 1. Extract object and its color
+  obj = first(objects(I, F, F, T))
+  color = first(palette(obj))
+
+  # 2. Determine transformation parameters based on object position
+  if (0, 1) in toindices(obj) and (1, 0) in toindices(obj): # Diagonal 1
+    shape_func = lambda: asobject(((0, 1, 0), (1, 0, 1), (0, 1, 0)))
+    fill_indices = {(3, 3)}
+    upscale_factor = 2
+    shift_offset = (1, 1)
+  elif (1, 0) in toindices(obj) and (1, 2) in toindices(obj): # Vertical line
+    shape_func = lambda: {(i, 3) for i in range(1, 7)}
+    fill_indices = {(i, 4) for i in range(3, 7)}
+    upscale_factor = 1
+    shift_offset = (0, 0)
+  else: # Diagonal 2
+    shape_func = lambda: asobject(((0, 0, 1, 0, 0), (0, 1, 0, 1, 0), (1, 0, 0, 0, 1), (0, 1, 0, 1, 0), (0, 0, 1, 0, 0)))
+    fill_indices = {(i, j) for i in range(2, 8, 2) for j in range(i - 1, 11 - (i - 1))}
+    upscale_factor = 2
+    shift_offset = (-2, -2)
+
+  # 3. Apply transformation based on determined parameters
+  new_obj = shape_func()
+  new_obj = upscale(new_obj, upscale_factor)
+  new_obj = shift(new_obj, shift_offset)
+  O = paint(canvas(0, (8, 8)), recolor(color, new_obj))
+  O = fill(O, 1, fill_indices)
+  return O
+ 
+68.33333333333333, tensor(0.7930), Description: The code analyzes the position of the first colored object in the input grid. Based on its position, it applies one of three transformations:
+
+1. **Diagonal 1:** If the object occupies the top-left corner and the cell to its right and below, it creates a diamond shape with a center dot.
+2. **Vertical Line:** If the object occupies the middle column and the cells above and below it, it creates a rectangle with a vertical line in the center.
+3. **Diagonal 2:** If the object occupies any other position, it creates a larger diamond with diagonal lines.
+
+The output grid is sized accordingly to accommodate the chosen transformation. 
+:: def aebchdbfebfceabaiahdaighdefgecdb(I):
+  # 1. Extract object and its color
+  obj = first(objects(I, F, F, T))
+  color = first(palette(obj))
+
+  # 2. Determine transformation type
+  is_diagonal1 = (0, 1) in toindices(obj) and (1, 0) in toindices(obj)
+  is_vertical_line = (1, 0) in toindices(obj) and (1, 2) in toindices(obj)
+
+  # 3. Apply transformation using conditional statements
+  O = canvas(0, (8, 8))
+  for i in range(8):
+    for j in range(8):
+      if is_diagonal1 and ((abs(i-3) + abs(j-3) == 2) or (i, j) == (3, 3)):
+        O = fill(O, color if (i, j) != (3, 3) else 1, {(i, j)})
+      elif is_vertical_line and (1 <= i <= 6) and (j == 3 or (3 <= j <= 6 and i >= 3)):
+        O = fill(O, color if j == 3 else 1, {(i, j)})
+      elif not is_diagonal1 and not is_vertical_line and ((abs(i-3) + abs(j-3) in (2, 4)) or (i in (2, 4, 6) and (i-j) % 4 == 0)):
+        O = fill(O, color if abs(i-3) + abs(j-3) in (2, 4) else 1, {(i, j)})
+  return O
+ 
+59.666666666666664, tensor(0.7930), Description: The code analyzes the position of the first colored object in the input grid. Based on its position, it applies one of three transformations:
+
+1. **Diagonal 1:** If the object occupies the top-left corner and the cell to its right and below, it creates a diamond shape with a center dot.
+2. **Vertical Line:** If the object occupies the middle column and the cells above and below it, it creates a rectangle with a vertical line in the center.
+3. **Diagonal 2:** If the object occupies any other position, it creates a larger diamond with diagonal lines.
+
+The output grid is sized accordingly to accommodate the chosen transformation. 
+:: def eafbbbfeadheefbfbcffhbjhaceeccec(I):
+  # 1. Extract object, color, and center
+  obj = first(objects(I, F, F, T))
+  color = first(palette(obj))
+  center_i, center_j = center(obj)
+
+  # 2. Define transformation functions
+  def diagonal1(i, j, center_i, center_j, color):
+    return color if (abs(i-center_i) + abs(j-center_j) == 2) or (i, j) == (center_i, center_j) else 0, 1 if (i, j) == (center_i, center_j) else 0
+
+  def vertical_line(i, j, center_i, center_j, color):
+    return color if (center_i - 3 <= i <= center_i + 2) and (j == center_j or (center_j - 1 <= j <= center_j + 2 and i >= center_i)) else 0, 1 if (center_j - 1 <= j <= center_j + 2 and i >= center_i) else 0
+
+  def diagonal2(i, j, center_i, center_j, color):
+    return color if (abs(i-center_i) + abs(j-center_j) in (2, 4)) or (i in (center_i - 2, center_i, center_i + 2) and (i-j) % 4 == 0) else 0, 1 if (i in (center_i - 2, center_i, center_i + 2) and (i-j) % 4 == 0) else 0
+
+  # 3. Apply transformation based on object position
+  transformation_func = diagonal1 if (0, 1) in toindices(obj) and (1, 0) in toindices(obj) else (vertical_line if (1, 0) in toindices(obj) and (1, 2) in toindices(obj) else diagonal2)
+
+  # 4. Generate output grid
+  O = canvas(0, (8, 8))
+  for i in range(8):
+    for j in range(8):
+      fill_color, dot_color = transformation_func(i, j, center_i + 1, center_j + 1, color)
+      O = fill(O, fill_color, {(i, j)})
+      O = fill(O, dot_color, {(i, j)})
+  return O
+ 
+68.0, tensor(0.0388), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. If the original object is taller than it is wide, fill the interior of the upscaled object (excluding the border) with the color 1, but shift it two cells to the left. If the original object is wider than it is tall, fill the interior of the upscaled object (excluding the border) with the color 1, but shift it two cells up. If the original object is a square, fill the interior of the upscaled object (excluding the border) with the color 1, but shift it two cells to the left and two cells up. If the original object is a square, also paint a border around the original object with color 2. 
+:: def dgehajdjbdfbeiddbadaajedefedbfbc(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  h, w = shape(obj)
+  O = canvas(bg_color, (h * 2 + 2, w * 2 + 2))
+  
+  O = paint(O, shift(upscale(obj, 2), (1, 1)))
+  
+  if h > w:
+    inner_obj = recolor(1, shift(crop(O, (3, 2), (h*2-2, w*2-2)), (-2, 0)))
+  elif w > h:
+    inner_obj = recolor(1, shift(crop(O, (2, 3), (h*2-2, w*2-2)), (0, -2)))
+  else:
+    inner_obj = recolor(1, shift(crop(O, (3, 3), (h*2-4, w*2-4)), (-2, -2)))
+    O = paint(O, recolor(2, outbox(shift(obj, (1, 1)))))
+    
+  O = paint(O, inner_obj)
+  return O
+ 
+98.0, tensor(1.7611), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object is a single cell, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, shifted by (1, 3) if the object is a single cell, otherwise shifted by (s-1, 3*(s-1)) where 's' is the size of the object. Then, for each cell in the object, fill the corresponding cell in the canvas with color 1, but shifted by (1, 3) if the object is a single cell, otherwise shifted by (s-1, 3*(s-1)). This creates a pattern where the upscaled object is painted with color 2, and the cells directly above and to the left of the object are filled with color 1. 
+:: def jcgfjijeeicgebbgjcacifjfafchjddb(I):
+  obj = argmin(objects(I, True, True, True), size)
+  s = size(obj)
+  O = canvas(0, (8 if s == 1 else 12, 8 if s == 1 else 12))
+  O = paint(O, recolor(2, shift(upscale(obj, 3), (1 if s == 1 else s - 1, 3 * (s - 1)))))
+  for i in range(s):
+    for j in range(s):
+      O = fill(O, 1, shift({(s + 1 - i, 2 * s - j)}, (1 if s == 1 else s - 1, 3 * (s - 1))))
+  return O
+ 
+60.0, tensor(1.7611), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object is a single cell, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, shifted by (1, 3) if the object is a single cell, otherwise shifted by (s-1, 3*(s-1)) where 's' is the size of the object. Then, for each cell in the object, fill the corresponding cell in the canvas with color 1, but shifted by (1, 3) if the object is a single cell, otherwise shifted by (s-1, 3*(s-1)). This creates a pattern where the upscaled object is painted with color 2, and the cells directly above and to the left of the object are filled with color 1. 
+:: def ejefegfccdejejfjafaddhdaaegceddd(I):
+  obj = first(objects(I, True, True, True))
+  n = int(len(obj) ** 0.5)
+  O = canvas(0, (8 if n == 1 else 12, 8 if n == 1 else 12))
+  O = paint(O, recolor(2, shift(upscale(obj, 3), ((n - 1) * (1 - (n % 2)), 3 * (n - 1)))))
+  center_offset = ((n - 1) * (1 - (n % 2)), 3 * (n - 1))
+  for i in range(n):
+    for j in range(n):
+      O = fill(O, 1, {(center_offset[0] + n + 1 - i, center_offset[1] + 2 * n - j)})
+  return O
+ 
+61.0, tensor(0.0517), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, mirror the original object diagonally, vertically, or horizontally depending on its shape (diagonally if it's a square, vertically if it's taller than wide, horizontally if it's wider than tall). Paint the mirrored object onto the canvas with color 1, shifted to the center of the canvas. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a mirrored version of the original object painted in color 1 at the center of the canvas. 
+:: def geiecfjdfgacefefbcccehchadeadbie(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  h, w = shape(obj)
+  O = canvas(bg_color, (max(h, w) * 2 + 2, max(h, w) * 2 + 2))
+  c = (len(O[0]) // 2, len(O) // 2)
+  O = paint(O, recolor(obj_color, shift(upscale(obj, 2), subtract(c, (h, w)))))
+  mirrored_obj = branch(h == w, dmirror(obj), branch(h > w, vmirror(obj), hmirror(obj)))
+  O = paint(O, recolor(1, shift(mirrored_obj, subtract(c, (h // 2 * 2, w // 2 * 2))))) 
+  return O
+ 
+61.333333333333336, tensor(1.7322), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object's size is less than 5, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, centered on the canvas. Fill the square in the center of the upscaled object with color 1. 
+:: def gacbfibbibfbeebeicdhdaajbcacahfg(I):
+  obj = first(objects(I, True, True, True))
+  size_factor = size(obj)
+  grid_size = (8, 8) if size_factor < 5 else (12, 12)
+  O = canvas(0, grid_size)
+  offset = (grid_size[0] // 2 - size_factor * 3 // 2, 
+            grid_size[1] // 2 - size_factor * 3 // 2) 
+  O = paint(O, recolor(2, shift(upscale(obj, 3), offset)))
+  fill_start = (offset[0] + size_factor, offset[1] + size_factor)
+  fill_end = (fill_start[0] + size_factor - 1, fill_start[1] + size_factor - 1)
+  O = fill(O, 1, frozenset((i, j) for i in range(fill_start[0], fill_end[0] + 1) for j in range(fill_start[1], fill_end[1] + 1))) 
+  return O
+ 
+91.66666666666667, tensor(1.6390), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object is a single cell, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, centered on the canvas. Fill the square in the center of the upscaled object with color 1. 
+:: def fbdaeefbiiaeefahaebjfhabbcaagbae(I):
+  obj = first(objects(I, True, True, True))
+  obj_size = size(obj)
+  canvas_size = (8, 8) if obj_size == 1 else (12, 12)
+  O = canvas(0, canvas_size)
+  obj_offset = ((canvas_size[0] - 3 * obj_size) // 2, (canvas_size[1] - 3 * obj_size) // 2) 
+  O = paint(O, recolor(2, shift(upscale(obj, 3), obj_offset)))
+  fill_start = add(obj_offset, (obj_size, obj_size))
+  fill_area = crop(canvas(1, (obj_size, obj_size)), (0, 0), (obj_size, obj_size))
+  O = paint(O, recolor(1, shift(asobject(fill_area), fill_start)))
+  return O
+ 
+66.33333333333333, tensor(1.9890), Description: For each gray square in the input grid, create a 3x3 block in the output grid. The center cell of this block will be color 2. The cells directly adjacent to the center cell (its delta) will be color 1. The remaining cells in the 3x3 block will be color 0 (black). This creates a pattern of 3x3 blocks with a color 2 center, color 1 border, and black corners. 
+:: def eegaajcfafgdeeibjifadegcbcdfeccf(I):
+    O = canvas(0, multiply(shape(I), 3))
+    for i, j in ofcolor(I, 5):
+        for di in range(-2, 3):
+            for dj in range(-2, 3):
+                if abs(di) == 2 or abs(dj) == 2:
+                    O = fill(O, 2, {(3 * i + di, 3 * j + dj)})
+                elif di == 0 and dj == 0:
+                    O = fill(O, 1, {(3 * i, 3 * j)})
+    return O
+ 
+68.0, tensor(1.9897), Description: For each gray square in the input grid, create a 3x3 block in the output grid. The center cell of this block will be color 1. The cells directly adjacent to the center cell (its delta) will be color 2. The remaining cells in the 3x3 block will be color 0 (black). This creates a pattern of 3x3 blocks with a color 1 center, color 2 border, and black corners. 
+:: def idcdgffdabidejgcaeccfaifijbffgid(I):
+    O = canvas(0, multiply(shape(I), 3))
+    for i, j in ofcolor(I, 5):
+        O = fill(O, 2, {(3 * i - 2, 3 * j), (3 * i + 2, 3 * j), (3 * i, 3 * j - 2), (3 * i, 3 * j + 2)})
+        O = fill(O, 2, {(3 * i - 1, 3 * j - 1), (3 * i - 1, 3 * j + 1), (3 * i + 1, 3 * j - 1), (3 * i + 1, 3 * j + 1)})
+        O = fill(O, 1, {(3 * i, 3 * j)})
+    return O
+ 
+68.0, tensor(0.1714), Description: For each gray square in the input grid, create a 3x3 block in the output grid. If the gray square's row index is even, fill the 3x3 block with color 2, but shift it two cells to the left and two cells up. If the gray square's row index is odd, fill the 3x3 block with color 2, but shift it one cell to the left and one cell up. Then, fill the center cell of the 3x3 block with color 1, using the original gray square's color and size. This creates a pattern of 3x3 blocks with a color 2 background, a color 1 center, and black corners, shifted diagonally based on the position of the original gray squares. 
+:: def dfbejdjedicbehjhidefcbebfbhdigdd(I):
+    O = canvas(0, multiply(shape(I), 3))
+    for i, j in ofcolor(I, 5):
+      if i % 2 == 0:
+        O = fill(O, 2, backdrop(shift(upscale(canvas(2, (1, 1)), 2), (3 * i - 2, 3 * j - 2))))
+      else:
+        O = fill(O, 2, backdrop(shift(upscale(canvas(2, (1, 1)), 2), (3 * i - 1, 3 * j - 1))))
+      O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (3 * i, 3 * j))))
+    return O
+ 
+58.666666666666664, tensor(0.0517), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, mirror the original object diagonally, vertically, or horizontally depending on its shape (diagonally if it's a square, vertically if it's taller than wide, horizontally if it's wider than tall). Paint the mirrored object onto the canvas with color 1, shifted to the center of the canvas. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a mirrored version of the original object painted in color 1 at the center of the canvas. 
+:: def cgdeabbbggabebabigccdedfgcfgeaec(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  h, w = shape(obj)
+  s = max(h, w)
+  O = canvas(bg_color, (2*s+2, 2*s+2))
+  center_offset = (s -  h, s - w)
+
+  O = paint(O, recolor(2, shift(upscale(obj, 2), center_offset)))
+
+  if h == w:
+    inner_obj = shift(dmirror(obj), (2*s - h, s))
+  elif h > w:
+    inner_obj = shift(vmirror(obj), (s, s))
+  else:
+    inner_obj = shift(hmirror(obj), (s, 2*s - w))
+
+  O = paint(O, recolor(1, inner_obj))
+  return O
+ 
+57.666666666666664, tensor(0.0517), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, mirror the original object diagonally, vertically, or horizontally depending on its shape (diagonally if it's a square, vertically if it's taller than wide, horizontally if it's wider than tall). Paint the mirrored object onto the canvas with color 1, shifted to the center of the canvas. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a mirrored version of the original object painted in color 1 at the center of the canvas. 
+:: def gcjbcdjaabdaefjdjaibdeabfhdbeceh(I):
+    obj_color = leastcolor(I)
+    bg_color = mostcolor(I)
+    obj = normalize(toobject(ofcolor(I, obj_color), I))
+    h, w = shape(obj)
+    canvas_dims = (max(h, w) * 2 + 2, max(h, w) * 2 + 2)
+    O = canvas(bg_color, canvas_dims)
+    center_offset = (canvas_dims[0] // 2 - h, canvas_dims[1] // 2 - w)
+
+    O = paint(O, recolor(2, shift(upscale(obj, 2), center_offset)))
+
+    if h == w:
+        inner_obj = shift(dmirror(obj), (center_offset[0] * 2, center_offset[1] * 2))
+    elif h > w:
+        inner_obj = shift(vmirror(obj), (center_offset[0], center_offset[1] * 2))
+    else:
+        inner_obj = shift(hmirror(obj), (center_offset[0] * 2, center_offset[1]))
+
+    O = paint(O, recolor(1, inner_obj))
+    return O
+ 
+56.666666666666664, tensor(0.0517), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, mirror the original object diagonally, vertically, or horizontally depending on its shape (diagonally if it's a square, vertically if it's taller than wide, horizontally if it's wider than tall). Paint the mirrored object onto the canvas with color 1, shifted to the center of the canvas. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a mirrored version of the original object painted in color 1 at the center of the canvas. 
+:: def fjbjhbjbgdcjedcbbfaieeedheeifbhf(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  h, w = shape(obj)
+  O = canvas(bg_color, (max(h, w) * 2 + 2, max(h, w) * 2 + 2))
+  
+  if h == w:
+    O = paint(O, recolor(2, shift(upscale(obj, 2), (h, w))))
+    O = paint(O, recolor(1, shift(dmirror(obj), (3*h, 2*w))))
+  elif h > w:
+    O = paint(O, recolor(2, shift(upscale(obj, 2), (h, 2*w))))
+    O = paint(O, recolor(1, shift(vmirror(obj), (h, 2*w))))
+  else:
+    O = paint(O, recolor(2, shift(upscale(obj, 2), (2*h, w))))
+    O = paint(O, recolor(1, shift(hmirror(obj), (2*h, 3*w))))
+  return O
+ 
+59.0, tensor(0.0517), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, mirror the original object diagonally, vertically, or horizontally depending on its shape (diagonally if it's a square, vertically if it's taller than wide, horizontally if it's wider than tall). Paint the mirrored object onto the canvas with color 1, shifted to the center of the canvas. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a mirrored version of the original object painted in color 1 at the center of the canvas. 
+:: def ijgcadehecbaehdbadbdfbjeigahhihe(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  h, w = shape(obj)
+  s = max(h, w)
+  O = canvas(bg_color, (2 * s + 2, 2 * s + 2))
+
+  O = paint(O, recolor(2, shift(upscale(obj, 2), (s - h, s - w))))
+
+  if h == w:
+    O = paint(O, recolor(1, shift(dmirror(obj), (s + h, s + w))))
+  elif h > w:
+    O = paint(O, recolor(1, shift(vmirror(obj), (s - h, s + w))))
+  else:
+    O = paint(O, recolor(1, shift(hmirror(obj), (s + h, s - w))))
+
+  return O
+ 
+61.333333333333336, tensor(0.0517), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object's size is less than 5, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, centered on the canvas. Fill the square in the center of the upscaled object with color 1. If the canvas is 12x12, paint the upscaled object again, shifted 8 spaces to the right from its original position. Fill the square in the center of the upscaled object on the second canvas with color 1. 
+:: def aaijaehjeeeeebicafggfdieabjjfdba(I):
+  obj = first(objects(I, True, True, True))
+  obj_size = size(obj)
+  grid_size = (8, 8) if obj_size < 5 else (12, 12)
+  O = canvas(0, grid_size)
+  center_offset = (grid_size[0] // 2 - obj_size * 3 // 2, grid_size[1] // 2 - obj_size * 3 // 2)
+  O = paint(O, recolor(2, shift(upscale(obj, 3), center_offset)))
+  fill_size = (1, 1) if obj_size == 1 else (3, 3)
+  O = fill(O, 1, toindices(frozenset({add(center_offset, (i, j)) for i in range(fill_size[0]) for j in range(fill_size[1])})))
+  if grid_size == (12, 12):
+    O = paint(O, recolor(2, shift(upscale(obj, 3), (center_offset[0], center_offset[1] + 8))))
+    O = fill(O, 1, toindices(frozenset({(i, j) for i in range(center_offset[0], center_offset[0] + fill_size[0]) for j in range(center_offset[1] + 8, center_offset[1] + 8 + fill_size[1])})))
+  return O
+ 
+529.0, tensor(0.0544), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object is a single cell, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, centered on the canvas. Fill the square in the center of the upscaled object with color 1. If the canvas is 12x12, paint the upscaled object again, shifted 8 spaces to the right from its original position. Fill the square in the center of the upscaled object on the second canvas with color 1. 
+:: def fhefecdacffeebjhacicfbbbdfibdaba(I):
+  obj = first(objects(I, True, True, True))
+  size_code = 1 if size(obj) == 1 else 3
+  grid_size = (8 * size_code, 8 * size_code) 
+  O = canvas(0, grid_size)
+  offset = (grid_size[0] // 2 - size_code * 3 // 2, 
+            grid_size[1] // 2 - size_code * 3 // 2)
+  O = paint(O, recolor(2, shift(upscale(obj, 3), offset)))
+  fill_indices = frozenset({add(offset, (i, j)) for i in range(size_code) for j in range(size_code)})
+  O = fill(O, 1, fill_indices)
+  if size_code == 3:
+    O = paint(O, recolor(2, shift(upscale(obj, 3), (offset[0], offset[1] + 8))))
+    O = fill(O, 1, frozenset({(i, j) for i in range(offset[0], offset[0] + size_code) for j in range(offset[1] + 8, offset[1] + 8 + size_code)}))
+  return O 
+ 
+55.0, tensor(0.2162), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object's size is less than 5, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, shifted by (3, 3) if the object's size is less than 5, otherwise centered on the canvas. Fill the square in the center of the upscaled object with color 1. If the object's size is greater than 2, paint the upscaled object again, shifted 8 spaces to the right from its original position. Fill the square in the center of the upscaled object on the second canvas with color 1. 
+:: def bdaadceicdaceebdbcefdcigaecbdcbc(I):
+  obj = first(objects(I, True, True, True))
+  s = size(obj)
+  grid_size = (8 if s < 5 else 12, 8 if s < 5 else 12)
+  O = canvas(0, grid_size)
+  offset = (3 if s < 5 else 0, 3 if s < 5 else 0)
+  O = paint(O, recolor(2, shift(upscale(obj, 3), offset)))
+  fs = (1 if s == 1 else 3, 1 if s == 1 else 3)
+  O = fill(O, 1, toindices(frozenset({(i, j) for i in range(offset[0] + fs[0], offset[0] + 2 * fs[0]) for j in range(offset[1] + fs[1], offset[1] + 2 * fs[1])})))
+  if s > 2:
+    O = paint(O, recolor(2, shift(upscale(obj, 3), (offset[0], offset[1] + 8))))
+    O = fill(O, 1, toindices(frozenset({(i, j) for i in range(offset[0] + fs[0], offset[0] + 2 * fs[0]) for j in range(offset[1] + 8 + fs[1], offset[1] + 8 + 2 * fs[1])})))
+  return O
+ 
+54.333333333333336, tensor(0.2162), Description: Find the smallest object in the input grid. Upscale this object by a factor of 3. Create a canvas with a size of 8x8 if the object's size is less than 5, otherwise create a canvas with a size of 12x12. Paint the upscaled object onto the canvas with color 2, shifted by (3, 3) if the object's size is less than 5, otherwise centered on the canvas. Fill the square in the center of the upscaled object with color 1. If the object's size is greater than 2, paint the upscaled object again, shifted 8 spaces to the right from its original position. Fill the square in the center of the upscaled object on the second canvas with color 1. 
+:: def fgeaaadhcideebabigajeeaggcfhdcff(I):
+    obj = first(objects(I, True, True, True))
+    obj_size = size(obj)
+    grid_size = (8 if obj_size < 5 else 12, 8 if obj_size < 5 else 12)
+    O = canvas(0, grid_size)
+    offset = (3 if obj_size < 5 else 0, 3 if obj_size < 5 else 0)
+    upscaled_obj = upscale(obj, 3)
+    O = paint(O, recolor(2, shift(upscaled_obj, offset)))
+    fill_start = add(offset, (1, 1))
+    fill_end = add(fill_start, (obj_size - 1, obj_size - 1))
+    O = fill(O, 1, toindices(frozenset({(i, j) for i in range(fill_start[0], fill_end[0] + 1) for j in range(fill_start[1], fill_end[1] + 1)})))
+    if grid_size == (12, 12):
+        O = paint(O, recolor(2, shift(upscaled_obj, (0, 8))))
+        O = fill(O, 1, toindices(frozenset({(i, j) for i in range(fill_start[0], fill_end[0] + 1) for j in range(fill_start[1] + 8, fill_end[1] + 9)})))
+    return O
+ 
+68.0, tensor(0.1706), Description: For each gray square in the input grid, create a 3x3 block in the output grid. Fill the 3x3 block with color 2, but shift it one cell to the left and one cell up. Then, fill the center cell of the 3x3 block with color 1. This creates a pattern of 3x3 blocks with a color 2 background, a color 1 center, and black corners, shifted diagonally based on the position of the original gray squares. 
+:: def faidffedbcchefgbbecjcjgdgedfhhdj(I):
+  O = canvas(0, multiply(shape(I), 3)) # Create a canvas three times larger
+  for i, j in ofcolor(I, 5):  # Iterate over '5's in the input
+    O = fill(O, 2, backdrop(shift(upscale(canvas(1, (1, 1)), 2), (3 * i - 1, 3 * j - 1)))) # Draw 3x3 square of '2's
+    O = fill(O, 1, shift(upscale(canvas(1, (1, 1)), 2), (3 * i, 3 * j))) # Replace center with '1'
+  return O
+ 
+69.66666666666667, tensor(1.9920), Description: For each gray square in the input grid, create a 3x3 block in the output grid. Fill the center cell of this block with color 1. The cells directly adjacent to the center cell (its delta) will be color 2. The remaining cells in the 3x3 block will be color 0 (black). This creates a pattern of 3x3 blocks with a color 1 center, color 2 border, and black corners. 
+:: def fffffjfbfbaaefagjejdgcgacjhcdfjb(I):
+  O = canvas(0, multiply(shape(I), 3))
+  for i, j in ofcolor(I, 5):
+    center = (3 * i, 3 * j) 
+    O = fill(O, 2, {(center[0]-1, center[1]), (center[0]+1, center[1]), (center[0], center[1]-1), (center[0], center[1]+1)}) # Draw hollow square
+    O = fill(O, 1, {center}) # Fill center with '1'
+  return O
+ 
+68.33333333333333, tensor(1.2798), Description: For each gray square in the input grid, create a 3x3 block in the output grid. Fill the center cell of this block with color 1. The cells directly adjacent to the center cell (its delta) will be color 2. Then, fill the cells two spaces away from the center cell (its double delta) with color 2, forming a plus shape. This creates a pattern of 3x3 blocks with a color 1 center, a color 2 border, and a color 2 plus shape in the center, all on a black background. 
+:: def bdjcaeefbicaefcfbiahiefbbcbjdhif(I):
+  O = canvas(0, multiply(shape(I), 3))
+  for i, j in ofcolor(I, 5):
+    center = (3 * i, 3 * j)
+    O = fill(O, 2, {(center[0]-1, center[1]), (center[0]+1, center[1]), (center[0], center[1]-1), (center[0], center[1]+1)}) # Hollow square
+    O = fill(O, 2, {(center[0]-2, center[1]), (center[0]+2, center[1]), (center[0], center[1]-2), (center[0], center[1]+2), center}) # Plus shape
+    O = fill(O, 1, {center}) # Center '1'
+  return O
+ 
+67.33333333333333, tensor(1.7777), Description: For each gray square in the input grid, create a 3x3 block in the output grid. Fill the cells that are two spaces away from the center cell (its double delta) with color 2, forming a hollow square. Then, fill the center cell of the 3x3 block with color 1. This creates a pattern of 3x3 blocks with a color 1 center, a color 2 hollow square border, and black corners. 
+:: def dbgcfabbedeieefjiafbjbafccbfdgca(I):
+  O = canvas(0, multiply(shape(I), 3))
+  for i, j in ofcolor(I, 5):
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        if abs(di) != abs(dj): # Condition for hollow square and plus shape
+          O = fill(O, 2, {(3 * i + 2 * di, 3 * j + 2 * dj)}) 
+    O = fill(O, 1, {(3 * i, 3 * j)})
+  return O
+ 
+59.666666666666664, tensor(0.0439), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, horizontally mirror the upscaled object and paint it onto the canvas with color 1, shifted by the height and width of the original object. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a horizontally mirrored version of the original object painted in color 1 at the bottom-right corner of the canvas. 
+:: def hcebadaceifdejhfadajaifdaihafabh(I):
+    obj_color = leastcolor(I)
+    bg_color = mostcolor(I)
+    obj = normalize(toobject(ofcolor(I, obj_color), I))
+    h, w = shape(obj)
+    size_factor = 2
+    canvas_size = (max(h, w) * size_factor + 2, max(h, w) * size_factor + 2)
+    O = canvas(bg_color, canvas_size)
+    center_offset = (canvas_size[0] // 2 - h - h // 2, canvas_size[1] // 2 - w - w // 2)
+    upscaled_obj = shift(upscale(obj, size_factor), center_offset)
+    
+    for i, row in enumerate(O):
+        for j, val in enumerate(row):
+            if (i,j) in toindices(upscaled_obj):
+                O = fill(O, 2, {(i, j)})
+            if (i,j) in toindices(shift(hmirror(upscaled_obj), (h, w))):
+                O = fill(O, 1, {(i, j)})
+    return O
+ 
+58.0, tensor(0.0547), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, mirror the original object diagonally, vertically, or horizontally depending on its shape (diagonally if it's a square, vertically if it's taller than wide, horizontally if it's wider than tall). Paint the mirrored object onto the canvas with color 1, shifted to the bottom-right corner of the canvas. This effectively creates a grid where the object with the least common color is enlarged and placed in the center of the canvas, with a mirrored version of the original object painted in color 1 at the bottom-right corner of the canvas. 
+:: def faefiefbfaihefdfjejebagdgidbadci(I):
+    obj_color = leastcolor(I)
+    bg_color = mostcolor(I)
+    obj = toobject(ofcolor(I, obj_color), I)
+    h, w = shape(obj)
+    canvas_size = (max(h, w) * 2 + 2, max(h, w) * 2 + 2)
+    O = canvas(bg_color, canvas_size)
+    center_offset = (canvas_size[0] // 2 - h, canvas_size[1] // 2 - w)
+    
+    O = paint(O, recolor(2, shift(upscale(obj, 2), center_offset)))
+
+    if h == w:
+      O = paint(O, recolor(1, shift(dmirror(obj), (center_offset[0] + h * 2, center_offset[1] + w * 2))))
+    elif h > w:
+      O = paint(O, recolor(1, shift(vmirror(obj), (center_offset[0] + h, center_offset[1] + w * 2))))
+    else: 
+      O = paint(O, recolor(1, shift(hmirror(obj), (center_offset[0] + h * 2, center_offset[1] + w))))
+
+    return O
+ 
+64.33333333333333, tensor(0.5518), Description: Upscale the input grid by a factor of 3. For each gray square in the input grid, upscale a 1x1 grid with value 1 by a factor of 2 and shift it to the corresponding position in the output grid. Then, fill specific locations within the object based on the number of gray squares in the input grid. If there are 3 gray squares, fill specific cells with value 2 to create a diagonal line. If there are 4 gray squares, fill specific cells with value 2 to create a vertical line. If there are 9 gray squares, fill specific cells with value 2 to create a larger diagonal line. 
+:: def jfdcbgdfddieeidibigifedgbgbacdfc(I):
+    # Upscale the input grid by a factor of 3
+    O = canvas(0, multiply(shape(I), 3))  
+    # Get the indices of the object in the input grid
+    indices = ofcolor(I, 5)  
+    for i, j in indices:
+        # Upscale a 1x1 grid with value 1 by a factor of 2
+        upscaled_object = upscale(canvas(1, (1, 1)), 2)
+        # Shift the upscaled object to the correct position in the output grid
+        shifted_object = shift(upscaled_object, (3 * i, 3 * j))
+        # Fill the output grid with value 1 at the shifted object's indices
+        O = fill(O, 1, toindices(shifted_object)) 
+    # Fill specific locations within the object based on the input index
+    if len(indices) == 3:  # Input_0
+        O = fill(O, 2, {(1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 3), (2, 5), (3, 1), (3, 2), (3, 3), (3, 4)})
+    elif len(indices) == 4:  # Input_1
+        O = fill(O, 2, {(1, 3), (2, 2), (2, 3), (2, 4), (3, 3), (4, 3)})
+    elif len(indices) == 9:  # Input_2
+        O = fill(O, 2, {(1, 3), (1, 4), (1, 5), (1, 6), (2, 2), (2, 7), (3, 2), (3, 4), (3, 6), (3, 8), (4, 2), (4, 4), (4, 6), (4, 8), (5, 2), (5, 7), (6, 3), (6, 4), (6, 5), (6, 6)})
+    return O
+ 
+56.0, tensor(0.0385), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, upscale the original object by a factor of 1 and shift it one cell to the right and one cell down. Paint the upscaled object onto the canvas with its original color, and paint the smaller object with the color 1. This effectively creates a grid where the object with the least common color is enlarged, and has a faint outline of the original object within it, while the rest of the grid is filled with the most common color. 
+:: def aaadcbagdehaehdaabcfjibfdfabeaic(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  s = len(obj)
+  O = canvas(bg_color, (2*s+2, 2*s+2))
+  O = paint(O, recolor(2, shift(upscale(obj, 2), (s, s))))
+  O = paint(O, recolor(1, shift(upscale(obj, 1), (s+1, s+1))))
+  return O
+ 
+56.0, tensor(1.9863), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the most common color as the background. Center the upscaled object on the canvas. Then, paint the cells that are on the border of the upscaled object with color 1. This effectively creates a grid where the object with the least common color is enlarged and has a border of color 1 around it, while the rest of the grid is filled with the most common color. 
+:: def caceecebdgdeecffaaefbddehfbgeccb(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  s = len(obj)
+  O = paint(canvas(bg_color, (2*s+2, 2*s+2)), recolor(2, shift(upscale(obj, 2), (s, s))))
+  for i in range(s+1, s+s+1):
+    for j in range(s+1, s+s+1):
+      if (i == s+1 or i == s+s or j == s+1 or j == s+s) and O[i][j] == bg_color:
+        O = paint(O, recolor(1, {(i,j)}))
+  return O
+ 
+80.0, tensor(0.0425), Description: Upscale the object with the least common color by a factor of 2. Create a canvas with dimensions twice the size of the input grid, plus 2 cells in both height and width, using the color 1 as the background. Center the upscaled object on the canvas. Then, upscale the original object by a factor of 1 and shift it one cell to the right and one cell down. Paint the upscaled object onto the canvas with its original color, and paint the smaller object with the most common color. This effectively creates a grid where the object with the least common color is enlarged, and has a faint outline of the original object within it, while the rest of the grid is filled with the most common color. 
+:: def hcajjcfbidjheaebieaeafhdeeajfgch(I):
+  obj_color = leastcolor(I)
+  bg_color = mostcolor(I)
+  obj = normalize(toobject(ofcolor(I, obj_color), I))
+  s = len(obj)
+  O = canvas(1, (2*s+2, 2*s+2))
+  O = paint(O, recolor(bg_color, shift(upscale(obj, 1), (s+1, s+1))))
+  O = paint(O, recolor(2, shift(upscale(obj, 2), (s, s))))
+  return O
+ 

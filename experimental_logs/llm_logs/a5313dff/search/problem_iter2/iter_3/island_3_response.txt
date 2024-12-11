@@ -1,0 +1,113 @@
+## Transformation Analysis:
+
+**Input 0:**  The output takes the diagonal of '5's, upscales each '5' to a 2x2 block of '2's with a central '1', and positions these blocks diagonally on a larger canvas. The blocks above the diagonal are shifted two positions to the right relative to the blocks below the diagonal.
+
+**Input 1:** This transformation follows a similar pattern to Input 0, but instead of a diagonal line of '5's, we have a single '5' below the diagonal. This single '5' is upscaled and positioned on the larger canvas with a similar shift pattern.
+
+**Input 2:** This is the most complex transformation.  The input '5's are interpreted as forming two diagonal lines (main diagonal and one below). Each '5' is upscaled to a 2x2 block of '2's with a central '1', and these blocks are positioned on a larger canvas mirroring the diagonal pattern of the input.  An additional '2' is added to the right and below each block in the lower diagonal.
+
+## Program_to_be_generated:
+
+**Version 1**
+
+```python
+def solve(I):
+    O = canvas(0, (12, 12)) # Create a larger canvas to accommodate all patterns
+    indices = ofcolor(I, 5) # Find indices of '5'
+    for i, j in indices:
+        if i == j:  # Diagonal pattern
+            O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-1)), (3, 3)), 2), (2*i+1, 2*j+1))))
+            O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (2*i+3, 2*j+3))))
+        elif i + 1 == j:  # Below diagonal pattern
+            O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-2)), (3, 3)), 2), (2*i+1, 2*j))))
+            O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (2*i+3, 2*j+2))))
+        else: # Above diagonal pattern
+            O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), (2*i+1, 2*j-2))))
+            O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (2*i+3, 2*j))))
+    return O
+```
+
+**Explanation:**
+
+1. **Canvas Creation:** `O = canvas(0, (12, 12))` creates a 12x12 grid filled with '0's, serving as our canvas. 
+2. **Locate '5's:** `indices = ofcolor(I, 5)` identifies the locations of all '5's in the input grid `I`.
+3. **Iterate and Transform:** The code iterates through each located '5' at `(i, j)`. 
+    - **Diagonal Check:** It first checks if the '5' lies on the main diagonal (`i == j`), below the diagonal (`i + 1 == j`), or above the diagonal.
+    - **Upscaling & Positioning:** Based on the location, it extracts a 3x3 region around the '5', upscales it by a factor of 2, and shifts it to the correct position on the canvas `O`.
+    - **Filling:**  It fills the backdrop of the upscaled region with '2's and a smaller central region with '1's.
+
+**Version 2 (more concise):**
+
+```python
+def solve(I):
+    O = canvas(0, (12, 12))
+    for i, j in ofcolor(I, 5):
+        shift_offset = (2*i+1, 2*j+1)  # Default to diagonal shift
+        if i + 1 == j: 
+            shift_offset = (2*i+1, 2*j)   # Adjust for below diagonal
+        elif i != j: 
+            shift_offset = (2*i+1, 2*j-2) # Adjust for above diagonal
+        O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), shift_offset)))
+        O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (shift_offset[0] + 2, shift_offset[1] + 2))))
+    return O
+```
+
+**Explanation:**
+
+- This version streamlines the code by pre-calculating the shift offset based on the '5' location, reducing code repetition.
+
+**Version 3 (using map):** 
+
+```python
+def solve(I):
+  O = canvas(0, (12, 12))
+  def process_five(i, j):
+    shift_offset = (2*i+1, 2*j+1) 
+    if i + 1 == j: shift_offset = (2*i+1, 2*j)  
+    elif i != j:  shift_offset = (2*i+1, 2*j-2)
+    return fill(fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), shift_offset))), 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), (shift_offset[0] + 2, shift_offset[1] + 2))))
+  O = mapply(lambda ij: process_five(*ij),  ofcolor(I, 5))
+  if isinstance(O, frozenset): O = next(iter(O)) # Extract grid from the set
+  return O
+
+```
+
+**Explanation:**
+
+- Employs a `process_five` function to encapsulate the transformation logic for each '5'.
+- Utilizes `mapply` to apply `process_five` to all '5' locations.
+
+**Version 4 (with conditional fill):**
+
+```python
+def solve(I):
+    O = canvas(0, (12, 12))
+    for i, j in ofcolor(I, 5):
+        shift_offset = (2*i+1, 2*j + 1 - 2*(i != j)) 
+        O = fill(O, 2, backdrop(shift(upscale(crop(I, (max(0,i-1), max(0,j-3)), (3, 3)), 2), shift_offset)))
+        O = fill(O, 1, backdrop(shift(upscale(crop(I, (i, j), (1, 1)), 2), add(shift_offset, (2,2)))))
+    return O
+```
+
+**Explanation:**
+
+- Further compresses the shift calculation using conditional logic within the `shift_offset` assignment.
+
+**Version 5 (with direct grid manipulation):** 
+
+```python
+def solve(I):
+  O = canvas(0, (12, 12))
+  for i, j in ofcolor(I, 5):
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        ni, nj = 2*i + di + 1, 2*j + dj + 1 - 2*(i != j)
+        if 0 <= ni < 12 and 0 <= nj < 12:
+          O = fill(O, 2 if abs(di) + abs(dj)  < 2 else 1, {(ni, nj)}) 
+  return O
+```
+
+**Explanation:**
+
+- Avoids explicit cropping and shifting by directly calculating target indices on the output grid based on input '5' locations.
+- Uses nested loops and Manhattan distance calculation (`abs(di) + abs(dj)`) for efficient filling of the pattern. 

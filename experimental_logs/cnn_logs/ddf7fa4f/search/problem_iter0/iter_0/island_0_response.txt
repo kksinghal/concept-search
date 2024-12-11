@@ -1,0 +1,157 @@
+## Transformation Analysis:
+
+The transformation appears to identify objects based on connected cells of the same color, then swap the colors of specific object pairs based on their relative positions:
+
+* **Input_0:** The two 5-objects are recolored to 2, and the two 8-objects to 8. Similarly, the single 2-object becomes 6 and the single 6-object becomes 2. 
+* **Input_1:** The 5-object is recolored to 1, and the two 7-objects become 7. The two 1-objects become 4, and the single 4-object becomes 1.
+* **Input_2:** The two 5-objects become 1, and the three 5-objects become 7. The single 1-object becomes 6, and the three 6-objects become 1.
+
+
+## Code Generation:
+
+Based on the analysis, the transformation involves identifying objects, potentially filtering them based on size or uniqueness, and then swapping their colors. Here are five distinct program versions utilizing the DSL:
+
+**Program Version 1**
+
+```python
+def solve_generated(I):
+    # Identify all objects
+    objs = objects(I, T, F, F)
+    
+    # Find unique objects based on color (single occurrences)
+    unique_objs = frozenset(obj for obj in objs if colorcount(I, color(obj)) == size(obj))
+  
+    # Pair unique objects based on their positions
+    paired_objs = frozenset({(a, b) for a in unique_objs for b in unique_objs if a != b and position(a, b) == (1, 0)})
+  
+    # Swap colors of paired objects
+    O = I
+    for a, b in paired_objs:
+        O = paint(cover(O, a), recolor(color(b), a))
+        O = paint(cover(O, b), recolor(color(a), b))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies all connected objects in the grid.
+2. **Find Unique Objects:** `unique_objs` filters for objects that appear only once in the grid, ensuring we target the correct objects for color swapping.
+3. **Pair Objects:** `paired_objs` pairs unique objects that are vertically adjacent (positioned one above the other).
+4. **Swap Colors:** Iterates through each object pair and swaps their colors using `recolor`, `cover`, and `paint`.
+
+**Program Version 2**
+
+```python
+def solve_generated(I):
+  # Extract objects, treating different colors as separate
+  objs = objects(I, F, F, F)
+
+  # Create a dictionary mapping object colors to their counts
+  color_counts = {}
+  for obj in objs:
+    color_val = color(obj)
+    color_counts[color_val] = color_counts.get(color_val, 0) + 1
+  
+  # Filter for objects with unique colors
+  unique_objs = frozenset(obj for obj in objs if color_counts[color(obj)] == 1)
+  
+  # Sort unique objects based on vertical position (top to bottom)
+  sorted_objs = order(unique_objs, lambda obj: uppermost(obj))
+
+  # Swap colors of consecutive objects in the sorted list
+  O = I
+  for i in range(0, len(sorted_objs) - 1, 2):
+    a = sorted_objs[i]
+    b = sorted_objs[i+1]
+    O = paint(cover(O, a), recolor(color(b), a))
+    O = paint(cover(O, b), recolor(color(a), b))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects (Color Sensitive):** `objects(I, F, F, F)` identifies objects considering different colors as separate entities.
+2. **Count Object Colors:** Creates a dictionary to count the occurrences of each object color.
+3. **Filter Unique Color Objects:**  Selects objects with colors that appear only once.
+4. **Sort by Vertical Position:** Sorts the unique objects based on their uppermost row index.
+5. **Swap Colors:** Iterates through the sorted list, swapping the colors of consecutive objects.
+
+**Program Version 3**
+
+```python
+def solve_generated(I):
+  objs = objects(I, T, F, F)
+  
+  def is_paired(obj):
+    for other in objs:
+      if obj != other and position(obj, other) in {(1, 0), (-1, 0)}:
+        return True
+    return False
+    
+  paired_objs = sfilter(objs, is_paired)
+  
+  O = I
+  for obj in paired_objs:
+    for other in objs:
+      if obj != other and position(obj, other) in {(1, 0), (-1, 0)}:
+        O = paint(cover(O, obj), recolor(color(other), obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies connected objects.
+2. **Identify Paired Objects:** `is_paired` checks if an object has another object either directly above or below it. `paired_objs` filters for these paired objects.
+3. **Swap Colors:** Iterates through each paired object and swaps its color with its vertically adjacent counterpart.
+
+**Program Version 4**
+
+```python
+def solve_generated(I):
+  objs = objects(I, T, F, F)
+  
+  def find_pair(obj):
+    for other in objs:
+      if obj != other and position(obj, other) in {(1, 0), (-1, 0)}:
+        return other
+    return None
+  
+  O = I
+  for obj in objs:
+    pair = find_pair(obj)
+    if pair is not None:
+      O = paint(cover(O, obj), recolor(color(pair), obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies connected objects.
+2. **Find Pair for Each Object:**  `find_pair` locates the vertically adjacent object for a given object.
+3. **Swap Colors:** Iterates through each object, finds its pair, and swaps their colors.
+
+**Program Version 5**
+
+```python
+def solve_generated(I):
+    objs = objects(I, T, F, F)
+    
+    def swap_condition(obj1, obj2):
+        return obj1 != obj2 and position(obj1, obj2)[0] != 0 and size(obj1) == size(obj2)
+    
+    O = I
+    for obj1 in objs:
+        for obj2 in objs:
+            if swap_condition(obj1, obj2):
+                O = paint(cover(O, obj1), recolor(color(obj2), obj1))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies connected objects.
+2. **Define Swap Condition:** `swap_condition` checks if two objects are distinct, vertically aligned, and have the same size.
+3. **Swap Colors:** Iterates through all object pairs and swaps colors if they meet the `swap_condition`.
+
+
+These program versions provide diverse approaches to achieve the observed transformation while adhering to the DSL's functions. 

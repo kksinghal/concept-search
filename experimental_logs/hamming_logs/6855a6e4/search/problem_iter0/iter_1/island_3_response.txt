@@ -1,0 +1,188 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects of the color '5' in the input grid and moving them towards the center of the grid. 
+
+**Logic:**
+
+1. **Identify '5' objects:** Find all connected regions of cells with the value '5'.
+2. **Find the grid center:** Calculate the center coordinates of the grid.
+3. **Determine movement direction and distance:** For each '5' object, calculate the direction and distance to move it closer to the center. The movement is always horizontal or vertical, prioritizing vertical movement if both are equally close.
+4. **Move the '5' objects:** Shift the '5' objects on the grid according to the calculated direction and distance.
+
+
+## Program Version 1: 
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  fives = colorfilter(objects(I, True, False, True), FIVE)  # Find '5' objects
+  center_point = center(asindices(I))  # Calculate grid center
+  h, w = shape(I) # Get grid dimensions
+
+  moved_fives = frozenset()
+  for obj in fives:
+    obj_center = center(toindices(obj))  # Get object's center
+    if abs(obj_center[0] - center_point[0]) >= abs(obj_center[1] - center_point[1]): # Prioritize vertical movement
+      offset = (0, (center_point[1] - obj_center[1]) // max(abs(center_point[1] - obj_center[1]), 1)) # Calculate vertical offset
+    else:
+      offset = ((center_point[0] - obj_center[0]) // max(abs(center_point[0] - obj_center[0]), 1), 0) # Calculate horizontal offset
+    moved_fives = moved_fives.union(frozenset({shift(obj, offset)}))
+
+  O = paint(cover(I, merge(fives)), FIVE, merge(moved_fives)) # Move the objects
+  return O
+```
+
+**Explanation:**
+
+1. **Find '5' objects:** `colorfilter(objects(I, True, False, True), FIVE)` extracts objects with color '5'.
+2. **Calculate grid center:** `center(asindices(I))` finds the grid's center coordinates.
+3. **Determine movement direction and distance:** 
+    - The code iterates through each '5' object (`obj` in `fives`).
+    - It determines if vertical or horizontal movement is prioritized based on distance to the center.
+    - It calculates the offset (`offset`) to move the object closer to the center.
+4. **Move the '5' objects:**
+    - `cover(I, merge(fives))` removes the original '5' objects from the grid.
+    - `paint(..., FIVE, merge(moved_fives))` draws the moved '5' objects onto the grid.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  fives = toindices(colorfilter(objects(I, True, False, True), FIVE)) # Get indices of '5's
+  center_i, center_j = center(asindices(I))  # Get center indices
+  h, w = shape(I) # Get grid dimensions
+
+  shifted_fives = frozenset()
+  for i, j in fives:
+    new_i = i + max(-1, min(1, center_i - i)) # Shift row towards center
+    new_j = j + max(-1, min(1, center_j - j)) # Shift column towards center
+    shifted_fives = shifted_fives.union(frozenset({(new_i, new_j)}))
+
+  O = fill(cover(I, fives), FIVE, shifted_fives) # Fill shifted indices with '5'
+  return O
+```
+
+**Explanation:**
+
+1. **Get indices of '5's:** `toindices(colorfilter(objects(I, True, False, True), FIVE))` finds indices of cells with the value '5'.
+2. **Get center indices:** `center(asindices(I))` calculates the center indices of the grid.
+3. **Shift towards center:** 
+    - It iterates over the '5' indices (`i`, `j` in `fives`).
+    - `new_i` and `new_j` are calculated to be one step closer to the center, ensuring it doesn't move past the center.
+4. **Fill shifted indices:**
+    - `cover(I, fives)` removes the original '5's from the grid.
+    - `fill(..., FIVE, shifted_fives)` fills the new positions with '5'.
+
+## Program Version 3:
+
+This version will utilize the `gravitate` function to directly calculate the offset needed for each object.
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  fives = colorfilter(objects(I, True, False, True), FIVE) # Find '5' objects
+  center_point = center(asindices(I)) # Calculate grid center
+
+  moved_fives = frozenset()
+  for obj in fives:
+    offset = gravitate(toindices(obj), {center_point}) # Calculate offset using gravitate
+    moved_fives = moved_fives.union(frozenset({shift(obj, offset)}))
+
+  O = paint(cover(I, merge(fives)), FIVE, merge(moved_fives)) # Move the objects
+  return O
+```
+
+**Explanation:**
+
+1. **Find '5' objects and center:** Similar to version 1.
+2. **Calculate offset using `gravitate`:** For each '5' object, `gravitate(toindices(obj), {center_point})` directly calculates the offset needed to move the object adjacent to the center.
+3. **Move the '5' objects:** Similar to version 1.
+
+## Program Version 4:
+
+This version will utilize a combination of `hsplit` and `vsplit` to achieve the desired movement.
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)
+  center_i, center_j = h // 2, w // 2
+
+  if h > 1:
+    top_half = tophalf(I)
+    bottom_half = bottomhalf(I)
+    if center_i - uppermost(toindices(colorfilter(objects(top_half, True, False, True), FIVE))) >= 1:
+      top_half = move(top_half, colorfilter(objects(top_half, True, False, True), FIVE), (1, 0))
+    if lowermost(toindices(colorfilter(objects(bottom_half, True, False, True), FIVE))) - center_i >= 1:
+      bottom_half = move(bottom_half, colorfilter(objects(bottom_half, True, False, True), FIVE), (-1, 0))
+    I = vconcat(top_half, bottom_half)
+  if w > 1:
+    left_half = lefthalf(I)
+    right_half = righthalf(I)
+    if center_j - leftmost(toindices(colorfilter(objects(left_half, True, False, True), FIVE))) >= 1:
+      left_half = move(left_half, colorfilter(objects(left_half, True, False, True), FIVE), (0, 1))
+    if rightmost(toindices(colorfilter(objects(right_half, True, False, True), FIVE))) - center_j >= 1:
+      right_half = move(right_half, colorfilter(objects(right_half, True, False, True), FIVE), (0, -1))
+    I = hconcat(left_half, right_half)
+  return I
+```
+
+**Explanation:**
+
+1. **Split and check:** The grid is split into top/bottom and left/right halves. The presence of '5' objects and their distance to the center in each half are checked.
+2. **Move objects in halves:** If '5' objects are found in a half and they are not already adjacent to the center, they are moved one step closer to the center within that half.
+3. **Recombine halves:** The modified halves are then recombined to form the final output grid.
+
+## Program Version 5:
+
+This version will utilize a recursive approach to move objects towards the center.
+
+**Code:**
+
+```python
+def move_to_center(grid, obj_color):
+  objs = colorfilter(objects(grid, True, False, True), obj_color)
+  center_point = center(asindices(grid))
+  h, w = shape(grid)
+
+  if len(objs) == 0:
+    return grid
+
+  moved_objs = frozenset()
+  for obj in objs:
+    obj_center = center(toindices(obj))
+    if abs(obj_center[0] - center_point[0]) >= abs(obj_center[1] - center_point[1]):
+      offset = (0, (center_point[1] - obj_center[1]) // max(abs(center_point[1] - obj_center[1]), 1))
+    else:
+      offset = ((center_point[0] - obj_center[0]) // max(abs(center_point[0] - obj_center[0]), 1), 0)
+    moved_objs = moved_objs.union(frozenset({shift(obj, offset)}))
+  
+  new_grid = paint(cover(grid, merge(objs)), obj_color, merge(moved_objs))
+
+  if new_grid == grid: # Base case: No more movement possible
+    return grid
+  else:
+    return move_to_center(new_grid, obj_color) # Recursive call
+
+def Program_to_be_generated(I):
+  return move_to_center(I, FIVE) 
+```
+
+**Explanation:**
+
+1. **Recursive function `move_to_center`:**
+    - Takes the grid and the color of the object to move as input.
+    - Finds the objects of the specified color and the center of the grid.
+    - Calculates the offset for each object towards the center (similar to version 1).
+    - Moves the objects and creates a new grid with the moved objects.
+    - If the new grid is the same as the previous grid (no more movement possible), it returns the grid (base case).
+    - Otherwise, it calls itself recursively with the new grid.
+2. **Main function:** Calls the `move_to_center` function with the input grid and the color '5'.
+
+These are five distinct program versions with varying logic and function usage to achieve the desired transformation. Each version provides a unique approach to the problem, offering flexibility and potential optimization opportunities.

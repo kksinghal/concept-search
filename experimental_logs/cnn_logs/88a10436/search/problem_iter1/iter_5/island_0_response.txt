@@ -1,0 +1,127 @@
+## Transformation Analysis:
+
+The transformation involves taking each distinct object in the input grid (excluding the background color, which is the most frequent color), normalizing it to the origin (0, 0), and then shifting it upwards until it touches the top border of the grid.
+
+**Example:**
+
+Let's take Input_1 as an example:
+
+```
+Input_1:          Output_1:
+0 0 0 0 6 0 0     0 0 0 0 6 0 0
+0 0 0 0 1 1 0     0 0 0 0 1 1 0
+0 0 0 0 2 2 2     0 0 0 0 2 2 2
+0 0 0 0 0 0 0     0 0 0 0 0 0 0
+0 0 0 0 0 0 0     6 0 0 0 0 0 0 
+0 5 0 0 0 0 0     1 1 0 0 0 0 0
+0 0 0 0 0 0 0     2 2 2 0 0 0 0
+0 0 0 0 0 0 0     0 0 0 0 0 0 0
+```
+
+We can identify two distinct objects in the input (excluding the background '0'): '6' and '1 2 2\n5'.
+
+1. **Object '6':**
+    - Normalized form: '6' (already at the origin).
+    - Shifted upwards: '6' (already touching the top border).
+2. **Object '1 2 2\n5':** 
+    - Normalized form: '1 1\n2 2 2' 
+    - Shifted upwards: '1 1\n2 2 2\n0 0 0\n0 0 0' (shifted three units upwards to touch the top border). 
+
+The output grid is then constructed by placing these shifted objects back onto a grid filled with the background color ('0').
+
+## Program Versions:
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = objects(I, False, False, True)
+  shifted_objs = set()
+  for obj in objs:
+    normalized_obj = normalize(obj)
+    shifted_obj = shift(normalized_obj, (0, -ulcorner(normalized_obj)[0]))
+    shifted_objs.add(shifted_obj)
+  O = paint(canvas(mostcolor(I), shape(I)), merge(shifted_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, False, False, True)`:** Extracts all objects from the input grid `I`, treating cells with different values as separate objects, excluding diagonally connected cells and the background color.
+2. **`for obj in objs:`:** Iterates through each extracted object.
+3. **`normalized_obj = normalize(obj)`:** Normalizes the object, moving its upper-left corner to the origin (0, 0).
+4. **`shifted_obj = shift(normalized_obj, (0, -ulcorner(normalized_obj)[0]))`:** Shifts the normalized object upwards by the row index of its upper-left corner, effectively placing it at the top of the grid.
+5. **`shifted_objs.add(shifted_obj)`:** Adds the shifted object to a set.
+6. **`O = paint(canvas(mostcolor(I), shape(I)), merge(shifted_objs))`:** Creates a canvas filled with the background color and the same dimensions as the input grid. Then, it paints all the shifted objects onto this canvas.
+7. **`return O`:** Returns the transformed grid.
+
+**Program Version 2**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  shifted_objs = apply(lambda obj: shift(obj, (-uppermost(obj), 0)), objs)
+  O = paint(canvas(mostcolor(I), shape(I)), merge(shifted_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`:** Partitions the input grid `I` into objects based on color, excluding the background color.
+2. **`shifted_objs = apply(lambda obj: shift(obj, (-uppermost(obj), 0)), objs)`:** For each object, shifts it upwards by its uppermost row index. 
+3. **`O = paint(canvas(mostcolor(I), shape(I)), merge(shifted_objs))`:** Creates a canvas of the background color with the same size as the input and paints all shifted objects onto it.
+4. **`return O`:** Returns the transformed grid. 
+
+**Program Version 3** 
+
+```python
+def solve(I):
+  shifted_objs =  mapply(lambda obj: recolor(color(obj), shift(toindices(obj), (-uppermost(obj), 0))), objects(I, False, False, True))
+  O = paint(canvas(mostcolor(I), shape(I)), shifted_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **`objects(I, False, False, True)`:** Extracts all objects from the input grid `I`, excluding the background color and considering only directly adjacent cells.
+2.  **`mapply(lambda obj: ..., objects(I, False, False, True))`:** Applies a transformation to each extracted object and merges the results. 
+3. **`recolor(color(obj), shift(toindices(obj), (-uppermost(obj), 0)))`:** Shifts the indices of each object upwards by its uppermost row index, effectively moving it to the top. Then, it recolors the shifted indices with the object's original color. 
+4. **`O = paint(canvas(mostcolor(I), shape(I)), shifted_objs)`:** Creates a canvas of the background color and paints the transformed objects onto it.
+5. **`return O`:** Returns the transformed grid.
+
+**Program Version 4**
+
+```python
+def solve(I):
+    def shift_up(obj):
+        return recolor(color(obj), {(i - uppermost(obj), j) for _, (i, j) in obj})
+    O = paint(canvas(mostcolor(I), shape(I)), mapply(shift_up, objects(I, False, False, True)))
+    return O
+```
+
+**Explanation:**
+
+1. **`def shift_up(obj): ...`:** Defines a helper function `shift_up` that takes an object and shifts its cells upwards, aligning the top of the object with the top of the grid.
+2. **`objects(I, False, False, True)`:** Extracts all objects from the input grid, excluding the background color.
+3. **`mapply(shift_up, ...)`:** Applies the `shift_up` function to each object and merges the results into a single set of cells. 
+4. **`paint(canvas(mostcolor(I), shape(I)), ...)`:** Creates a new grid filled with the background color and paints the shifted objects onto it.
+5. **`return O`:** Returns the transformed grid.
+
+**Program Version 5**
+
+```python
+def solve(I):
+  objs = objects(I, False, False, True)
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objs:
+    O = paint(O, shift(obj, (-uppermost(obj), 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, False, False, True)`:** Extracts objects from the input grid, excluding the background.
+2. **`O = canvas(...)`:** Creates a new grid filled with the background color, having the same dimensions as the input grid.
+3. **`for obj in objs: ...`:** Iterates over each extracted object.
+4. **`O = paint(O, shift(obj, (-uppermost(obj), 0)))`:** Shifts each object upwards so that it touches the top of the grid and then paints it onto the new grid `O`. 
+5. **`return O`:** Returns the transformed grid. 

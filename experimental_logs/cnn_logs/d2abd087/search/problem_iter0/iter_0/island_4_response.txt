@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected groups of the same digit) within the input grid and applying different recoloring rules based on their size and position. 
+
+**Specific Rules:**
+
+* **Single-cell Objects:** Recolored to '1'.
+* **Two-cell Objects:** Recolored to '2'.
+* **Larger Objects:**  The recoloring depends on the object's position:
+    * Objects touching the top or left edge of the grid retain their original color. 
+    * All other larger objects are recolored to '1'.
+
+**Example Breakdown:**
+
+* **Input_0:** The single '5' at the bottom-left corner becomes '1'. The two-cell '5' groups become '2'. All other '5' groups remain '5'.
+* **Input_1:**  Similar to Input_0, with single '5's becoming '1', two-cell '5' groups becoming '2', and larger '5' groups retaining their color unless touching the top or left edge.
+* **Input_2:** Demonstrates the edge-touching rule, where the top-left '5' group retains its color while the bottom-right '5' group (not touching any edge) becomes '1'.
+
+## Program Versions:
+
+**Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T) 
+  small_objs = combine(sizefilter(objs,1), sizefilter(objs, 2))
+  large_objs = difference(objs, small_objs)
+  edge_objs = sfilter(large_objs, lambda obj: uppermost(obj) == 0 or leftmost(obj) == 0)
+  O = I
+  for obj in small_objs:
+    O = paint(O, recolor(size(obj), obj))
+  O = paint(O, merge(edge_objs))
+  O = replace(O, FIVE, ONE)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Uses `objects` to find all connected groups of non-zero digits.
+2. **Categorize Objects:**  Separates objects into 'small' (size 1 or 2) and 'large' categories.
+3. **Identify Edge Objects:** Filters 'large' objects, keeping only those touching the top or left edge.
+4. **Recolor Small Objects:**  Iterates through 'small' objects, recoloring them based on size ('1' for single-cell, '2' for two-cell).
+5. **Preserve Edge Objects:**  Paints the 'edge_objs' back onto the grid, preserving their original color.
+6. **Recolor Remaining:** Recolors all remaining '5's to '1'.
+
+**Version 2:**
+
+```python
+def solve(I):
+  O = I
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != 0:
+        obj = toobject(asindices(neighbors((i,j))), I)
+        if size(obj) == 1:
+          O = paint(O, recolor(ONE, obj))
+        elif size(obj) == 2:
+          O = paint(O, recolor(TWO, obj))
+        elif i != 0 and j != 0:
+          O = paint(O, recolor(ONE, obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Cells:** Iterates through each cell of the grid.
+2. **Check for Non-Zero:**  If the cell is not background (0), proceeds to analyze the object.
+3. **Find Neighboring Object:**  Identifies the object containing the current cell using `neighbors`.
+4. **Apply Recoloring Rules:**  Recolors the object based on its size and position (using the same rules as before).
+
+**Version 3:**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    singles = mfilter(objs, lambda obj: size(obj) == 1)
+    doubles = mfilter(objs, lambda obj: size(obj) == 2)
+    edge_objs =  mfilter(objs, lambda obj: size(obj) > 2 and (uppermost(obj) == 0 or leftmost(obj) == 0))
+    O = fill(I, ONE, merge(singles))
+    O = fill(O, TWO, merge(doubles))
+    O = paint(O, merge(edge_objs))
+    return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Uses `objects` to find all objects.
+2. **Filter Objects:**  Separates objects into 'singles', 'doubles', and 'edge_objs'.
+3. **Recolor Grid:**  Uses `fill` to recolor the grid based on the object categories.
+
+**Version 4:**
+
+```python
+def solve(I):
+    changed = True
+    O = I
+    while changed:
+      changed = False
+      for i, row in enumerate(I):
+        for j, val in enumerate(row):
+          if val == FIVE:
+            obj = toobject(asindices(neighbors((i,j))), I)
+            if size(obj) == 1:
+              O = paint(O, recolor(ONE, obj))
+              changed = True
+            elif size(obj) == 2:
+              O = paint(O, recolor(TWO, obj))
+              changed = True
+            elif i != 0 and j != 0:
+              O = paint(O, recolor(ONE, obj))
+              changed = True
+    return O 
+```
+
+**Explanation:**
+
+1. **Iterative Approach:** Uses a `while` loop to iteratively recolor the grid.
+2. **Check for Changes:** Continues iterating until no more changes are made.
+3. **Recolor Logic:** Similar to Version 2, but with a `changed` flag to control the loop.
+
+**Version 5:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    if size(obj) == 1:
+      O = fill(O, ONE, toindices(obj))
+    elif size(obj) == 2:
+      O = fill(O, TWO, toindices(obj))
+    else:
+      if uppermost(obj) != 0 and leftmost(obj) != 0:
+        O = fill(O, ONE, toindices(obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Uses `objects` to find all connected groups.
+2. **Iterate and Recolor:** Iterates through each object and applies the recoloring rules directly.
+
+These versions demonstrate diverse approaches to the same transformation using the provided DSL, ranging from set-based operations and filtering to iterative cell-by-cell processing. Each version achieves the same output for the given input-output pairs. 

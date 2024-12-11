@@ -1,0 +1,164 @@
+## Transformation Analysis:
+
+The transformation centers specific objects in the grid based on their color and size. Here's a breakdown:
+
+**Object Identification:**
+
+- **Object 3:** A 3x3 square of the color with the least occurrences (excluding background color 0).
+- **Object 2:** A horizontal line of color 2 with a size of 2.
+- **Object 1:** Any object of color 1. 
+
+**Transformation Logic:**
+
+1. **Object 3 Centering:** Object 3 is moved so its center aligns with the grid's center. 
+2. **Object 2 Positioning:** Object 2 is placed one cell to the right of Object 3's lower right corner.
+3. **Object 1 Positioning:** Object 1 is moved to the center of the bottom row of the grid.
+
+## Program Versions:
+
+Here are five distinct program versions for the "Program_to_be_generated" using the DSL:
+
+**Program Version 1:  (Direct Approach)**
+
+```python
+def Program_to_be_generated(I):
+  def find_object(color, size=None, shape_check=None):
+    objs = objects(I, False, False, True)
+    if color is not None:
+      objs = colorfilter(objs, color)
+    if size is not None:
+      objs = sizefilter(objs, size)
+    if shape_check is not None:
+      objs = frozenset(obj for obj in objs if shape_check(obj))
+    return first(objs) if objs else None
+
+  obj_3 = find_object(leastcolor(I), shape_check=square)
+  obj_2 = find_object(TWO, TWO, hline)
+  obj_1 = find_object(ONE)
+
+  grid_center = (height(I) // 2, width(I) // 2)
+  target_3 = subtract(grid_center, divide(shape(obj_3), 2))
+  target_2 = add(lrcorner(obj_3), (0, 1))
+  target_1 = (height(I) - 2, (width(I) - 1) // 2)
+
+  I = move(I, obj_3, subtract(target_3, ulcorner(obj_3))) if obj_3 else I
+  I = move(I, obj_2, subtract(target_2, ulcorner(obj_2))) if obj_2 else I
+  I = move(I, obj_1, subtract(target_1, ulcorner(obj_1))) if obj_1 else I
+  return I
+```
+
+**Explanation:**
+
+1. **`find_object` Function:**  This function efficiently finds objects based on color, size, and an optional shape check. It streamlines object extraction by combining filtering logic.
+2. **Object Finding:** The code finds `obj_3` (least color, square), `obj_2` (color 2, size 2, horizontal line), and `obj_1` (color 1).
+3. **Target Calculation:** It determines the target positions for each object. `obj_3` targets the grid's center, `obj_2` targets the right of `obj_3`, and `obj_1` targets the bottom row's center.
+4. **Movement:**  It moves each object to its target position using `move`.
+
+**Program Version 2: (Center of Mass Focus)**
+
+```python
+def Program_to_be_generated(I):
+  def find_and_move(color, size=None, shape_check=None, offset=(0, 0)):
+    obj = first(sizefilter(colorfilter(objects(I, False, False, True), color), size)) if size else first(colorfilter(objects(I, False, False, True), color))
+    if shape_check and not shape_check(obj): return I
+    target = add(centerofmass(obj), offset)
+    return move(I, obj, subtract(target, ulcorner(obj)))
+
+  I = find_and_move(leastcolor(I), shape_check=square, offset=(-1, -1)) # Center & Adjust obj_3
+  obj_3 = find_object(leastcolor(I), shape_check=square) # Re-find obj_3 for accurate positioning of obj_2
+  I = find_and_move(TWO, TWO, hline, offset=(0, width(obj_3) + 1))  
+  I = find_and_move(ONE, offset=((height(I) - 1) // 2 - 1,  (width(I) - 1) // 2))
+  return I
+```
+
+**Explanation:**
+
+1. **`find_and_move` Function:** This function efficiently combines finding an object (by color, optional size, and shape) and moving it to a target based on its center of mass and an offset.
+2. **Object Manipulation:** It finds and moves objects based on the provided parameters. `obj_3` is centered and slightly adjusted. `obj_2` is positioned relative to the centered `obj_3`. `obj_1` is placed using a calculated offset to center it.
+
+**Program Version 3: (Strategic Splitting)**
+
+```python
+def Program_to_be_generated(I):
+  least_color = leastcolor(I)
+  objs = objects(I, False, False, True)
+  obj_3 = first(sfilter(objs, lambda obj: color(obj) == least_color and square(obj)))
+  I = move(I, obj_3, subtract((height(I) // 2 - 1, width(I) // 2 - 1), ulcorner(obj_3)))
+  top, bottom = vsplit(I, 2) 
+  obj_2 = first(sfilter(objects(bottom, False, False, True), lambda obj: color(obj) == 2 and hline(obj) and size(obj) == 2))
+  bottom = move(bottom, obj_2, (0, width(obj_3))) 
+  I = vconcat(top, bottom)
+  obj_1 = first(colorfilter(objects(I, False, False, True), 1))
+  I = move(I, obj_1,  subtract((height(I) - 2, (width(I) - 1) // 2), ulcorner(obj_1)))
+  return I
+```
+
+**Explanation:**
+
+1.  **Split and Conquer:** This version strategically splits the grid vertically to simplify object manipulation. 
+2.  **Individual Object Handling:** It handles `obj_3` and `obj_2` separately in their respective halves, then combines the grid. Finally, it positions `obj_1` in the joined grid.
+
+**Program Version 4: (Exploiting Symmetry)**
+
+```python
+def Program_to_be_generated(I):
+  def center_h_then_v(obj):
+    I = move(I, obj, (height(I) // 2 - (height(obj) // 2 + uppermost(obj)), 0))
+    return move(I, obj, (0, width(I) // 2 - (width(obj) // 2 + leftmost(obj))))
+
+  least_color = leastcolor(I) 
+  objs = objects(I, False, False, True)
+  obj_3 = first(sfilter(objs, lambda obj: color(obj) == least_color and square(obj)))
+  obj_2 = first(sfilter(objs, lambda obj: color(obj) == 2 and hline(obj) and size(obj) == 2))
+  obj_1 = first(colorfilter(objs, 1))
+
+  I = center_h_then_v(obj_3)  
+  I = move(I, obj_2, (lowermost(obj_3), rightmost(obj_3) + 1))  
+  I = center_h_then_v(obj_1)
+  I = move(I, obj_1, (height(I) - 2, 0)) 
+  return I
+```
+
+**Explanation:**
+
+1. **`center_h_then_v` Function:** This function efficiently centers an object both horizontally and vertically within the grid.
+2. **Leveraging Symmetry:** This version leverages symmetry for efficient centering of objects `obj_3` and `obj_1`. It centers them horizontally first and then vertically.  
+3. **Relative Positioning:** It positions `obj_2` relative to the already centered `obj_3`.
+
+**Program Version 5:  (Pattern Recognition)**
+
+```python
+def Program_to_be_generated(I):
+  def find_by_pattern(pattern):
+    h, w = len(I), len(I[0])
+    for i in range(h - len(pattern) + 1):
+      for j in range(w - len(pattern[0]) + 1):
+        match = True
+        for pi in range(len(pattern)):
+          for pj in range(len(pattern[0])):
+            if pattern[pi][pj] != -1 and I[i+pi][j+pj] != pattern[pi][pj]:
+              match = False
+              break
+          if not match: break
+        if match:
+          return (i, j)
+    return None
+
+  obj_3_pos = find_by_pattern([[-1, -1, leastcolor(I)], [-1, leastcolor(I), -1], [leastcolor(I), -1, -1]]) 
+  obj_2_pos = find_by_pattern([[2, 2]])
+  obj_1_pos = find_by_pattern([[1]])
+
+  I = move(I, toobject(asindices(crop(I, obj_3_pos, (3, 3))), I), ((height(I) - 3) // 2, (width(I) - 3) // 2)) if obj_3_pos else I
+  I = move(I, toobject(asindices(crop(I, obj_2_pos, (1, 2))), I), (height(I) - 3, width(I) // 2)) if obj_2_pos else I
+  I = move(I, toobject(asindices(crop(I, obj_1_pos, (1, 1))), I), (height(I) - 2, (width(I) - 1) // 2)) if obj_1_pos else I
+
+  return I
+```
+
+**Explanation:**
+
+1. **`find_by_pattern` Function:** This function searches for a specific 2D pattern within the grid and returns the upper-left corner location of the first match. The pattern is defined using -1 as a wildcard.
+2. **Pattern Matching:** It finds object positions based on simple patterns, allowing for more flexibility and adaptability to variations in object structure.
+3. **Object Extraction and Movement:** It extracts the found objects based on their pattern locations and moves them to their desired positions. 
+
+These five versions demonstrate diverse approaches to solving the transformation problem, each using distinct logic and DSL function combinations while aiming for clear, efficient, and adaptable code.

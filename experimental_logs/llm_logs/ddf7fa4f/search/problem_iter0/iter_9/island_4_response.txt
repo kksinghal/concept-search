@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation taking place in all three input-output pairs can be described as follows:
+
+1. **Identify Non-Background Objects:** The code first identifies all objects present in the input grid that are not the background color (most common color). 
+
+2. **Split Based on Midpoint:**  The objects are then divided into two groups based on their vertical position relative to the horizontal midpoint of the grid. Objects lying entirely above the midpoint belong to the "top" group, and objects lying entirely below or on the midpoint belong to the "bottom" group.
+
+3. **Swap Colors:** The colors of the "top" and "bottom" objects are then swapped.
+
+
+## Program Versions:
+
+Here are five distinct program versions utilizing the DSL functions to achieve the desired transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  m = len(I) // 2 
+  objs = objects(I, T, T, T) 
+  def top_obj(obj):
+    return all(i < m for i, _ in toindices(obj)) 
+  def bottom_obj(obj):
+    return all(i >= m for i, _ in toindices(obj))
+  top_color = color(extract(objs, lambda obj: top_obj(obj) and color(obj) != mostcommon(I)))
+  bottom_color = color(extract(objs, lambda obj: bottom_obj(obj) and color(obj) != mostcommon(I))) 
+  return paint(paint(I, recolor(bottom_color, toindices(extract(objs, lambda obj: color(obj) == top_color and top_obj(obj))))), recolor(top_color, toindices(extract(objs, lambda obj: color(obj) == bottom_color and bottom_obj(obj)))))
+```
+
+**Explanation:**
+
+1. **Midpoint and Objects:** Similar to the initial attempt, we calculate the horizontal midpoint (`m`) and obtain all non-background objects (`objs`).
+2. **Define Top/Bottom Predicates:**  We define two helper functions `top_obj` and `bottom_obj` to check if an object's indices lie entirely above or below/on the midpoint, respectively.
+3. **Extract Colors:** Using the predicates, we extract the color of the "top" object (`top_color`) and the "bottom" object (`bottom_color`).
+4. **Swap and Paint:** Finally, we perform the color swap using `recolor` and `paint` in a similar fashion to the initial attempt, ensuring we are modifying the correct objects based on their position.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  m = len(I) // 2
+  objs = objects(I, T, T, T)
+  def condition(obj):
+    indices = toindices(obj)
+    return color(obj) != mostcommon(I) and ((all(i < m for i, _ in indices) and any(i >= m for i, _ in toindices(shift(obj, (1, 0))))) or (all(i >= m for i, _ in indices) and any(i < m for i, _ in toindices(shift(obj, (-1, 0))))))
+  top_obj, bottom_obj = tuple(sfilter(objs, condition))
+  return paint(paint(I, recolor(color(bottom_obj), toindices(top_obj))), recolor(color(top_obj), toindices(bottom_obj)))
+```
+
+**Explanation:**
+
+1. **Identify Objects at Midpoint:** This version focuses on identifying objects that cross the midpoint line. The `condition` function checks if an object's indices are all above *and* its shifted indices are partially below the midpoint (or vice-versa for below to above).
+2. **Directly Extract Objects:** The `sfilter` function with the modified condition will directly extract the "top" and "bottom" objects into `top_obj` and `bottom_obj`.
+3. **Swap and Paint:** The color swapping and painting remain similar to previous versions.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  m = len(I) // 2
+  top_half = I[:m]
+  bottom_half = I[m:]
+  top_color = color(extract(objects(top_half, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  bottom_color = color(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  return vconcat(paint(paint(top_half, recolor(bottom_color, toindices(extract(objects(top_half, T, T, T), lambda obj: color(obj) == top_color)))), recolor(top_color, toindices(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) == bottom_color)))), paint(paint(bottom_half, recolor(top_color, toindices(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) == bottom_color)))), recolor(bottom_color, toindices(extract(objects(top_half, T, T, T), lambda obj: color(obj) == top_color)))))
+```
+
+**Explanation:**
+
+1. **Split into Halves:** This version leverages the `tophalf` and `bottomhalf` functions to directly split the input grid into two halves. 
+2. **Extract Colors from Halves:** It then extracts the non-background color from each half, storing them in `top_color` and `bottom_color`.
+3. **Swap and Concatenate:** The colors are swapped within each half using `recolor` and `paint` and then concatenated back together using `vconcat`.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  m = len(I) // 2
+  objs = objects(I, T, T, T)
+  def is_above(obj):
+    return all(i < m for i, _ in toindices(obj))
+  def is_below(obj):
+    return all(i >= m for i, _ in toindices(obj))
+  top_obj = extract(objs, lambda obj: is_above(obj) and color(obj) != mostcommon(I))
+  bottom_obj = extract(objs, lambda obj: is_below(obj) and color(obj) != mostcommon(I))
+  new_I = paint(I, recolor(color(bottom_obj), toindices(top_obj)))
+  return paint(new_I, recolor(color(top_obj), toindices(bottom_obj)))
+```
+
+**Explanation:**
+
+1. **Filter Objects by Position:** This version defines two filtering functions, `is_above` and `is_below`, to check if an object lies entirely above or below/on the midpoint.
+2. **Extract Objects:**  It uses these functions with `extract` to directly find the "top" and "bottom" objects.
+3. **Sequential Painting:**  Instead of nested `paint` calls, it first paints the "top" object with the "bottom" color, then uses the modified grid (`new_I`) to paint the "bottom" object with the "top" color.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  m = len(I) // 2
+  t = I[:m]
+  b = I[m:]
+  def f(obj):
+    return color(obj) != mostcommon(I)
+  tc = color(argmin(sfilter(objects(t, T, T, T), f), lambda obj: len(obj)))
+  bc = color(argmin(sfilter(objects(b, T, T, T), f), lambda obj: len(obj)))
+  return vconcat(paint(replace(t, tc, bc), recolor(bc, toindices(extract(objects(t, T, T, T), lambda obj: color(obj) == tc)))), paint(replace(b, bc, tc), recolor(tc, toindices(extract(objects(b, T, T, T), lambda obj: color(obj) == bc))))) 
+```
+
+**Explanation:**
+
+1. **Split and Extract Colors:** It splits the grid and extracts the least frequent non-background colors from each half, similar to previous versions. 
+2. **Replace and Paint:**  Instead of directly swapping colors, it uses `replace` to change all occurrences of the target color in each half, then uses `paint` to specifically recolor the original objects with the swapped colors. 
+
+
+These five program versions demonstrate different approaches to achieve the same goal, showcasing the flexibility and diverse problem-solving capabilities possible within the DSL.

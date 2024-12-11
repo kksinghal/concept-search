@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids consistently involves the following:
+
+* **Identifying Objects:** The digits 3 and 4 are treated as distinct objects within the grid.
+* **Horizontal Shift of '4':** The '4' object is always shifted to the rightmost column of the grid, maintaining its original row position. 
+* **Centering the '3' Object:** The '3' object is always moved to the vertical center of the grid.  Its horizontal position is adjusted so it remains in the same column relative to the '4' object as it was in the input.
+
+**Example:**
+
+In **Input_3**, the '3' is two columns left of the '4'.  In **Output_3**, the '3' is centered vertically but remains two columns left of the '4'.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions achieving the desired transformation:
+
+**Program Version 1**
+
+```python
+def program_v1(grid):
+  objs = fgpartition(grid)  # Partition the grid into objects, excluding background.
+  three = extract(objs, lambda obj: color(obj) == 3)  # Extract the '3' object.
+  four = extract(objs, lambda obj: color(obj) == 4) # Extract the '4' object.
+  
+  # Calculate the horizontal offset to maintain relative positioning.
+  h_offset = leftmost(four) - leftmost(three) 
+  
+  # Move '3' to the vertical center, preserving the relative horizontal offset.
+  new_three = shift(three, (height(grid) // 2 - uppermost(three), h_offset)) 
+  
+  # Move '4' to the rightmost column.
+  new_four = shift(four, (0, width(grid) - width(four) - leftmost(four))) 
+  
+  return paint(paint(cover(grid, three), new_three), new_four) # Combine the shifted objects.
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  The `fgpartition` function is used to separate the '3' and '4' objects from the background.
+2. **Calculate Offsets:** The horizontal distance between the '3' and '4' is calculated to preserve their relative positions.
+3. **Shift Objects:** The '3' object is shifted to the vertical center, maintaining the calculated horizontal offset. The '4' object is shifted to the rightmost column.
+4. **Combine:** The shifted objects are painted back onto a cleared grid to generate the output.
+
+
+**Program Version 2**
+
+```python
+def program_v2(grid):
+  threes = ofcolor(grid, 3) # Get indices of '3'.
+  fours = ofcolor(grid, 4) # Get indices of '4'.
+  
+  # Calculate the desired positions for '3' and '4'.
+  new_three_pos = (height(grid) // 2, centerofmass(threes)[1]) 
+  new_four_pos = (centerofmass(fours)[0], width(grid) - 1)
+  
+  # Calculate the offsets for '3' and '4'.
+  three_offset = subtract(new_three_pos, centerofmass(threes))
+  four_offset = subtract(new_four_pos, centerofmass(fours))
+  
+  # Move the objects using the calculated offsets.
+  grid = paint(cover(grid, threes), shift(recolor(3, threes), three_offset))
+  grid = paint(cover(grid, fours), shift(recolor(4, fours), four_offset))
+  return grid 
+```
+
+**Explanation:**
+
+1. **Locate Objects:** The `ofcolor` function finds the indices of all '3' and '4' cells.
+2. **Target Positions:**  The desired center positions for both objects in the output are determined.
+3. **Calculate Offsets:** The offsets required to move the objects to their target positions are computed.
+4. **Apply Transformations:** The objects are moved to their new positions using the calculated offsets.
+
+**Program Version 3**
+
+```python
+def program_v3(grid):
+  objs = fgpartition(grid)
+  three = extract(objs, lambda obj: color(obj) == 3)
+  four = extract(objs, lambda obj: color(obj) == 4)
+  
+  new_three = shift(three, (height(grid) // 2 - uppermost(three), width(grid) // 2 - leftmost(three)))
+  new_four = shift(four, (0, width(grid) - 1 - rightmost(four)))
+  
+  return paint(paint(cover(grid, three), new_three), new_four)
+```
+
+**Explanation:**
+
+This version is similar to Version 1, but instead of explicitly calculating the relative horizontal offset, it directly centers the '3' object horizontally and then shifts the '4' object to the rightmost column.
+
+**Program Version 4**
+
+```python
+def program_v4(grid):
+  # Find the row indices of '3' and '4'.
+  three_row = extract(toindices(ofcolor(grid, 3)), lambda x: True)[0] 
+  four_row =  extract(toindices(ofcolor(grid, 4)), lambda x: True)[0]
+  
+  # Create new grids with '3' and '4' in their desired positions.
+  new_grid_three = canvas(0, shape(grid))
+  new_grid_three = paint(new_grid_three, {(3, (height(grid) // 2, width(grid) // 2))})
+  new_grid_four = canvas(0, shape(grid))
+  new_grid_four = paint(new_grid_four, {(4, (four_row, width(grid) - 1))})
+  
+  # Combine the grids, prioritizing the placement of '3' and '4'.
+  return cellwise(new_grid_three, new_grid_four, 0)
+```
+
+**Explanation:**
+
+1. **Locate Rows:**  The row indices of the '3' and '4' objects are identified. 
+2. **Create Separate Grids:**  Two new empty grids are created, each with the same dimensions as the input grid. The '3' object is placed in the center of the first new grid, and the '4' object is placed in the rightmost column of the second new grid, maintaining its original row.
+3. **Combine Grids:** The `cellwise` function combines the two new grids, giving priority to the cells containing '3' and '4'. This ensures that the final grid has the objects in their intended positions.
+
+**Program Version 5**
+
+```python
+def program_v5(grid):
+  three_indices = ofcolor(grid, 3) 
+  four_indices = ofcolor(grid, 4)
+  
+  grid = fill(grid, 0, three_indices | four_indices) # Clear '3' and '4' from the grid.
+  
+  # Determine the new column for '3'.
+  three_col = centerofmass(three_indices)[1]
+  
+  # Paint '3' in the center row and its original column relative to '4'.
+  grid = paint(grid, {(3, (height(grid) // 2, three_col))})
+  
+  # Paint '4' in its original row and the rightmost column.
+  grid = paint(grid, {(4, (centerofmass(four_indices)[0], width(grid) - 1))}) 
+  return grid
+```
+
+**Explanation:**
+
+1. **Locate Objects:** This version uses `ofcolor` to find the indices of the '3' and '4' objects.
+2. **Clear Objects:**  The identified '3' and '4' cells are cleared from the grid, setting their values to 0.
+3. **Determine '3' Column:** The original column position of the '3' object is stored.
+4. **Paint Objects:** The '3' object is painted at the vertical center of the grid, maintaining its original column. The '4' object is painted in the rightmost column of its original row. 
+
+
+These five programs offer diverse approaches to achieve the same transformation using different DSL functions and logic. 

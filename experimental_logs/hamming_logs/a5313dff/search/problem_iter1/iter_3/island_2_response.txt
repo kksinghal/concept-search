@@ -1,0 +1,84 @@
+## Transformation Analysis:
+
+The transformation identifies the object made of '2's and fills in specific '0's around it with '1's. The filled-in '0's are those directly adjacent (not diagonal) to the '2' object and are also part of the object's bounding box, excluding the object itself.
+
+**Code Generation:**
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)
+  return paint(I, recolor(1, intersection(delta(toindices(obj)), toindices(asobject(crop(I, ulcorner(obj), shape(obj)))))))
+```
+
+**Explanation:**
+
+1. **`obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)`**:  Extracts the object composed of '2's from the input grid `I`.
+2. **`delta(toindices(obj))`**:  Gets the indices within the bounding box of the object but not part of the object itself.
+3. **`toindices(asobject(crop(I, ulcorner(obj), shape(obj)))))`**: Extracts the indices of all cells within the bounding box of the object. 
+4. **`intersection(...)`**:  Finds the common indices from steps 2 and 3, representing '0's adjacent to the object within its bounding box.
+5. **`paint(I, recolor(1, ...))`**:  Paints the grid `I`, changing the color of the identified indices from step 4 to '1'.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)
+  return paint(I, recolor(1, mfilter(lambda ind: index(I, ind) == 0,  dneighbors(centerofmass(obj)))))
+```
+
+**Explanation:**
+
+1. **`obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)`**: Extracts the object composed of '2's from the input grid `I`.
+2. **`dneighbors(centerofmass(obj))`**:  Calculates the indices of cells directly adjacent to the center of mass of the object.
+3. **`mfilter(lambda ind: index(I, ind) == 0, ...)`**: Filters the adjacent indices to only include those with the value '0'.
+4. **`paint(I, recolor(1, ...))`**:  Paints the grid `I`, changing the color of the identified '0' indices to '1'.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)
+  return paint(I, recolor(1, frozenset((i,j) for i, j in delta(toindices(obj)) if any((abs(i - k) + abs(j - l) == 1) and index(I, (k,l)) == 2 for k, l in toindices(obj)))))
+```
+
+**Explanation:**
+
+1. **`obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)`**:  Extracts the object composed of '2's.
+2. **`delta(toindices(obj))`**:  Gets indices within the object's bounding box but not part of the object.
+3. **`frozenset((i,j) ...)`**: Iterates through the delta indices and uses a conditional to select only those directly adjacent to a cell with the value '2'.
+4. **`paint(I, recolor(1, ...))`**:  Paints the grid `I`, replacing the selected '0's with '1's.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)
+  shifted_obj = shift(obj, (1, 0))
+  return paint(paint(I, recolor(1, intersection(delta(toindices(obj)), toindices(shifted_obj)))), 
+               recolor(1, intersection(delta(toindices(obj)), toindices(shift(obj, (-1, 0))))))
+```
+
+**Explanation:**
+
+1. **`obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)`**:  Extracts the object of '2's.
+2. **`shifted_obj = shift(obj, (1, 0))`**: Creates a copy of the object shifted down by one row.
+3. **`intersection(delta(toindices(obj)), toindices(shifted_obj))`**: Finds the indices where the shifted object overlaps with the original object's bounding box but not the object itself. This effectively finds the '0's directly below the '2's.
+4. **`paint(I, recolor(1, ...))`**:  Paints these '0's with '1's.
+5. **The process is repeated for shifting up, left, and right to cover all directions.**
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)
+  return paint(I, recolor(1, mfilter(lambda ind: any(neighbor in toindices(obj) for neighbor in dneighbors(ind)), delta(toindices(obj)))))
+```
+
+**Explanation:**
+
+1. **`obj = extract(objects(I, True, False, True), lambda obj: color(obj) == 2)`**:  Extracts the object made of '2's.
+2. **`delta(toindices(obj))`**:  Gets the indices inside the object's bounding box but not part of the object itself.
+3. **`mfilter(lambda ind: ...)`**:  Filters these indices, keeping only those that have at least one directly adjacent neighbor belonging to the '2' object.
+4. **`paint(I, recolor(1, ...))`**:  Paints the grid `I`, changing the color of the identified indices from step 3 to '1'. 

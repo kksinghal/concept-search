@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation appears to follow these rules:
+
+**For all inputs:**
+
+1. **Clear the grid:** The output grid is always initially cleared, effectively removing the background color and any existing objects.
+
+**For specific color values:**
+
+2. **Color 1 (Blue):** Objects of this color are moved to the center of the grid.
+3. **Color 2 (Red):**  Objects of this color are moved one cell to the right if they are horizontally aligned with a color 3 (Green) object and also vertically aligned with it. Otherwise, they remain in their original position.
+4. **Color 3 (Green):** Objects of this color are moved to the bottom of the grid, aligned with their original column position. 
+
+Let's illustrate with an example from Input_0:
+
+- The blue "1" is centered in the output.
+- The red "2" at (5,11) moves one position to the right because it's horizontally aligned and also vertically aligned with the green "3" at (9,11).
+- The green "3" objects at (6,3) and (9,3) are moved to the bottom row, maintaining their column positions.
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = shape(grid)
+  def transform(obj):
+    v, (i, j) = first(obj)
+    return shift(obj, {
+      1: (-i + h // 2, -j + w // 2),
+      2: (0, 1) if any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in fgpartition(grid)) else (0, 0),
+      3: (h - 1 - i, 0),
+    }.get(v, (0, 0)))
+  return paint(canvas(0, (h, w)), merge(apply(transform, fgpartition(grid))))
+```
+
+**Explanation:**
+
+1. **Initialization:** Gets the height (`h`) and width (`w`) of the input grid.
+2. **`transform` function:** Defines a function `transform` that takes an object as input and applies the transformation rules based on its color (`v`).
+    - **Color 1:** Calculates the offset needed to move the object to the center of the grid.
+    - **Color 2:**  Checks if there's any horizontally and vertically aligned color 3 object. If yes, shifts the object one cell to the right. 
+    - **Color 3:** Calculates the offset to move the object to the bottom row, maintaining its column.
+3. **Apply Transformation:** Applies the `transform` function to each object in the foreground of the input grid (`fgpartition(grid)`).
+4. **Paint and Return:** Creates a blank canvas (`canvas(0, (h, w))`) and paints the transformed objects onto it using `paint` function.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = shape(grid)
+  objs = fgpartition(grid)
+  return paint(canvas(0, (h, w)), merge(
+    shift(obj, (-i + h // 2, -j + w // 2)) if v == 1 
+    else shift(obj, (h - 1 - i, 0)) if v == 3 
+    else shift(obj, (0, 1)) if any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in objs) else obj
+    for obj in objs for v, (i, j) in [first(obj)]
+  ))
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to Version 1.
+2. **Inline Transformation:** Uses a generator expression within `merge` to apply the transformation rules.
+    - Iterates through each object (`obj`) and its color (`v`) and applies the corresponding shift based on the same logic as version 1. 
+3. **Paint and Return:** Similar to Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = shape(grid)
+  return paint(canvas(0, (h, w)), merge(
+    frozenset(
+      (v, add((i, j), {
+       1: (-i + h // 2, -j + w // 2),
+       2: (0, 1) if any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in fgpartition(grid)) else (0, 0),
+       3: (h - 1 - i, 0)
+      }.get(v, (0, 0)))) 
+      for v, (i, j) in obj) 
+    for obj in fgpartition(grid)
+  ))
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to previous versions.
+2. **Nested Iteration:** Uses nested generator expressions to iterate through each cell of each object.
+    - For each cell, it calculates the new position based on the object's color.
+3. **Paint and Return:** Similar to previous versions.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = shape(grid)
+  return paint(
+    canvas(0, (h, w)), 
+    merge(apply(lambda obj: shift(obj, (
+      -first(obj)[1][0] + h // 2 if first(obj)[0] == 1 else h - 1 - first(obj)[1][0] if first(obj)[0] == 3 else 0,
+      -first(obj)[1][1] + w // 2 if first(obj)[0] == 1 else first(obj)[1][1] + 1 if any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in fgpartition(grid)) else first(obj)[1][1]
+    )), fgpartition(grid)))
+  )
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to previous versions.
+2. **Lambda Function:** Uses a lambda function within `apply` to directly calculate the new position of each object based on its color.
+3. **Paint and Return:** Similar to previous versions.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = shape(grid)
+  return paint(canvas(0, (h, w)), merge(
+    branch(
+      color(obj) == 1, shift(obj, (-uppermost(obj) + h // 2, -leftmost(obj) + w // 2)),
+      branch(
+        color(obj) == 3, shift(obj, (h - 1 - uppermost(obj), 0)),
+        branch(
+          any(color(o) == 3 and hmatching(o, obj) and vmatching(o, obj) for o in fgpartition(grid)), 
+          shift(obj, (0, 1)), 
+          obj
+        )
+      )
+    ) for obj in fgpartition(grid)
+  ))
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to previous versions.
+2. **`branch` Function:** Uses nested `branch` functions to apply the transformation rules based on the object's color.
+3. **Paint and Return:** Similar to previous versions.
+
+
+These five versions demonstrate different approaches to achieve the same transformation using the provided DSL. Each version offers a unique combination of functions and logic while adhering to the specific transformation rules identified from the input-output examples. 

@@ -1,0 +1,146 @@
+## Transformation Analysis:
+
+The transformation involves changing the color of the background cells that are directly adjacent (not diagonally) to the non-background objects. The new color is always '1'. 
+
+**Example:**
+
+* **Input:** A grid with a background color (most frequent) and one or more objects of different colors.
+* **Output:** The same grid where background cells directly touching the objects are changed to '1', forming a one-cell thick border around them.
+
+## Program to be Generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+
+### Program Version 1:
+
+```python
+def solve(I):
+  """
+  Identifies background cells adjacent to objects and fills them with '1'.
+  """
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)  # Extract objects
+  bg = mostcolor(I) # Identify background color
+  border_cells = mpapply(lambda o: sfilter(dneighbors(o), lambda n: index(I, n) == bg), toindices(merge(objs)))
+  return fill(I, 1, border_cells) # Fill identified border cells with '1'
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, univalued=False, diagonal=False, without_bg=True)` extracts all objects from the input grid `I`, excluding the background.
+2. **Identify Background Color:** `mostcolor(I)` determines the background color.
+3. **Find Border Cells:** 
+   * `toindices(merge(objs))` gets all object cell indices.
+   * `mpapply(...)` iterates over each object cell and finds its direct neighbors (`dneighbors(o)`).
+   * `sfilter(..., lambda n: index(I, n) == bg)` keeps only neighbors that have the background color in the original grid.
+4. **Fill Border Cells:**  `fill(I, 1, border_cells)` fills the identified border cells with '1'.
+
+### Program Version 2:
+
+```python
+def solve(I):
+    """
+    Iterates through each cell, changing it to '1' if it's a background 
+    cell adjacent to a different color.
+    """
+    h, w = len(I), len(I[0])
+    O = canvas(mostcolor(I), (h, w))  # Create an empty canvas
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] != mostcolor(I):
+                O = paint(O, {(I[i][j], (i, j))}) # Paint non-background cells
+            else:
+                for n in dneighbors((i, j)):
+                    if 0 <= n[0] < h and 0 <= n[1] < w and I[n[0]][n[1]] != mostcolor(I):
+                        O = paint(O, {(1, (i, j))}) # Paint border cells
+                        break
+    return O
+```
+
+**Explanation:**
+
+1. **Create Canvas:** `canvas(mostcolor(I), (h, w))` creates a blank canvas filled with the background color.
+2. **Iterate and Paint:** The code iterates over each cell in the input grid.
+   * If the cell is not background, it's painted directly onto the canvas.
+   * If the cell is background, it checks its direct neighbors. If any neighbor is not background, the current cell is painted as '1' (border cell) and the loop for that cell breaks.
+
+### Program Version 3:
+
+```python
+def solve(I):
+  """
+  Utilizes object outlines and the delta to identify and fill border cells. 
+  """
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  outlines = mapply(box, objs)
+  border_cells = outlines & asindices(I) - toindices(merge(objs))
+  return fill(I, 1, border_cells)
+```
+
+**Explanation:**
+
+1. **Extract Objects and Outlines:**  
+    * `objects(...)` extracts objects from the input grid.
+    * `mapply(box, objs)` computes the outline (`box`) for each object and merges the results.
+2. **Identify Border Cells:**
+   * `outlines & asindices(I)` finds outline cells that are within the grid bounds.
+   * `... - toindices(merge(objs))` removes the actual object cells from the outline, leaving only the border cells. 
+3. **Fill Border Cells:** `fill(I, 1, border_cells)` fills the identified border cells with '1'.
+
+### Program Version 4:
+
+```python
+def solve(I):
+  """
+  Creates a dilated version of object pixels and subtracts 
+  the original objects to find the border.
+  """
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  dilated = mapply(lambda p: toindices(shift(p, (1, 0))) | toindices(shift(p, (-1, 0))) | toindices(shift(p, (0, 1))) | toindices(shift(p, (0, -1))), objs)
+  border_cells = (dilated & asindices(I)) - toindices(merge(objs))
+  return fill(I, 1, border_cells)
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(...)` extracts objects from the grid.
+2. **Dilate Objects:**  
+   * `mapply(...)` iterates over each object.
+   * For each object, it creates four shifted copies (up, down, left, right) using `shift(p, (1, 0))`, `shift(p, (-1, 0))`, etc.
+   * The indices of these shifted copies are merged to create a dilated version of the object.
+3. **Find Border:** `(dilated & asindices(I)) - toindices(merge(objs))` finds the cells that are in the dilated area but not part of the original objects, which are the border cells.
+4. **Fill Border:** `fill(I, 1, border_cells)` fills the border cells with '1'.
+
+### Program Version 5:
+
+```python
+def solve(I):
+    """
+    Uses convolution-like approach to detect and mark border cells.
+    """
+    h, w = len(I), len(I[0])
+    O = [list(row) for row in I] # Convert to mutable list
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] == mostcolor(I):
+                for di in [-1, 1]:
+                    for dj in [-1, 1]:
+                        ni, nj = i + di, j + dj
+                        if 0 <= ni < h and 0 <= nj < w and I[ni][nj] != mostcolor(I):
+                            O[i][j] = 1
+                            break  
+    return tuple(tuple(row) for row in O) # Convert back to tuple
+```
+
+**Explanation:**
+
+1. **Mutable Grid:**  Converts the input grid `I` to a list of lists `O` for in-place modification.
+2. **Convolution-like Iteration:**  Iterates through each cell of the grid.
+3. **Border Detection:**
+   * If the current cell is a background color, it checks its immediate neighbors (up, down, left, right).
+   * If a neighbor has a different color than the background, the current cell is marked as a border cell by setting its value to '1'. 
+4. **Output:** Returns the modified grid `O` after converting it back to a tuple of tuples.
+
+## Conclusion:
+
+These five versions demonstrate distinct approaches to solving the border-filling task using the DSL functions. Each version highlights different aspects of the DSL's capabilities, providing a diverse set of solutions.

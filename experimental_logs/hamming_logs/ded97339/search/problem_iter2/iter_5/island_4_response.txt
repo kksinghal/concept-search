@@ -1,0 +1,125 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves identifying objects (connected regions of the same color, excluding the background color 0) and extending them horizontally either to the left or right until they encounter another object or the grid boundary.
+
+**Input_0 to Output_0:** The single 8-colored object is extended to the left until it reaches the left boundary of the grid.
+
+**Input_1 to Output_1:** The 8-colored objects are extended to the right. The topmost object extends to the right boundary, while the remaining objects extend until they encounter the object above them.
+
+**Input_2 to Output_2:** The 8-colored objects are extended both left and right. The topmost and bottommost objects extend to the grid boundaries, while the vertical object in the middle extends until it encounters the objects above and below it.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the provided DSL:
+
+**Version 1 (Inspired by Program_A's column-wise iteration and object extension logic):**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    column = tuple(I[i][j] for i in range(height(I)))
+    new_column = tuple(column[0] if i == 0 else (column[i] if column[i] != mostcolor(I) else new_column[i - 1]) for i in range(height(I)))
+    O = hconcat(O, (new_column,))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates an empty canvas (`O`) of the same size as the input grid (`I`) filled with the background color.
+2. **Column-wise Iteration:** Iterates through each column (`j`) of the input grid.
+3. **Column Transformation:**
+    - Extracts the current column (`column`) from the input grid.
+    - Creates a new column (`new_column`) where:
+       - The first element is the same as the first element of the original column.
+       - For subsequent elements, if the element is not the background color, it is kept; otherwise, it is replaced with the element above it in the `new_column`.
+    - Concatenates the `new_column` to the right of the output grid (`O`).
+4. **Return:** Returns the transformed grid (`O`).
+
+**Version 2 (Inspired by Program_B's frontier filling logic):**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    leftmost_j = leftmost(obj)
+    rightmost_j = rightmost(obj)
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      O = paint(O, recolor(color(obj), hfrontier((i, leftmost_j)) & backdrop(obj)))
+      O = paint(O, recolor(color(obj), hfrontier((i, rightmost_j)) & backdrop(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Initializes the output grid (`O`) as a copy of the input grid (`I`).
+2. **Object Iteration:** Iterates through each object (`obj`) in the input grid (excluding background).
+3. **Horizontal Extension:**
+   - Determines the leftmost (`leftmost_j`) and rightmost (`rightmost_j`) column indices of the current object.
+   - For each row (`i`) within the object's bounding box:
+     - Paints the horizontal frontier starting from the leftmost and rightmost points of the object (`hfrontier((i, leftmost_j))` and `hfrontier((i, rightmost_j))`) with the object's color, but only within the object's bounding box (`& backdrop(obj)`). This effectively extends the object horizontally.
+4. **Return:** Returns the transformed grid (`O`).
+
+**Version 3 (Utilizing object manipulation and merging):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  new_objs = set()
+  for obj in objs:
+    leftmost_j = leftmost(obj)
+    rightmost_j = rightmost(obj)
+    extension = {(color(obj), (i, j)) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(0, width(I)) if (i, j) not in toindices(obj) and leftmost_j <= j <= rightmost_j}
+    new_objs.add(frozenset(obj | extension))
+  return paint(canvas(mostcolor(I), shape(I)), merge(new_objs))
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Extracts all objects (`objs`) from the input grid (excluding background).
+2. **Object Extension:** Iterates through each object (`obj`) and:
+   - Calculates the leftmost and rightmost column indices.
+   - Creates an `extension` set containing cells within the object's horizontal span but outside the object itself.
+   - Merges the original object with its extension, creating a new object.
+3. **Grid Reconstruction:** Creates a new canvas filled with the background color and paints all the extended objects onto it. 
+4. **Return:** Returns the reconstructed grid.
+
+**Version 4 (Using connected components after horizontal line filling):**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(height(I)):
+    first_non_bg = next((j for j in range(width(I)) if I[i][j] != mostcolor(I)), width(I))
+    if first_non_bg < width(I):
+      O = paint(O, recolor(I[i][first_non_bg], hfrontier((i, 0))))
+  return paint(canvas(mostcolor(I), shape(I)), merge(objects(O, univalued=False, diagonal=False, without_bg=True)))
+```
+
+**Explanation:**
+
+1. **Horizontal Line Filling:** Iterates through each row and finds the first non-background color. Extends that color to the left until the boundary.
+2. **Connected Component Extraction:** Extracts connected components from the modified grid, which are now the extended objects.
+3. **Grid Reconstruction:** Paints the extracted objects onto a new canvas filled with the background color.
+4. **Return:** Returns the reconstructed grid.
+
+
+**Version 5 (Mirroring and merging objects):**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    mirrored_obj = hmirror(obj)
+    O = paint(O, mirrored_obj)
+  return paint(canvas(mostcolor(I), shape(I)), merge(objects(O, univalued=False, diagonal=False, without_bg=True)))
+```
+
+**Explanation:**
+
+1. **Object Mirroring:** Iterates through each object and paints its horizontally mirrored version onto the grid. This potentially extends existing objects.
+2. **Connected Component Extraction:** Extracts connected components from the modified grid to obtain the merged objects.
+3. **Grid Reconstruction:** Paints the extracted objects onto a new canvas filled with the background color.
+4. **Return:** Returns the reconstructed grid. 
+
+These five versions demonstrate different approaches to achieving the same transformation, leveraging various DSL functions for object manipulation, grid modification, and component analysis. 

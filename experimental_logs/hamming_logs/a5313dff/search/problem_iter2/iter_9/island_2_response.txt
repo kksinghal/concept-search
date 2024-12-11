@@ -1,0 +1,149 @@
+## Transformation Analysis:
+
+The transformation focuses on objects made of the digit '2' and fills in specific background ('0') cells adjacent to these objects with the digit '1'. 
+
+* **Horizontal Fill:** A background cell is filled if it's horizontally sandwiched between '2's. 
+* **Rightward Expansion:** The fill expands rightwards from the leftmost '2' of the object, stopping at the object's right boundary or an existing non-background cell.
+
+**Let's visualize this with Input_1's transformation:**
+
+**Input_1:**
+```
+1 1 1 2 0 0 0 0
+1 2 1 2 0 0 0 0
+1 1 1 2 0 0 0 0
+2 2 2 2 2 2 2 0
+0 0 2 0 0 0 2 0
+0 0 2 0 2 0 2 0
+0 0 2 0 0 0 2 0
+0 0 2 2 2 2 2 0 
+```
+
+**Output_1:**
+```
+0 0 0 2 0 0 0 0
+0 2 0 2 0 0 0 0
+0 0 0 2 0 0 0 0
+2 2 2 2 2 2 2 0
+0 0 2 1 1 1 2 0
+0 0 2 1 2 1 2 0
+0 0 2 1 1 1 2 0
+0 0 2 2 2 2 2 0 
+```
+
+Notice how the '1's fill the space to the right of the leftmost '2' in each row where the object exists.
+
+## Program to be Generated:
+
+Here are five distinct program versions achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = colorfilter(objects(I, True, False, False), 2)
+  filled = frozenset()
+  for obj in objs:
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      for j in range(leftmost(obj) + 1, rightmost(obj) + 1):
+        if index(I, (i, j)) == 0 and index(I, (i, j - 1)) == 2:
+          filled = insert((1, (i, j)), filled)
+  return paint(I, filled)
+```
+
+**Explanation:**
+
+1. **Identify '2' Objects:** `colorfilter(objects(I, True, False, False), 2)` extracts objects formed by the digit '2'.
+2. **Iterate within Objects:** It iterates over each object's bounding box.
+3. **Horizontal Fill Condition:** `index(I, (i, j)) == 0 and index(I, (i, j - 1)) == 2` checks if a cell is background ('0') and has a '2' to its left.
+4. **Fill and Return:** If the condition is met, the cell is marked for filling with '1'. Finally, `paint` applies the changes to the input grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def fill_condition(loc):
+    i, j = loc
+    return index(I, (i, j)) == 0 and j > 0 and index(I, (i, j - 1)) == 2
+  
+  target_indices = mfilter(asindices(I), fill_condition)
+  return paint(I, recolor(1, target_indices))
+```
+
+**Explanation:**
+
+1. **Fill Condition Function:**  `fill_condition(loc)` encapsulates the check for a background cell with a '2' to its left.
+2. **Identify Fill Locations:** `mfilter(asindices(I), fill_condition)` finds all indices satisfying the fill condition.
+3. **Recolor and Return:** `recolor(1, target_indices)` creates an object with '1' at the target indices. `paint` then applies this object to the grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def right_fill(grid, start_j, i):
+    j = start_j + 1
+    while j < len(grid[0]) and grid[i][j] == 0:
+      grid = fill(grid, 1, {(i, j)})
+      j += 1
+    return grid
+
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 2:
+        I = right_fill(I, j, i)
+        break 
+  return I
+```
+
+**Explanation:**
+
+1. **Right Fill Function:** `right_fill` takes a grid, a starting column index, and a row index. It fills rightward from the start until a non-background cell is encountered.
+2. **Iterate and Fill:** The program iterates through the grid. Upon finding a '2', it calls `right_fill` to perform the rightward fill on that row, starting from the '2's position.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def should_fill(grid, loc):
+    i, j = loc
+    return j > 0 and grid[i][j] == 0 and grid[i][j - 1] == 2
+
+  new_grid = [[I[i][j] for j in range(len(I[0]))] for i in range(len(I))] 
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if should_fill(I, (i, j)):
+        new_grid[i][j] = 1
+  return tuple(tuple(row) for row in new_grid)
+```
+
+**Explanation:**
+
+1. **Should Fill Function:**  `should_fill` checks the fill condition for a given location.
+2. **Create New Grid:**  A new grid is created as a copy of the input.
+3. **Iterate and Apply Fill:** The program iterates over the grid, and if `should_fill` returns True for a location, it modifies the new grid accordingly.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def right_fill_indices(obj):
+    return frozenset(
+      (i, j)
+      for i in range(uppermost(obj), lowermost(obj) + 1)
+      for j in range(leftmost(obj) + 1, rightmost(obj) + 1)
+      if index(I, (i, j)) == 0 and index(I, (i, j - 1)) == 2
+    )
+
+  objs = colorfilter(objects(I, True, False, False), 2)
+  fill_indices = merge(apply(right_fill_indices, objs))
+  return paint(I, recolor(1, fill_indices))
+```
+
+**Explanation:**
+
+1. **Right Fill Indices Function:** `right_fill_indices` determines the indices to be filled within a given object.
+2. **Find Objects and Fill Indices:**  It first identifies the '2' objects. Then, `apply(right_fill_indices, objs)` maps the `right_fill_indices` function to each object to find fill indices within them. These indices are then merged.
+3. **Paint and Return:** Finally, it recolors the merged indices with '1' and paints them onto the input grid.
+
+
+Each of these program versions provides a distinct way of implementing the desired transformation using the given DSL. They showcase different strategies for identifying the target cells and applying the fill operation.

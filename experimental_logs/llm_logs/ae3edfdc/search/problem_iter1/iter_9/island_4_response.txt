@@ -1,0 +1,116 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves the following steps:
+
+1. **Object Expansion:** Each object (a group of connected non-zero digits) is expanded horizontally by adding a column of the same digit to its left and right.
+2. **Vertical Centering:** Each expanded object is then moved vertically so that its center aligns with the center row of the grid.
+
+**Example:**
+
+Consider the object '3 2 3' in Input_0.  
+
+- **Expansion:** It expands to '3 3 2 3 3'. 
+- **Centering:**  The expanded object's center is aligned with the center row of the grid.
+
+This process is applied to all non-zero objects in the input grid. 
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the described transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(grid):
+  def process_object(obj):
+    color = color(obj) # Extract the color of the object
+    expanded_obj = combine(obj, shift(obj, (0,-1))) # Expand right
+    expanded_obj = combine(expanded_obj, shift(obj, (0,1))) # Expand left
+    return shift(expanded_obj, (0, (width(grid) - width(expanded_obj)) // 2))  # Center horizontally
+  return paint(canvas(0, shape(grid)), merge(apply(process_object, fgpartition(grid)))) # Apply to all objects
+```
+
+**Explanation:**
+
+1. `process_object(obj)`: This function takes an object as input and performs expansion and centering.
+    - `color(obj)` extracts the object's color.
+    - `combine` and `shift` are used to expand the object to the left and right.
+    - `shift` is used again to center the expanded object horizontally based on its width and the grid's width. 
+2. `fgpartition(grid)`: This partitions the input grid into objects excluding the background (most common color).
+3. `apply(process_object, fgpartition(grid))`: This applies the `process_object` function to each object in the partitioned grid.
+4. `merge(...)`: This merges the transformed objects.
+5. `paint(canvas(0, shape(grid)), ...)`: This paints the merged objects onto a blank canvas of the same size as the input grid.
+
+**Program Version 2:**
+
+```python
+def program_v2(grid):
+  def process_row(row_index, grid):
+    row_objects = sfilter(fgpartition(grid), lambda obj: uppermost(obj) <= row_index <= lowermost(obj))
+    expanded_objects = apply(lambda obj: recolor(color(obj), backdrop(obj)), row_objects)
+    return paint(canvas(0, (1, width(grid))), merge(expanded_objects))
+  return vconcat(*tuple(process_row(i, grid) for i in range(height(grid)))) 
+```
+
+**Explanation:**
+
+1. `process_row(row_index, grid)`: This function processes each row of the grid.
+    - `sfilter` selects objects that intersect with the current row.
+    - `recolor` and `backdrop` are used to expand each object horizontally to cover the entire row.
+    - These expanded objects are then painted onto a single-row canvas and returned.
+2. `vconcat(*tuple(process_row(i, grid) for i in range(height(grid))))`: This iterates through all rows, applies `process_row`, and vertically concatenates the resulting single-row grids to reconstruct the final output grid.
+
+**Program Version 3:**
+
+```python
+def program_v3(grid):
+  def process_object(obj):
+    c = color(obj)
+    w = width(grid)
+    shifted_obj = shift(obj, (0, (w - width(obj)) // 2 - leftmost(obj)))
+    return frozenset({(c, (i, j - 1)) for c, (i, j) in shifted_obj} |
+                   {(c, (i, j)) for c, (i, j) in shifted_obj} |
+                   {(c, (i, j + 1)) for c, (i, j) in shifted_obj})
+  return paint(canvas(0, shape(grid)), merge(apply(process_object, fgpartition(grid))))
+```
+
+**Explanation:**
+
+- Similar to Version 1, this version processes each object individually.
+- Instead of using `combine`, it explicitly creates the expanded object by shifting the original object and adding the left and right columns.
+- This version highlights a different way to achieve horizontal centering using `leftmost` and the grid width.
+
+**Program Version 4:**
+
+```python
+def program_v4(grid):
+  def expand_horizontal(obj):
+    return recolor(color(obj), frozenset((i, j) for i in range(uppermost(obj), lowermost(obj) + 1) 
+                                        for j in range(leftmost(obj) - 1, rightmost(obj) + 2)))
+  return paint(canvas(0, shape(grid)), merge(apply(expand_horizontal, fgpartition(grid))))
+```
+
+**Explanation:**
+
+- This version directly calculates the indices for the expanded object using `uppermost`, `lowermost`, `leftmost`, and `rightmost`.
+- It then uses `recolor` to create the expanded object with the correct color.
+- This approach is more concise than explicitly shifting and combining objects.
+
+**Program Version 5:**
+
+```python
+def program_v5(grid):
+  def process_column(col_index, grid):
+    col_objects = sfilter(fgpartition(grid), lambda obj: leftmost(obj) <= col_index <= rightmost(obj))
+    expanded_objects = apply(lambda obj: recolor(color(obj), backdrop(obj)), col_objects)
+    return paint(canvas(0, (height(grid), 1)), merge(expanded_objects))
+  return hconcat(*tuple(process_column(j, grid) for j in range(width(grid))))
+```
+
+**Explanation:**
+
+- This version takes inspiration from Version 2 but processes the grid column-wise.
+- `process_column` expands objects vertically to span the entire column and then paints them onto a single-column canvas.
+- `hconcat` combines the resulting single-column grids to form the final output grid.
+
+These five versions demonstrate distinct approaches to achieve the same transformation, showcasing the flexibility and expressiveness of the provided DSL. Each version leverages different function combinations and logic, offering diverse solutions to the problem. 

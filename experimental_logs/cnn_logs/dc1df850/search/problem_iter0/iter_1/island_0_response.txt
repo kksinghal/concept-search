@@ -1,0 +1,169 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:**  Fill all cells to the right of any non-zero digit with 1s, stopping at the grid border or another non-zero digit. Additionally, fill the cell directly above the leftmost non-zero digit of each row with a 1.
+
+**Input_1 to Output_1:**  Fill all cells to the right of any non-zero digit with 1s, stopping at the grid border or another non-zero digit.  Additionally, fill the cells directly below the rightmost non-zero digit of each column with 1s, stopping at the grid border or another non-zero digit. 
+
+**Input_2 to Output_2:**  Fill all cells to the right of any non-zero digit with 1s, stopping at the grid border or another non-zero digit. Additionally, fill the cells directly above the leftmost non-zero digit of each row with 1s, stopping at the grid border.
+
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+    def right_fill_line(start, grid):
+        line = shoot(start, RIGHT)
+        return fill(grid, 1, difference(line, toindices(objects(grid, T, F, T))))
+
+    def top_fill(grid):
+        for j in range(width(grid)):
+            for i in range(height(grid)):
+                if index(grid, (i, j)) != 0:
+                    if i > 0:
+                        grid = fill(grid, 1, {(i - 1, j)})
+                    break
+        return grid
+
+    filled = I
+    for i, row in enumerate(I):
+        for j, val in enumerate(row):
+            if val != 0:
+                filled = right_fill_line((i, j), filled)
+    filled = top_fill(filled)
+    return filled
+```
+
+**Explanation:**
+
+1. **`right_fill_line` Function:** This function is similar to the one in Program_A, filling cells to the right of a starting point until it hits another object or the grid border.
+2. **`top_fill` Function:** This function iterates through each column and fills the cell above the first non-zero cell encountered with a 1. 
+3. **Main Loop:**  Iterates through the grid, calling `right_fill_line` for each non-zero cell.
+4. **Final Step:** Calls `top_fill` to handle the additional filling requirement.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+    def right_fill_obj(obj, grid):
+        for i in range(uppermost(obj), lowermost(obj) + 1):
+            start = (i, rightmost(obj) + 1)
+            line = shoot(start, RIGHT)
+            grid = fill(grid, 1, difference(line, toindices(objects(grid, T, F, T))))
+        return grid
+
+    def top_fill_obj(obj, grid):
+        if uppermost(obj) > 0:
+            grid = fill(grid, 1, {(uppermost(obj) - 1, leftmost(obj))})
+        return grid
+
+    filled = I
+    for obj in objects(I, T, F, T):
+        filled = right_fill_obj(obj, filled)
+        filled = top_fill_obj(obj, filled)
+    return filled
+```
+
+**Explanation:**
+
+1. **`right_fill_obj` Function:** Takes an object and the grid, fills cells to the right of the object similar to Version 1.
+2. **`top_fill_obj` Function:** Takes an object and the grid, fills the cell above the top-left corner of the object with a 1.
+3. **Main Loop:** Iterates through each object in the grid, applying both `right_fill_obj` and `top_fill_obj`.
+
+**Version 3 (Using `papply`):**
+
+```python
+def program_v3(I):
+    def fill_condition(v1, v2):
+        return 1 if v1 != 0 else v2
+
+    def top_fill(grid):
+        shifted = shift(grid, (1, 0)) + ((0,) * len(grid[0]),)  # Add a dummy row on top
+        return tuple(tuple(fill_condition(a, b) for a, b in zip(r1, r2)) for r1, r2 in zip(grid, shifted))[
+               :-1]  # Remove dummy row
+
+    filled = I
+    for i in range(height(I)):
+        filled = tuple(
+            tuple(b if j < i else fill_condition(a, b) for j, (a, b) in enumerate(zip(r, filled[i]))) for r in
+            (filled[i],) * height(I))
+    filled = top_fill(filled)
+    return filled
+```
+
+**Explanation:**
+
+1. **`fill_condition` Function:**  Returns 1 if the first value is non-zero, otherwise returns the second value.
+2. **`top_fill` Function:** Similar to Version 1 & 2, fills cells above non-zero values.
+3. **Main Loop:** Utilizes `papply` indirectly to achieve the right fill by comparing rows within the grid.
+4. **Final Step:** Calls `top_fill` for additional filling. 
+
+**Version 4 (Column-wise Approach):**
+
+```python
+def program_v4(I):
+    def down_fill_line(start, grid):
+        line = shoot(start, DOWN)
+        return fill(grid, 1, difference(line, toindices(objects(grid, T, F, T))))
+
+    def right_fill(grid):
+        for i, row in enumerate(grid):
+            for j, val in enumerate(row):
+                if val != 0:
+                    grid = right_fill_line((i, j), grid)
+                    break
+        return grid
+
+    filled = dmirror(I)
+    for j in range(width(filled)):
+        for i in range(height(filled)):
+            if index(filled, (i, j)) != 0:
+                filled = down_fill_line((i, j), filled)
+                break
+    filled = right_fill(filled)
+    return dmirror(filled)
+```
+
+**Explanation:**
+
+1. **`down_fill_line` Function:** Similar to `right_fill_line`, but fills downwards.
+2. **`right_fill` Function:**  Iterates through rows and calls `right_fill_line` for the first non-zero element.
+3. **Main Logic:**  Mirrors the grid diagonally, effectively switching rows and columns.
+4. **Filling:**  Performs the down-fill operation (equivalent to right-fill in the original orientation) and then uses `right_fill` to complete the pattern.
+5. **Final Step:**  Mirrors the grid back to its original orientation.
+
+
+**Version 5 (Object-Based with `map`):** 
+
+```python
+def program_v5(I):
+    def process_object(obj, grid):
+        grid = right_fill_obj(obj, grid)
+        grid = top_fill_obj(obj, grid)
+        return grid
+
+    def right_fill_obj(obj, grid):
+        for i in range(uppermost(obj), lowermost(obj) + 1):
+            start = (i, rightmost(obj) + 1)
+            grid = fill(grid, 1, difference(shoot(start, RIGHT), toindices(objects(grid, T, F, T))))
+        return grid
+
+    def top_fill_obj(obj, grid):
+        if uppermost(obj) > 0:
+            grid = fill(grid, 1, {(uppermost(obj) - 1, leftmost(obj))})
+        return grid
+
+    return last(
+        rapply(lambda grid: tuple(map(lambda obj: process_object(obj, grid), objects(grid, T, F, T))),
+               (I,) * len(objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **`process_object` Function:** Applies both `right_fill_obj` and `top_fill_obj` to a single object.
+2. **`right_fill_obj` & `top_fill_obj` Functions:** Same as in Version 2.
+3. **Main Logic:**  Uses `map` to apply `process_object` to each object in the grid, effectively processing all objects concurrently. The `rapply` function is used to apply a sequence of functions to the initial grid.
+
+
+These are just a few examples, and there are many other possible programs that could achieve the same results. The key is to break down the transformation into smaller, more manageable steps, and then use the DSL functions to implement those steps. 

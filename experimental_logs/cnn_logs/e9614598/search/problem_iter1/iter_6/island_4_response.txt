@@ -1,0 +1,128 @@
+## Transformation Analysis:
+
+The transformation involves drawing a cross centered on each object in the input grid. The cross extends horizontally to the edges of the object and vertically one cell above and below the object's center of mass. The color of the cross matches the color of the object.
+
+**Input 0:**
+
+- Two single-cell objects with value '1'.
+- Crosses are drawn centered on each '1', extending horizontally across the object and one cell above and below the center.
+
+**Input 1:**
+
+- Two single-cell objects with value '1'.
+- Crosses are drawn centered on each '1', extending horizontally across the object (which is just the single cell) and one cell above and below the center.
+
+## Program to be Generated:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  objs = fgpartition(I)
+  def make_cross(obj):
+    c_i, c_j = centerofmass(obj)
+    return recolor(color(obj), frozenset(
+        {(c_i, j) for j in range(leftmost(obj), rightmost(obj) + 1)} |
+        {(c_i - 1, c_j), (c_i + 1, c_j)}))
+  crosses = mapply(lambda obj: toobject(make_cross(obj), I), objs)
+  O = paint(I, merge(crosses))
+  return O
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:**  Identifies the objects in the input grid `I`.
+2. **`make_cross(obj)`:**  
+   - Calculates the `centerofmass(obj)`.
+   - Generates the indices for the cross:
+     - Horizontal line extending from the leftmost to the rightmost point of the object at the center row.
+     - Two points, one above and one below the center point, forming the vertical line.
+   - `recolor` assigns the object's color to the cross indices.
+3. **`mapply(...)`:** Applies `make_cross` to each object and uses `toobject` to convert the cross indices back into objects.
+4. **`paint(I, merge(crosses))`:**  Draws the merged crosses onto the original grid `I`.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  objs = fgpartition(I)
+  def draw_cross(obj):
+    c_i, c_j = centerofmass(obj)
+    u_i = uppermost(obj)
+    l_j = leftmost(obj)
+    return paint(
+        canvas(0, shape(I)),
+        recolor(color(obj), frozenset(
+            {(c_i, j) for j in range(l_j, l_j + width(obj))} |
+            {(c_i - 1, c_j), (c_i + 1, c_j)})))
+  O = merge(apply(draw_cross, objs))
+  return O
+```
+
+**Explanation:**
+
+- Similar to version 1, but draws each cross on a blank canvas using `canvas(0, shape(I))` and then merges all the canvases.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  def cross_at(loc, value):
+    i, j = loc
+    h, w = height(I), width(I)
+    return recolor(value, frozenset(
+        {(i, k) for k in range(w)} |
+        {(i - 1, j), (i + 1, j)}))
+  crosses = frozenset(cross_at((i, j), I[i][j]) 
+                      for i in range(len(I)) for j in range(len(I[0])) 
+                      if I[i][j] != mostcolor(I))
+  O = paint(I, merge(crosses))
+  return O
+```
+
+**Explanation:**
+
+- Iterates through each cell in the grid.
+- If the cell is not background, it draws a cross centered on that cell using `cross_at`.
+- Finally, merges and paints all the crosses onto the original grid.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  O = I
+  for obj in fgpartition(I):
+    c_i, c_j = centerofmass(obj)
+    O = fill(O, color(obj), frozenset(
+        {(c_i, j) for j in range(leftmost(obj), rightmost(obj) + 1)}))
+    O = fill(O, color(obj), frozenset({(c_i - 1, c_j), (c_i + 1, c_j)}))
+  return O
+```
+
+**Explanation:**
+
+- Iterates through each object.
+- Calculates the cross indices directly and uses `fill` to draw the horizontal and vertical lines of the cross onto the grid `O`.
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  def draw_line(start, end, value):
+    return recolor(value, connect(start, end))
+  crosses = frozenset()
+  for obj in fgpartition(I):
+    c_i, c_j = centerofmass(obj)
+    crosses = crosses | {draw_line((c_i, leftmost(obj)), (c_i, rightmost(obj)), color(obj))}
+    crosses = crosses | {draw_line((c_i - 1, c_j), (c_i + 1, c_j), color(obj))}
+  O = paint(I, merge(crosses))
+  return O
+```
+
+**Explanation:**
+
+- Defines a helper function `draw_line` to draw a line between two points.
+- For each object, calls `draw_line` twice: once for the horizontal and once for the vertical line of the cross.
+- Merges the lines and paints them onto the original grid. 
+
+These five program versions provide different approaches to achieving the same transformation. They utilize various DSL functions and demonstrate different coding styles, showcasing the flexibility and expressiveness of the provided DSL. 

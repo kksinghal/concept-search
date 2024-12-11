@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected areas) of a specific target value and then expanding them by one layer outwards, filling the surrounding cells with a new value. However, the expansion only occurs if the surrounding cells contain a specific background value.
+
+**Input_0:**
+
+- **Target Value:** 2
+- **Background Value:** 0
+- **New Value:** 1
+
+The '2' at the top left corner expands right and down, filling the surrounding '0's with '1's. Similarly, the '2' in the middle expands in all directions except diagonally. The '6' remains unchanged as it's not the target value.
+
+**Input_1:**
+
+- **Target Value:** 2
+- **Background Value:** 0
+- **New Value:** 1
+
+Both '2's expand outwards, filling the adjacent '0's with '1's. The other digits remain untouched.
+
+**Input_2:**
+
+- **Target Value:** 2
+- **Background Value:** 0
+- **New Value:** 1
+
+The '2' expands in all four directions, filling the surrounding '0's with '1's.
+
+## Program Version 1:
+
+```python
+def Program_to_be_generated(I):
+    target_value = 2
+    bg_value = 0
+    new_value = 1
+
+    target_indices = ofcolor(I, target_value)
+    expansion_indices = mfilter(
+        mapply(dneighbors, target_indices), 
+        lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0]) and index(I, loc) == bg_value
+    )
+    return fill(I, new_value, expansion_indices)
+```
+
+**Explanation:**
+
+1. **Identify Target Indices:** `ofcolor(I, target_value)` finds all indices in the grid `I` with the `target_value`.
+2. **Find Expansion Candidates:** `mapply(dneighbors, target_indices)` applies the `dneighbors` function to each target index, generating a set of potential expansion candidates.
+3. **Filter Valid Expansion Indices:** `mfilter` keeps only those candidate locations that satisfy two conditions:
+    - They are within the grid bounds.
+    - The value at the candidate location in the original grid is equal to the `bg_value`.
+4. **Fill the Grid:** `fill(I, new_value, expansion_indices)` fills the original grid `I` with the `new_value` at all the valid `expansion_indices`.
+
+## Program Version 2:
+
+```python
+def Program_to_be_generated(I):
+    target_value = 2
+    bg_value = 0
+    new_value = 1
+
+    def expand_object(grid, loc):
+        if 0 <= loc[0] < len(grid) and 0 <= loc[1] < len(grid[0]) and grid[loc[0]][loc[1]] == bg_value:
+            grid = fill(grid, new_value, {loc})
+            for neighbor in dneighbors(loc):
+                grid = expand_object(grid, neighbor)
+        return grid
+
+    for i, j in ofcolor(I, target_value):
+        I = expand_object(I, (i, j))
+    return I
+```
+
+**Explanation:**
+
+1. **Define `expand_object` Function:** This recursive function takes the grid and a location as input. 
+    - It checks if the location is within the grid bounds and if the value at that location is the `bg_value`. 
+    - If both conditions are true, it fills that location with the `new_value` and recursively calls itself for each of its direct neighbors.
+2. **Iterate through Target Indices:** The main function iterates through each index containing the `target_value` using `ofcolor(I, target_value)`.
+3. **Expand from Each Target:** For each target index, it calls the `expand_object` function, effectively expanding the object outwards from that point.
+
+## Program Version 3:
+
+```python
+def Program_to_be_generated(I):
+  target = 2
+  bg = 0
+  new = 1
+
+  objs = objects(I, True, False, False)
+  target_obj = extract(objs, lambda obj: color(obj) == target)
+  expansion_area = delta(toindices(target_obj))
+  expansion_indices = sfilter(expansion_area, lambda loc: index(I, loc) == bg)
+  return fill(I, new, expansion_indices)
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, True, False, False)` identifies all connected objects in the grid `I`. `True` indicates univalued objects, and `False` disables diagonal connections and background exclusion.
+2. **Extract Target Object:** `extract(objs, lambda obj: color(obj) == target)` finds the object with the target color.
+3. **Get Expansion Area:** `delta(toindices(target_obj))` retrieves indices within the bounding box of the target object but not part of it.
+4. **Filter Valid Expansion Indices:** `sfilter(expansion_area, lambda loc: index(I, loc) == bg)` keeps only those expansion area indices that have the background value in the original grid.
+5. **Fill the Grid:** `fill(I, new, expansion_indices)` fills the original grid `I` with the new value at valid expansion indices.
+
+## Program Version 4:
+
+```python
+def Program_to_be_generated(I):
+  target = 2
+  bg = 0
+  new = 1
+
+  expanded = canvas(bg, shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == target or (0 <= i - 1 < len(I) and I[i - 1][j] == target) or (0 <= j - 1 < len(row) and I[i][j - 1] == target) or (i + 1 < len(I) and I[i + 1][j] == target) or (j + 1 < len(row) and I[i][j + 1] == target):
+        expanded = fill(expanded, new, {(i, j)})
+      else:
+        expanded = fill(expanded, val, {(i, j)})
+  return expanded
+```
+
+**Explanation:**
+
+1. **Create Empty Canvas:** `expanded = canvas(bg, shape(I))` generates a new grid of the same size as the input, filled with the background value.
+2. **Iterate and Expand:** The code iterates through each cell in the original grid.
+    - If a cell contains the target value or has a neighbor (up, down, left, right) with the target value, it's filled with the new value in the `expanded` grid.
+    - Otherwise, the cell's original value is copied to the `expanded` grid.
+
+## Program Version 5:
+
+```python
+def Program_to_be_generated(I):
+    target = 2
+    bg = 0
+    new = 1
+    
+    expansion_mask = canvas(False, shape(I))
+    for i, j in asindices(I):
+        if index(I, (i, j)) == target:
+            for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                ni, nj = i + di, j + dj
+                if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and index(I, (ni, nj)) == bg:
+                    expansion_mask = fill(expansion_mask, True, {(ni, nj)})
+    
+    return tuple(tuple(new if expansion_mask[i][j] else I[i][j] for j in range(len(I[0]))) for i in range(len(I)))
+```
+
+**Explanation:**
+
+1. **Create Expansion Mask:** An `expansion_mask` of the same size as the input is initialized with `False` values.
+2. **Mark Expansion Cells:** The code iterates through each cell in the input grid. If a cell contains the target value, it checks its four neighbors (up, down, left, right). If a neighbor has the background value and is within the grid bounds, its corresponding cell in `expansion_mask` is set to `True`.
+3. **Apply Expansion:** The code iterates through both the `expansion_mask` and the original grid. If a cell in the `expansion_mask` is `True`, the corresponding cell in the output grid is filled with the `new` value. Otherwise, the original grid value is retained.
+
+
+Each program version utilizes different strategies and combinations of DSL functions to achieve the desired outcome, ensuring diverse solutions.

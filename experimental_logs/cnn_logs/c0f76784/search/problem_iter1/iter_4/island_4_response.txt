@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation focuses on objects with the color '5' and applies the following rules:
+
+* **Outline:** All objects of color '5' have their outer boundary (delta) replaced with '8'.
+* **Inner Fill:**  The inner area of each object is filled with '7' based on its shape:
+    * **Vertical Objects:** (Height > Width) A single vertical line of '7' is drawn in the middle column, excluding the top and bottom rows.
+    * **Horizontal Objects:** (Width >= Height) A single horizontal line of '7' is drawn in the middle row, excluding the leftmost and rightmost columns.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5))))  # Outline with '8'
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      O = fill(O, 7, connect(add(ulcorner(obj), (1, width(obj) // 2)),
+                              add(lrcorner(obj), (-1, width(obj) // 2)))) 
+    else:
+      O = fill(O, 7, connect(add(ulcorner(obj), (height(obj) // 2, 1)),
+                              add(lrcorner(obj), (height(obj) // 2, -1))))
+  return O
+```
+
+**Explanation:**
+
+1. **Outline:**  This part is identical to Program A and B, outlining the objects with '8'.
+2. **Inner Fill:** Instead of cropping, this version uses `connect` to draw a single line of '7s'. 
+    * For vertical objects, it connects the points just below the upper-left corner and above the lower-right corner, both lying on the middle column.
+    * For horizontal objects, it connects points to the right of the upper-left corner and left of the lower-right corner, both on the middle row.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 5:
+        if any(I[k][l] != 5 for k, l in neighbors((i, j)) if 0 <= k < len(I) and 0 <= l < len(I[0])):
+          O = fill(O, 8, ((i, j),))
+        elif (i > 0 and I[i - 1][j] == 5 and ((j > 0 and I[i][j - 1] == 5) or (j < len(I[0]) - 1 and I[i][j + 1] == 5))):
+          O = fill(O, 7, ((i, j),))
+        elif (j > 0 and I[i][j - 1] == 5 and ((i > 0 and I[i - 1][j] == 5) or (i < len(I) - 1 and I[i + 1][j] == 5))):
+          O = fill(O, 7, ((i, j),))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterative Approach:**  This version iterates through each cell of the grid.
+2. **Outline:** If a cell is '5' and has a non-'5' neighbor (within bounds), it's an outline cell, so it's filled with '8'.
+3. **Inner Fill:** If a cell is '5' and doesn't trigger the outline condition, it checks for two patterns:
+    * If it's part of a vertical segment (connected '5' above and below, or below and below-left/right), fill with '7'.
+    * If it's part of a horizontal segment (connected '5' left and right, or left and above/below-left), fill with '7'. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5))))
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      O = fill(O, 7, crop(O, add(ulcorner(obj), (1, width(obj) // 2)), (height(obj)-2, 1)))
+    else:
+      O = fill(O, 7, crop(O, add(ulcorner(obj), (height(obj) // 2, 1)), (1, width(obj)-2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Outline:** Similar to previous versions, outlines the objects with '8'.
+2. **Inner Fill:**  Uses `crop` to target the correct area for filling with '7'.
+    * **Vertical:** Crops a 1-cell wide column in the middle, excluding the top and bottom rows.
+    * **Horizontal:** Crops a 1-cell high row in the middle, excluding the leftmost and rightmost columns.
+
+
+## Program Version 4:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(lambda obj: frozenset((i, j) for i, j in delta(obj) if index(I, (i, j)) != 5), colorfilter(objs, 5))))
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      middle_col = leftmost(obj) + width(obj) // 2
+      O = fill(O, 7, frozenset((i, middle_col) for i in range(uppermost(obj) + 1, lowermost(obj))))
+    else:
+      middle_row = uppermost(obj) + height(obj) // 2
+      O = fill(O, 7, frozenset((middle_row, j) for j in range(leftmost(obj) + 1, rightmost(obj))))
+  return O
+```
+
+**Explanation:**
+
+1. **Outline:** This version uses a lambda function within `apply` to ensure only non-'5' cells in the delta are replaced with '8'.
+2. **Inner Fill:**  Directly calculates the indices of the middle row/column and uses `fill` with a `frozenset` of those indices. 
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  O = I
+  for obj in objs:
+    if color(obj) == 5:
+      O = fill(O, 8, delta(obj))
+      center_i, center_j = center(toindices(obj))
+      if height(obj) > width(obj):
+        O = fill(O, 7, frozenset((i, center_j) for i in range(center_i - height(obj) // 2 + 1, center_i + height(obj) // 2)))
+      else:
+        O = fill(O, 7, frozenset((center_i, j) for j in range(center_j - width(obj) // 2 + 1, center_j + width(obj) // 2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Outline:**  Similar to Program A, outlines objects of color '5' with '8'.
+2. **Center-based Fill:**  Calculates the center of each object and uses it to determine the range of indices to fill with '7'.
+    * **Vertical:**  Fills a vertical line from one row below the top half to one row above the bottom half, centered on the middle column.
+    * **Horizontal:**  Fills a horizontal line from one column right of the left half to one column left of the right half, centered on the middle row. 

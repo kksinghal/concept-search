@@ -1,0 +1,118 @@
+## Transformation Analysis:
+
+The transformation involves identifying single-cell objects and then recoloring larger objects adjacent to them. The recoloring uses the color of the single-cell object. However, unlike Program A, the recoloring only happens if the single-cell object is the *only* object of its color adjacent to the larger object.
+
+**Example:**
+
+In Input_0, the single-cell '2' at (0,2) recolors the '6' object because it's the only '2' adjacent to it.  However, the single-cell '8' at (0,9) doesn't recolor the '6' object because there's another '8' object adjacent to it.
+
+## Code Generation:
+
+Here are five distinct versions of the program to achieve the desired transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  for paint in sfilter(objs, lambda o: size(o) == 1):
+    paint_color = color(paint)
+    for target in sfilter(objs, lambda o: size(o) > 1 and manhattan(paint, o) == 1):
+      adjacent_colors = set(color(obj) for obj in sfilter(objs, lambda o: size(o) == 1 and manhattan(o, target) == 1))
+      if len(adjacent_colors) == 1 and paint_color in adjacent_colors:
+        I = paint(cover(I, target), recolor(paint_color, toindices(target)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify objects:**  Similar to Program A, we identify all objects (excluding background) and iterate through single-cell "paint" objects.
+2. **Check for unique adjacent color:** For each larger object adjacent to the "paint", we collect the colors of *all* adjacent single-cell objects. If there's only one unique color, and it matches the current "paint" color, we proceed with recoloring. 
+3. **Recolor:**  If the condition is met, we recolor the larger object with the "paint" color.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  for target in sfilter(objs, lambda o: size(o) > 1):
+    neighbors = mfilter(lambda loc: index(I, loc) != mostcolor(I) and size(objects(crop(I, loc, (1,1)), False, False, True)) == 1, dneighbors(centerofmass(target)) & asindices(I))
+    if len(set(index(I, loc) for loc in neighbors)) == 1:
+      I = paint(cover(I, target), recolor(index(I, next(iter(neighbors))), toindices(target)))
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate over large objects:**  This version iterates directly over larger objects.
+2. **Find valid neighbors:**  For each large object, it identifies directly adjacent cells that are not background and are single-cell objects.
+3. **Unique color check:** It checks if all valid neighbors have the same color.
+4. **Recolor:** If the colors are unique, it recolors the large object using the color of any valid neighbor.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != mostcolor(I) and size(objects(crop(I,(i,j),(1,1)),False,False,True).pop()) == 1:
+        for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]:
+          ni, nj = i+di, j+dj
+          if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] != mostcolor(I) and size(objects(crop(I,(ni,nj),(1,1)),False,False,True).pop()) > 1:
+            I = paint(cover(I, objects(crop(I,(ni,nj),(1,1)),False,False,True).pop()), recolor(I[i][j], toindices(objects(crop(I,(ni,nj),(1,1)),False,False,True).pop())))
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate over cells:** This version iterates over each cell in the grid.
+2. **Find single-cell objects:** It identifies cells belonging to single-cell objects.
+3. **Check adjacent cells:** For each such cell, it checks its four direct neighbors.
+4. **Recolor:** If a neighbor belongs to a larger object, it recolors the larger object with the color of the single-cell object.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  for target in objs:
+    if size(target) > 1:
+      adjacent_singles = sfilter(objs, lambda o: size(o) == 1 and manhattan(o, target) == 1)
+      if len(adjacent_singles) > 0:
+        dominant_color = mostcommon(tuple(color(obj) for obj in adjacent_singles))
+        if colorcount(adjacent_singles, dominant_color) == 1:
+          I = paint(cover(I, target), recolor(dominant_color, toindices(target)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify objects:**  Identify all objects (excluding background).
+2. **Iterate over larger objects:**  Iterate through objects larger than one cell.
+3. **Find adjacent single-cell objects:**  For each larger object, identify directly adjacent single-cell objects.
+4. **Determine dominant color:** Determine the most frequent color among the adjacent single-cell objects.
+5. **Check for uniqueness:**  If the dominant color appears only once among the adjacent single-cell objects, recolor the larger object with that dominant color.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+  for paint in sfilter(objs, lambda o: size(o) == 1):
+    target_objs = sfilter(objs, lambda o: size(o) > 1 and manhattan(paint, o) == 1)
+    for target in target_objs:
+      if all(manhattan(paint, other) > 1 for other in sfilter(objs, lambda o: color(o) == color(paint) and o != paint)):
+        I = paint(cover(I, target), recolor(color(paint), toindices(target)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify objects:**  Identify all objects (excluding background).
+2. **Iterate over single-cell objects:** Iterate through single-cell objects.
+3. **Find adjacent larger objects:**  For each single-cell object, find adjacent larger objects.
+4. **Check for other objects of the same color:** For each adjacent larger object, check if there are any other objects of the same color as the single-cell object that are also adjacent to the larger object.
+5. **Recolor:** If there are no other objects of the same color adjacent to the larger object, recolor the larger object with the color of the single-cell object.
+
+
+These five versions use distinct logic and DSL function combinations to achieve the same transformation, showcasing the flexibility and expressiveness of the DSL. 

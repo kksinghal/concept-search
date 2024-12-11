@@ -1,0 +1,172 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as **"gravity-based object alignment"**:
+
+* **Identify objects:** Each unique digit in the grid represents a distinct object.
+* **Gravity direction:**  For each object, determine the closest object with a different digit. The direction from the object's center to the closest object's center defines the gravity direction (horizontal or vertical).
+* **Object alignment:** Shift the object along the determined gravity direction until it touches the closest object or the grid boundary.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1**
+
+```python
+def solve_gravity_align(I):
+  objs = objects(I, True, False, True)
+  for obj in objs:
+    closest_obj = None
+    closest_dist = float('inf')
+    for other_obj in objs:
+      if color(obj) != color(other_obj):
+        dist = manhattan(obj, other_obj)
+        if dist < closest_dist:
+          closest_dist = dist
+          closest_obj = other_obj
+    if closest_obj is not None:
+      # Determine gravity direction
+      if hmatching(obj, closest_obj):
+        direction = (0, -1) if leftmost(obj) > leftmost(closest_obj) else (0, 1)
+      else:
+        direction = (-1, 0) if uppermost(obj) > uppermost(closest_obj) else (1, 0)
+      # Move object in the gravity direction until it hits something
+      while not bordering(obj, I) and manhattan(obj, closest_obj) > 1:
+        next_pos = shift(obj, direction)
+        if len(intersection(toindices(next_pos), toindices(objs - {obj}))) == 0:
+          obj = next_pos
+        else:
+          break
+      I = paint(cover(I, obj), obj)
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** The code starts by identifying all objects in the grid using `objects(I, True, False, True)`.
+2. **Find Closest Object:** For each object `obj`, it iterates through all other objects (`other_obj`) to find the closest one (`closest_obj`) with a different color.
+3. **Determine Gravity Direction:**  It then determines the direction (`direction`) for the object to move based on the relative position of the closest object.
+4. **Move and Paint:** The code iteratively moves (`shift`) the object in the gravity direction until it is adjacent to another object or reaches the border of the grid. After each move, it updates the grid (`paint` and `cover`) to reflect the new object position.
+
+**Program Version 2**
+
+```python
+def solve_gravity_align(I):
+  objs = objects(I, True, False, True)
+  moved = set()
+  for obj in objs:
+    if obj in moved:
+      continue
+    closest_obj = None
+    closest_dist = float('inf')
+    for other_obj in objs:
+      if color(obj) != color(other_obj):
+        dist = manhattan(obj, other_obj)
+        if dist < closest_dist:
+          closest_dist = dist
+          closest_obj = other_obj
+    if closest_obj is not None:
+      # Determine the direction to gravitate
+      delta = gravitate(obj, closest_obj)
+      obj = shift(obj, delta)
+      moved.add(obj)
+      I = paint(cover(I, obj), obj)
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to version 1, it begins by identifying objects in the grid.
+2. **Track Moved Objects:** It introduces a `moved` set to keep track of objects that have already been moved to prevent redundant processing.
+3. **Find Closest Object:** Identical to version 1, it finds the closest object of a different color for each object.
+4. **Calculate Gravity Vector:** It utilizes the `gravitate` function to directly calculate the direction vector (`delta`) required to move the object towards the closest one.
+5. **Move, Track, and Paint:** The object is then shifted by `delta`, marked as moved in the `moved` set, and the grid is updated using `paint` and `cover`.
+
+
+**Program Version 3**
+
+```python
+def solve_gravity_align(I):
+  objs = objects(I, True, False, True)
+  for obj in objs:
+    target_pos = None
+    min_dist = float('inf')
+    for i in range(len(I)):
+      for j in range(len(I[0])):
+        if index(I, (i, j)) != color(obj) and any(manhattan((i, j), (k, l)) == 1 for k, l in toindices(obj)):
+          dist = sum(abs(i - k) + abs(j - l) for k, l in toindices(obj))
+          if dist < min_dist:
+            min_dist = dist
+            target_pos = (i, j)
+    if target_pos is not None:
+      # Determine the direction to gravitate
+      delta = gravitate(obj, {target_pos})
+      obj = shift(obj, delta)
+      I = paint(cover(I, obj), obj)
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as versions 1 and 2, it identifies objects in the grid.
+2. **Find Target Position:**  Instead of finding the closest object, this version iterates through each cell in the grid to find a target position (`target_pos`) for each object. The target position is a cell adjacent to the object and containing a different color.
+3. **Calculate Gravity Vector:** It then uses the `gravitate` function to calculate the vector (`delta`) to move the object to the target position.
+4. **Move and Paint:** Finally, the object is shifted, and the grid is updated.
+
+
+**Program Version 4**
+
+```python
+def solve_gravity_align(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = objects(I, True, False, True)
+    obj = extract(obj, lambda o: color(o) == color)
+    closest_obj = None
+    closest_dist = float('inf')
+    for other_obj in objects(I, True, False, True):
+      if color(obj) != color(other_obj):
+        dist = manhattan(obj, other_obj)
+        if dist < closest_dist:
+          closest_dist = dist
+          closest_obj = other_obj
+    if closest_obj is not None:
+      # Determine the direction to gravitate
+      gravity_vector = gravitate(obj, closest_obj)
+      I = move(I, obj, gravity_vector)
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate by Color:** This version iterates through each unique color (except the background) in the grid.
+2. **Isolate Object:** For each color, it extracts the corresponding object from the grid.
+3. **Find Closest Object:**  It then finds the closest object with a different color.
+4. **Calculate Gravity Vector and Move:** It calculates the gravity vector using `gravitate` and utilizes the `move` function to shift the object on the grid directly.
+
+
+**Program Version 5**
+
+```python
+def solve_gravity_align(I):
+  objs = objects(I, True, False, True)
+  new_objs = set()
+  for obj in objs:
+    closest_obj = min(((manhattan(obj, other_obj), other_obj) for other_obj in objs if color(obj) != color(other_obj)))[1]
+    # Determine the direction to gravitate
+    gravity_vector = gravitate(obj, closest_obj)
+    new_objs.add(shift(obj, gravity_vector))
+  I = canvas(mostcommon(I), shape(I))
+  for obj in new_objs:
+    I = paint(I, obj)
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Like previous versions, it identifies all objects in the grid.
+2. **Find Closest Object and Calculate Gravity:** It efficiently finds the closest object with a different color using a single line and calculates the gravity vector with `gravitate`.
+3. **Create New Objects:** It creates a new set of objects (`new_objs`) representing the objects shifted to their final positions.
+4. **Redraw on Canvas:** A new blank canvas is created with the same size and background color as the original grid. The shifted objects are then painted onto this new canvas, resulting in the final output.
+
+These five versions provide diverse approaches to solving the "gravity-based object alignment" problem while adhering to the provided DSL. Each version offers a different combination of functions and logic, demonstrating the flexibility and power of the DSL in tackling spatial reasoning tasks.

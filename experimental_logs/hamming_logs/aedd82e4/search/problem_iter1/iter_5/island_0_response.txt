@@ -1,0 +1,118 @@
+## Transformation Analysis:
+
+The transformation in all examples focuses on finding a specific "target cell" within the grid and changing its value to 1. The target cell selection logic is consistent across all examples:
+
+1. **Identify the rightmost object:** The object with a cell having the highest column index (`j` value).
+2. **Resolve ties by selecting the bottommost:** If multiple objects share the same rightmost column, choose the one with the highest row index (`i` value).
+3. **Target the upper-left corner:**  The upper-left corner cell of the chosen object becomes the "target cell".
+
+Let's break down how this applies to each input-output pair:
+
+**Input_0:**
+- Rightmost object: The '0' object at the bottom.
+- Tie-breaker: Not applicable, only one rightmost object.
+- Target cell: The top-left '0' of the bottom object becomes '1'.
+
+**Input_1:**
+- Rightmost object: The '2' object at the bottom-right.
+- Tie-breaker: Not applicable.
+- Target cell: The top-left '0' of the bottom-right object becomes '1'.
+
+**Input_2:**
+- Rightmost object: The '2' object at the bottom-right.
+- Tie-breaker: Not applicable.
+- Target cell: The top-left '2' of the bottom-right object becomes '1'.
+
+**Input_3:**
+- Rightmost object: The '2' object at the bottom-right.
+- Tie-breaker: Not applicable.
+- Target cell: The top-left '0' of the bottom-right object becomes '1'.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)  # Partition into foreground objects (no background)
+  target_obj = argmax(objs, lambda obj: lrcorner(obj)[1]) # Rightmost object
+  target_obj = argmax(sizefilter(objs, len(target_obj)), lambda obj: lrcorner(obj)[0]) # Bottommost if tied
+  target_cell = ulcorner(target_obj)  # Upper-left corner of target object
+  return paint(I, recolor(1, {target_cell})) # Change color and paint back
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Divides the input grid (`I`) into objects, excluding the background.
+2. **`argmax(objs, lambda obj: lrcorner(obj)[1])`:** Finds the object whose lower-right corner has the highest column index (rightmost).
+3. **`argmax(sizefilter(objs, len(target_obj)), lambda obj: lrcorner(obj)[0])`:** If there's a tie in the previous step (multiple objects in the same rightmost column), this line selects the object with the highest row index (bottommost) among those of the same size.
+4. **`ulcorner(target_obj)`:** Extracts the coordinates of the upper-left corner of the chosen target object.
+5. **`paint(I, recolor(1, {target_cell}))`:**  Changes the color of the target cell to '1' and paints this modified object back onto the input grid, producing the output.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+  rightmost_col = max(j for obj in objs for i, j in toindices(obj))
+  target_obj = extract(objs, lambda obj: lrcorner(obj)[1] == rightmost_col and 
+                                          lrcorner(obj)[0] == max(lrcorner(o)[0] for o in objs if lrcorner(o)[1] == rightmost_col))
+  return paint(I, recolor(1, {ulcorner(target_obj)}))
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Same as in Version 1.
+2. **`rightmost_col = max(j for obj in objs for i, j in toindices(obj))`:**  Determines the highest column index among all objects, representing the rightmost column.
+3. **`target_obj = extract(objs, lambda obj: ...)`:** Finds the target object directly by checking if its lower-right corner's column index matches `rightmost_col` and if its row index is the maximum among objects in the same column. 
+4. **`paint(I, recolor(1, {ulcorner(target_obj)}))`:** Same as in Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  target_cell = max((i, j) for i, row in enumerate(I) for j, val in enumerate(row) if val != mostcommon(I))
+  return paint(I, recolor(1, {target_cell}))
+```
+
+**Explanation:**
+
+1. **`target_cell = max((i, j) ...)`:** Directly finds the target cell by iterating through all cells and finding the maximum `(i, j)` coordinates where the cell value is not the background color (assuming the background color is the most common).
+2. **`paint(I, recolor(1, {target_cell}))`:**  Same as in Version 1.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def rightmost_then_bottommost(obj):
+    return (lrcorner(obj)[1], lrcorner(obj)[0]) 
+  objs = fgpartition(I)
+  target_obj = argmax(objs, rightmost_then_bottommost) 
+  return paint(I, recolor(1, {ulcorner(target_obj)}))
+```
+
+**Explanation:**
+
+1. **`def rightmost_then_bottommost(obj): ...`:** Defines a custom function to prioritize sorting by the rightmost column (`lrcorner(obj)[1]`) and then the bottommost row (`lrcorner(obj)[0]`).
+2. **`objs = fgpartition(I)`:** Same as in Version 1.
+3. **`target_obj = argmax(objs, rightmost_then_bottommost)`:** Finds the target object using the custom sorting function, directly selecting the object with the rightmost, bottommost corner.
+4. **`paint(I, recolor(1, {ulcorner(target_obj)}))`:** Same as in Version 1.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  for j in range(len(I[0])-1, -1, -1): # Iterate columns from right to left
+    for i in range(len(I)-1, -1, -1): # Iterate rows from bottom to top
+      if I[i][j] != mostcommon(I):  # If cell is not background
+        return paint(I, recolor(1, {(i, j)})) # Recolor and return
+```
+
+**Explanation:**
+
+1. **`for j in range(len(I[0])-1, -1, -1): ...`:** Iterates through columns from right to left.
+2. **`for i in range(len(I)-1, -1, -1): ...`:** Iterates through rows from bottom to top within each column.
+3. **`if I[i][j] != mostcommon(I): ...`:** Checks if the current cell is not the background color (assuming most common).
+4. **`paint(I, recolor(1, {(i, j)}))`:** If the condition is met, recolors the cell to '1' and returns the modified grid, effectively stopping the loop after finding the first non-background cell from the rightmost column, bottommost row. 

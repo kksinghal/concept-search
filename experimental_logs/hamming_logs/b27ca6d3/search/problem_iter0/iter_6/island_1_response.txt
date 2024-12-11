@@ -1,0 +1,112 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected components of the same digit) within the grid. For each object, the transformation selectively fills in cells adjacent to the object's boundary with the value 3. 
+
+**Specifics:**
+
+* **Connectivity:** Objects are defined by 4-connectivity (up, down, left, right). Diagonal cells are not considered part of the object.
+* **Selective Filling:** Only background (digit 0) cells adjacent to the object are filled with 3.  Existing non-background cells remain unchanged.
+
+**Examples:**
+
+* **Input_0:** The isolated '2' digits have their surrounding cells filled with '3'. The group of '2's at the bottom left forms a single object, and only the background cells directly touching its perimeter are changed to '3'.
+* **Input_1:** Similar to Input_0, each '2' object (including single-cell objects) has its adjacent background cells filled with '3'.
+
+## Code Generation:
+
+Here are five distinct versions of the program using the provided DSL functions:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) # Extract objects, 4-connected, without background
+  for obj in objs:
+    I = fill(I, THREE, delta(toindices(obj))) # Fill the delta (adjacent background) with 3
+  return I
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`:** Extracts objects from the input grid (`I`).  
+    * `T` (True):  Indicates objects should be univalued (all cells same digit)
+    * `F` (False):  Objects are 4-connected, not diagonally.
+    * `T` (True): Exclude the background color when forming objects.
+2. **`for obj in objs:`:** Iterates through each extracted object.
+3. **`delta(toindices(obj))`:**  Calculates the "delta" of the object, which are the indices of cells directly surrounding the object's boundary.
+4. **`fill(I, THREE, ...)`:** Fills the cells at the delta indices with the value `THREE` (3).
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  return paint(I, merge(apply(lambda obj: recolor(THREE, delta(toindices(obj))), objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1.  **`objects(I, T, F, T)`:**  Extracts objects from the grid (same as Version 1).
+2.  **`apply(lambda obj: ..., objects(I, T, F, T))`:** Applies a lambda function to each extracted object.
+    *  The lambda function:  `lambda obj: recolor(THREE, delta(toindices(obj)))`
+        *   `toindices(obj)`: Gets the indices of the object's cells.
+        *   `delta(...)`:  Finds the indices surrounding the object.
+        *   `recolor(THREE, ...)`: Creates a new object with color `THREE` at the delta indices.
+3.  **`merge(...)`:** Merges the recolored objects into a single set of cells.
+4.  **`paint(I, ...)`:** Paints (overwrites) the original grid `I` with the merged, recolored objects.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 0:  # For each background cell
+        for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]: # Check 4-neighbors
+          ni, nj = i + di, j + dj
+          if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 2: # If neighbor is 2
+            I = fill(I, THREE, {(i, j)})  # Fill the current cell with 3
+            break  # Move to the next cell
+  return I 
+```
+
+**Explanation:**
+
+1. **Iterate through grid:** Loops through each cell in the grid.
+2. **Check for background:** If a cell is background (value 0), it checks its 4 neighbors.
+3. **Neighbor condition:** If any neighbor has the value '2', the current background cell is filled with '3'.
+4. **Break loop:** After filling a cell, the inner loop (`for di, dj...`) breaks to avoid unnecessary checks.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  modified = asindices(I) # Get all indices of the grid
+  for obj in objects(I, T, F, T):
+    modified = difference(modified, delta(toindices(obj))) # Remove delta indices from modified
+  return fill(I, THREE, modified) # Fill remaining indices (the delta) with 3
+```
+
+**Explanation:**
+
+1. **`asindices(I)`:** Creates a set of all cell indices in the grid.
+2. **Iterate and Remove:**  For each object, it removes the object's delta indices from the `modified` set. 
+3. **Fill Remaining:**  After processing all objects, the `modified` set will only contain the indices of cells that were part of a delta. These indices are then filled with '3'. 
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  return paint(canvas(0, shape(I)), merge(apply(lambda obj: recolor(THREE, outbox(toindices(obj))), objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`:** Extract objects from the input grid.
+2. **`apply(lambda obj: ..., objects(I, T, F, T))`:** Applies a lambda function to each extracted object.
+   * The lambda function: `lambda obj: recolor(THREE, outbox(toindices(obj)))`
+     *  `toindices(obj)`: Gets the indices of the object's cells.
+     *  `outbox(...)`:  Finds the indices directly surrounding the object's boundary.
+     *  `recolor(THREE, ...)`: Creates a new object with color `THREE` at the outbox indices.
+3.  **`merge(...)`:** Merges the recolored objects into a single set of cells.
+4. **`canvas(0, shape(I))`:** Create a canvas of 0s with the same shape as the input grid.
+5. **`paint(..., ...)`:** Paints the merged, recolored objects onto the canvas of 0s.

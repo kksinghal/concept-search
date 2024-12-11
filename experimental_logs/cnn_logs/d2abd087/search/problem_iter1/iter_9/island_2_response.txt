@@ -1,0 +1,109 @@
+## Transformation Analysis:
+
+The transformation appears to identify objects based on connectivity and then assigns them a color (1 or 2) based on their position relative to the vertical midline of the grid.
+
+* **Input 0:** The larger object is split into two objects, one on each side of the midline. Objects completely to the left are colored 1, those completely to the right are colored 2.
+* **Input 1:** Similar to Input 0, the objects are split by the midline and colored accordingly.
+* **Input 2:** The large object crosses the midline, resulting in a single object that is partially colored 1 (left) and partially colored 2 (right).
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Extract connected components as objects
+  midpoint = width(I) // 2     # Calculate the midpoint of the grid
+  new_objs = frozenset()
+  for obj in objs:
+    left_part = intersection(toindices(obj), asindices(lefthalf(I)))
+    right_part = intersection(toindices(obj), asindices(righthalf(I)))
+    if left_part: 
+      new_objs = insert(recolor(ONE, toobject(left_part, I)), new_objs)
+    if right_part:
+      new_objs = insert(recolor(TWO, toobject(right_part, I)), new_objs)
+  return paint(I, merge(new_objs))
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Identify connected components in the input grid (`objects(I, T, F, T)`) and store them in `objs`.
+2. **Find Midpoint:**  Calculate the vertical midline of the grid (`width(I) // 2`).
+3. **Split and Color:**  Iterate over each object:
+   - Find the portion of the object to the left of the midline (`intersection...lefthalf(I)`).
+   - Find the portion of the object to the right of the midline (`intersection...righthalf(I)`).
+   - If a left or right portion exists, recolor it with 1 or 2 respectively, convert it back to an object (`toobject`), and add it to the `new_objs` set.
+4. **Paint:** Combine all the recolored objects (`merge(new_objs)`) and paint them onto a copy of the input grid (`paint(I, ...)`) to generate the output.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  midpoint = width(I) // 2
+  return paint(I, merge(
+    branch(rightmost(obj) < midpoint, recolor(ONE, obj),
+           branch(leftmost(obj) >= midpoint, recolor(TWO, obj), 
+                  recolor(ONE, obj) if size(intersection(toindices(obj), asindices(lefthalf(I)))) >= size(intersection(toindices(obj), asindices(righthalf(I)))) 
+                  else recolor(TWO, obj)))
+    for obj in objs
+  )) 
+```
+
+**Explanation:**
+
+1. **Extract Objects and Find Midpoint:** Same as Version 1.
+2. **Color Based on Position:** This version uses nested `branch` statements for a more concise approach:
+   - If the object is entirely left of the midline (`rightmost(obj) < midpoint`), color it 1.
+   - Else if the object is entirely right of the midline (`leftmost(obj) >= midpoint`), color it 2.
+   - Otherwise, the object crosses the midline. Determine which side has more cells (`size(intersection...`) and color accordingly.
+3. **Paint:** Same as Version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(I, merge(apply(lambda obj: branch(
+    rightmost(obj) < width(I) // 2, recolor(ONE, obj),
+    branch(leftmost(obj) >= width(I) // 2, recolor(TWO, obj),
+           recolor(ONE, obj) if sum(1 for i, j in toindices(obj) if j < width(I) // 2) >= len(obj) // 2
+           else recolor(TWO, obj))),
+    objects(I, T, F, T)))) 
+```
+
+**Explanation:**
+
+This version achieves the same logic as Version 2 but with a more compact syntax by combining `apply`, `lambda`, and nested `branch` statements. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  midpoint = width(I) // 2
+  return paint(I, merge(recolor(branch(
+    rightmost(obj) < midpoint, ONE,
+    branch(leftmost(obj) >= midpoint, TWO,
+           ONE if len([1 for i, j in toindices(obj) if j < midpoint]) >= len(obj) // 2 else TWO)), obj) for obj in objs))
+```
+
+**Explanation:**
+
+This version simplifies the code by moving the `recolor` function outside the nested `branch` statements, making it slightly more readable.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  mid = width(I) // 2
+  return paint(I,  merge({recolor(1 if all(j < mid for _, j in toindices(o)) else 2 if all(j >= mid for _, j in toindices(o)) else 1 if sum(j < mid for _, j in toindices(o)) >= len(toindices(o)) // 2 else 2, o) for o in objects(I, T, F, T)}))
+```
+
+**Explanation:**
+
+This version compresses the entire logic into a single line using Python's set comprehension and conditional expressions. It iterates over the objects, uses conditions to determine the appropriate color, and then uses `recolor` to create the final object for merging and painting.
+
+These five versions demonstrate distinct approaches to achieve the same transformation, utilizing various DSL functions and programming constructs. 

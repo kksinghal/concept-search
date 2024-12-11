@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation appears to involve identifying an object that is not touching the border of the grid and then performing one of the following actions:
+
+* **Duplicating a row/column:** If the object has an empty row/column adjacent to it, duplicate the object's top row downwards or the rightmost column leftwards.
+* **Replacing a row/column:** If the object's rightmost column is adjacent to an empty column, replace the rightmost column with the background color.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve the desired transformation:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  obj = extract(objects(I, False, False, True), lambda o: not bordering(o, I))
+  if not obj: return I
+  bg = mostcolor(I)
+  ul = ulcorner(obj)
+  h, w = shape(obj)
+  if h > 1 and index(I, add(ul, (1, 0))) == bg:
+    I = paint(I, recolor(color(obj), shift(crop(obj, (0, 0), (1, w)), (1, 0))))
+  elif w > 1 and index(I, add(ul, (0, w - 1))) == bg:
+    I = paint(I, recolor(bg, crop(obj, (0, w - 1), (h, 1))))
+  elif h > 1 and index(I, add(ul, (h - 1, 0))) == bg:
+    I = paint(I, recolor(color(obj), shift(crop(obj, (h - 1, 0), (1, w)), (-1, 0))))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify the object:** Find the object not touching the border using `objects` and `bordering`.
+2. **Check for conditions and apply transformations:**
+    * If the top neighbor is background, duplicate the top row downwards.
+    * If the right neighbor is background, replace the rightmost column with background.
+    * If the bottom neighbor is background, duplicate the bottom row upwards.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  obj = next((o for o in objects(I, False, False, True) if not bordering(o, I)), None)
+  if not obj: return I
+  bg = mostcommon(sum(I, ()))
+  h, w = shape(obj)
+  ul_i, ul_j = ulcorner(obj)
+  if h > 1 and index(I, (ul_i + 1, ul_j)) == bg:
+    I = paint(I, recolor(color(obj), {(color(obj), (ul_i + 1, j)) for j in range(ul_j, ul_j + w)}))
+  elif w > 1 and index(I, (ul_i, ul_j + w)) == bg:
+    I = paint(I, recolor(bg, {(bg, (i, ul_j + w - 1)) for i in range(ul_i, ul_i + h)}))
+  elif h > 1 and index(I, (ul_i + h, ul_j)) == bg:
+    I = paint(I, recolor(color(obj), {(color(obj), (ul_i + h - 1, j)) for j in range(ul_j, ul_j + w)}))
+  return I
+```
+
+**Explanation:**
+
+* Uses `next` for object extraction.
+* Calculates background color using `mostcommon`.
+* Directly constructs and paints the modified rows/columns.
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  for obj in objects(I, False, False, True):
+    if bordering(obj, I): continue
+    bg = mostcolor(I)
+    ul = ulcorner(obj)
+    h, w = shape(obj)
+    if h > 1 and index(I, add(ul, (1, 0))) == bg:
+      return paint(I, recolor(color(obj), shift(crop(obj, (0, 0), (1, w)), (1, 0))))
+    if w > 1 and index(I, add(ul, (0, w - 1))) == bg:
+      return paint(I, recolor(bg, crop(obj, (0, w - 1), (h, 1))))
+    if h > 1 and index(I, add(ul, (h - 1, 0))) == bg:
+      return paint(I, recolor(color(obj), shift(crop(obj, (h - 1, 0), (1, w)), (-1, 0))))
+  return I
+```
+
+**Explanation:**
+
+* Iterates through all objects and applies the transformation to the first matching object.
+* Returns immediately after applying a transformation.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  objs = sfilter(objects(I, False, False, True), lambda o: not bordering(o, I))
+  if not objs: return I
+  obj = first(objs)
+  bg = mostcolor(I)
+  ul = ulcorner(obj)
+  h, w = shape(obj)
+  conditions = [
+    (h > 1 and index(I, add(ul, (1, 0))) == bg, lambda: paint(I, recolor(color(obj), shift(crop(obj, (0, 0), (1, w)), (1, 0))))),
+    (w > 1 and index(I, add(ul, (0, w - 1))) == bg, lambda: paint(I, recolor(bg, crop(obj, (0, w - 1), (h, 1))))),
+    (h > 1 and index(I, add(ul, (h - 1, 0))) == bg, lambda: paint(I, recolor(color(obj), shift(crop(obj, (h - 1, 0), (1, w)), (-1, 0))))),
+  ]
+  return next((f() for cond, f in conditions if cond), I)
+```
+
+**Explanation:**
+
+* Uses `sfilter` for object filtering.
+* Stores conditions and their corresponding transformations in a list.
+* Applies the first matching transformation using `next`.
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  non_bordering_objs = set(filter(lambda o: not bordering(o, I), objects(I, False, False, True)))
+  if not non_bordering_objs: return I
+  obj = next(iter(non_bordering_objs))
+  h, w = shape(obj)
+  bg = max(set(sum(I, ())), key=sum(I, ()).count)
+  top_row = {(color(obj), (uppermost(obj) + 1, j)) for j in range(leftmost(obj), leftmost(obj) + w)}
+  right_col = {(bg, (i, rightmost(obj))) for i in range(uppermost(obj), uppermost(obj) + h)}
+  bottom_row = {(color(obj), (lowermost(obj) - 1, j)) for j in range(leftmost(obj), leftmost(obj) + w)}
+  
+  if h > 1 and all(index(I, loc) == bg for loc in toindices(top_row)):
+    I = paint(I, top_row)
+  elif w > 1 and all(index(I, loc) == bg for loc in toindices(right_col)):
+    I = paint(I, right_col)
+  elif h > 1 and all(index(I, loc) == bg for loc in toindices(bottom_row)):
+    I = paint(I, bottom_row)
+  return I
+```
+
+**Explanation:**
+
+* Uses set comprehension for object filtering.
+* Pre-computes modified rows and columns.
+* Uses `all` to check for background color in neighboring cells.
+* Applies the transformation based on the first matching condition.
+
+These five versions of the program demonstrate different ways to achieve the desired transformation using the provided DSL. Each version offers a unique approach in terms of object identification, condition checking, and transformation application. You can choose the version that best suits your needs or use them as inspiration to create even more variations.

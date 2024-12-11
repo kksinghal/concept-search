@@ -1,0 +1,167 @@
+## Transformation Analysis:
+
+The transformation seems to be rearranging the non-background objects in the grid based on their size and position. Let's analyze each input-output pair:
+
+**Pair 0:**
+
+* Input: A diagonal line of '5's with a '3' in the middle.
+* Output: The '3' is moved to the top row, pushing the '5' to its right.
+
+**Pair 1:**
+
+* Input: Two '6's are at the bottom left, a '4' at the bottom right.
+* Output: The '6's are moved to the top right, the '4' stays in the same relative position.
+
+**Pair 2:**
+
+* Input: Two '8's at the top, two '2's below them, a '1' at the bottom right.
+* Output:  The '8's are moved to the top right, the '2's are moved below them, and the '1' stays in the same relative position.
+
+**Overall Logic:**
+
+The transformation appears to prioritize moving larger objects first. It then places them as far to the top and right as possible, maintaining their relative horizontal positioning within the object. Smaller objects are then placed in a similar manner, filling in the remaining space.
+
+
+## Code Generation:
+
+Here are five distinct program versions utilizing the DSL to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcommon(I), shape(I))  # Create a blank canvas
+  objs = sorted(fgpartition(I), key=lambda x: (-size(x), ulcorner(x))) 
+  # Sort objects by size (largest first), then top-left corner position
+  row, col = 0, 0  # Start at top-left corner
+  for obj in objs:
+    while True:
+      if col + width(obj) <= width(O) and all(index(O, (row, c)) == mostcommon(I) for c in range(col, col + width(obj))):
+        # Place the object if enough space and the space is empty
+        O = paint(O, shift(obj, (row, col)))
+        col += width(obj)  # Move the column pointer
+        break
+      else:
+        col += 1  # Move to the next column
+        if col >= width(O):  # Move to the next row if no space in current row
+          col = 0
+          row += 1
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize Canvas:** Creates an empty canvas filled with the background color.
+2. **Sort Objects:** Sorts the objects based on size (largest first) and then their original top-left corner position.
+3. **Iterate and Place:** Iterates through the sorted objects and places them on the canvas from left to right, top to bottom. 
+4. **Check for Space:** Before placing, it checks for sufficient space in the current row. If there's not enough space, it moves to the next row.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcommon(I), shape(I))  # Create a blank canvas
+  for obj in sorted(fgpartition(I), key=lambda x: (-size(x), -rightmost(x))):
+    # Sort objects by size (largest first) then rightmost column
+    for i in range(height(O)):  # Iterate through rows from top
+      for j in range(width(O) - width(obj), -1, -1):  # Iterate through columns from right
+        if all(index(O, (r, c)) == mostcommon(I) for r, c in toindices(shift(obj, (i, j))) if 0 <= r < height(O) and 0 <= c < width(O)):
+          # Place if the object's location on the canvas would be empty
+          O = paint(O, shift(obj, (i, j)))
+          break
+      else:  # Move to the next row if no space in current row
+        continue
+      break  # Break from the outer loop if object is placed
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize & Sort:** Similar to version 1, but sorts by rightmost column instead.
+2. **Iterate from Top Right:** Iterates through rows from top to bottom, but within each row, it goes from right to left for placing objects.
+3. **Placement Check:** Before placing, it checks if the object's intended location on the canvas is empty.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcommon(I), shape(I)) # Blank canvas
+  objs = sorted(fgpartition(I), key=lambda x: (-size(x), -lrcorner(x)[0], -lrcorner(x)[1]))
+  # Sort by size, then bottom-right corner prioritizing bottom then right
+  for obj in objs:
+    for i in range(height(O) - height(obj) + 1):  # Iterate through possible rows
+      for j in range(width(O) - width(obj) + 1):  # Iterate through possible columns
+        if all(index(O, (r, c)) == mostcommon(I) for r, c in toindices(shift(obj, (i, j))) if 0 <= r < height(O) and 0 <= c < width(O)):
+          # Place if space is free on the canvas
+          O = paint(O, shift(obj, (i, j)))
+          break  # Break inner loop if placed
+      else:  # Continue to next row if not placed in current row
+        continue
+      break  # Break outer loop if placed
+  return O
+```
+
+**Explanation:**
+
+1. **Prioritize Bottom Right:**  This version prioritizes placing objects towards the bottom-right by first sorting based on the bottom-right corner position.
+2. **Iterate and Place:** Similar to previous versions, it iterates through potential positions and places the object if the space is free.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcommon(I), shape(I))  # Create a blank canvas
+  objs = sorted(fgpartition(I), key = lambda x: (-size(toindices(x)), -uppermost(x))) 
+  # Sort by size, then uppermost row
+  row, col = 0, width(O) - 1  # Start at top-right corner
+  for obj in objs:
+    while True:
+      if col - width(obj) >= -1 and all(index(O, (row, c)) == mostcommon(I) for c in range(col - width(obj) + 1, col + 1)):
+        # Place the object if enough space and the space is empty
+        O = paint(O, shift(obj, (row, col - width(obj) + 1)))
+        col -= width(obj)  # Update the column pointer
+        break
+      else:
+        col -= 1  # Move to the previous column
+        if col < 0:  # Move to the next row if no space in the current row
+          col = width(O) - 1
+          row += 1
+  return O
+```
+
+**Explanation:**
+
+1. **Start from Top Right:**  This version starts placing objects from the top right corner of the canvas.
+2. **Check & Place:**  Similar to other versions, it checks for sufficient empty space before placing an object.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    O = canvas(mostcommon(I), shape(I)) # Initialize with the most common color
+    objects_sorted = sorted(fgpartition(I), key=lambda obj: -size(obj)) # Sort objects by size, largest first
+    row = 0
+    col = 0
+    for obj in objects_sorted:
+        while col + width(obj) <= width(I):  # Try to fit in the current row
+            if all(index(O, (row, col + j)) == mostcommon(I) for j in range(width(obj))):  # Check for empty space
+                O = paint(O, shift(obj, (row, col)))  # Paint the object
+                col += width(obj)  # Update the column for the next object
+                break  # Move to the next object
+            col += 1  # Try the next column
+        else:  # Move to the next row if the object didn't fit
+            col = 0
+            row += 1
+    return O
+```
+
+**Explanation:**
+
+1. **Initialize & Sort:** Creates a canvas with the background color and sorts objects by size, largest first.
+2. **Iterate & Place:** It iterates through rows and attempts to place each object as far to the left as possible in the current row.
+3. **Row Change:** If an object doesn't fit in the current row, it moves to the next row.
+
+
+These are just a few examples of how you could approach this problem using the provided DSL. Each version uses a slightly different approach, highlighting the flexibility and expressiveness of this DSL for solving spatial reasoning tasks. 

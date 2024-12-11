@@ -1,0 +1,151 @@
+## Transformation Analysis:
+
+The transformation in both examples seems to follow these rules:
+
+1. **Identify target cells:** Find all cells directly adjacent (up, down, left, right) to cells containing the value "2".
+2. **Conditional Fill:**  Change the value of the identified target cells to "3" only if the original value was "0".
+
+**Example Breakdown:**
+
+* **Input_0:** The top "2" at (2,2) results in the adjacent cells (1,2), (2,1) and (2,3) changing to "3". Similarly, the "2" at (4,14) results in (3,14) becoming "3".  Other "2" values are either on the edge or not surrounded by "0" values, so no other changes occur.
+
+* **Input_1:** This example follows the same logic with multiple instances of adjacent "2" and "0" values resulting in the placement of "3" values.
+
+
+## Code Improvement:
+
+Here are five distinct program versions leveraging the DSL functions to achieve the described transformation.
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+    # Find all "2" locations
+    target_locations = ofcolor(I, TWO) 
+    # Generate adjacent locations for each "2" location
+    adjacent_locations = mapply(dneighbors, target_locations) 
+    # Combine all adjacent locations into a single set
+    all_adjacent_locations = merge(adjacent_locations) 
+    # Filter for locations that are "0" in the input grid
+    zero_locations = ofcolor(I, ZERO)
+    fill_locations = intersection(all_adjacent_locations, zero_locations)
+    # Fill the selected locations with "3"
+    O = fill(I, THREE, fill_locations) 
+    return O
+```
+
+**Explanation:**
+
+1. **Identify target cells:** `ofcolor(I, TWO)` finds all indices of cells with value "2".
+2. **Generate adjacent locations:** `mapply(dneighbors, target_locations)` applies `dneighbors` to each "2" location, finding directly adjacent cells. 
+3. **Combine and filter:** `merge` combines adjacent locations, and `intersection` with `zero_locations` selects only those containing "0" in the input.
+4. **Conditional Fill:** `fill(I, THREE, fill_locations)` changes the value of selected cells to "3".
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  # Create a shifted grid in all four directions
+  shifted_up = shift(asobject(I), UP)
+  shifted_down = shift(asobject(I), DOWN)
+  shifted_left = shift(asobject(I), LEFT)
+  shifted_right = shift(asobject(I), RIGHT)
+  
+  # Find overlaps where a "2" exists in the shifted grids and a "0" in the original
+  overlap_up = intersection(toindices(shifted_up), ofcolor(I, ZERO))
+  overlap_down = intersection(toindices(shifted_down), ofcolor(I, ZERO))
+  overlap_left = intersection(toindices(shifted_left), ofcolor(I, ZERO))
+  overlap_right = intersection(toindices(shifted_right), ofcolor(I, ZERO))
+
+  # Combine all overlaps
+  all_overlaps = merge([overlap_up, overlap_down, overlap_left, overlap_right])
+  
+  # Fill the overlapped locations with "3"
+  O = fill(I, THREE, all_overlaps)
+  return O 
+```
+
+**Explanation:**
+
+1. **Shifting:** Creates four copies of the input grid, each shifted one cell in a cardinal direction.
+2. **Finding Overlaps:** Identifies cells where a "2" from a shifted grid overlaps with a "0" in the original grid.
+3. **Combining Overlaps:** Merges all identified overlaps.
+4. **Filling:** Fills the overlapped locations with the value "3".
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+    # Iterate over each cell in the grid
+    h, w = len(I), len(I[0])
+    O = [[I[i][j] for j in range(w)] for i in range(h)]
+    for i in range(h):
+        for j in range(w):
+            # Check if the current cell is "0"
+            if I[i][j] == ZERO:
+                # Check for adjacent "2" values
+                if any(I[k][l] == TWO for k, l in dneighbors((i, j)) if 0 <= k < h and 0 <= l < w):
+                    O[i][j] = THREE
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Iteration:** Iterates through each cell in the grid.
+2. **Checking for "0":** If a cell contains "0", it proceeds to check for adjacent "2" values.
+3. **Checking Adjacent Cells:** Utilizes `dneighbors` to get adjacent cells and checks if they contain "2".
+4. **Conditional Filling:** If an adjacent "2" is found, the cell value is changed to "3".
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+    # Find locations of '2'
+    twos = ofcolor(I, TWO)
+    # Create a set to store locations to be filled with '3'
+    fill_locs = set()
+    # Iterate over locations of '2'
+    for loc in twos:
+        # Get directly adjacent neighbors
+        for neighbor in dneighbors(loc):
+            # Check if the neighbor is within the grid bounds
+            if 0 <= neighbor[0] < len(I) and 0 <= neighbor[1] < len(I[0]):
+                # Check if the neighbor is '0'
+                if index(I, neighbor) == ZERO:
+                    fill_locs.add(neighbor)
+    # Fill the identified locations with '3'
+    O = fill(I, THREE, frozenset(fill_locs))
+    return O
+```
+
+**Explanation:**
+
+1. **Locate "2"s:** Identifies the locations of all cells with the value "2".
+2. **Iterate and Check Neighbors:** Iterates through each "2" location, finding its direct neighbors using `dneighbors`.
+3. **Boundary Check:**  Ensures each neighbor is within the grid's boundaries.
+4. **Conditional Fill:** If a neighbor cell contains "0", its location is marked for filling.
+5. **Final Fill:**  Fills all the marked locations with the value "3". 
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  # Apply a lambda function to each cell
+  O = apply(
+      lambda cell: (THREE if any(index(I, n) == TWO for n in dneighbors(cell[1]) 
+                              if 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0])) 
+                    else cell[0], cell[1]),
+      asobject(I)
+  )
+  # Convert the object back to a grid
+  return paint(canvas(ZERO, shape(I)), O)
+```
+
+**Explanation:**
+
+1. **Lambda Function:**  Defines a lambda function to process each cell in the grid.
+2. **Cell Processing:** For each cell, it checks if any of its direct neighbors (using `dneighbors`) contain the value "2", but only if those neighbors are within the grid boundaries. If a neighboring "2" is found, the cell's value is changed to "3"; otherwise, it remains unchanged.
+3. **Applying the Lambda:** Applies this lambda function to every cell in the grid using `apply`.
+4. **Grid Reconstruction:** Finally, it uses `paint` to reconstruct the grid from the modified cell data.
+
+These five program versions showcase different approaches to achieving the same outcome, demonstrating the flexibility of the DSL in expressing solutions. 

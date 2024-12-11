@@ -1,0 +1,96 @@
+## Transformation Analysis:
+
+The transformation aims to isolate distinct objects in the input grid and shift them to the left edge, maintaining their vertical positioning. The background color (most frequent color) is maintained, and objects retain their shape and color composition.
+
+**Example Breakdowns:**
+
+* **Input_0:** The central object (color '1' and '2') is shifted leftwards, eliminating the empty space on the left. 
+* **Input_1:** Similar to Input_0, the object comprised of '1' and '2' is moved to the left edge.
+* **Input_2:**  Two distinct objects are identified: the larger one composed of '1' and '2', and a smaller one solely of '1'. Both are moved to the left, preserving their relative vertical positions.
+
+## Program Versions & Explanations:
+
+Here are five distinct program versions using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  shifted_objs = frozenset(shift(obj, (-leftmost(obj),0)) for obj in objs)
+  return paint(canvas(mostcolor(I), shape(I)), merge(shifted_objs)) 
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objects(I, T, T, T)` extracts all distinct objects from the input grid (`I`).
+2. **Calculate Shift:**  For each object (`obj`) in `objs`, `(-leftmost(obj),0)` determines the shift amount to bring it to the left edge.
+3. **Shift Objects:**  `shift(obj, (-leftmost(obj),0))` moves each object leftward.
+4. **Create Background:** `canvas(mostcolor(I), shape(I))` generates a blank canvas of the input's size filled with the background color.
+5. **Paint Objects:** `paint(canvas(...), merge(shifted_objs))` paints the shifted objects onto the background canvas, creating the output grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  return paint(
+      replace(I, mostcolor(I), -1), 
+      merge(apply(lambda obj: shift(obj, (-leftmost(toindices(obj)), 0)), objects(I, T, T, T)))
+  )
+```
+
+**Explanation:**
+
+1. **Mark Background:** `replace(I, mostcolor(I), -1)` temporarily marks the background with a distinct value (-1).
+2. **Identify Objects:** `objects(I, T, T, T)` finds objects, now excluding the marked background.
+3. **Shift Objects:** Similar to Version 1, objects are shifted leftward.
+4. **Paint and Restore:**  `paint` overlays shifted objects onto the marked grid. Since the background is marked, the `paint` function will only change the marked cells, effectively restoring the background color in the process.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  return cellwise(
+      I, 
+      paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda obj: shift(obj, (-leftmost(toindices(obj)), 0)), objects(I, T, T, T)))),
+      mostcolor(I)
+  )
+```
+
+**Explanation:**
+
+1. **Create Target Grid:** Steps 1-4 from Version 2 are used to create a target grid where objects are shifted left.
+2. **Cellwise Comparison:** `cellwise(I, target_grid, mostcolor(I))` compares the input (`I`) with the `target_grid`. If cells match, the input value is kept; otherwise, the background color is used. This effectively overwrites the empty spaces in the input with the background color, achieving the desired transformation.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  painted = paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda obj: shift(obj, (-leftmost(toindices(obj)), 0)), objects(I, T, T, T))))
+  return tuple(tuple(painted[i][j] if painted[i][j] != mostcolor(I) else I[i][j] for j in range(width(I))) for i in range(height(I)))
+```
+
+**Explanation:**
+
+1. **Generate Shifted Grid:** Steps 1-4 from Version 1 are used to generate a grid with objects shifted leftward (`painted`).
+2. **Iterate and Replace:** The code iterates through each cell of `painted` and `I`. If a cell in `painted` contains a non-background color, it's kept. Otherwise, the corresponding cell's value from the input grid (`I`) is used, ensuring the background is maintained.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = sorted(objects(I, T, T, T), key=lambda obj: leftmost(obj))
+  result = canvas(mostcolor(I), shape(I))
+  current_j = 0
+  for obj in objs:
+    result = paint(result, shift(obj, (-leftmost(obj) + current_j, 0)))
+    current_j += width(obj)
+  return result
+```
+
+**Explanation:**
+
+1. **Extract and Sort:**  Objects are extracted and sorted by their leftmost column position.
+2. **Iterative Painting:** The code initializes a background canvas. It then iterates through the sorted objects, painting each one onto the canvas. The `current_j` variable tracks the next available column on the left edge, ensuring objects are placed without overlapping. 
+
+These five versions demonstrate diverse ways to achieve the transformation using the DSL, leveraging object identification, shifting, background management, and cellwise operations. 

@@ -1,0 +1,138 @@
+## Transformation Analysis:
+
+The transformation aims to identify the "outer layer" of each object (connected components of the same digit) and mark specific points on this outer layer with the digit '2'. 
+
+* **Points to mark:** The points to mark seem to be the outermost points of the object in each of the four cardinal directions (up, down, left, right). 
+* **Background Handling:** The background color (most frequent color) is left untouched.
+
+**Example Breakdown:**
+
+* **Input_0:** The '3' object has its outermost points in each direction marked with a '2'.  
+* **Input_1:** Similar to Input_0, the outermost points of each '3' object are marked. Note how points that are "inward" are not marked (see the '3' object at the top).
+
+## Code Improvement:
+
+Here are five distinct versions of the "Program_to_be_generated" in the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def mark_extremes(obj):
+    indices = toindices(obj)
+    top = argmin(indices, lambda ind: ind[0])
+    bottom = argmax(indices, lambda ind: ind[0])
+    left = argmin(indices, lambda ind: ind[1])
+    right = argmax(indices, lambda ind: ind[1])
+    return recolor(2, frozenset({top, bottom, left, right}))
+  extremes = mapply(mark_extremes, objects(I, True, False, False))
+  return paint(I, merge(extremes))
+```
+
+**Explanation:**
+
+1. **`mark_extremes(obj)` Function:**
+   - `indices = toindices(obj)`: Extracts the indices of cells belonging to the object.
+   - `top`, `bottom`, `left`, `right`: Finds the indices of the extreme points in each direction using `argmin` and `argmax`.
+   - `return recolor(2, frozenset({top, bottom, left, right}))`: Creates a new object with '2' at the extreme point indices.
+
+2. **Main Program:**
+   - `extremes = mapply(mark_extremes, objects(I, True, False, False))`: Applies the `mark_extremes` function to all objects in the input grid.
+   - `return paint(I, merge(extremes))`:  Paints the combined extreme points onto the original input grid.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def is_extreme(obj, ind):
+    i, j = ind
+    return any(index(I, (ni, nj)) == mostcolor(I) for ni, nj in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)])
+  
+  def mark_object(obj):
+    extremes = sfilter(toindices(obj), lambda ind: is_extreme(obj, ind))
+    return recolor(2, extremes)
+  
+  marked_objects = mapply(mark_object, objects(I, True, False, False))
+  return paint(I, merge(marked_objects))
+```
+
+**Explanation:**
+
+1. **`is_extreme(obj, ind)` Function:** 
+   - Checks if an index `ind` within an object `obj` is an extreme point by seeing if any of its direct neighbors are the background color.
+
+2. **`mark_object(obj)` Function:**
+   - `extremes = sfilter(toindices(obj), lambda ind: is_extreme(obj, ind))`: Filters the indices of the object to keep only the extreme points.
+   - `return recolor(2, extremes)`: Creates a new object with '2' at the extreme point indices. 
+
+3. **Main Program:**
+   - `marked_objects = mapply(mark_object, objects(I, True, False, False))`: Applies the `mark_object` function to all objects.
+   - `return paint(I, merge(marked_objects))`: Paints the combined marked objects onto the input grid.
+
+**Program Version 3 (Using `dneighbors`)**
+
+```python
+def Program_to_be_generated(I):
+  def mark_outline(obj):
+    return sfilter(toindices(obj), lambda ind: len({index(I, n) for n in dneighbors(ind)}) > 1)
+  outlines = mapply(mark_outline, objects(I, True, False, False))
+  return fill(I, 2, merge(outlines))
+```
+
+**Explanation:**
+
+1. **`mark_outline(obj)` Function:**
+   - `return sfilter(toindices(obj), lambda ind: len({index(I, n) for n in dneighbors(ind)}) > 1)`:  Selects indices within the object where the neighboring cells have more than one unique color (indicating a border).
+
+2. **Main Program:**
+   - `outlines = mapply(mark_outline, objects(I, True, False, False))`: Extracts the outlines of all objects.
+   - `return fill(I, 2, merge(outlines))`: Fills the combined outlines with the digit '2' on the input grid.
+
+
+**Program Version 4 (Iterative Approach):**
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  O = canvas(mostcolor(I), (h, w))
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != mostcolor(I) and any(I[ni][nj] == mostcolor(I) for ni, nj in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]):
+        O = fill(O, 2, {(i, j)})
+  return O 
+```
+
+**Explanation:**
+
+1. **Initialization:**
+   - `h, w = len(I), len(I[0])`: Get the height and width of the input grid.
+   - `O = canvas(mostcolor(I), (h, w))`: Create a new output grid `O` filled with the background color.
+
+2. **Iteration:**
+   - Iterates through each cell of the input grid `I`.
+   - If a cell is not the background color and has at least one neighbor that *is* the background color, it marks that cell in the output grid `O` with '2'.
+
+3. **Return:** Returns the modified output grid `O`. 
+
+**Program Version 5 (Concise Outline Detection):**
+
+```python
+def Program_to_be_generated(I):
+  def outline_object(obj):
+    return sfilter(toindices(obj), lambda ind: any(index(I, add(ind, d)) == mostcolor(I) for d in [UP, DOWN, LEFT, RIGHT]))
+  outlines = mapply(outline_object, objects(I, True, False, False))
+  return fill(I, 2, merge(outlines))
+```
+
+**Explanation:**
+
+1. **`outline_object(obj)` Function:**
+   - Defines a function to find the outline of an object by checking if any of its neighboring cells (in four cardinal directions) are the background color.
+
+2. **Main Program:**
+   - `outlines = mapply(outline_object, objects(I, True, False, False))`: Extracts the outlines of all objects in the input grid.
+   - `return fill(I, 2, merge(outlines))`: Fills the combined outlines with the digit '2' on the input grid. 
+
+
+These are five distinct ways to achieve the desired transformation in the given DSL. Each version uses a different combination of functions and logic, showcasing the flexibility of the DSL and different approaches to solving the same problem. 

@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation involves drawing a horizontal line of '3's centered on the '1' objects, but only extending the line underneath the object.
+
+**Input_0:**
+
+* The single '1' object results in a horizontal line of '3's directly below it.
+
+**Input_1:**
+
+* Each '1' object, despite being vertically aligned, is treated independently.  
+*  Two separate horizontal lines of '3's are drawn, each centered below their respective '1' object.
+
+## Program_to_be_generated:
+
+**Version 1 (Inspired by Program_A's line drawing and Program_B's object isolation):**
+
+```python
+def transform_grid(I):
+  def draw_line(obj):
+    start = (uppermost(obj) + 1, leftmost(obj))
+    end = (uppermost(obj) + 1, rightmost(obj))
+    return connect(start, end)
+
+  objects = objects(I, True, False, False)
+  lines = mapply(draw_line, sfilter(objects, lambda obj: color(obj) == ONE))
+  return underfill(I, THREE, merge(lines))
+```
+
+**Explanation:**
+
+1. **`draw_line(obj)`:**  
+   - Calculates the start and end points for the line of '3's. 
+   - `start`: One row below the uppermost point of the '1' object, at its leftmost position.
+   - `end`: One row below the uppermost point, at its rightmost position.
+   - Uses `connect` to generate the indices for the line between the calculated points.
+2. **`objects(I, True, False, False)`:**  Identifies all objects in the grid (`I`) composed of connected cells with the same value (univalued = True).
+3. **`sfilter(objects, lambda obj: color(obj) == ONE)`:** Filters the objects to select only those consisting of '1's.
+4. **`mapply(draw_line, ...)`:** Applies the `draw_line` function to each '1' object, generating a set of lines.
+5. **`merge(lines)`:** Combines the individual lines into a single set of indices.
+6. **`underfill(I, THREE, ...)`:** Fills the grid `I` with the value '3' at the specified indices, but only where the original value is the background color (likely '0').
+
+**Version 2 (Using object bounding boxes):**
+
+```python
+def transform_grid(I):
+  def draw_line(obj):
+    box_indices = box(obj)
+    bottom_row = {(i, j) for i, j in box_indices if i == lowermost(obj)}
+    return shift(bottom_row, (1, 0)) 
+
+  objects = objects(I, True, False, False)
+  lines = mapply(draw_line, sfilter(objects, lambda obj: color(obj) == ONE))
+  return underfill(I, THREE, merge(lines))
+```
+
+**Explanation:**
+
+1. **`draw_line(obj)`:**
+   - `box_indices = box(obj)`:  Gets the indices forming the bounding box around the '1' object.
+   - `bottom_row = ...`: Filters those indices to keep only the ones on the bottom row of the bounding box.
+   - `shift(bottom_row, (1, 0))`: Shifts the bottom row down by one unit to draw the line below the object. 
+2.  The rest of the code functions similarly to Version 1.
+
+**Version 3 (Directly iterating over object cells):**
+
+```python
+def transform_grid(I):
+  lines = set()
+  for i, row in enumerate(I):
+    for j, value in enumerate(row):
+      if value == ONE:
+        lines.add((i + 1, j))
+  return underfill(I, THREE, frozenset(lines))
+```
+
+**Explanation:**
+
+1.  **Iterative Approach:** This version directly iterates over each cell of the grid.
+2.  **`lines = set()`:** Initializes an empty set to store the indices for the lines.
+3.  **Nested Loops:**  Uses nested loops to examine each cell (`value`) at position (`i`, `j`).
+4.  **`if value == ONE`:** If a cell contains '1', the index of the cell directly below it (`i + 1`, `j`) is added to the `lines` set.
+5.  **`underfill(I, THREE, frozenset(lines))`:**  Fills the grid with '3's at the collected indices using `underfill`. 
+
+**Version 4 (Leveraging 'hperiod' for horizontal line creation):**
+
+```python
+def transform_grid(I):
+  def draw_line(obj):
+    start = (uppermost(obj) + 1, leftmost(obj))
+    return connect(start, add(start, (0, hperiod(obj) - 1)))
+
+  objects = objects(I, True, False, False)
+  lines = mapply(draw_line, sfilter(objects, lambda obj: color(obj) == ONE))
+  return underfill(I, THREE, merge(lines))
+```
+
+**Explanation:**
+
+1. **`draw_line(obj)`:**
+   - `hperiod(obj)`: Calculates the horizontal period of the object, which, for a solid horizontal line, will be its width.
+   - The rest of the logic is similar to Version 1, but uses `hperiod` to determine the line's end point.
+
+**Version 5 (Combining 'ofcolor' and direct manipulation):**
+
+```python
+def transform_grid(I):
+  one_indices = ofcolor(I, ONE)
+  lines = {(i + 1, j) for i, j in one_indices}
+  return underfill(I, THREE, lines)
+```
+
+**Explanation:**
+
+1. **`one_indices = ofcolor(I, ONE)`:** Directly retrieves the indices of all cells containing '1'.
+2. **`lines = {(i + 1, j) for i, j in one_indices}`:**  Efficiently generates the line indices by shifting the row index (`i + 1`) for each '1' index.
+3. **`underfill(I, THREE, lines)`:** Fills the grid with '3's at the calculated line indices. 

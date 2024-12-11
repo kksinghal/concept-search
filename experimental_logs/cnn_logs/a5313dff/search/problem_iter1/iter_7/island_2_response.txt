@@ -1,0 +1,163 @@
+## Transformation Analysis:
+
+The transformation outlines objects within the input grid. The outline is created by identifying cells that are directly adjacent to the object but not part of it. These outline cells must have at least one and at most three directly neighboring cells belonging to the object. 
+
+**Example:**
+
+Consider the object '2' in the following input:
+
+```
+0 0 0 2 0 0 0 0
+0 2 0 2 0 0 0 0
+0 0 0 2 0 0 0 0
+2 2 2 2 2 2 2 0
+0 0 2 0 0 0 2 0
+0 0 2 0 2 0 2 0
+0 0 2 0 0 0 2 0
+0 0 2 2 2 2 2 0 
+```
+
+The outline cells for this object would be:
+
+```
+1 1 1 2 0 0 0 0
+1 2 1 2 1 0 0 0
+1 1 1 2 0 1 0 0
+2 2 2 2 2 2 2 0
+0 0 2 1 1 1 2 0
+0 0 2 1 2 1 2 0
+0 0 2 1 1 1 2 0
+0 0 2 2 2 2 2 0
+```
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  O = I  # Start with the input grid
+  for obj in objects(I, T, T, T):  # Loop through each object
+    outline = mfilter(delta(toindices(obj)), lambda cell: 1 <= size(intersection(dneighbors(cell), toindices(obj))) < 4)
+    O = underfill(O, ONE, outline)  # Fill outline cells with '1'
+  return O 
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` - The output grid starts as a copy of the input.
+2. **Object Iteration:**  `for obj in objects(I, T, T, T):` -  The code iterates through every object in the input grid.
+3. **Outline Calculation:** `outline = mfilter(delta(toindices(obj)), lambda cell: 1 <= size(intersection(dneighbors(cell), toindices(obj))) < 4)` - For each object:
+    *  `delta(toindices(obj))`:  Get the cells surrounding the object.
+    * `lambda cell: 1 <= size(intersection(dneighbors(cell), toindices(obj))) < 4`: Filter cells to keep only those with 1-3 direct neighbors belonging to the object.
+    *  `mfilter`:  Apply the filter and merge the resulting cells into the `outline` set.
+4. **Outline Filling:**  `O = underfill(O, ONE, outline)` - Fills the `outline` cells in the output grid (`O`) with the value '1' without overwriting existing objects.
+5. **Return:**  `return O` - Return the modified output grid. 
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))  # Background canvas
+  for obj in objects(I, T, T, T):
+    O = paint(O, obj)  # Paint the object
+    shifted_objects = apply(lambda d: shift(obj, d), (UP, DOWN, LEFT, RIGHT))
+    outline = set()
+    for s in shifted_objects:
+      outline = outline.union(difference(toindices(s), intersection(toindices(obj), toindices(s))))
+    O = underfill(O, ONE, outline)  # Outline filling
+  return O
+```
+
+**Explanation:**
+
+1. **Canvas Creation:** `O = canvas(mostcolor(I), shape(I))`: Creates an output grid filled with the most common color from the input.
+2. **Object Iteration and Painting:** `for obj in objects(I, T, T, T): ... O = paint(O, obj)` - Iterates through objects and paints them onto the canvas.
+3. **Shifted Objects:**  `shifted_objects = apply(lambda d: shift(obj, d), (UP, DOWN, LEFT, RIGHT))` - Creates four shifted copies of the current object, each moved one unit in a cardinal direction.
+4. **Outline Identification:**
+    * `outline = set()`:  Initializes an empty set to store outline cells.
+    * `for s in shifted_objects:`: Iterates through each shifted object.
+    *  `outline = outline.union(difference(toindices(s), intersection(toindices(obj), toindices(s))))`:  Finds cells that are part of the shifted object but not the original, representing the outline.
+5.  **Outline Filling:**  `O = underfill(O, ONE, outline)` -  Fills the outline cells with '1' without overwriting existing object cells.
+6. **Return:** `return O` - Returns the modified canvas.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  O = I 
+  for obj in objects(I, T, T, T):
+    padded_obj =  toindices(shift(obj, UP)) | toindices(shift(obj, DOWN)) | toindices(shift(obj, LEFT)) | toindices(shift(obj, RIGHT))
+    outline = difference(padded_obj, toindices(obj))  
+    filtered_outline = mfilter(outline, lambda cell: 1 <= size(intersection(neighbors(cell), toindices(obj))) < 4)
+    O = underfill(O, ONE, filtered_outline)
+  return O 
+```
+
+**Explanation:**
+
+1. **Initialization:**  `O = I` -  The output grid is initialized as a copy of the input.
+2. **Object Iteration:**  `for obj in objects(I, T, T, T):` -  Iterates over each object in the input grid.
+3. **Padded Object:** `padded_obj =  toindices(shift(obj, UP)) | toindices(shift(obj, DOWN)) | toindices(shift(obj, LEFT)) | toindices(shift(obj, RIGHT))` - Creates a "padded" version of the object by shifting it one unit in each cardinal direction and combining the indices.
+4. **Outline Extraction:** `outline = difference(padded_obj, toindices(obj))` -  Finds the difference between the padded object and the original, resulting in the outer perimeter cells.
+5. **Outline Filtering:**  `filtered_outline = mfilter(outline, lambda cell: 1 <= size(intersection(neighbors(cell), toindices(obj))) < 4)` -  Filters the outline to keep cells with 1-3 neighbors within the original object.
+6. **Outline Filling:**  `O = underfill(O, ONE, filtered_outline)` -  Fills the filtered outline cells with '1' without overwriting existing object cells.
+7. **Return:** `return O` -  Returns the modified output grid.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = I 
+  for obj in objects(I, T, T, T):
+    outline = set()
+    for cell in toindices(obj):
+      for n in neighbors(cell):
+        if n not in toindices(obj) and index(I, n) == mostcolor(I):  # Check if neighbor is background
+          outline.add(n) 
+    O = underfill(O, ONE, outline)  
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O = I` - Starts with the input grid as the output.
+2. **Object Iteration:** `for obj in objects(I, T, T, T):` - Loops through each object in the input.
+3. **Outline Finding:**
+    *  `outline = set()`:  Initializes an empty set to store outline cells.
+    * `for cell in toindices(obj):` - Iterates over each cell in the object.
+    * `for n in neighbors(cell):` -  Checks all neighbors of the current cell.
+    * `if n not in toindices(obj) and index(I, n) == mostcolor(I):` - If the neighbor is not part of the object and is a background cell, add it to the outline. 
+4. **Outline Filling:** `O = underfill(O, ONE, outline)` - Fills the found outline cells in the output grid with '1'.
+5. **Return:**  `return O` - Returns the final grid.
+
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a blank canvas
+  for obj in objects(I, T, T, T):
+    O = paint(O, obj)  # Paint the object on the canvas
+    for cell in toindices(obj):  
+      for direction in (UP, DOWN, LEFT, RIGHT):
+        neighbor = add(cell, direction)
+        if neighbor not in toindices(obj) and index(I, neighbor) == mostcolor(I):
+          O = fill(O, ONE, {neighbor})  # Fill if it's a background cell
+  return O
+```
+
+**Explanation:**
+
+1. **Canvas Creation:** `O = canvas(mostcolor(I), shape(I))` -  Initializes the output grid as a canvas filled with the background color.
+2. **Object Iteration and Painting:**  `for obj in objects(I, T, T, T): ... O = paint(O, obj)`-  Iterates through objects, painting each onto the canvas.
+3. **Outline Detection and Filling:**
+    * `for cell in toindices(obj):` -  Iterates through each cell of the object.
+    *  `for direction in (UP, DOWN, LEFT, RIGHT):`  - Checks each cardinal direction from the current cell.
+    *  `neighbor = add(cell, direction)` -  Calculates the neighbor's coordinates.
+    *  `if neighbor not in toindices(obj) and index(I, neighbor) == mostcolor(I):`  -  Checks if the neighbor is not part of the object and is a background cell.
+    * `O = fill(O, ONE, {neighbor})`: Fills the identified outline cell with '1'.
+4. **Return:**  `return O` -  Returns the modified output grid. 

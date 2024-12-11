@@ -1,0 +1,130 @@
+## Transformation Analysis:
+
+The transformation recolors objects on the grid based on their size and position relative to the grid's edge. 
+
+* **Objects touching the grid border retain their original color.**
+* **Objects not touching the border are recolored based on size:**
+    * The smallest non-bordering object is recolored to 1.
+    * The second smallest non-bordering object is recolored to 2.
+    * And so on...
+
+Let's analyze this for each input-output pair:
+
+**Input_0:**
+
+* The large 5-object touching the bottom and right borders retains its color.
+* The two smaller 5-objects are not touching the border and are recolored. The top-left one (smaller) becomes 1, the bottom-right one becomes 2.
+
+**Input_1:**
+
+* The 5-objects on the right edge retain their color.
+* The remaining 5-objects are recolored based on size: the smallest (bottom) becomes 1, the middle-sized becomes 2.
+
+**Input_2:**
+
+* The 5-objects on the top and bottom borders retain their color.
+* The remaining 5-objects are recolored based on size, with the smallest becoming 1 and the largest becoming 2.
+
+
+## Code Generation:
+
+Here are five distinct program versions achieving the described transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  O = paint(canvas(ZERO, shape(I)),  # Initialize output grid
+            mfilter(objects(I, T, F, T),  # Get objects
+                    lambda obj: recolor(color(obj), obj) if bordering(obj, I) # Retain color if bordering
+                    else recolor(min( # Recolor based on size order otherwise
+                                   {i + 1 for i, s in enumerate(sorted({size(o) for o in objects(I, T, F, T) if not bordering(o, I)})) # Get unique non-bordering object sizes
+                                    if size(obj) == s}, # Find matching size
+                                   default=color(obj)), # Default to original color if no match
+                               obj))) 
+  return O
+```
+
+**Explanation:**
+
+1. **`paint(canvas(ZERO, shape(I))`:** Creates an empty output grid (`O`) of the same size as the input grid (`I`).
+2. **`mfilter(objects(I, T, F, T), lambda obj: ...)`:** Iterates through each object in the input grid.
+3. **`recolor(color(obj), obj) if bordering(obj, I) else ...`:** Checks if the object borders the grid. If it does, it keeps its original color. 
+4. **`recolor(min(...), obj)`:**  If the object doesn't border the grid, it's recolored based on size:
+    *  `{i + 1 for i, s in ...}`:  Generates a set of recoloring values (1, 2, ...) based on the sorted unique sizes of non-bordering objects.
+    *  `if size(obj) == s}`: Matches the current object's size to determine its new color.
+    *  `min(... , default=color(obj))`: Selects the appropriate recoloring value or defaults to the original color if no match is found.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  border_objs = mfilter(objects(I, T, F, T), lambda obj: bordering(obj, I))
+  non_border_objs =  mfilter(objects(I, T, F, T), lambda obj: not bordering(obj, I))
+  recolored_objs = []
+  for i, obj in enumerate(sorted(non_border_objs, key=size)):
+    recolored_objs.append(recolor(i+1, obj))
+  return paint(canvas(ZERO, shape(I)), merge(border_objs, recolored_objs))
+```
+
+**Explanation:**
+
+1. **`border_objs = ...`:** Extracts objects touching the border and keeps their original colors.
+2. **`non_border_objs = ...`:** Extracts objects not touching the border.
+3. **`for i, obj in enumerate(sorted(non_border_objs, key=size))`:** Iterates through the non-bordering objects, sorted by size.
+4. **`recolored_objs.append(recolor(i+1, obj))`:**  Assigns increasing numerical colors (1, 2, ...) to the sorted non-bordering objects.
+5. **`return paint(canvas(ZERO, shape(I)), merge(border_objs, recolored_objs))`:** Creates the output grid by combining the unchanged bordering objects with the recolored non-bordering objects.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i, obj in enumerate(sorted(objects(I, T, F, T), key=size)):
+    if not bordering(obj, I):
+      O = paint(cover(O, obj), recolor(i + 1, obj))
+  return O 
+```
+
+**Explanation:**
+
+1. **`O = I`:**  Initializes the output grid as a copy of the input.
+2. **`for i, obj in enumerate(sorted(objects(I, T, F, T), key=size))`:**  Iterates through the objects in the input grid, sorted by size.
+3. **`if not bordering(obj, I)`:**  Checks if the object is not bordering the grid.
+4. **`O = paint(cover(O, obj), recolor(i + 1, obj))`:** If the object isn't bordering, it's removed from the output grid and repainted with a new color based on its size order (1, 2, ...).
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  non_border_objs = sorted(filter(lambda obj: not bordering(obj, I), objs), key=size)
+  recolored_objs = [recolor(i + 1, obj) for i, obj in enumerate(non_border_objs)]
+  return paint(I, merge(recolored_objs, filter(lambda obj: bordering(obj, I), objs)))
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Extracts all objects from the input grid.
+2. **`non_border_objs = sorted(filter(lambda obj: not bordering(obj, I), objs), key=size)`:** Filters out bordering objects and sorts the remaining objects based on size.
+3. **`recolored_objs = [recolor(i + 1, obj) for i, obj in enumerate(non_border_objs)]`:** Recolors the non-bordering objects based on their size order using list comprehension.
+4. **`return paint(I, merge(recolored_objs, filter(lambda obj: bordering(obj, I), objs)))`:** Combines the recolored non-bordering objects with the original bordering objects and paints them onto the input grid to create the output.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+    O = canvas(ZERO, shape(I))
+    for i, obj in enumerate(sorted([o for o in objects(I, T, F, T) if not bordering(o, I)], key=size)):
+        O = underpaint(O, recolor(i + 1, toindices(obj)))
+    return paint(I, mfilter(objects(I, T, F, T), lambda obj: recolor(color(obj), obj) if bordering(obj, I) else toindices(obj)))
+```
+
+**Explanation:**
+
+1. **`O = canvas(ZERO, shape(I))`:**  Creates a blank canvas for the output grid.
+2. **`for i, obj in enumerate(sorted([o for o in objects(I, T, F, T) if not bordering(o, I)], key=size))`:**  Iterates through non-bordering objects sorted by their size.
+3. **`O = underpaint(O, recolor(i + 1, toindices(obj)))`:** Recolors and paints the non-bordering objects onto the output canvas based on their size order.
+4. **`return paint(I, mfilter(objects(I, T, F, T), lambda obj: recolor(color(obj), obj) if bordering(obj, I) else toindices(obj)))`:**  Overlays the original input grid with the recolored non-bordering objects on the output canvas, preserving the colors of the bordering objects.
+
+These five versions demonstrate various approaches to achieve the same transformation, utilizing different DSL functions and logic flow. They showcase the flexibility and expressiveness of the provided DSL in solving spatial reasoning tasks.

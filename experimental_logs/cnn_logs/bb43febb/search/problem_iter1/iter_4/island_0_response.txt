@@ -1,0 +1,141 @@
+## Transformation Analysis:
+
+The transformation identifies "inner cells" within objects of the same color. An inner cell is defined as a cell whose direct 4-neighbors (up, down, left, right) all share the same color as the cell itself. These inner cells are then recolored to the value '2'.
+
+**Input_0:**
+
+* The large '5' object has its inner cells recolored to '2'. 
+* Other cells remain unchanged.
+
+**Input_1:**
+
+* Both '5' objects have their inner cells recolored to '2'.
+* Other cells remain unchanged.
+
+## Program_to_be_generated:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  """
+  Identifies inner cells within objects and recolors them to 2.
+  """
+  objs = objects(I, T, F, T)  # Extract objects, ignoring diagonals
+  G = I  # Initialize output grid
+  for obj in objs:
+    inner_cells = mfilter(toindices(obj), lambda loc: 
+                        all(index(I, n) == index(I, loc) for n in dneighbors(loc))) # Find inner cells
+    G = fill(G, 2, inner_cells)  # Recolor inner cells to 2
+  return G
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`**: Extracts all objects from the input grid `I`. `T, F, T` specifies objects are univalued, not considering diagonals, and excluding the background.
+2. **`G = I`**:  Initializes the output grid `G` as a copy of the input grid.
+3. **`for obj in objs`**:  Iterates through each identified object.
+4. **`inner_cells = mfilter(toindices(obj), lambda loc: all(index(I, n) == index(I, loc) for n in dneighbors(loc)))`**:
+    * `toindices(obj)`: Gets the indices of all cells within the current object.
+    * `lambda loc: all(index(I, n) == index(I, loc) for n in dneighbors(loc))`:  This lambda function checks if a cell at location `loc` is an inner cell. It does this by iterating through the direct neighbors (`dneighbors(loc)`) and verifying if the color at each neighbor location matches the color at `loc`. 
+    * `mfilter`: Filters the object indices, keeping only those that satisfy the lambda function (i.e., are inner cells).
+5. **`G = fill(G, 2, inner_cells)`**: Fills the `inner_cells` on the output grid `G` with the value '2'.
+6. **`return G`**: Returns the modified grid `G`.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  """
+  Recolors cells to 2 if all direct neighbors have the same color.
+  """
+  G = canvas(mostcolor(I), shape(I)) # Create a blank canvas
+  for i in range(1, height(I) - 1):
+    for j in range(1, width(I) - 1):
+      if all(index(I, (i,j)) == index(I, n) for n in dneighbors((i,j))):
+        G = fill(G, 2, {(i,j)})
+      else:
+        G = fill(G, index(I, (i,j)), {(i,j)})
+  return G
+```
+
+**Explanation:**
+
+1. **`G = canvas(mostcolor(I), shape(I))`**: Creates a blank canvas `G` of the same size as the input `I`, filled with the most common color in `I`.
+2. **`for i in range(1, height(I) - 1)`**: Iterates through rows of `I`, excluding the top and bottom rows.
+3. **`for j in range(1, width(I) - 1)`**:  Iterates through columns of `I`, excluding the leftmost and rightmost columns.
+4. **`if all(index(I, (i,j)) == index(I, n) for n in dneighbors((i,j)))`**:  Checks if the current cell at `(i,j)` has all its direct neighbors with the same color.
+5. **`G = fill(G, 2, {(i,j)})`**: If the condition is true, fills the corresponding cell in `G` with '2'.
+6. **`else: G = fill(G, index(I, (i,j)), {(i,j)})`**: Otherwise, fills the corresponding cell in `G` with the original color from the input `I`.
+7. **`return G`**: Returns the modified grid `G`.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  """
+  Identifies inner cells and paints them onto a new canvas.
+  """
+  G = canvas(mostcolor(I), shape(I))  # Create a blank canvas
+  inner_cells = set()
+  for i in range(1, height(I) - 1):
+    for j in range(1, width(I) - 1):
+      if all(index(I, (i, j)) == index(I, n) for n in dneighbors((i, j))):
+        inner_cells.add((i, j))
+  return paint(G, recolor(2, frozenset(inner_cells)))
+```
+
+**Explanation:**
+
+1. **`G = canvas(mostcolor(I), shape(I))`**: Creates a blank canvas `G`.
+2. **`inner_cells = set()`**: Initializes an empty set to store inner cell indices.
+3. **`for i in range(1, height(I) - 1)`**: Iterates through rows, excluding borders.
+4. **`for j in range(1, width(I) - 1)`**: Iterates through columns, excluding borders.
+5. **`if all(index(I, (i, j)) == index(I, n) for n in dneighbors((i, j)))`**: Checks for inner cells.
+6. **`inner_cells.add((i, j))`**: Adds identified inner cell indices to the set.
+7. **`return paint(G, recolor(2, frozenset(inner_cells)))`**: Paints the collected inner cells with color '2' onto the canvas.
+
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  """
+  Recolors cells having four neighbors of the same color.
+  """
+  return paint(canvas(mostcolor(I), shape(I)), 
+               merge(apply(lambda obj: recolor(2, 
+                                               mfilter(toindices(obj), 
+                                                      lambda loc: size(dneighbors(loc) & toindices(obj)) == 4)), 
+                           objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **`paint(canvas(mostcolor(I), shape(I)), ...)`**: Creates a canvas and prepares to paint on it.
+2. **`objects(I, T, F, T)`**:  Extracts all univalued objects from the input, ignoring diagonals and the background.
+3. **`apply(lambda obj: ..., objects(I, T, F, T))`**: Applies a function to each object.
+4. **`lambda obj: recolor(2, mfilter(toindices(obj), lambda loc: size(dneighbors(loc) & toindices(obj)) == 4))`**:  For each object, recolors cells that have four direct neighbors within the same object.
+5. **`merge(...)`**: Merges the results of recoloring all objects.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  """
+  Fills inner cells of objects with 2, preserving other cell values.
+  """
+  G = I 
+  inner_cells = mfilter(asindices(I), lambda loc: all(index(I, n) == index(I, loc) for n in dneighbors(loc)) 
+                        and 1 <= loc[0] <= height(I)-2 and 1 <= loc[1] <= width(I)-2)
+  return fill(G, 2, inner_cells)
+```
+
+**Explanation:**
+
+1. **`G = I`**: Initializes the output grid `G` as a copy of the input grid.
+2. **`inner_cells = mfilter(asindices(I), lambda loc: ...)`**:  Identifies inner cells within the grid.
+3. **`lambda loc: all(index(I, n) == index(I, loc) for n in dneighbors(loc)) and 1 <= loc[0] <= height(I)-2 and 1 <= loc[1] <= width(I)-2`**: This lambda function defines an inner cell as a cell where:
+    * All its direct neighbors have the same color.
+    * It's not on the border of the grid.
+4. **`return fill(G, 2, inner_cells)`**: Fills the identified `inner_cells` in the grid `G` with the value '2' and returns the modified grid. 

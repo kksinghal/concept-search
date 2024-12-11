@@ -1,0 +1,147 @@
+## Transformation Analysis:
+
+The transformation involves identifying "border" cells of color 2 that are adjacent to cells of color 0. Then, it creates a "frame" around these border cells using color 3. The original colors of the border cells are preserved.
+
+**Input_0:**
+
+- Identifies border cells at: (2, 1), (2, 7), (3, 7), (4, 14), (8, 17), (11, 3), (11, 8), (12, 0), (14, 0), (14, 17).
+- Creates a frame around these cells using color 3.
+
+**Input_1:**
+
+- Identifies border cells at: (0, 8), (0, 9), (0, 13), (1, 14), (3, 8), (4, 2), (4, 11), (4, 14), (4, 16).
+- Creates a frame around these cells using color 3.
+
+
+## Program_to_be_generated:
+
+### Program Version 1: Using `dneighbors` for direct neighbors
+
+```python
+def Program_to_be_generated(I):
+  border_indices = mfilter(
+      ofcolor(I, 2),
+      lambda loc: any(n in ofcolor(I, 0) for n in dneighbors(loc))
+  )
+  O = fill(I, 3, backdrop(border_indices) - border_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **`border_indices = ...`**: Identifies border indices using `mfilter` and `dneighbors`. 
+   - `ofcolor(I, 2)`: Gets indices of cells with color 2.
+   - `lambda loc: ...`: For each cell with color 2, checks its direct neighbors (`dneighbors`).
+   - `any(n in ofcolor(I, 0) ...)`: Checks if any direct neighbor has color 0.
+   - `mfilter(...)`: Collects all indices that satisfy the condition.
+2. **`O = fill(...)`**: Fills the output grid (`O`) with the frame.
+   - `fill(I, 3, ...)`: Fills the input grid (`I`) with color 3 at specific locations.
+   - `backdrop(border_indices) - border_indices`: Calculates the frame indices by taking the backdrop of border indices and removing the border indices themselves.
+
+### Program Version 2: Using `neighbors` for all neighbors
+
+```python
+def Program_to_be_generated(I):
+  border_cells = mfilter(
+      asobject(I),
+      lambda cell: cell[0] == 2 and any(n[0] == 0 for n in toobject(neighbors(cell[1]), I))
+  )
+  frame = backdrop(toindices(border_cells)) - toindices(border_cells)
+  O = paint(fill(I, 3, frame), border_cells)
+  return O
+```
+
+**Explanation:**
+
+1. **`border_cells = ...`**:  Identifies border cells using `mfilter` and `neighbors`.
+   - `asobject(I)`: Converts the input grid to an object representation.
+   - `lambda cell: ...`: For each cell, checks if it's color 2 and has a neighbor with color 0.
+   - `mfilter(...)`: Collects all border cells.
+2. **`frame = ...`**: Calculates frame indices as in version 1.
+3. **`O = paint(...)`**: Paints the frame and then the border cells onto the output grid.
+
+
+### Program Version 3: Iterative approach with `for` loop
+
+```python
+def Program_to_be_generated(I):
+    h, w = len(I), len(I[0])
+    O = [[v for v in row] for row in I]
+    for i in range(1, h - 1):
+        for j in range(1, w - 1):
+            if I[i][j] == 2 and any(I[i+di][j+dj] == 0 for di in [-1, 0, 1] for dj in [-1, 0, 1] if (di, dj) != (0, 0)):
+                for di in [-1, 0, 1]:
+                    for dj in [-1, 0, 1]:
+                        if 0 <= i + di < h and 0 <= j + dj < w and I[i+di][j+dj] != 2:
+                            O[i+di][j+dj] = 3
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **`O = [[...] for ...]`**: Creates a copy of the input grid (`O`).
+2. **`for i in ... for j in ...`**: Iterates through each cell of the grid (excluding the border).
+3. **`if I[i][j] == 2 and ...`**: Checks if the current cell is color 2 and has a neighbor with color 0.
+4. **`for di in ... for dj in ...`**:  Iterates through all neighboring cells.
+5. **`if 0 <= ... and I[...]!= 2`**: If the neighbor is within bounds and not color 2, sets its value to 3 in the output grid. 
+
+### Program Version 4: Using `shift` and set operations
+
+```python
+def Program_to_be_generated(I):
+  border_indices = mfilter(
+      asindices(I),
+      lambda loc: I[loc[0]][loc[1]] == 2 and any(
+          index(I, n) == 0 for n in neighbors(loc)
+      )
+  )
+  frame_candidates = backdrop(border_indices)
+  shifted_frames = frozenset.union(
+      *(shift(frame_candidates, d) for d in [(1, 0), (-1, 0), (0, 1), (0, -1)])
+  )
+  frame = shifted_frames & asindices(I) - border_indices
+  O = fill(I, 3, frame)
+  return O
+```
+
+**Explanation:**
+
+1. **`border_indices = ...`**:  Identifies border indices similar to previous versions.
+2. **`frame_candidates = ...`**: Gets all indices within the bounding box of border indices.
+3. **`shifted_frames = ...`**:  Creates shifted versions of `frame_candidates` in all four directions.
+4. **`frame = ...`**: Calculates the final frame indices by finding the intersection of shifted frames and valid grid indices, excluding border indices.
+5. **`O = fill(...)`**: Fills the frame with color 3.
+
+
+### Program Version 5: Recursive approach 
+
+```python
+def fill_recursive(grid, i, j, target_color, frame_color):
+  """Recursively fills around target_color with frame_color."""
+  h, w = len(grid), len(grid[0])
+  if 0 <= i < h and 0 <= j < w:
+    if grid[i][j] == target_color:
+      for di in [-1, 0, 1]:
+        for dj in [-1, 0, 1]:
+          if 0 <= i+di < h and 0 <= j+dj < w and grid[i+di][j+dj] != target_color:
+            grid[i+di][j+dj] = frame_color
+          else:
+            fill_recursive(grid, i+di, j+dj, target_color, frame_color)
+
+def Program_to_be_generated(I):
+    h, w = len(I), len(I[0])
+    O = [[v for v in row] for row in I]
+    for i in range(h):
+        for j in range(w):
+            if O[i][j] == 2:
+                fill_recursive(O, i, j, 2, 3)
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **`fill_recursive(..)`**:  This recursive function takes a grid, coordinates, target color, and frame color. It fills around the target color with the frame color.
+2. **`Program_to_be_generated(I)`**: This function iterates over the grid, and for every cell with color 2, calls `fill_recursive`.
+
+
+These five versions demonstrate different approaches to achieve the same transformation, highlighting the flexibility of the provided DSL. Each version employs a unique combination of functions and logic, showcasing diverse solutions to the problem. 

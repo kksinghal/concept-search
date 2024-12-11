@@ -1,0 +1,144 @@
+## Transformation Analysis:
+
+The transformation involves moving non-background objects within each column to the top of the column while maintaining their relative order. The background color is the most frequent color in the input grid.
+
+**Example:**
+
+**Input_0:**
+```
+5 0 0
+3 5 0
+0 0 5
+```
+**Output_0:**
+```
+5 3 0
+0 5 0
+0 0 5
+```
+
+* **Column 1:** The '3' is moved above the '0' in the same column. 
+* **Column 2:** The '5' remains at the top.
+* **Column 3:** The '5' remains at the bottom as it's considered background.
+
+This pattern repeats for all input-output pairs.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  O = I
+  for j in range(width(I)):
+    next_i = 0
+    for v in sorted(palette(crop(I, (0, j), (height(I), 1))) - {mostcolor(I)}):
+      obj = extract(objects(O, True, True, True), lambda o: color(o) == v and leftmost(o) == j)
+      O = cover(O, obj)
+      O = paint(O, shift(normalize(obj), (next_i, j - leftmost(obj))))
+      next_i += height(obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through columns:** The outer loop iterates over each column (`j`) of the input grid.
+2. **Identify non-background colors:** For each column, we identify the unique non-background colors present.
+3. **Extract and move objects:**  The code then iterates through the non-background colors. For each color:
+    *  `extract` finds the object of that color in the current column.
+    *  `cover` removes the object from its current position. 
+    *  `shift` moves the object to the top of the column (`next_i`).
+    *  `paint` draws the shifted object onto the output grid.
+4. **Update next_i:** The `next_i` variable keeps track of the next available row in the column for placing objects.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  O = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    non_bg_objects = sorted(
+      sfilter(objects(I, True, True, True), lambda o: leftmost(o) == j), 
+      key=lambda o: uppermost(o)
+    )
+    next_i = 0
+    for obj in non_bg_objects:
+      O = paint(O, shift(normalize(obj), (next_i, j - leftmost(obj))))
+      next_i += height(obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Create empty canvas:**  An output grid (`O`) is initialized with the background color.
+2. **Iterate through columns:** Similar to Version 1, the code iterates through each column.
+3. **Find and sort objects:**
+    *  `objects` identifies all objects in the column.
+    *  `sfilter` keeps only objects whose leftmost point is in the current column.
+    *  `sorted` orders the objects based on their uppermost row position.
+4. **Paint objects to canvas:**  The code iterates through the sorted objects and paints them onto the output grid (`O`) from top to bottom. 
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  O = I
+  for j in range(width(I)):
+    col = crop(O, (0, j), (height(O), 1))
+    non_bg_colors = sorted(palette(col) - {mostcolor(I)})
+    heights = [height(extract(objects(O, True, True, True), lambda o: color(o) == v and leftmost(o) == j)) for v in non_bg_colors]
+    O = cover(O, asindices(col))
+    for i, (v, h) in enumerate(zip(non_bg_colors, heights)):
+      O = paint(O, recolor(v, {(k, j) for k in range(i, i + h)}))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through columns and extract data:** Similar to previous versions, this code iterates through columns, extracts non-background colors, and calculates the height of each object.
+2. **Cover the column:** `cover` removes all non-background objects from the current column.
+3. **Paint objects based on calculated data:** The code then iterates through the colors and their corresponding heights, painting them back onto the grid from top to bottom.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  O = I
+  for j in range(width(I)):
+    col = crop(O, (0, j), (height(O), 1))
+    object_indices = sorted([toindices(extract(objects(O, True, True, True), lambda o: color(o) == v and leftmost(o) == j)) for v in (palette(col) - {mostcolor(I)})], key=lambda ind: min(i for i, j in ind))
+    O = cover(O, asindices(col))
+    next_i = 0
+    for indices in object_indices:
+      O = paint(O, recolor(I[first(indices)[0]][first(indices)[1]], {(i, j) for i, _ in indices}))
+      next_i += len(indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and extract:** Similar to version 3, this code iterates through columns and extracts information about objects within each column.
+2. **Sort object indices:** It sorts the `object_indices` based on the minimum row index, ensuring objects are placed in the correct order.
+3. **Cover and repaint:** It then covers the column and repaints the objects based on the sorted `object_indices`, effectively moving them to the top.
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  O = I
+  for j in range(width(I)):
+    values = [v for v, _ in sorted(objects(crop(I, (0, j), (height(I), 1)), True, True, True), key=lambda obj: uppermost(obj)) if v != mostcolor(I)]
+    O = cover(O, asindices(crop(O, (0, j), (height(O), 1))))
+    for i, v in enumerate(values):
+      O = paint(O, {(v, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and extract:** This version iterates through columns and extracts non-background object values while preserving their order.
+2. **Cover the column:** It covers the current column to prepare for repainting.
+3. **Repaint objects:** It iterates through the extracted values and paints them back onto the grid in the same order, effectively shifting them to the top.
+
+
+Each version of the program utilizes different DSL functions and logic while achieving the same result. This demonstrates the flexibility and expressiveness of the DSL for solving this particular grid transformation problem.

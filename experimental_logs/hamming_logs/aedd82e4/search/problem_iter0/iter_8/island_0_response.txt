@@ -1,0 +1,193 @@
+## Transformation Analysis:
+
+The transformation focuses on the bottom-most object touching the rightmost column of the grid. The transformation then finds the left-most cell of this object and changes its value to '1'.
+
+**Input 0:**
+
+* The bottom-most object touching the rightmost column is the '2's. 
+* The left-most cell of this object is at (2, 0).
+* The cell's value is changed from '2' to '1'.
+
+**Input 1:**
+
+* The bottom-most object touching the rightmost column is the vertical line of '2's.
+* The left-most cell of this object is at (3, 1).
+* The cell's value is changed from '2' to '1'.
+
+**Input 2:**
+
+* The bottom-most object touching the rightmost column is the single '2' at (2, 3).
+*  Since it's a single cell object, it is changed from '2' to '1'.
+
+**Input 3:**
+
+* The bottom-most object touching the rightmost column is the '2's forming an L-shape.
+* The left-most cell of this object is at (2, 1).
+* The cell's value is changed from '2' to '1'.
+
+
+## Program Versions:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  # Identify all objects in the grid
+  objs = objects(I, False, False, False)
+  # Filter for objects touching the rightmost column
+  right_objs = sfilter(objs, lambda obj: any(j == width(I) - 1 for _, (i, j) in obj))
+  # If no object touches the rightmost column, return the original grid
+  if not right_objs:
+    return I
+  # Find the bottom-most object touching the rightmost column
+  bottom_right_obj = argmax(right_objs, key=lambda obj: lrcorner(obj)[0])
+  # Find the leftmost cell of this object
+  leftmost_cell = argmin(bottom_right_obj, key=lambda cell: cell[1][1])
+  # Update the object by changing the leftmost cell's color to '1'
+  updated_obj = frozenset(
+      ((1, (i, j)) if (i, j) == leftmost_cell[1] else (v, (i, j))) 
+      for v, (i, j) in bottom_right_obj
+  )
+  # Paint the updated object back onto the grid
+  return paint(cover(I, bottom_right_obj), updated_obj) 
+```
+
+**Explanation:**
+
+1. **Identify objects:** `objects(I, False, False, False)` identifies all distinct objects in the grid.
+2. **Filter rightmost objects:** `sfilter` keeps only objects touching the rightmost column.
+3. **Find bottom-most object:**  `argmax` with `lrcorner(obj)[0]` finds the object with the highest row index in the rightmost column.
+4. **Find leftmost cell:**  `argmin` with `cell[1][1]` finds the cell with the lowest column index within the target object.
+5. **Update object:** The leftmost cell's value is changed to '1'.
+6. **Paint updated object:** The original object is removed, and the updated object is painted back onto the grid.
+
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  # Iterate through rows from bottom to top
+  for i in range(height(I) - 1, -1, -1):
+    # Check if a '2' exists in the rightmost column of the current row
+    if I[i][width(I)-1] == 2:
+      # Find the object containing this '2'
+      obj = next(obj for obj in objects(I, False, False, False) if any(j == width(I) - 1 and i == a for _, (a, j) in obj))
+      # Find the leftmost cell of this object
+      leftmost_cell = argmin(obj, key=lambda cell: cell[1][1])
+      # Update the grid by changing the leftmost cell's color to '1'
+      return paint(cover(I, obj), frozenset(((1, leftmost_cell[1]) if cell == leftmost_cell else cell) for cell in obj))
+  # Return the original grid if no '2' is found in the rightmost column
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate from bottom:**  The code iterates through rows from bottom to top.
+2. **Check rightmost column:** For each row, it checks if the rightmost cell is '2'.
+3. **Find object:** If a '2' is found, it identifies the object containing that cell.
+4. **Find leftmost cell:**  `argmin` is used to find the cell with the lowest column index within the target object.
+5. **Update and return:** The leftmost cell's value is changed to '1', and the updated grid is returned. If no '2' is found, the original grid is returned.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  # Find all cells with value '2' in the rightmost column
+  rightmost_twos = ((i, width(I) - 1) for i in range(height(I)) if I[i][width(I) - 1] == 2)
+  # Find the bottom-most cell with value '2'
+  bottom_right_two = argmax(rightmost_twos, key=lambda x: x[0], default=None)
+  # If no '2' is found, return the original grid
+  if bottom_right_two is None:
+    return I
+  # Find the object containing the bottom-most '2'
+  target_obj = next(
+      obj for obj in objects(I, False, False, False) 
+      if bottom_right_two in {(a, b) for _, (a, b) in obj}
+  )
+  # Change the leftmost '2' of this object to '1'
+  updated_obj = frozenset(
+      ((1, (i, j)) if j == min(k for _, (_, k) in target_obj) else (v, (i, j))) 
+      for v, (i, j) in target_obj
+  )
+  # Return the grid with the updated object
+  return paint(cover(I, target_obj), updated_obj) 
+```
+
+**Explanation:**
+
+1. **Find rightmost '2's:** The code identifies all cells in the rightmost column with value '2'.
+2. **Find bottom-most '2':** `argmax` finds the cell with the highest row index among the rightmost '2's.
+3. **Find object:** The object containing the bottom-most '2' is identified.
+4. **Update object:** The leftmost cell's value within the object is changed to '1'.
+5. **Return updated grid:** The grid with the updated object is returned.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  # Transpose the grid
+  transposed_grid = dmirror(I)
+  # Find the bottom-most object containing '2' in the transposed grid's rightmost column 
+  target_obj = argmax(
+      (obj for obj in objects(transposed_grid, False, False, False) if any(j == width(transposed_grid) - 1 and v == 2 for v, (i, j) in obj)), 
+      key=lambda obj: max(i for _, (i, j) in obj if j == width(transposed_grid) - 1),
+      default=None
+  )
+  # If no such object is found, return the original grid.
+  if target_obj is None:
+    return I
+  # In the transposed grid, update the object by changing the leftmost cell's color to '1'
+  updated_obj = frozenset(
+      ((1, (i, j)) if j == min(k for _, (_, k) in target_obj) else (v, (i, j))) 
+      for v, (i, j) in target_obj
+  )
+  # Paint the updated object back onto the transposed grid and transpose back to get the final grid
+  return dmirror(paint(cover(transposed_grid, target_obj), updated_obj))
+```
+
+**Explanation:**
+
+1. **Transpose grid:** The grid is transposed using `dmirror`, effectively swapping rows and columns.
+2. **Find object in transposed grid:** The code finds the bottom-most object containing '2' in the transposed grid's rightmost column (which corresponds to the original grid's bottom row).
+3. **Update object in transposed grid:**  The leftmost cell of the target object in the transposed grid is changed to '1'. 
+4. **Transpose back and return:**  The updated transposed grid is transposed back using `dmirror`, and the resulting grid is returned.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  # Find the bottom-most object containing '2' in the rightmost column
+  target_obj = next(
+      (
+          obj
+          for i in range(height(I) - 1, -1, -1)
+          for obj in objects(I, False, False, False)
+          if any(j == width(I) - 1 and v == 2 and i == a for v, (a, j) in obj)
+      ),
+      None,
+  )
+  # If no such object is found, return the original grid.
+  if target_obj is None:
+    return I
+  # Find the leftmost cell of the target object
+  leftmost_cell = (
+      min(target_obj, key=lambda cell: cell[1][1])[1]
+  )
+  # Update the grid by changing the leftmost cell's color to '1'
+  return paint(
+      cover(I, target_obj),
+      frozenset(
+          ((1, (i, j)) if (i, j) == leftmost_cell else (v, (i, j)))
+          for v, (i, j) in target_obj
+      ),
+  )
+```
+
+**Explanation:**
+
+1. **Find Target Object:** It iterates through the rows in reverse order using a generator expression within `next`. For each row, it checks for objects that have a '2' in the rightmost column (`j == width(I) - 1 and v == 2`). The first such object found is assigned to `target_obj`. 
+2. **Handle Missing Object:** If no object is found, `target_obj` will be None, and the original grid is returned.
+3. **Find Leftmost Cell:** The code finds the leftmost cell within the `target_obj` using `min` and comparing the column indices (`cell[1][1]`) of each cell.
+4. **Update Grid:** The `paint` and `cover` functions are used to efficiently update the grid. The `target_obj` is first removed (`cover`), and then a new object with the updated leftmost cell (color '1') is painted back onto the grid. 
+
+Each of these programs provides a distinct approach to solving the given transformation, demonstrating flexibility and understanding of the provided DSL.

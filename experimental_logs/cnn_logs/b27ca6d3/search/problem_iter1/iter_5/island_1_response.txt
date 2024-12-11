@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+The transformation involves extending non-background objects horizontally to connect with other non-background objects or the edge of the grid, filling the extended area with the value '3'.
+
+**Input_0:**  Objects (value '2') are extended left and right with '3's until they hit another '2' or the edge of the grid. 
+
+**Input_1:**  The same logic applies. Note how some extensions create bridges between objects, while others reach the grid edge. 
+
+
+## Program_to_be_generated:
+
+**Version 1 (Iterative Approach):**
+
+```python
+def generate_output(I):
+  O = canvas(mostcommon(I), shape(I)) # Start with a canvas of background color
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != mostcommon(I): # Found a non-background cell
+        O[i][j] = I[i][j] # Copy the cell to the output
+        # Extend left
+        left = j - 1
+        while left >= 0 and I[i][left] == mostcommon(I):
+          O[i][left] = 3
+          left -= 1
+        # Extend right
+        right = j + 1
+        while right < len(I[0]) and I[i][right] == mostcommon(I):
+          O[i][right] = 3
+          right += 1
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Create an output grid `O` filled with the background color using `canvas`.
+2. **Iterate:** Loop through each cell of the input grid `I`.
+3. **Non-background Check:** If a cell's value is not the background color, copy it to the output grid.
+4. **Left Extension:** Extend the object to the left by filling with '3' until a non-background cell or the grid edge is encountered.
+5. **Right Extension:** Similarly, extend the object to the right.
+
+**Version 2 (Functional Approach with `sfilter` and `paint`):**
+
+```python
+def generate_output(I):
+  O = canvas(mostcommon(I), shape(I))
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    O = paint(O, obj)
+    for (i, j) in toindices(obj):
+      left_extensions = sfilter(interval(-1, j, -1), lambda x: I[i][x] == mostcommon(I))
+      right_extensions = sfilter(interval(j + 1, len(I[0])), lambda x: I[i][x] == mostcommon(I))
+      O = paint(O, recolor(3, frozenset((i, x) for x in left_extensions)))
+      O = paint(O, recolor(3, frozenset((i, x) for x in right_extensions)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **Object Iteration:** Iterate through non-background objects using `objects`.
+3. **Paint Object:** Paint the current object onto the output grid.
+4. **Extension Logic:** For each cell in the object:
+   - Use `sfilter` and `interval` to find valid left and right extension indices.
+   - Use `recolor` to create sets of cells with value '3' for extensions.
+   - Paint these extensions onto the output grid.
+
+**Version 3 (Using `hfrontier` and Set Operations):**
+
+```python
+def generate_output(I):
+  O = canvas(mostcommon(I), shape(I))
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    O = paint(O, obj)
+    for (i, j) in toindices(obj):
+      extension_area = hfrontier((i, j))
+      valid_area = backdrop(obj) | toindices(obj)
+      fill_area = extension_area - valid_area
+      O = paint(O, recolor(3, fill_area))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **Object Iteration:** Iterate through non-background objects.
+3. **Paint Object:** Paint the object onto the output grid.
+4. **Extension with Set Operations:**
+   - Use `hfrontier` to get all indices on the same row as the current cell.
+   - Define `valid_area` as the area already covered by the object or its bounding box.
+   - Calculate `fill_area` by subtracting `valid_area` from `extension_area`.
+   - Paint `fill_area` with '3' on the output grid.
+
+**Version 4 (Combining `hsplit` and `hconcat`):**
+
+```python
+def generate_output(I):
+  O = []
+  for row in I:
+    segments = hsplit(
+        tuple(
+            tuple(3 if c == mostcommon(I) and any(n != mostcommon(I) for n in segment) else c for c in segment) 
+            for segment in hsplit((row,), len(row))
+        ), 
+        len(row)
+    )
+    O.append(tuple(c for segment in segments for c in segment))
+  return tuple(O)
+```
+
+**Explanation:**
+
+1. **Initialization:** Create an empty list `O` to store the output grid.
+2. **Row-wise Processing:** Iterate through each row of the input grid.
+3. **Split and Extend:**
+   - Split the row into individual cells using `hsplit`.
+   - For each cell (segment), if it's the background color and any cell in the row is not the background color, change its value to 3. Otherwise, keep the original value.
+   - Concatenate the modified cells back into a row using `hconcat`.
+4. **Append to Output:** Append the processed row to the `O` list.
+5. **Return Output Grid:** Convert the `O` list into a tuple to represent the output grid.
+
+**Version 5 (Leveraging `papply` for Parallel Processing):**
+
+```python
+def generate_output(I):
+  O = canvas(mostcommon(I), shape(I))
+  for obj in objects(I, univalued=False, diagonal=False, without_bg=True):
+    O = paint(O, obj)
+    indices = sorted(toindices(obj), key=lambda x: x[1])
+    left_extensions = papply(
+        lambda i, j: tuple(range(j - 1, -1, -1)) if I[i][j] != mostcommon(I) else tuple(), 
+        tuple(i for i, j in indices), 
+        tuple(j for i, j in indices)
+    )
+    right_extensions = papply(
+        lambda i, j: tuple(range(j + 1, len(I[0]))) if I[i][j] != mostcommon(I) else tuple(),
+        tuple(i for i, j in indices),
+        tuple(j for i, j in indices)
+    )
+    for (i, j), left, right in zip(indices, left_extensions, right_extensions):
+      O = paint(O, recolor(3, frozenset((i, x) for x in left)))
+      O = paint(O, recolor(3, frozenset((i, x) for x in right)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as Version 1.
+2. **Object Iteration:** Iterate through non-background objects.
+3. **Paint Object:** Paint the object onto the output grid.
+4. **Parallel Extension Calculation:**
+   - Sort object indices by column using `sorted`.
+   - Use `papply` to calculate left and right extensions for each object cell in parallel. If a cell is not background, generate a range of indices for extension; otherwise, an empty tuple.
+5. **Paint Extensions:** Iterate through object cells, their corresponding left extensions, and right extensions, and paint them with '3' on the output grid.
+
+
+These different versions showcase diverse approaches to achieve the same transformation, utilizing various DSL functions and logic. Each version offers a unique perspective on solving the problem within the constraints of the provided DSL.

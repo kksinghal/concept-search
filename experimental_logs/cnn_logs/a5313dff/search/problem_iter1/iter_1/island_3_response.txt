@@ -1,0 +1,126 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects in the input grid and then filling the cells directly above, below, left, and right of each object with the value '1', but only if those cells are part of the background (most common color).
+
+**Input 0:**
+
+* The '2' digits form a single object.
+* The cells directly adjacent to the '2' object are filled with '1'.
+
+**Input 1:**
+
+* Two '2' digit objects are present.
+* Cells directly adjacent to both objects, and part of the background, are filled with '1'.
+
+**Input 2:**
+
+* Again, two '2' digit objects are present.
+* The same logic of filling adjacent background cells with '1' is applied.
+
+## Program Versions:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  fill_indices = set()
+  for obj in objs:
+    for cell in toindices(obj):
+      for direction in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        neighbor = add(cell, direction)
+        if neighbor in delta(toindices(obj)):
+          fill_indices.add(neighbor)
+  return underfill(I, ONE, frozenset(fill_indices))
+```
+
+**Explanation:**
+
+1. **Identify objects:** `objs = objects(I, T, F, T)` finds all objects (connected components) of the same color in the input grid `I`, excluding the background. 
+2. **Iterate and find neighbors:** The code then iterates through each object and each cell within that object. For each cell, it checks its four direct neighbors (up, down, left, right).
+3. **Check for background:** `if neighbor in delta(toindices(obj))`: This condition verifies if the neighbor cell is part of the background (i.e., not part of any object).
+4. **Mark for filling:** If the neighbor is part of the background, its index is added to the `fill_indices` set.
+5. **Fill cells:** Finally, the `underfill` function fills all cells in the `fill_indices` set with the value '1' (`ONE`).
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  return underfill(I, ONE, mapply(lambda obj: delta(toindices(obj)) &
+                                      merge(apply(lambda cell: dneighbors(cell), 
+                                                 toindices(obj))), 
+                                  objs))
+```
+
+**Explanation:**
+
+1. **Identify objects:** Similar to Version 1, `objs = objects(I, T, F, T)` finds all objects excluding the background.
+2. **Find neighbors and filter:** This version uses a combination of `mapply`, `apply`, and set operations for a more compact solution. 
+   - `apply(lambda cell: dneighbors(cell), toindices(obj))` finds the direct neighbors of all cells in each object.
+   - `merge(...)` combines all neighbor indices into a single set.
+   - `delta(toindices(obj)) & ... ` filters the neighbors, keeping only those that are part of the background.
+   - `mapply(..., objs)` applies the above steps to all objects and merges the resulting sets of indices to be filled.
+3. **Fill cells:**  `underfill(I, ONE, ...)` fills the identified background neighbor cells with '1'.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  return underfill(I, ONE, 
+                   reduce(lambda acc, obj: acc | (delta(toindices(obj)) &
+                                                merge(apply(lambda cell: dneighbors(cell),
+                                                          toindices(obj)))),
+                          objects(I, T, F, T),
+                          set()))
+```
+
+**Explanation:**
+
+This version uses `reduce` to achieve a similar outcome to Version 2 but with a more functional approach:
+
+1. **Identify objects:** `objects(I, T, F, T)` identifies objects as before.
+2. **Iterate and accumulate:** `reduce` iterates through the objects and applies the same logic as Version 2 to find background neighbors. However, instead of using `mapply`, it uses an accumulator (`acc`) to progressively build the set of indices to be filled.
+3. **Fill cells:**  `underfill` is used for filling as in previous versions.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  fill_indices = set()
+  for obj in objs:
+    fill_indices.update(
+        filter(lambda cell: cell in delta(toindices(obj)), 
+               (add(cell, direction) for cell in toindices(obj) 
+                for direction in [(-1, 0), (1, 0), (0, -1), (0, 1)])))
+  return underfill(I, ONE, frozenset(fill_indices))
+```
+
+**Explanation:**
+
+This version focuses on using generator expressions and filtering for conciseness:
+
+1. **Identify objects:** `objs = objects(I, T, F, T)` as before.
+2. **Find neighbors and filter:**  The code uses a generator expression within `filter` to find neighbor cells and filter them based on being part of the background.
+3. **Update fill indices:** The filtered indices are added to the `fill_indices` set using `update`.
+4. **Fill cells:**  `underfill` is used for the final filling step. 
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  def process_object(obj):
+    return delta(toindices(obj)) & set(add(c, d) for c in toindices(obj)
+                                       for d in [(-1, 0), (1, 0), (0, -1), (0, 1)])
+  return underfill(I, ONE, frozenset(merge(apply(process_object, objects(I, T, F, T)))))
+```
+
+**Explanation:**
+
+This version introduces a helper function for clarity:
+
+1. **`process_object` Function:** This function encapsulates the logic of finding background neighbor cells for a single object. It's similar to the inner loop logic in previous versions.
+2. **Apply and Fill:** The main function now simply finds all objects, applies the `process_object` function to each, merges the results, and uses `underfill` for the final filling. 
+
+These are just five examples, and many other valid solutions might exist using different combinations of the provided DSL functions. The key is to understand the underlying transformation logic and then utilize the DSL effectively to express that logic. 

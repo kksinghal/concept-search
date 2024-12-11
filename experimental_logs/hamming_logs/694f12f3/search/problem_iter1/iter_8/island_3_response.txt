@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation focuses on recoloring a specific portion of each connected object (ignoring the background) within the input grid. Here's a breakdown:
+
+**Input_0 to Output_0:**
+
+* The top object (made of '4's) is recolored: the two central columns become '1's.
+* The bottom object (made of '4's) is recolored: the two central columns become '2's.
+
+**Input_1 to Output_1:**
+
+* The top object (made of '4's) is recolored: the three central columns become '2's.
+* The bottom object (made of '4's) is recolored: the three central columns become '1's.
+
+**Transformation Logic:**
+
+1. **Identify Objects:**  The transformation first identifies distinct connected objects in the grid, excluding the background color (most frequent color, '0' in these examples).
+2. **Determine Recoloring Zone:** For each object, the central vertical strip is targeted for recoloring. The width of this strip seems to be either two or three columns depending on the input.
+3. **Apply Recoloring:** 
+    * Objects in the top half of the grid are recolored using one color ('1' in Output_0, '2' in Output_1).
+    * Objects in the bottom half are recolored using a different color ('2' in Output_0, '1' in Output_1).
+
+## Code Generation:
+
+Here are five distinct program versions (using the provided DSL) to perform the described transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Extract connected objects
+  O = I 
+  for obj in objs:
+    if size(obj) > 1:  # Ignore single-cell objects
+      center_j = (leftmost(obj) + rightmost(obj)) // 2 # Find the center column
+      recolor_width =  2 if width(obj) <= 4 else 3 # Determine strip width
+      new_color = 1 if uppermost(obj) < len(I) // 2 else 2 # Color based on object's vertical position
+      for j in range(center_j - recolor_width // 2, center_j + (recolor_width + 1) // 2):
+        for i in range(uppermost(obj), lowermost(obj) + 1):
+          if (i, j) in toindices(obj):
+            O = fill(O, new_color, {(i, j)}) # Recolor the central strip
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and Iterate:**  Identifies objects and iterates through them, excluding single-cell objects.
+2. **Calculate Center and Width:** Calculates the center column and the width of the recoloring strip based on the object's width.
+3. **Determine Color:** Determines the new color based on the object's vertical position (top half or bottom half).
+4. **Recolor Strip:** Iterates through the cells in the central strip and recolors them if they belong to the object.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  O = canvas(mostcolor(I), shape(I)) # Create an empty canvas
+  for obj in objs:
+    if size(obj) > 1:
+      new_color = 1 if uppermost(obj) < len(I) // 2 else 2
+      strip = frozenset((i, j) for i, j in toindices(obj) if abs(j - (leftmost(obj) + rightmost(obj)) // 2) <= width(obj) // 4)
+      O = paint(O, recolor(new_color, strip)) # Paint the recolored strip directly
+  return O
+```
+
+**Explanation:**
+
+1. **Create Canvas:** Creates an empty canvas with the background color.
+2. **Identify and Iterate:**  Identifies objects and iterates through them, excluding single-cell objects.
+3. **Determine Color:** Determines the new color based on the object's vertical position.
+4. **Define and Recolor Strip:** Defines the central strip using a set comprehension and recolors it directly using `recolor` and `paint`.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for y, row in enumerate(I):
+    for x, val in enumerate(row):
+      if val != mostcommon(I):  # Check if the cell is part of an object
+        obj = extract(objects(I, T, F, T), lambda o: (y, x) in toindices(o))  # Find the object containing the cell
+        new_color = 1 if y < len(I) // 2 else 2 # Determine color based on cell position
+        if abs(x - (leftmost(obj) + rightmost(obj)) // 2) <= width(obj) // 4: # Check if cell is within recolor zone
+          O = fill(O, new_color, {(y, x)})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Cells:** Iterates through every cell in the grid.
+2. **Identify Object:** For each object cell, identifies the entire object it belongs to.
+3. **Determine Color:** Determines the new color based on the cell's vertical position.
+4. **Check and Recolor:** Recolors the cell if it's within the central recoloring zone of the object.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  def process_object(obj):
+    new_color = 1 if uppermost(obj) < len(I) // 2 else 2
+    center_j = (leftmost(obj) + rightmost(obj)) // 2
+    recolor_width = 2 if width(obj) <= 4 else 3
+    return recolor(new_color, frozenset((i, j) for i, j in toindices(obj) if abs(j - center_j) < recolor_width // 2 + 1))
+  
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(process_object, objects(I, T, F, T)))) 
+```
+
+**Explanation:**
+
+1. **`process_object` Function:** Defines a function `process_object` to process each object individually. It determines the new color, calculates the recoloring zone, and returns the recolored object.
+2. **Apply and Paint:**  Applies the `process_object` function to all objects using `apply`. Then, it merges all the recolored objects and paints them onto an empty canvas.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+    O = I
+    for obj in objects(I, T, F, T):
+        if size(obj) > 1:
+            min_j, max_j = leftmost(obj), rightmost(obj)
+            recolor_start = (min_j + max_j - (2 if max_j - min_j < 3 else 1)) // 2
+            recolor_end = recolor_start + (2 if max_j - min_j < 3 else 3)
+            color = 1 if uppermost(obj) < len(I) // 2 else 2
+            O = paint(O, recolor(color, frozenset((i, j) for i, j in toindices(obj) if recolor_start <= j < recolor_end)))
+    return O
+
+```
+
+**Explanation:**
+
+1. **Iterate and Identify:** Iterates through the objects, ignoring single-cell ones.
+2. **Calculate Recoloring Zone:**  Calculates the start and end columns for the recoloring zone based on object width.
+3. **Determine Color and Recolor:** Determines the new color based on vertical position and directly recolors the target strip within the object before painting it back onto the grid.
+
+These five program versions provide distinct solutions to the given transformation task using various combinations of DSL functions and logic. 

@@ -1,0 +1,128 @@
+## Transformation Analysis:
+
+**Input 0 -> Output 0:**  For each non-background object, draw a horizontal line from its center of mass to the nearest background cell. The line extends to the left or right depending on the background cell's position relative to the object.
+
+**Input 1 -> Output 1:** Similar to the previous transformation, draw a horizontal line from the center of mass of each non-background object to the nearest background cell.
+
+**Input 2 -> Output 2:**  No change is needed; the input and output are the same.
+
+
+## Program_to_be_generated:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  for obj in fgpartition(I):  # Iterate over non-background objects
+    bg = ofcolor(I, mostcommon(I)) # Find background indices
+    closest_bg = argmin(bg, lambda x: manhattan({x}, obj))  # Closest background index
+    obj_center = centerofmass(obj) # Center of mass of the object
+    if obj_center[1] <= closest_bg[1]: # Determine direction based on horizontal position
+        direction = LEFT
+    else:
+        direction = RIGHT
+    current = closest_bg
+    while not contained(current, toindices(obj)): # Extend line until reaching the object
+      I = underfill(I, color(obj), {current}) 
+      current = add(current, direction)
+  O = I
+  return O 
+```
+
+**Explanation:**
+
+1. **Iterate Objects:** Loop through each non-background object in the input grid.
+2. **Find Background:** Identify background cells.
+3. **Closest Background:** Determine the background cell closest to the object's center of mass.
+4. **Determine Direction:** Calculate the direction (left or right) to draw the line based on the closest background cell's position.
+5. **Extend Line:** Fill cells with the object's color, moving in the calculated direction from the closest background cell until reaching the object.
+
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  for obj in fgpartition(I):
+    obj_center = centerofmass(obj)
+    bg_indices = ofcolor(I, mostcommon(I)) 
+    closest_bg = min(bg_indices, key=lambda x: abs(x[1] - obj_center[1])) # Closest based on column
+    direction = sign(subtract(obj_center, closest_bg)) # Simplified direction calculation
+    path = shoot(closest_bg, direction)  # Generate the entire line
+    I = underfill(I, color(obj), intersection(path, backdrop(obj)))  # Fill intersected cells
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Object Iteration and Center:** Similar to version 1.
+2. **Closest by Column:** Find the closest background cell based on the difference in column indices, simplifying direction determination.
+3. **Line Generation:** Use `shoot` to create the full line extending horizontally.
+4. **Intersection Fill:** Fill only the cells where the generated line intersects the object's bounding box.
+
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  for obj in fgpartition(I):
+    obj_indices = toindices(obj)
+    obj_center = centerofmass(obj)
+    bg_indices = ofcolor(I, mostcommon(I))
+    closest_bg = min(bg_indices, key=lambda x: manhattan({x}, obj_indices))
+    if obj_center[1] < closest_bg[1]: # Explicitly check horizontal position
+        I = underfill(I, color(obj), connect(obj_center, (obj_center[0], closest_bg[1])))
+    else:
+        I = underfill(I, color(obj), connect((obj_center[0], closest_bg[1]), obj_center))
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Explicit Horizontal Check:** Directly compare the horizontal positions of the object's center and the closest background cell to decide the line's direction.
+2. **Direct Connection:** Use `connect` to draw the line directly between the determined start and end points, simplifying the process.
+
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  bg_color = mostcommon(I)
+  for obj in fgpartition(I):
+    obj_center = centerofmass(obj)
+    row_indices = {j for i, j in toindices(obj)} # Get all column indices of the object
+    bg_row_indices = {j for i, j in ofcolor(I, bg_color) if i == obj_center[0]} # Background indices in the same row
+    closest_bg_j = min(bg_row_indices, key=lambda j: abs(j - obj_center[1])) # Closest background column index
+    fill_indices = {(obj_center[0], j) for j in range(min(closest_bg_j, obj_center[1]), max(closest_bg_j, obj_center[1]) + 1)}
+    I = underfill(I, color(obj), fill_indices)
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Column-Based Search:**  Focuses on the row containing the object's center of mass.
+2. **Efficient Fill:** Directly calculates and fills the indices between the object's center and the closest background cell in that row.
+
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  for obj in fgpartition(I):
+    obj_center = (centerofmass(obj)[0], center(obj)[1])
+    bg = difference(asindices(I), toindices(obj))
+    closest_bg = argmin(bg, lambda x: abs(x[1] - obj_center[1])) # Closest based on column difference
+    if closest_bg[1] < obj_center[1]:
+        I = underfill(I, color(obj), connect(closest_bg, (closest_bg[0], obj_center[1])))
+    else:
+        I = underfill(I, color(obj), connect((closest_bg[0], obj_center[1]), closest_bg))
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Simplified Direction:** Uses the difference in column indices between the closest background cell and the object's center to determine the direction.
+2. **Direct Line:** Draws a direct line from the closest background cell to the vertical line passing through the object's center, leading to a more efficient filling. 

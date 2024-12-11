@@ -1,0 +1,107 @@
+## Transformation Analysis:
+
+The transformation consistently replaces all occurrences of the digit '3' with the digit '8' within the largest connected object composed of '3's in the input grid. All other digits and their positions remain unchanged.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, True, False, False)  # Identify connected objects of same color
+  target_objs = colorfilter(objs, THREE) # Filter for objects composed of '3's
+  largest_target_obj = argmax(target_objs, size) # Find the largest object of '3's
+  return paint(I, recolor(EIGHT, largest_target_obj)) # Replace '3' with '8' in the target object
+
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, True, False, False)` identifies connected regions of the same color in the grid `I`. 
+2. **Filter Target:** `colorfilter(objs, THREE)` isolates objects consisting only of the digit '3'.
+3. **Find Largest:** `argmax(target_objs, size)` determines the largest object from the filtered '3' objects.
+4. **Recolor and Paint:** `recolor(EIGHT, largest_target_obj)` replaces '3's with '8's in the largest object. `paint(I, ...)` then applies this change to the original grid.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  threes = ofcolor(I, THREE) # Get indices of all '3's
+  objs = objects(toobject(threes, I), True, False, False) # Find connected '3' objects
+  largest_three = argmax(objs, size) # Identify the largest '3' object
+  return fill(I, EIGHT, toindices(largest_three)) # Fill the largest '3' object with '8's
+
+```
+
+**Explanation:**
+
+1. **Locate '3's:** `ofcolor(I, THREE)` finds the indices of all cells containing the digit '3'.
+2. **Form Objects:** `toobject(threes, I)` constructs an object representation of the '3' locations. `objects(...)` then identifies connected regions within this object.
+3. **Isolate Largest:**  `argmax(objs, size)`  determines the largest connected '3' object.
+4. **Fill with '8's:** `toindices(largest_three)` retrieves the indices of the largest '3' object. `fill(I, EIGHT, ...)` then replaces the values at these indices with '8's. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = objects(I, True, False, False) # Find connected objects
+  largest_three = argmax(sfilter(objs, lambda obj: color(obj) == THREE and size(obj) > 1), size) # Find largest '3' object with size > 1
+  return branch(size(largest_three) > 0, paint(I, recolor(EIGHT, largest_three)), I) # Replace if the largest object exists
+
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, True, False, False)` identifies connected objects.
+2. **Filter and Select:**  `sfilter(...)` keeps objects that are both composed of '3's (`color(obj) == THREE`) and have a size greater than 1.  `argmax(..., size)` then selects the largest of these objects.
+3. **Conditional Replacement:** `branch(...)` checks if a valid largest '3' object was found (`size(largest_three) > 0`). If so, it replaces '3's with '8's within the object and paints it back onto the grid. Otherwise, it returns the original grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+    def replace_if_three(v, loc):
+        return (EIGHT, loc) if v == THREE else (v, loc)
+    objs = objects(I, True, False, False)
+    largest_three = argmax(sfilter(objs, lambda obj: color(obj) == THREE), size)
+    return paint(canvas(ZERO, shape(I)), frozenset(replace_if_three(v, loc) for v, loc in asobject(I) if (v, loc) in largest_three or v != THREE))
+
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** `replace_if_three(v, loc)` returns `(EIGHT, loc)` if the value `v` is `THREE`; otherwise, it returns the original `(v, loc)`.
+2. **Identify Objects:** `objects(I, True, False, False)` identifies connected objects.
+3. **Find Largest '3' Object:** `argmax(sfilter(objs, lambda obj: color(obj) == THREE), size)` finds the largest object consisting of '3's.
+4. **Iterate and Replace:** The code iterates through each cell (`v, loc`) in the grid. If the cell belongs to the largest '3' object or its value is not '3', it applies `replace_if_three` to potentially replace the value. This ensures that only '3's within the target object are changed to '8's.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  def is_three_neighbor(loc, target_obj):
+    return any((i, j) in toindices(target_obj) for i, j in dneighbors(loc))
+  objs = objects(I, True, False, False)
+  largest_three = argmax(sfilter(objs, lambda obj: color(obj) == THREE), size)
+  return paint(canvas(ZERO, shape(I)), 
+               frozenset((EIGHT if v == THREE and is_three_neighbor(loc, largest_three) else v, loc) for v, loc in asobject(I))) 
+
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** `is_three_neighbor(loc, target_obj)` checks if a given location `loc` has a directly adjacent neighbor belonging to the `target_obj`.
+2. **Identify Objects:** `objects(I, True, False, False)` identifies connected objects.
+3. **Find Largest '3' Object:**  `argmax(sfilter(objs, lambda obj: color(obj) == THREE), size)`  finds the largest object consisting of '3's.
+4. **Iterate, Check Neighbors, and Replace:** The code iterates through each cell (`v, loc`) in the grid. It replaces the value with '8' only if:
+    - The current cell value is '3' (`v == THREE`).
+    - The current cell has at least one directly adjacent neighbor that belongs to the largest '3' object (`is_three_neighbor(loc, largest_three)`). 
+This ensures that only the '3's within the intended connected object are modified. 

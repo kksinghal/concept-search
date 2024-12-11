@@ -1,0 +1,118 @@
+## Transformation Analysis:
+
+The transformation involves expanding each object (group of connected same-value cells) to the right by adding a column of '3's directly to their right.  The expansion happens only if there is space available (background color '0') to the right of the object.
+
+**Input 0:**
+
+* The two '2' objects at the top middle expand to the right, filling three columns with '3's. 
+* The '2' object in the bottom right corner expands by one column.
+* Other '2' objects remain unchanged as they are blocked by either the grid border or other objects.
+
+**Input 1:**
+
+* All '2' objects, except the one in the bottom right corner, expand to the right by one or more columns filled with '3's, depending on available space.
+* The '2' object at the bottom right corner remains unchanged as it touches the grid border.
+
+## Code Generation:
+
+### Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)  # Identify objects
+  shifted_indices = mapply(lambda obj: sfilter(shift(toindices(obj), (0, 1)), lambda loc: 0 <= loc[1] < len(I[0])), objs)  # Shift indices right, keep if within grid
+  filtered_indices = mapply(lambda indices: sfilter(indices, lambda loc: index(I, loc) == ZERO), shifted_indices)  # Filter shifted indices to keep only background cells
+  O = paint(I, merge(mapply(lambda indices: recolor(THREE, indices), filtered_indices)))  # Recolor filtered indices to 3 and paint on the grid
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies all objects in the grid.
+2. **Shift Indices Right:** For each object, `shift(toindices(obj), (0, 1))` shifts its indices one step to the right. `sfilter` ensures the shifted indices remain within the grid boundaries.
+3. **Filter Background Cells:** `sfilter(indices, lambda loc: index(I, loc) == ZERO)` filters the shifted indices, keeping only those corresponding to background cells (value 0) in the original grid.
+4. **Recolor and Paint:**  `recolor(THREE, indices)` recolors the filtered indices to '3'. These are then merged and painted onto the original grid using `paint`.
+
+### Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = partition(I)  # Partition the grid into objects based on color
+  expanded_objs = mapply(lambda obj: combine(obj, sfilter(recolor(THREE, shift(toindices(obj), (0, 1))), lambda v_loc: 0 <= v_loc[1][1] < len(I[0]) and index(I, v_loc[1]) == ZERO)), objs) # Expand each object to the right and fill with 3
+  O = paint(I, merge(expanded_objs))  # Combine expanded objects and paint onto the original grid
+  return O
+```
+
+**Explanation:**
+
+1. **Partition Grid:** `partition(I)` divides the grid into separate objects based on cell color.
+2. **Expand and Fill:** For each object, `shift(toindices(obj), (0, 1))` shifts its indices to the right. `recolor(THREE, ...)` assigns the value '3' to these shifted indices. `sfilter` filters for valid locations within the grid and where the original grid has value '0'. `combine` merges the original object with these new '3' cells.
+3. **Combine and Paint:** `merge(expanded_objs)` combines all expanded objects, and `paint` applies these changes to the original grid.
+
+### Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)  # Identify objects
+  expanded_objs = set()
+  for obj in objs:
+    expanded_obj = set(obj)  # Initialize expanded object
+    for v, (i, j) in obj:
+      if j + 1 < len(I[0]) and I[i][j + 1] == ZERO:  # Check for right boundary and background
+        expanded_obj.add((THREE, (i, j + 1)))  # Add a 3 to the right
+    expanded_objs.add(frozenset(expanded_obj)) 
+  O = paint(I, merge(expanded_objs))  # Combine and paint
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Similar to previous versions, `objects(I, T, F, F)` identifies distinct objects.
+2. **Iterative Expansion:** The code iterates through each object and its cells. If a cell has a background cell to its right (within grid boundaries), a new cell with value '3' is added to the `expanded_obj`.
+3. **Combine and Paint:**  The expanded objects are merged and painted onto the original grid.
+
+### Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    shifted_grid = shift(asobject(I), (0, 1)) # Shift all indices to the right by 1
+    filtered_cells = sfilter(shifted_grid, lambda v_loc: 0 <= v_loc[1][1] < len(I[0]) and index(I, v_loc[1]) == 0)  # Filter for valid cells with 0 in the original grid
+    recolored_cells = recolor(THREE, toindices(filtered_cells))  # Recolor the filtered cells to 3
+    O = paint(I, recolored_cells)  # Paint the recolored cells onto the original grid
+    return O
+```
+
+**Explanation:**
+
+1. **Shift Grid:** The entire grid is treated as a single object, and its indices are shifted one position to the right using `shift(asobject(I), (0, 1))`. 
+2. **Filter Valid Cells:** `sfilter` keeps only the shifted cells that fall within the grid boundaries and correspond to background cells (value 0) in the original grid.
+3. **Recolor and Paint:** The filtered cells are recolored to '3' and then painted onto the original grid.
+
+### Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, F)  # Identify the objects in the grid
+    expanded_objs = mapply(lambda obj: combine(obj, sfilter(toobject(shift(toindices(obj), (0, 1)), canvas(THREE, shape(I))), lambda cell: 0 <= cell[1][1] < len(I[0]) and index(I, cell[1]) == 0)), objs)  # Shift each object one position to the right and combine it with the original object
+    O = paint(I, merge(expanded_objs))  # Combine all objects and paint them onto the original grid
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, F)` identifies all objects within the input grid.
+2. **Shift and Combine:**  Each object's indices are shifted to the right. A canvas of '3's is created, and `toobject` extracts cells from this canvas based on the shifted indices. `sfilter` keeps only valid cells that fall within the original grid's boundaries and correspond to background cells (value 0). Finally, these '3' cells are combined with the original object.
+3. **Combine and Paint:** All expanded objects are merged and painted onto the original grid.
+
+
+Each program version uses a slightly different approach and combination of DSL functions to achieve the same outcome, demonstrating the flexibility and diversity of solutions possible within the DSL.

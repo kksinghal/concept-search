@@ -1,0 +1,157 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids seems to be **removing any "singleton" cells, meaning cells that are not directly connected to any other cell of the same color.** The remaining connected objects remain untouched. 
+
+Let's break down the transformation for each input-output pair:
+
+* **Input_0 -> Output_0:** The scattered single '7' cells are removed, leaving only the larger connected '7' object in the top-right corner.
+* **Input_1 -> Output_1:** Similar to Input_0, all isolated '6' cells are removed, leaving only the connected '6' objects intact.
+* **Input_2 -> Output_2:** The single '5' cells at the edges are removed, leaving the central connected '5' object.
+
+## Program Versions:
+
+Here are five distinct versions of the "Program_to_be_generated" using the DSL functions, each with a detailed explanation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies and removes singleton cells (cells not connected to any other cell of the same color).
+
+  Args:
+      I: Input grid.
+
+  Returns:
+      O: Output grid with singleton cells removed.
+  """
+  singletons = mfilter(objects(I, T, F, F), lambda obj: size(obj) == 1)
+  O = paint(canvas(mostcolor(I), shape(I)), toobject(difference(asindices(I), merge(singletons)), I))
+  return O
+```
+
+**Explanation:**
+
+1. **`singletons = mfilter(objects(I, T, F, F), lambda obj: size(obj) == 1)`:**  This line identifies all singleton cells. It first identifies all objects in the grid (`objects(I, T, F, F)`), then filters for objects with a size of 1 (`lambda obj: size(obj) == 1`).
+2. **`O = paint(canvas(mostcolor(I), shape(I)), toobject(difference(asindices(I), merge(singletons)), I))`:** This line constructs the output grid. It creates a blank canvas (`canvas(mostcolor(I), shape(I))`) and then paints the non-singleton cells onto it. This is achieved by finding the difference between all indices and the singleton indices (`difference(asindices(I), merge(singletons))`) and then painting the corresponding cells from the input grid onto the canvas (`toobject(..., I)`).
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Iterates through each cell and removes it if it's a singleton.
+
+  Args:
+      I: Input grid.
+
+  Returns:
+      O: Output grid with singleton cells removed.
+  """
+  O = canvas(mostcolor(I), shape(I))
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if index(I, (i,j)) != mostcolor(I) and size(extract(objects(I, T, F, F), lambda obj: contained((i,j), toindices(obj)))) == 1:
+        continue
+      else:
+        O = paint(O, {(index(I,(i,j)),(i,j))})
+  return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(mostcolor(I), shape(I))`**: Creates a blank canvas of the same size as the input, filled with the most common color.
+2. **`for i in range(height(I))`**: Iterates through each row.
+3. **`for j in range(width(I))`**: Iterates through each column in the current row.
+4. **`if index(I, (i,j)) != mostcolor(I) and size(extract(objects(I, T, F, F), lambda obj: contained((i,j), toindices(obj)))) == 1`**: Checks if the current cell is not the background color and is a singleton.
+5. **`continue`**: If the cell is a singleton, skip to the next iteration.
+6. **`else: O = paint(O, {(index(I,(i,j)),(i,j))})`**: If the cell is not a singleton, paint it onto the output canvas.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses cellwise comparison to identify and keep non-singleton cells.
+
+  Args:
+      I: Input grid.
+
+  Returns:
+      O: Output grid with singleton cells removed.
+  """
+  shifted_grids = (shift(asobject(I), d) for d in [(0,1),(1,0),(0,-1),(-1,0)])
+  merged_shifted_grid =  asgrid(merge(shifted_grids), shape(I))
+  O = cellwise(I, merged_shifted_grid, mostcolor(I))
+  return O
+
+def asgrid(obj: Object, dims: IntegerTuple) -> Grid:
+  """ Converts an object to a grid. """
+  grid = canvas(0, dims)
+  for v, (i, j) in obj:
+    grid = paint(grid, {(v, (i, j))})
+  return grid
+```
+
+**Explanation:**
+
+1. **`shifted_grids = (shift(asobject(I), d) for d in [(0,1),(1,0),(0,-1),(-1,0)])`**: Creates four shifted versions of the input grid, each shifted by one unit in a cardinal direction.
+2. **`merged_shifted_grid =  asgrid(merge(shifted_grids), shape(I))`**: Merges the shifted grids and converts the result back to a grid format. This creates a grid where each cell is filled if any of its neighbors in the original grid had the same value.
+3. **`O = cellwise(I, merged_shifted_grid, mostcolor(I))`**: Performs a cellwise comparison between the original grid and the merged shifted grid. If a cell in the original grid has the same value as in the merged shifted grid, it means it's part of a connected object and is kept. Otherwise, it's replaced with the background color.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies singleton cells by checking for differences after dilation and erosion.
+
+  Args:
+      I: Input grid.
+
+  Returns:
+      O: Output grid with singleton cells removed.
+  """
+  dilated = paint(canvas(mostcolor(I), shape(I)),  merge(apply(lambda loc: toobject(neighbors(loc), I), asindices(I))))
+  eroded = cover(I, merge(apply(lambda loc: toindices(extract(objects(I, T, F, F), lambda obj: contained(loc, toindices(obj)))), asindices(I))))
+  O = cellwise(I, cellwise(dilated, eroded, mostcolor(I)), mostcolor(I))
+  return O
+```
+
+**Explanation:**
+
+1. **`dilated = paint(canvas(mostcolor(I), shape(I)),  merge(apply(lambda loc: toobject(neighbors(loc), I), asindices(I))))`**:  This line dilates the objects in the grid. It iterates over all indices and paints the neighbors of each cell onto a blank canvas.
+2. **`eroded = cover(I, merge(apply(lambda loc: toindices(extract(objects(I, T, F, F), lambda obj: contained(loc, toindices(obj)))), asindices(I))))`**: This line erodes the objects in the grid. It iterates over all indices and removes the cell at that index if it belongs to an object.
+3. **`O = cellwise(I, cellwise(dilated, eroded, mostcolor(I)), mostcolor(I))`**: This line combines the dilated and eroded grids to identify the singleton cells. If a cell is present in the original grid but not in the intersection of the dilated and eroded grids, it is a singleton and is removed.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Recursively removes singleton cells until no more singletons exist.
+
+  Args:
+      I: Input grid.
+
+  Returns:
+      O: Output grid with singleton cells removed.
+  """
+  O = I
+  while True:
+    singletons = mfilter(objects(O, T, F, F), lambda obj: size(obj) == 1)
+    if len(singletons) == 0:
+      break
+    O = cover(O, merge(singletons))
+  return O
+```
+
+**Explanation:**
+
+1. **`O = I`**: Initializes the output grid as a copy of the input grid.
+2. **`while True:`**: Enters an infinite loop that continues until broken.
+3. **`singletons = mfilter(objects(O, T, F, F), lambda obj: size(obj) == 1)`**: Identifies all singleton cells in the current output grid.
+4. **`if len(singletons) == 0: break`**: If no singletons are found, the loop breaks.
+5. **`O = cover(O, merge(singletons))`**: If singletons are found, they are removed from the output grid, and the loop continues.
+
+These five program versions offer diverse solutions using different logic and DSL function combinations to achieve the desired transformation of removing singleton cells from the input grid.

@@ -1,0 +1,174 @@
+## Transformation Analysis:
+
+The transformation involves extending objects of a specific color (target_color = 1) leftward on the grid. The extension is done using a different color (extension_color = 8) and stops upon encountering any obstacle (any color different from the target_color and the background color, which is assumed to be 9).
+
+Here's a breakdown for each input-output pair:
+
+**Input_0 - Output_0:** 
+- The three 1-colored objects are extended leftward with color 8. 
+- The top and bottom objects extend until they hit the grid boundary. 
+- The middle object extends until it hits the 9-colored wall.
+
+**Input_1 - Output_1:**
+- Similar to Input_0, but with more objects and obstacles.
+- Note how the extension goes under the bottom-right object, indicating the extension occurs before considering object overlap.
+
+**Input_2 - Output_2:**
+- This example showcases that extension can handle objects spanning multiple rows.
+
+**Input_3 - Output_3:**
+-  Further demonstrates the extension logic with various object shapes and positions.
+
+
+## Code Generation:
+
+Here are five distinct program versions using different DSL functions to achieve the desired transformation:
+
+**Program Version 1 (Inspired by Program_B's row-wise iteration and Program_A's object identification):**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(9, shape(I)) # Initialize output grid with background color
+  objs = objects(I, True, False, True) # Get all objects in the input grid (excluding background)
+  target_color = 1
+  extension_color = 8
+  for obj in objs:
+    if color(obj) == target_color: # Only process target_color objects
+      for i in range(uppermost(obj), lowermost(obj) + 1): # Iterate through rows of the object
+        for j in range(leftmost(obj) - 1, -1, -1): # Iterate leftward from the object's left edge
+          if index(I, (i, j)) != target_color and index(I, (i,j)) != 9: # Stop at non-target and non-background colors
+            break
+          O = fill(O, extension_color, {(i, j)}) # Fill the output grid with extension_color
+        O = paint(O, obj) # Paint the original object onto the output grid 
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates an empty canvas (`O`) filled with the background color and identifies all objects (`objs`) in the input grid.
+2. **Object Iteration:** Iterates through each object (`obj`) in `objs`.
+3. **Color Check:** Checks if the current object's color matches the `target_color`.
+4. **Row Iteration:**  Iterates through each row (`i`) of the target object.
+5. **Leftward Extension:** For each row, iterates leftward from the object's left edge (`j`) and fills the output grid with `extension_color` until it hits a non-target and non-background color.
+6. **Object Painting:** After extending each row, paints the original object onto the output grid to ensure it's not overwritten. 
+
+**Program Version 2 (Utilizing `hfrontier` and `intersection` for extension area):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  target_color = 1
+  extension_color = 8
+  def extend_left(obj):
+    if color(obj) == target_color:
+      left_border = hfrontier((uppermost(obj), leftmost(obj) - 1))
+      extension_area = intersection(backdrop(obj), left_border)
+      for (i, j) in extension_area:
+        if index(I, (i, j)) != target_color and index(I, (i,j)) != 9:
+          extension_area -= {(i, k) for k in range(j, leftmost(obj))}
+          break
+      return recolor(extension_color, toobject(extension_area, I))
+    return obj
+  extended_objs = frozenset(extend_left(obj) for obj in objs)
+  O = paint(I, extended_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to version 1, identifies objects and defines target/extension colors.
+2. **`extend_left` Function:**  This function takes an object as input and extends it leftward if it's the target color.
+   - `left_border`: Calculates the left frontier of the object.
+   - `extension_area`:  Finds the intersection between the object's backdrop and the left border, representing the potential extension area.
+   - **Obstacle Check:** Iterates through the `extension_area` and stops upon encountering a non-target and non-background color. The area to the right of the obstacle is removed from `extension_area`.
+   - **Recoloring:** Recolors the final `extension_area` with the `extension_color`.
+3. **Object Extension:** Applies `extend_left` to each object in `objs`.
+4. **Painting:**  Paints the extended objects onto the original grid to generate the output.
+
+**Program Version 3 (Emphasizing row-wise processing):** 
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(9, shape(I)) 
+  h, w = shape(I)
+  target_color = 1
+  extension_color = 8
+  for i in range(h):
+    current_obj_start = None
+    for j in range(w):
+      if I[i][j] == target_color and current_obj_start is None:
+        current_obj_start = j
+      elif current_obj_start is not None and (I[i][j] != target_color and I[i][j] != 9):
+        O = fill(O, extension_color, {(i, k) for k in range(current_obj_start - 1, j)})
+        current_obj_start = None
+    if current_obj_start is not None:
+      O = fill(O, extension_color, {(i, k) for k in range(current_obj_start - 1, -1, -1)})
+  O = paint(O, asobject(I)) 
+  return O
+```
+
+ **Explanation:**
+
+1. **Initialization:** Creates a canvas and defines colors.
+2. **Row Iteration:** Iterates through each row of the input grid.
+3. **Object Tracking:** Tracks the starting column (`current_obj_start`) of potential `target_color` objects within each row.
+4. **Extension Logic:** When an obstacle is encountered (`I[i][j] != target_color and I[i][j] != 9`), fills the output grid from the previous column of the object start (`current_obj_start - 1`) to the current column (`j`) with `extension_color`.
+5. **End-of-Row Handling:**  If an object continues to the edge, extends it to the leftmost boundary.
+6. **Final Painting:** Paints the original input onto the output to preserve the target objects.
+
+
+**Program Version 4 (Leveraging object properties for targeted extension):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  target_color = 1
+  extension_color = 8
+  def extend_left(obj):
+    if color(obj) == target_color:
+      extension = frozenset((extension_color, (i, j)) for i, j in product(range(uppermost(obj), lowermost(obj) + 1), range(leftmost(obj) - 1, -1, -1)) if index(I, (i, j)) == 9)
+      return obj | extension
+    return obj
+  extended_objects = frozenset(extend_left(obj) for obj in objs)
+  O = paint(cover(I, objs), extended_objects)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:**  Similar to previous versions.
+2. **`extend_left` Function:**
+   - Uses `product` to generate all potential extension coordinates within the object's bounding box, extending leftward.
+   - Filters these coordinates using `index(I, (i, j)) == 9` to only include background cells.
+   - Combines the original object with the re-colored extension.
+3. **Object Extension:** Applies `extend_left` to all objects.
+4. **Painting and Covering:**  Covers the original objects on the grid and then paints the extended objects.
+
+**Program Version 5 (Direct grid manipulation with conditional filling):**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(9, shape(I)) 
+  h, w = shape(I)
+  target_color = 1
+  extension_color = 8
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == target_color:
+        for k in range(j - 1, -1, -1):
+          if I[i][k] != target_color and I[i][k] != 9: 
+            break
+          O[i][k] = extension_color
+  O = paint(O, asobject(I)) 
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates a canvas and defines colors.
+2. **Grid Iteration:**  Iterates through each cell of the input grid.
+3. **Target Color Check:**  If a cell contains `target_color`, initiates leftward extension.
+4. **Leftward Extension:**  Fills the corresponding cells in the output grid (`O`) with `extension_color` until a non-target, non-background color is found.
+5. **Object Preservation:**  Finally, paints the original objects from the input grid onto the output to prevent overwriting.
+
+These five program versions demonstrate distinct approaches to achieving the same grid transformation, showcasing the flexibility and diverse problem-solving capabilities within the DSL. 

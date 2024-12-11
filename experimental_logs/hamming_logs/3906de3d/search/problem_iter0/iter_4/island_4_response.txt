@@ -1,0 +1,146 @@
+## Transformation Analysis:
+
+The transformation involves identifying cells with the value '2' and moving them one cell diagonally up-right (one row up, one column right). If the diagonal movement would push the '2' out of the grid boundaries, it is not moved.
+
+**Input_0:** 
+- Three '2's at the bottom are shifted diagonally upwards.
+
+**Input_1:** 
+- Four '2's are shifted. The bottom right '2' remains in place as a diagonal shift would move it out of bounds.
+
+**Input_2:** 
+- Six '2's are shifted. The two rightmost '2's on the fourth row from the bottom remain in place to avoid going out of bounds.
+
+## Program_to_be_generated:
+
+### Version 1: Using `ofcolor` and `paint`
+
+```python
+def Program_to_be_generated(I):
+  indices_of_2 = ofcolor(I, 2)  # Get indices of all '2's
+  shifted_indices = frozenset((i-1, j+1) for i, j in indices_of_2 if i > 0 and j < width(I) - 1) # Shift valid indices
+  O = paint(cover(I, recolor(0, indices_of_2)), recolor(2, shifted_indices)) # Paint shifted '2's on a clean grid
+  return O
+```
+
+**Explanation:**
+
+1. **`indices_of_2 = ofcolor(I, 2)`**:  Identifies the locations of all '2's in the input grid `I`.
+2. **`shifted_indices = frozenset((i-1, j+1) for i, j in indices_of_2 if i > 0 and j < width(I) - 1)`**: Creates a new set of indices by shifting each '2' one row up and one column right, but only if the new location is within the grid boundaries.
+3. **`O = paint(cover(I, recolor(0, indices_of_2)), recolor(2, shifted_indices))`**: 
+   - `cover(I, recolor(0, indices_of_2))`: Creates a copy of the input grid `I` and replaces all '2's with the background color (assumed to be 0). 
+   - `recolor(2, shifted_indices)`:  Creates a new object representing the shifted '2's.
+   - `paint(...)`:  Combines the cleaned grid with the shifted '2's object, resulting in the final output grid `O`.
+
+### Version 2: Iterative Approach with Boundary Check
+
+```python
+def Program_to_be_generated(I):
+  O = [list(row) for row in I]  # Convert to list for in-place modification
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if O[i][j] == 2 and i > 0 and j < width(I) - 1:
+        O[i][j] = 0  # Remove the original '2'
+        O[i-1][j+1] = 2 # Place the '2' diagonally up-right
+  return tuple(tuple(row) for row in O)  # Convert back to tuple
+```
+
+**Explanation:**
+
+1. **`O = [list(row) for row in I]`**: Creates a mutable copy of the input grid `I` as a list of lists.
+2. **Iterate through each cell**: The nested loop iterates through every cell in the grid.
+3. **Boundary and Value Check**: For each cell, it checks if:
+    - The cell value is '2' (`O[i][j] == 2`)
+    - Shifting diagonally up-right stays within the grid bounds (`i > 0 and j < width(I) - 1`)
+4. **Shift '2'**: If both conditions are met:
+    - The original '2' is replaced with a 0 (`O[i][j] = 0`).
+    - A '2' is placed at the new location (`O[i-1][j+1] = 2`).
+5. **`return tuple(tuple(row) for row in O)`**: Converts the modified list of lists back into a tuple of tuples, representing the final output grid.
+
+### Version 3: Functional Approach with `prapply`
+
+```python
+def Program_to_be_generated(I):
+  def shift_if_2(i, j):
+    if I[i][j] == 2 and i > 0 and j < width(I) - 1:
+      return {(0, (i, j)), (2, (i-1, j+1))}  # Return a set of changes
+    else:
+      return {(I[i][j], (i, j))}  # Return the cell unchanged
+
+  changes = prapply(shift_if_2, range(height(I)), range(width(I)))
+  O = paint(canvas(0, shape(I)), merge(changes))  # Apply changes to a blank canvas
+  return O
+```
+
+**Explanation:**
+
+1. **`shift_if_2(i, j)`**: Defines a helper function that takes a cell's indices (i, j) as input. It checks if the cell contains a '2' and can be shifted diagonally up-right within the grid boundaries. 
+   - If yes, it returns a set containing two tuples: one to replace the original '2' with 0 and another to place a '2' at the new location.
+   - If no, it returns a set containing a single tuple representing the original cell unchanged.
+2. **`changes = prapply(shift_if_2, range(height(I)), range(width(I)))`**: Applies the `shift_if_2` function to every cell in the grid using `prapply`, resulting in a set of sets containing cell changes.
+3. **`O = paint(canvas(0, shape(I)), merge(changes))`**: 
+   - `canvas(0, shape(I))`: Creates a blank grid filled with 0s, matching the size of the input grid.
+   - `merge(changes)`: Combines all the cell changes from the `changes` set into a single set.
+   - `paint(...)`: Paints the combined cell changes onto the blank canvas, effectively creating the output grid `O`.
+
+### Version 4: Combining `objects` and `shift`
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, False)  # Get all objects
+  shifted_objs = frozenset()
+  for obj in objs:
+    if color(obj) == 2:
+      shifted_obj = shift(obj, (-1, 1))
+      if all(0 <= i < height(I) and 0 <= j < width(I) for _, (i, j) in shifted_obj):
+        shifted_objs = shifted_objs | {shifted_obj}  # Add if within bounds
+      else:
+        shifted_objs = shifted_objs | {obj} # Add unchanged if out of bounds
+    else:
+      shifted_objs = shifted_objs | {obj}  # Add other objects unchanged
+  O = paint(canvas(0, shape(I)), merge(shifted_objs)) # Paint on a blank canvas
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, True, False, False)`**: Extracts all connected objects from the grid, considering all values as potential objects.
+2. **Iterate through objects**: The loop iterates through each extracted object.
+3. **Shift '2' objects**: For each object:
+   - If the object's color is '2':
+     - It attempts to shift the object diagonally up-right using `shift(obj, (-1, 1))`.
+     - If the shifted object is entirely within the grid bounds, it's added to the `shifted_objs` set.
+     - If the shifted object goes out of bounds, the original object is added to `shifted_objs` instead.
+   - If the object's color is not '2', it's added to `shifted_objs` without any changes.
+4. **`O = paint(canvas(0, shape(I)), merge(shifted_objs))`**:
+   - `canvas(0, shape(I))`:  Creates a blank grid filled with 0s.
+   - `merge(shifted_objs)`: Combines all the objects in the `shifted_objs` set.
+   - `paint(...)`:  Paints the combined objects onto the blank canvas, generating the final output grid `O`.
+
+### Version 5: Utilizing `subgrid` for Boundary Checks
+
+```python
+def Program_to_be_generated(I):
+  indices_of_2 = ofcolor(I, 2)
+  shifted_indices = frozenset()
+  for i, j in indices_of_2:
+    if i > 0 and j < width(I) - 1:
+      shifted_indices = shifted_indices | {(i - 1, j + 1)}
+  O = paint(cover(I, recolor(0, indices_of_2)), recolor(2, shifted_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **`indices_of_2 = ofcolor(I, 2)`**: Finds the indices of all cells containing '2'.
+2. **Iterate through indices**: The code iterates through each `(i, j)` index in `indices_of_2`.
+3. **Shift and Check**: For each index:
+   - It checks if shifting diagonally up-right remains within the grid (`i > 0 and j < width(I) - 1`).
+   - If yes, the shifted index `(i - 1, j + 1)` is added to the `shifted_indices` set.
+4. **`O = paint(cover(I, recolor(0, indices_of_2)), recolor(2, shifted_indices))`**:
+   - `cover(I, recolor(0, indices_of_2))`: Creates a copy of the input grid `I` and replaces all '2's with the background color (assumed 0).
+   - `recolor(2, shifted_indices)`:  Creates an object with the value '2' at the new shifted locations.
+   - `paint(...)`: Combines the cleaned grid with the shifted '2' object to generate the final output grid `O`.
+
+
+These five versions provide distinct approaches to solve the problem, each demonstrating a different combination of DSL functions and logic. Each version achieves the same desired output for the given input-output pairs while adhering to the constraints of the provided DSL.

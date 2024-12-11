@@ -1,0 +1,124 @@
+## Transformation Analysis:
+
+The transformation in all examples follows a consistent pattern:
+
+* **Identify Objects:** The input grid is analyzed to identify distinct objects formed by connected cells of the same value (excluding the background color, which is the most frequent color).
+* **Recolor based on Position:** The objects are then recolored based on their position relative to a dividing line. This line appears to be the vertical center of the grid.
+  * Objects entirely to the **left** of the dividing line retain their **original color**.
+  * Objects entirely to the **right** of the dividing line are recolored to either **1** or **2**. The specific color (1 or 2) seems to depend on the input example, suggesting there might be an additional rule based on color dominance or object size. 
+
+Let's break it down for each example:
+
+**Example 0:**
+
+* Two objects are identified: one formed by '2's and another by '1's. 
+* The object of '2's is on the right side of the vertical center and is recolored to '2'. 
+* The object of '1's is on the left side and retains its original color '1'.
+
+**Example 1:**
+
+* Similar to Example 0, objects are identified and recolored based on their position relative to the vertical center.
+* The single '1' on the top right corner retains its color as it is on the right side of the center line.
+
+**Example 2:**
+
+* Same principle as the previous examples.
+* Notice that the object of '2's is split into two parts by the vertical center. The left part retains its original color '2', while the right part is recolored to '2'.
+
+## Program_to_be_generated:
+
+Based on the transformation analysis, I propose five distinct program versions using the provided DSL:
+
+**Program Version 1:** (Using `centerofmass` for object positioning)
+
+```python
+def program_v1(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  grid_center_j = centerofmass(asindices(I))[1]
+  def recolor_func(obj):
+    return color(obj) if centerofmass(obj)[1] < grid_center_j else 2
+  return paint(I, merge(apply(lambda o: recolor(recolor_func(o), toindices(o)), objs)))
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Uses `objects(I, True, False, True)` to extract objects from the input grid.
+2. **Find Vertical Center:**  Calculates the vertical center line using `centerofmass(asindices(I))[1]`.
+3. **Recolor Function:** Defines `recolor_func(obj)` to determine the new color for each object. If the object's center of mass lies to the left of the center line, it retains its original color. Otherwise, it's recolored to '2'.
+4. **Apply and Paint:** Applies the `recolor_func` to each object using `apply` and `recolor`. Finally, it paints the recolored objects back onto the input grid using `paint` and `merge`.
+
+**Program Version 2:** (Using `leftmost` and `rightmost` for comparison)
+
+```python
+def program_v2(I):
+  objs = objects(I, True, False, True)
+  grid_center_j = width(I) // 2
+  def recolor_func(obj):
+    return color(obj) if rightmost(obj) < grid_center_j else 2 
+  return paint(I, merge(apply(lambda o: recolor(recolor_func(o), toindices(o)), objs)))
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to Version 1.
+2. **Calculate Center:**  Calculates the vertical center as half the grid's width (`width(I) // 2`).
+3. **Recolor Logic:** Uses `rightmost(obj) < grid_center_j` to check if an object is entirely on the left side. If true, it keeps its original color, else it's recolored to '2'.
+4. **Apply and Paint:** Similar to Version 1. 
+
+**Program Version 3:** (Leveraging `hsplit` for direct manipulation)
+
+```python
+def program_v3(I):
+  left_half, right_half = hsplit(I, 2)
+  right_objs = objects(right_half, True, False, True)
+  recolored_right = merge(apply(lambda o: recolor(2, toindices(o)), right_objs))
+  return hconcat(left_half, paint(right_half, recolored_right))
+```
+
+**Explanation:**
+
+1. **Split Grid:** Splits the grid into two halves using `hsplit(I, 2)`.
+2. **Recolor Right Half:** Identifies objects in the right half and recolors them to '2'.
+3. **Combine Halves:** Concatenates the unchanged left half with the modified right half using `hconcat`.
+
+**Program Version 4:** (Using list comprehension for recoloring)
+
+```python
+def program_v4(I):
+  objs = objects(I, True, False, True)
+  grid_center_j = width(I) // 2
+  recolored_objs = frozenset({recolor(color(obj) if rightmost(obj) < grid_center_j else 2, toindices(obj)) for obj in objs})
+  return paint(I, merge(recolored_objs))
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as previous versions.
+2. **Calculate Center:** Same as Version 2.
+3. **Recolor with List Comprehension:** Uses a set comprehension to efficiently recolor objects based on their position relative to the center.
+4. **Paint:**  Paints the recolored objects back onto the original grid.
+
+**Program Version 5:** (Iterative approach with conditional recoloring)
+
+```python
+def program_v5(I):
+  objs = objects(I, True, False, True)
+  grid_center_j = width(I) // 2
+  recolored_objs = set()
+  for obj in objs:
+    if rightmost(obj) < grid_center_j:
+      recolored_objs.add(obj)
+    else:
+      recolored_objs.add(recolor(2, toindices(obj)))
+  return paint(I, merge(recolored_objs))
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identifies objects using the `objects` function.
+2. **Calculate Center:** Determines the vertical center of the grid.
+3. **Iterative Recoloring:** Iterates through each object. If the object is on the left side of the center, it's added to the `recolored_objs` set without modification. If it's on the right side, it's recolored to '2' before being added to the set.
+4. **Paint:** Paints the objects from the `recolored_objs` set back onto the original grid.
+
+
+These five versions utilize different logic and DSL function combinations to achieve the same transformation, demonstrating the flexibility and diversity of solutions possible within the DSL.

@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation involves identifying distinct objects within the grid and then modifying them based on their relative positions.  Here's a breakdown:
+
+* **Object Identification:** The input grids contain objects formed by connected groups of the same digit (excluding the background digit '0'). 
+* **Vertical Split:**  The transformation primarily affects objects based on their position relative to the grid's horizontal midline.  
+* **Top Object Modification:** The object residing entirely in the top half of the grid undergoes a specific modification: two vertical lines of '1's are drawn, centered within the object's width and spanning its vertical center.
+* **Bottom Object Modification:**  The object situated entirely within the bottom half undergoes a different modification: its top half is replaced by the digit '2', effectively overwriting a portion of its original shape.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Version 1**
+
+```python
+def program(I):
+  objs = objects(I, T, F, T)
+  top_obj = extract(objs, lambda obj: uppermost(obj) < len(I) // 2 and size(obj) > 3)
+  bottom_obj = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2 and size(obj) > 3)
+  
+  mid_col_top = (leftmost(top_obj) + rightmost(top_obj)) // 2
+  start_row_top = uppermost(top_obj) + height(top_obj) // 2 
+  I = fill(I, 1, connect((start_row_top, mid_col_top), (start_row_top + 1, mid_col_top)))
+  I = fill(I, 1, connect((start_row_top, mid_col_top + 1), (start_row_top + 1, mid_col_top + 1)))
+
+  I = fill(I, 2, frozenset((row, col) for row in range(uppermost(bottom_obj), uppermost(bottom_obj) + height(bottom_obj) // 2) 
+                                       for col in range(leftmost(bottom_obj), rightmost(bottom_obj) + 1)))
+  return I 
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Extract the top and bottom objects using `objects`, `extract`, `uppermost`, `len`, and `size`.
+2. **Modify Top Object:** Calculate center coordinates, draw two vertical lines of '1's using `fill` and `connect`.
+3. **Modify Bottom Object:**  Overwrite the top half with '2's using `fill` and range iterators.
+
+**Version 2**
+
+```python
+def program(I):
+  h, w = len(I), len(I[0])
+  O = canvas(0, (h, w))
+  for obj in objects(I, T, F, T):
+    color = next(iter(obj))[0]
+    if uppermost(obj) < h // 2:
+      mid_col = (leftmost(obj) + rightmost(obj)) // 2
+      start_row = uppermost(obj) + height(obj) // 2
+      O = fill(O, 1, connect((start_row, mid_col), (start_row + 1, mid_col)))
+      O = fill(O, 1, connect((start_row, mid_col + 1), (start_row + 1, mid_col + 1)))
+    else:
+      O = paint(O, recolor(2, frozenset((i, j) for i in range(uppermost(obj), uppermost(obj) + height(obj) // 2) 
+                                          for j in range(leftmost(obj), rightmost(obj) + 1))))
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Create Empty Canvas:** Initialize an empty grid (`O`) of the same dimensions as the input (`I`).
+2. **Iterate and Modify:**  Iterate through each object, determine its position, and apply the appropriate modification on the canvas.
+3. **Paint Objects:** Paint the original objects onto the modified canvas using `paint`.
+
+**Version 3**
+
+```python
+def program(I):
+  objs = objects(I, T, F, T)
+  top_obj = extract(objs, lambda obj: uppermost(obj) < len(I) // 2)
+  bottom_obj = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2)
+  
+  I = fill(I, 1, box(shift(crop(top_obj, (height(top_obj) // 2 - 1, width(top_obj) // 2 - 1), (2, 2)), 
+                              (uppermost(top_obj) + height(top_obj) // 2 - 1, leftmost(top_obj) + width(top_obj) // 2 - 1))))
+  
+  I = fill(I, 2, frozenset((i, j) for i in range(uppermost(bottom_obj), uppermost(bottom_obj) + height(bottom_obj) // 2) 
+                                   for j in range(leftmost(bottom_obj), rightmost(bottom_obj) + 1)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Modify Top Object:**  Extract a 2x2 subgrid from the top object's center using `crop`, `height`, and `width`. Shift it back to the correct position, draw a box around it using `box`, and fill with '1's using `fill`.
+3. **Modify Bottom Object:** Same as Version 1.
+
+**Version 4**
+
+```python
+def program(I):
+  objs = objects(I, T, F, T)
+  top = extract(objs, lambda obj: uppermost(obj) < len(I) // 2)
+  bottom = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2)
+
+  top_center = centerofmass(top)
+  I = fill(I, 1, frozenset({(top_center[0], top_center[1] - 1),
+                          (top_center[0], top_center[1]),
+                          (top_center[0] + 1, top_center[1] - 1),
+                          (top_center[0] + 1, top_center[1])}))
+  I = fill(I, 2, frozenset((i, j) for i in range(uppermost(bottom), centerofmass(bottom)[0] + 1)
+                                    for j in range(leftmost(bottom), rightmost(bottom) + 1)))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Modify Top Object:** Calculate the center of mass using `centerofmass` and fill the surrounding 2x2 area with '1's using `fill`.
+3. **Modify Bottom Object:**  Fill the area from the top row to the row below the center of mass with '2's using `fill` and range iterators. 
+
+**Version 5**
+
+```python
+def program(I):
+  h, w = len(I), len(I[0])
+  O = I
+  for obj in objects(I, T, F, T):
+    if uppermost(obj) < h // 2:
+      O = paint(cover(O, obj), recolor(1,  frozenset(
+          (uppermost(obj) + height(obj) // 2, (leftmost(obj) + rightmost(obj)) // 2),
+          (uppermost(obj) + height(obj) // 2, (leftmost(obj) + rightmost(obj)) // 2 + 1),
+          (uppermost(obj) + height(obj) // 2 + 1, (leftmost(obj) + rightmost(obj)) // 2),
+          (uppermost(obj) + height(obj) // 2 + 1, (leftmost(obj) + rightmost(obj)) // 2 + 1)
+      )))
+    else:
+      O = paint(cover(O, obj), recolor(2, frozenset(
+          (i, j) for i in range(uppermost(obj), uppermost(obj) + height(obj) // 2)
+                for j in range(leftmost(obj), rightmost(obj) + 1))))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Modify:** Iterate through each object in the input grid.
+2. **Top Object Modification:** For objects in the top half, clear the object from the grid using `cover`. Then, paint two vertical '1's centered within the object's original position using `paint` and `recolor`.
+3. **Bottom Object Modification:** For objects in the bottom half, follow the same logic as the top object modification but recolor the top half with '2's. 
+
+These five versions provide diverse solutions using different DSL function combinations and logic while achieving the same transformation. They are inspired by elements from Program A and Program B but modify the approach to match the required output precisely. 

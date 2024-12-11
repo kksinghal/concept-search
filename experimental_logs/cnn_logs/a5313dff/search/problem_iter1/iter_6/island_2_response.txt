@@ -1,0 +1,100 @@
+## Transformation Analysis:
+
+The transformation focuses on outlining objects within the input grid with the value '1'. However, the outlining process is conditional:
+
+* **Condition:** A cell within the object's bounding box is considered for outlining only if it has at least one, but fewer than four, direct neighbors that belong to the object. 
+* **Action:** If the condition is met, the cell's value is changed to '1', effectively creating a conditional outline.
+
+This conditional outlining results in outlines that follow the object's shape more closely, avoiding outlining cells that are deeply embedded within the object.
+
+## Program_to_be_generated:
+
+### Version 1:
+
+```python
+def program_v1(I):
+  O = I  # Initialize the output grid as a copy of the input grid.
+  for obj in objects(I, T, T, T):  # Iterate over each object in the input grid.
+    for cell in delta(toindices(obj)):  # Iterate over cells in the object's bounding box but not part of the object.
+      if 1 <= size(intersection(dneighbors(cell), toindices(obj))) < 4:  # Check if the cell has 1, 2, or 3 neighbors within the object.
+        O = fill(O, ONE, {cell})  # If the condition is met, fill the cell with the value '1'.
+  return O  # Return the modified output grid.
+```
+
+**Explanation:**
+
+This version iterates through each object's bounding box, identifying cells for outlining based on the number of direct object neighbors they have. It uses `delta` to focus on the area around the object and `intersection` and `dneighbors` to count direct object neighbors.
+
+### Version 2:
+
+```python
+def program_v2(I):
+  O = canvas(mostcolor(I), shape(I))  # Create a canvas filled with the most common color of the input grid.
+  for obj in objects(I, T, T, T):  # Iterate over each object in the input grid.
+    O = paint(O, obj)  # Paint the current object onto the canvas.
+    outline_cells = mfilter(delta(toindices(obj)), lambda cell: 1 <= size(intersection(dneighbors(cell), toindices(obj))) < 4)  # Get all outline cells.
+    O = underfill(O, ONE, outline_cells)  # Fill the outline cells on the canvas with '1' without overwriting existing objects.
+  return O  # Return the canvas as the output grid.
+```
+
+**Explanation:**
+
+Version 2 builds the output grid iteratively on a canvas. It first paints each object onto the canvas and then calculates and fills the outline cells using `underfill` to avoid overwriting. 
+
+### Version 3:
+
+```python
+def program_v3(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    potential_outline = difference(box(toindices(obj)), toindices(obj))  # Find all cells on the object's outer perimeter.
+    outline = mfilter(potential_outline, lambda cell: 1 <= size(intersection(dneighbors(cell), toindices(obj))) < 4) # Filter to valid outline cells.
+    O = underfill(O, ONE, outline) # Underfill the valid outline cells with '1'.
+  return O
+```
+
+**Explanation:**
+
+This version utilizes the `box` function to efficiently identify the outer perimeter of each object. This potentially reduces the number of cells considered for outlining compared to iterating over the entire bounding box.
+
+### Version 4:
+
+```python
+def program_v4(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    shifted_objects = apply(lambda d: shift(obj, d), (UP, DOWN, LEFT, RIGHT))  # Generate shifted versions of the object.
+    outline = set()
+    for s in shifted_objects:
+      outline = outline.union(intersection(toindices(obj), toindices(s)))  # Find cells shared between the original and shifted objects.
+    filtered_outline = mfilter(outline, lambda cell: 1 <= size(intersection(neighbors(cell), toindices(obj))) < 4) # Filter for valid outline cells.
+    O = underfill(O, ONE, filtered_outline)  # Underfill the valid outline cells with '1'.
+  return O
+```
+
+**Explanation:**
+
+Version 4 employs a different approach by generating shifted copies of the object in each cardinal direction. Overlapping cells between the original and shifted objects represent potential outline cells. These are then filtered based on the neighbor condition and underfilled.
+
+### Version 5:
+
+```python
+def program_v5(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    outline = set()
+    for cell in delta(toindices(obj)):
+      adjacent_cells = dneighbors(cell)
+      object_count = sum(1 for c in adjacent_cells if c in toindices(obj))  # Count object cells in direct neighborhood.
+      if 1 <= object_count < 4:
+        outline.add(cell)
+    O = underfill(O, ONE, outline)
+  return O
+```
+
+**Explanation:**
+
+This version directly counts the number of object cells adjacent to each potential outline cell. It iterates through the object's delta and, for each cell, checks its direct neighbors for object membership. If the count satisfies the condition, the cell is added to the outline. 
+
+
+All five versions achieve the same conditional outlining transformation but utilize different strategies and DSL functions. This demonstrates diverse ways to solve the same problem within the constraints of the DSL.

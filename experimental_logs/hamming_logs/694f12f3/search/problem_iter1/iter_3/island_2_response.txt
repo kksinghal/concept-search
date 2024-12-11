@@ -1,0 +1,170 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the grid and recoloring a specific portion of each object based on its position. Let's break it down for each example:
+
+**Input 0:** 
+
+* **Top Object:** The '4' object in the top half. Two central columns of this object are replaced with the color '1'.
+* **Bottom Object:** The '4' object in the bottom half. Two central columns of this object are replaced with the color '2'.
+
+**Input 1:** 
+
+* **Top Object:** The '4' object in the top half. Two central columns of this object are replaced with the color '2'.
+* **Bottom Object:** The '4' object in the bottom half. Two central columns of this object are replaced with the color '1'.
+
+**Generalization:**
+
+The transformation consistently targets the two largest objects in the grid and recolors their central columns. The colors used for replacement alternate between '1' and '2' for the top and bottom objects in each example.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    top_obj = extract(objs, lambda obj: uppermost(obj) < len(I) // 2)
+    bottom_obj = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2)
+
+    def recolor_center(obj, color):
+      leftmost_j = leftmost(obj)
+      rightmost_j = rightmost(obj)
+      middle_j = (leftmost_j + rightmost_j) // 2
+      return frozenset(
+          (color, (i, j)) if j in [middle_j, middle_j + width(obj) % 2 - 1] else (v, (i, j)) 
+          for v, (i, j) in obj
+      )
+
+    modified_top_obj = recolor_center(top_obj, 1)
+    modified_bottom_obj = recolor_center(bottom_obj, 2)
+    O = paint(paint(canvas(0, shape(I)), modified_top_obj), modified_bottom_obj)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Uses `objects(I, T, F, T)` to identify distinct objects in the grid.
+2. **Extract Top and Bottom Objects:** Identifies the top and bottom objects using `extract` and their vertical position relative to the grid's middle row.
+3. **Recolor Center Function:** Defines a function `recolor_center` to replace the color of the two central columns of an object.
+4. **Apply Recoloring:** Applies `recolor_center` to both top and bottom objects with colors '1' and '2' respectively.
+5. **Construct Output:** Paints the modified objects onto a blank canvas of the same shape as the input.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    objs = order(objs, lambda obj: -size(obj)) # Sort by size in descending order
+
+    def recolor_middle_strip(obj, color):
+      start_j = leftmost(obj) + (width(obj) // 2) - 1
+      end_j = start_j + 2 - (width(obj) % 2)  
+      return frozenset(
+          (color, (i, j)) if j in range(start_j, end_j) else (v, (i, j)) 
+          for v, (i, j) in obj
+      )
+
+    modified_objs = (
+        recolor_middle_strip(objs[0], 1), 
+        recolor_middle_strip(objs[1], 2)
+    )
+    O = paint(canvas(0, shape(I)), merge(modified_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify and Sort Objects:**  Identifies objects and sorts them based on size in descending order.
+2. **Recolor Middle Strip Function:** Defines `recolor_middle_strip` to replace the color of a vertical strip in the middle of the object.
+3. **Apply Recoloring:** Applies `recolor_middle_strip` to the two largest objects (now the first two in `objs`) with '1' and '2' colors.
+4. **Construct Output:** Paints the modified objects onto a blank canvas.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def modify_object(obj, color):
+    j_center = (leftmost(obj) + rightmost(obj)) // 2
+    return frozenset((color, (i, j)) if abs(j - j_center) <= width(obj) % 2 else (v, (i, j)) for v, (i, j) in obj)
+
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, lambda obj: (lowermost(obj) < len(I) // 2, size(obj)))
+  bottom_obj = argmax(objs, lambda obj: (uppermost(obj) >= len(I) // 2, size(obj)))
+
+  O = paint(
+      paint(canvas(0, shape(I)), modify_object(top_obj, 1)), 
+      modify_object(bottom_obj, 2)
+  )
+  return O
+```
+
+**Explanation:**
+
+1. **Modify Object Function:** Defines a function `modify_object` that recolors the central column of an object. If the object's width is even, it recolors two central columns.
+2. **Identify Objects:**  Identifies objects in the grid.
+3. **Find Largest Top and Bottom Objects:** Uses `argmax` to find the largest object whose lowermost row is in the top half and the largest object whose uppermost row is in the bottom half. 
+4. **Apply Modification:** Applies `modify_object` to the identified top and bottom objects.
+5. **Construct Output:**  Paints the modified objects onto a blank canvas.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_columns(obj, color, num_columns):
+    j_center = (leftmost(obj) + rightmost(obj)) // 2
+    start_j = j_center - num_columns // 2
+    end_j = start_j + num_columns
+    return frozenset((color, (i, j)) if j in range(start_j, end_j) else (v, (i, j)) for v, (i, j) in obj)
+
+  objs = objects(I, T, F, T)
+  top_obj = extract(objs, lambda obj: uppermost(obj) < len(I) // 2 and size(obj) > 1)
+  bottom_obj = extract(objs, lambda obj: uppermost(obj) >= len(I) // 2 and size(obj) > 1)
+  
+  O = paint(
+      paint(canvas(0, shape(I)), recolor_columns(top_obj, 1, 2 - width(top_obj) % 2)), 
+      recolor_columns(bottom_obj, 2, 2 - width(bottom_obj) % 2)
+  )
+  return O
+```
+
+**Explanation:**
+
+1. **Recolor Columns Function:** Defines a function `recolor_columns` that takes an object, color, and number of columns as input and recolors those many central columns of the object.
+2. **Identify Large Objects:** Identifies the large object (size > 1) present in the top half and bottom half of the grid using `extract`.
+3. **Apply Recoloring:**  Applies `recolor_columns` to the identified objects with appropriate colors and number of columns to be recolored (1 or 2 depending on the parity of the object's width).
+4. **Construct Output:** Paints the modified objects onto a blank canvas.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  def paint_strip(grid, obj, color, column_offset, column_count):
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      for j in range(leftmost(obj) + column_offset, leftmost(obj) + column_offset + column_count):
+        if (i, j) in toindices(obj):
+          grid = fill(grid, color, {(i, j)})
+    return grid
+
+  objs = sorted(objects(I, T, F, T), key=lambda obj: -size(obj))
+  O = canvas(0, shape(I))
+  O = paint_strip(O, objs[0], 1, width(objs[0]) // 2 - 1, 2 - width(objs[0]) % 2)
+  O = paint_strip(O, objs[1], 2, width(objs[1]) // 2 - 1, 2 - width(objs[1]) % 2)
+  return O
+```
+
+**Explanation:**
+
+1. **Paint Strip Function:** Defines a function `paint_strip` to paint a vertical strip of a specified color within an object on the grid.
+2. **Identify and Sort Objects:** Identifies objects and sorts them by size in descending order.
+3. **Construct Output:** Initializes an empty canvas. Iterates through the two largest objects and applies `paint_strip` to color the central column(s) with alternating colors '1' and '2'.
+
+These five versions utilize different combinations of DSL functions, showcasing diverse approaches to achieve the same transformation. Each version strategically identifies the target objects and applies the recoloring logic to specific columns, effectively implementing the observed pattern in the input-output examples.

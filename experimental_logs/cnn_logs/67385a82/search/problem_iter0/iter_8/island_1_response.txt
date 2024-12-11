@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation focuses on recoloring the digit '3' to '8' under specific conditions:
+
+* **Condition 1 (From Program_B):**  '3's in the top half of the grid are always recolored to '8'. 
+* **Condition 2 (Newly Observed):** '3's directly connected to the edge of the grid are recolored to '8'. This connection can be direct (touching an edge cell) or indirect (connected to a '3' touching an edge cell).
+
+**Let's illustrate with Input_2:**
+
+```
+Input_2:      Output_2:     Explanation:
+3 3 0 3      8 8 0 3     - Top row '3's become '8'.
+3 3 0 0      8 8 0 0     - Second row '3's become '8' (top half).
+3 0 0 3      8 0 0 8     - Bottom row '3's become '8' (connected to edge).
+0 0 3 3      0 0 8 8     - Rightmost '3's become '8' (connected to edge).
+```
+
+## Program Versions:
+
+Here are five distinct program versions incorporating the identified transformation logic.
+
+**Program Version 1 (Flood Fill Approach):**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2  # Height of the top half
+  top = tuple(tuple(8 if v == 3 else v for v in r) for r in I[:h]) # Recolor top half
+
+  def flood_fill(grid, i, j):
+    if i < 0 or i >= len(grid) or j < 0 or j >= len(grid[0]) or grid[i][j] != 3:
+      return
+    grid[i][j] = 8
+    flood_fill(grid, i+1, j)
+    flood_fill(grid, i-1, j)
+    flood_fill(grid, i, j+1)
+    flood_fill(grid, i, j-1)
+
+  bottom = list(list(row) for row in I[h:]) # Convert bottom to mutable list
+  for i in range(len(bottom)):
+    for j in range(len(bottom[0])):
+      if i == 0 or i == len(bottom)-1 or j == 0 or j == len(bottom[0])-1: 
+        flood_fill(bottom, i, j) # Start flood fill from edge '3's
+
+  return top + tuple(tuple(row) for row in bottom) # Combine top and bottom
+```
+
+**Explanation:**
+
+1. **Recolor Top Half:**  Uses the logic from Program_B to recolor '3's in the top half.
+2. **Flood Fill:**  Implements a recursive flood fill algorithm:
+    - Iterates through edge cells of the bottom half.
+    - If an edge cell is '3', it recursively recolors connected '3's to '8'.
+3. **Combine:** Concatenates the modified top and bottom halves.
+
+**Program Version 2 (Direct and Indirect Edge Detection):**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  top = tuple(tuple(8 if v == 3 else v for v in r) for r in I[:h]) 
+
+  def is_edge_connected(grid, i, j):
+    if i == 0 or i == len(grid)-1 or j == 0 or j == len(grid[0])-1:
+      return True
+    if grid[i][j] != 3:
+      return False
+    return (i > 0 and is_edge_connected(grid, i-1, j)) or \
+           (i < len(grid)-1 and is_edge_connected(grid, i+1, j)) or \
+           (j > 0 and is_edge_connected(grid, i, j-1)) or \
+           (j < len(grid[0])-1 and is_edge_connected(grid, i, j+1))
+
+  bottom = tuple(tuple(8 if is_edge_connected(I[h:], i, j) else I[h+i][j] for j in range(len(I[0]))) for i in range(len(I[h:])))
+  return top + bottom 
+```
+
+**Explanation:**
+
+1. **Recolor Top Half:**  Same as Version 1.
+2. **Edge Connection Check:** Defines `is_edge_connected` to recursively check if a '3' is connected to an edge:
+    - Base case: Returns `True` if cell is on the edge and contains '3'.
+    - Recursive case: Checks if neighboring cells are '3' and connected to the edge.
+3. **Apply Recoloring:**  Recolors '3's in the bottom half if they are connected to the edge.
+
+**Program Version 3 (Object-Based Approach):**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  top = tuple(tuple(8 if v == 3 else v for v in r) for r in I[:h]) 
+
+  objs = objects(I[h:], T, F, F) # Get connected objects in the bottom half
+  def recolor_edge(obj):
+    if color(obj) != 3:
+      return obj
+    return frozenset(((8 if any((i == 0 or i == len(I[h:])-1 or j == 0 or j == len(I[0])-1) for _, (i, j) in obj) else 3, (i, j)) for v, (i, j) in obj))
+  return top + tuple(tuple(v if (i, j) not in merge(mapply(recolor_edge, objs)) else 8 for j, v in enumerate(r)) for i, r in enumerate(I[h:]))
+```
+**Explanation:**
+1. **Recolor Top Half:** Uses the logic from Program_B to recolor '3's in the top half.
+2. **Identify Objects in Bottom Half:** The `objects` function is used to identify connected regions of the same color in the bottom half of the grid (`I[h:]`). The arguments `T, F, F` specify that objects should be univalued (all cells have the same value), not connected diagonally, and include the background.
+3. **Recolor Edge Objects:** 
+    - The `recolor_edge` function is defined to process each object in the bottom half.
+    - If the object's color is not 3, it is returned unchanged.
+    - If the object's color is 3, it checks if any cell in the object is located on an edge of the grid. If an edge cell is found, all cells in the object are recolored to 8; otherwise, the object remains unchanged.
+4. **Paint Back and Combine:** The `paint` function is used to combine the recolored objects with the original grid. It iterates through the bottom half of the grid, replacing the value at each index with 8 if that index is present in any of the recolored objects. Finally, the modified top half is concatenated with the modified bottom half to produce the final output grid.
+
+**Program Version 4 (Set Operations with Indices):**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2
+  top = tuple(tuple(8 if v == 3 else v for v in r) for r in I[:h])
+
+  edge_indices = (
+      frozenset((0, j) for j in range(len(I[0]))) |
+      frozenset((len(I[h:])-1, j) for j in range(len(I[0]))) |
+      frozenset((i, 0) for i in range(len(I[h:]))) |
+      frozenset((i, len(I[0])-1) for i in range(len(I[h:])))
+  )
+  threes = frozenset((i, j) for i, r in enumerate(I[h:]) for j, v in enumerate(r) if v == 3)
+  connected_to_edge = threes.intersection(edge_indices)
+  bottom = tuple(tuple(8 if (i,j) in connected_to_edge else I[h+i][j] for j in range(len(I[0]))) for i in range(len(I[h:])))
+  return top + bottom
+```
+
+**Explanation:**
+
+1. **Recolor Top Half:**  Same as previous versions.
+2. **Calculate Edge Indices:** Determines the indices of all edge cells in the bottom half.
+3. **Find '3' Indices:**  Identifies indices of all '3's in the bottom half.
+4. **Intersection for Connected Cells:**  Finds the intersection of edge indices and '3' indices, representing '3's directly on the edge.
+5. **Recolor Based on Intersection:** Recolors cells in the bottom half if their index is present in the intersection set.
+
+**Program Version 5 (Combined Condition in Single Loop):**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I) // 2  
+  return tuple(
+      tuple(
+          8 if (v == 3 and (i < h or i == len(I)-1 or j == 0 or j == len(I[0])-1)) else v 
+          for j, v in enumerate(r)
+      ) 
+      for i, r in enumerate(I)
+  )
+```
+
+**Explanation:**
+
+1. **Single Loop:** Iterates through all cells in the grid.
+2. **Combined Condition:**  Applies a single condition for recoloring:
+    - `v == 3`: Checks if the cell value is '3'.
+    - `i < h`:  Checks if the cell is in the top half.
+    - `i == len(I)-1 or j == 0 or j == len(I[0])-1`: Checks if the cell is on the grid edge.
+3. **Recolor:** Recolors the cell to '8' if all conditions are met.
+
+## Code Extraction:
+
+You can easily copy and paste the code for each "Program_to_be_generated" version from the formatted blocks above. 

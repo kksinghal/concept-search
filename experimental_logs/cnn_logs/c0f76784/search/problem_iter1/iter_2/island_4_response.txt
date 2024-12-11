@@ -1,0 +1,132 @@
+## Transformation Analysis:
+
+The transformation focuses on objects with color '5' and applies the following rules:
+
+1. **Outline with '8':** The outer boundary (delta) of each '5'-colored object is replaced with '8'.
+2. **Inner Fill Based on Shape:** 
+    - **Tall Objects:** If the object is taller than wide, a vertical '7'-colored line is drawn in the center, leaving a one-cell border on all sides.
+    - **Wide Objects:** If the object is wider than tall (or square), a horizontal '7'-colored line is drawn in the center row, leaving a one-cell border on the top, bottom, and right sides.
+
+
+## Program_to_be_generated:
+
+**Version 1**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, F)
+  O = I
+  for obj in objs:
+    if color(obj) == 5:
+      O = fill(O, 8, delta(obj))
+      if height(obj) > width(obj):
+        O = fill(O, 7, crop(O, add(ulcorner(obj), (1, 1)), (height(obj) - 2, 1)))
+      else:
+        center_row = uppermost(obj) + height(obj) // 2
+        O = fill(O, 7, crop(O, (center_row, leftmost(obj) + 1), (1, width(obj) - 2)))
+  return O
+```
+
+**Explanation:**
+
+- Identifies objects using `objects(I, T, F, F)`.
+- Filters for objects with color '5' using `color(obj) == 5`.
+- Outlines the object with '8' using `fill(O, 8, delta(obj))`.
+- Determines object shape using `height(obj) > width(obj)`.
+  - For tall objects, fills a vertical line with '7' using `fill` and `crop` targeting a single column centered horizontally.
+  - For wide objects, fills a horizontal line with '7' using `fill` and `crop` targeting the center row.
+
+**Version 2**
+
+```python
+def program_v2(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == 5:
+        if any(I[k][l] != 5 for k, l in neighbors((i, j))):
+          O = fill(O, 8, ((i, j),))
+        elif i > 0 and I[i-1][j] == 5 and ((j > 0 and I[i][j-1] == 5) or (j < len(I[0])-1 and I[i][j+1] == 5)):
+          O = fill(O, 7, ((i, j),))
+        elif j > 0 and I[i][j-1] == 5 and ((i > 0 and I[i-1][j] == 5) or (i < len(I)-1 and I[i+1][j] == 5)):
+          O = fill(O, 7, ((i, j),))
+  return O
+```
+
+**Explanation:**
+
+- Iterates through each cell of the input grid.
+- Checks if the cell value is '5'.
+- If it's on the boundary of the object (has non-'5' neighbors), it's filled with '8'.
+- Checks for '7' fill condition: If the current cell has at least one horizontal and one vertical '5' neighbor, it's filled with '7'.
+
+**Version 3**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, F)
+  O = fill(I, 8, merge(apply(delta, colorfilter(objs, 5))))
+  for obj in colorfilter(objs, 5):
+    if height(obj) > width(obj):
+      start = (uppermost(obj) + 1, leftmost(obj) + 1)
+      O = fill(O, 7, crop(O, start, (height(obj) - 2, 1)))
+    else:
+      center_row = uppermost(obj) + height(obj) // 2
+      start = (center_row, leftmost(obj) + 1)
+      O = fill(O, 7, crop(O, start, (1, width(obj) - 2)))
+  return O
+```
+
+**Explanation:**
+
+- Identifies objects and filters for '5'-colored ones.
+- Fills the outline of all '5'-colored objects with '8' in one go using `fill`, `merge`, and `apply`.
+- Proceeds with inner fill logic as in Version 1.
+
+**Version 4**
+
+```python
+def program_v4(I):
+  O = I
+  for obj in objects(I, T, F, F):
+    if color(obj) == 5:
+      O = paint(fill(O, 8, delta(obj)), recolor(7, sfilter(toindices(obj), lambda loc:
+          (height(obj) > width(obj) and loc[1] == leftmost(obj) + width(obj) // 2) or
+          (height(obj) <= width(obj) and loc[0] == uppermost(obj) + height(obj) // 2)
+      )))
+  return O
+```
+
+**Explanation:**
+
+- Iterates through each object.
+- For '5'-colored objects:
+  - Outlines with '8' using `fill` and `delta`.
+  - Filters object indices to find the center vertical or horizontal line depending on the object's shape.
+  - Recolors the filtered indices to '7' and paints them back onto the grid.
+
+**Version 5**
+
+```python
+def program_v5(I):
+  O = I
+  objs = objects(I, T, F, F)
+  for obj in objs:
+    if color(obj) == 5:
+      O = fill(O, 8, delta(obj))
+      if portrait(obj):
+        O = fill(O, 7, connect((uppermost(obj) + 1, leftmost(obj) + width(obj) // 2),
+                              (lowermost(obj) - 1, leftmost(obj) + width(obj) // 2)))
+      else:
+        O = fill(O, 7, connect((uppermost(obj) + height(obj) // 2, leftmost(obj) + 1),
+                              (uppermost(obj) + height(obj) // 2, rightmost(obj) - 1)))
+  return O
+```
+
+**Explanation:**
+
+- Similar to previous versions, it outlines '5'-colored objects with '8'.
+- Uses the `portrait` function to determine if the object is taller than wide.
+- Utilizes the `connect` function to draw a line for inner fill:
+  - For tall objects: Draws a vertical line connecting the top and bottom center points.
+  - For wide objects: Draws a horizontal line connecting the left and right center points. 

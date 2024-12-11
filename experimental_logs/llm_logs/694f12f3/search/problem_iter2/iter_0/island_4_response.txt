@@ -1,0 +1,110 @@
+## Transformation Analysis:
+
+The transformation takes a grid with objects of a certain color (1 in both examples) and applies the following rules:
+
+1. **Recoloring:** The object color is changed to a new color (4 in both examples).
+2. **Framing:** A frame of a different color (2 in both examples) is added around the recolored object, but only if there's enough space within the original object boundaries.
+3. **Inner Fill:** If the original object has empty space (color 0) surrounded by the object color (originally 1), it's filled with the frame color (2 in both examples).
+
+**Example Breakdown:**
+
+**Input_0:** 
+- The object of color 1 is recolored to 4.
+- A frame of color 2 is added, leaving the top-left corner cell of the object as color 4.
+
+**Input_1:**
+- The object of color 1 is recolored to 4.
+- A frame of color 2 is added, filling most of the object except a single cell in the bottom row that remains as color 4.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  obj = first(objects(I, T, F, T))
+  O = paint(fill(I, 2, inbox(obj)), recolor(4, obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the object:** `objects(I, T, F, T)` finds all connected objects in the input grid `I`. `first()` takes the first object found (assuming there's only one).
+2. **Create the frame:** `inbox(obj)` finds the indices inside the object's bounding box. `fill(I, 2, inbox(obj))` fills those indices with color 2, creating the frame.
+3. **Recolor the object:** `recolor(4, obj)` changes the color of the original object to 4.
+4. **Combine frame and recolored object:** `paint()` paints the recolored object on top of the grid with the frame.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  obj = first(objects(I, T, F, T))
+  framed = apply(lambda loc: (2, loc) if loc in inbox(obj) else (4, loc), obj)
+  O = paint(I, frozenset(framed))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the object:** Same as Version 1.
+2. **Prepare object with frame:** `apply()` iterates through the object cells. For each cell `loc`:
+    - If it's inside the object's bounding box (`inbox(obj)`), it becomes color 2 (frame).
+    - Otherwise, it becomes color 4 (recolored object).
+3. **Paint on the grid:** Similar to Version 1, paint the modified object onto the input grid.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  obj = toindices(first(objects(I, T, F, T)))
+  O = fill(fill(I, 4, obj), 2, obj - corners(obj))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the object and get its indices:** Similar to Version 1, but `toindices()` extracts only the indices of object cells.
+2. **Recolor the object:** `fill(I, 4, obj)` fills the object indices with color 4.
+3. **Create the frame:**  `corners(obj)` finds the corner indices of the object. `obj - corners(obj)` removes those corners, leaving only the frame indices. Finally, `fill()` fills these indices with color 2.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  obj = first(objects(I, T, F, T))
+  recolored = recolor(4, obj)
+  frame = sfilter(lambda loc: index(I, add(loc, (1, 1))) == 1 and index(I, add(loc, (-1, -1))) == 1, inbox(obj))
+  O = paint(paint(I, recolored), recolor(2, frame))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify and recolor the object:** Same as Version 3.
+2. **Find frame indices:** `sfilter()` filters the indices within the object's bounding box (`inbox(obj)`). An index is kept if the cells diagonally adjacent to it (top-left and bottom-right) were originally part of the object (color 1).
+3. **Paint frame and object:** The frame is painted first, followed by the recolored object on top.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  obj = toindices(first(objects(I, T, F, T)))
+  inner = sfilter(lambda loc: all(n in obj for n in dneighbors(loc)), obj)
+  O = fill(fill(I, 2, obj - inner), 4, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify the object and get its indices:** Same as Version 3.
+2. **Find inner indices:** `sfilter()` filters the object indices. An index is kept if all its directly adjacent neighbors are also part of the object. This identifies the "empty space" surrounded by the object.
+3. **Paint frame and object:** The frame (`obj - inner`) is filled with color 2 first, followed by filling the entire object with color 4, which overrides the frame color where the object is present. 

@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation applied in all the examples appears to be as follows:
+
+**General Rule:** 
+The program identifies all distinct objects in the input grid and re-paints them onto the output canvas. The placement of each object in the output is determined by its original uppermost row index, maintaining the relative vertical order from the input. This means objects higher up in the input grid will also be higher up in the output grid.
+
+**Example Breakdowns:**
+
+* **Input_0:** The '2' object (uppermost row 2) is placed above the '8' object (uppermost row 10) in the output, preserving their input order.
+* **Input_1:**  Similar to Input_0, the '2' object (uppermost row 1) is kept above the '8' object (uppermost row 5) in the output.
+* **Input_2:**  Again, the '8' object (uppermost row 1) maintains its position above the '2' object (uppermost row 6) in the output.
+
+## Code Generation:
+
+Here are five distinct program versions achieving the transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+    objs = sorted(objects(I, True, False, True), key=lambda x: uppermost(x)) # Sort objects by their top row
+    h, w = shape(I) 
+    O = canvas(mostcolor(I), (h, w)) # Create an empty canvas
+    used_height = 0 # Track filled height
+    for obj in objs:
+        obj_height = height(obj)
+        O = paint(crop(O, (used_height, 0), (obj_height, w)), shift(obj, (used_height - uppermost(obj), 0))) 
+        used_height += obj_height
+    return O
+```
+
+**Explanation:**
+
+1. **Identify and Sort Objects:** Extract objects from the input grid (`objects`), sort them based on their uppermost row (`sorted`, `uppermost`).
+2. **Initialize Canvas:** Create an empty output grid (`canvas`) with the same dimensions as the input (`shape`).
+3. **Iterate and Place Objects:** Loop through the sorted objects, calculating the appropriate vertical offset (`used_height`) for each object based on the already placed objects. Paint each object onto the canvas using `paint`, `crop`, and `shift` to position them correctly.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, True, False, True)
+    h, w = shape(I)
+    O = canvas(mostcolor(I), (h, w))
+    used_heights = {j: 0 for j in range(w)} 
+    for obj in sorted(objs, key=lambda x: uppermost(x)):
+        leftmost_j = leftmost(obj)
+        O = paint(crop(O, (used_heights[leftmost_j], leftmost_j), (height(obj), 1)), shift(obj, (used_heights[leftmost_j] - uppermost(obj), 0)))
+        used_heights[leftmost_j] += height(obj)
+    return O
+```
+
+**Explanation:**
+
+1. **Object Extraction and Canvas Initialization:** Similar to Version 1, extract objects and create an empty output grid.
+2. **Column-wise Height Tracking:**  Instead of tracking filled height globally, maintain a dictionary `used_heights` to store the used height for each column.
+3. **Place Objects Based on Column:** When placing an object, determine its leftmost column (`leftmost`) and use the corresponding `used_heights` value to calculate the vertical offset.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    objs = sorted(objects(I, True, False, True), key=lambda x: uppermost(x))
+    h, w = shape(I)
+    O = canvas(mostcolor(I), (h, w))
+    for i, obj in enumerate(objs):
+        O = vconcat(crop(O, (0, 0), (sum(height(o) for o in objs[:i]), w)), 
+                    paint(crop(O, (sum(height(o) for o in objs[:i]), 0), (height(obj), w)), obj))
+    return O
+```
+
+**Explanation:**
+
+1. **Object Sorting and Canvas Creation:** Similar to previous versions.
+2. **Pre-calculate Cumulative Heights:** Before painting, calculate the total height occupied by all objects preceding the current object. 
+3. **Vertical Concatenation:** Use `vconcat` to combine the already filled portion of the output grid (from the top) with the current object, painted at the calculated offset.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = sorted(objects(I, True, False, True), key=lambda x: uppermost(x))
+  h, w = shape(I)
+  O = canvas(mostcolor(I), (h, w))
+  current_height = 0
+  for obj in objs:
+    O = underpaint(crop(O, (current_height, 0), (height(obj), w)), shift(obj, (current_height - uppermost(obj), 0)))
+    current_height += height(obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Preparation:** Similar to Version 1.
+2. **Painting Objects:**  This version utilizes `underpaint` instead of `paint`. `underpaint` only paints onto the canvas where the current value is the background color, effectively preventing overwriting previously placed objects. 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, True, False, True)
+    h, w = shape(I)
+    O = canvas(mostcolor(I), (h, w))
+    for obj in objs:
+        target_top = uppermost(obj)  # Target top row for placement
+        O = paint(crop(O, (target_top, 0), (height(obj), w)), shift(obj, (target_top - uppermost(obj), 0))) 
+    return O
+```
+
+**Explanation:**
+
+1. **Direct Placement:** This version simplifies the logic by directly calculating the target top row (`target_top`) for each object based on its uppermost row in the input. 
+2. **Simplified Iteration:** It iterates through the objects without pre-sorting, relying on `paint` and `crop` for correct placement without tracking the used height.
+
+
+These five versions demonstrate distinct approaches to achieve the same transformation, showcasing the flexibility and diverse capabilities of the DSL. 

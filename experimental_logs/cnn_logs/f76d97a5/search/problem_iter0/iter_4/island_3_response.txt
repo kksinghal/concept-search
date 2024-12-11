@@ -1,0 +1,168 @@
+## Transformation Analysis:
+
+The transformation focuses on isolating the central connected component of each color in the input grid, essentially removing any 'branches' or protrusions. 
+
+* **Input_0:** The central 'cross' of 5s is maintained, while the outlying 4s are replaced with 0s.
+* **Input_1:** A similar pattern emerges with the 6s forming a central connected component, and the outlying 5s are replaced. 
+* **Input_2:**  The 9s, initially forming a 'C' shape, are reduced to their central connected component.
+
+## Code Generation:
+
+### Program Version 1:
+
+```python
+def solve_41e4d17e(I):
+  objs = partition(I)  # Separate objects by color
+  transformed_objs = set()
+  for obj in objs:
+    center_cell = centerofmass(obj)  # Find approximate center of the object
+    connected_component = initset((color(obj), center_cell))  # Start with center cell
+    cands = dneighbors(center_cell) & toindices(obj)  # Directly adjacent cells of the same color
+    while cands:
+      new_cands = set()
+      for cand in cands:
+        connected_component = insert((color(obj), cand), connected_component)
+        new_cands |= dneighbors(cand) & toindices(obj) - connected_component  # Explore new neighbors
+      cands = new_cands
+    transformed_objs.add(connected_component)  # Add the connected component to the result
+  O = paint(canvas(0, shape(I)), merge(transformed_objs))  # Paint the result onto a blank canvas
+  return O
+```
+
+**Explanation:**
+
+1. **Partition:** Separates the input grid into objects based on color.
+2. **Iterate through Objects:**  For each object (color group):
+   -  **Find Center:**  Calculates the approximate center of the object.
+   -  **Connected Component:**  Initializes a set to store the connected component, starting with the center cell.
+   -  **Expand Outward:** Iteratively explores directly adjacent cells of the same color, adding them to the connected component.
+3. **Paint Result:** Merges all the connected components and paints them onto a blank canvas of the same size as the input.
+
+### Program Version 2:
+
+```python
+def solve_41e4d17e(I):
+  objs = partition(I)
+  O = canvas(0, shape(I))
+  for obj in objs:
+    center_cell = centerofmass(obj)
+    visited = initset(center_cell)
+    queue = [center_cell] 
+    while queue:
+      curr = queue.pop(0)
+      for neighbor in dneighbors(curr) & toindices(obj):
+        if neighbor not in visited:
+          visited = insert(neighbor, visited)
+          queue.append(neighbor)
+    O = paint(O, recolor(color(obj), visited))
+  return O
+```
+
+**Explanation:**
+
+This version utilizes Breadth-First Search (BFS) to find the central connected components.
+
+1. **Initialization:**  Like before, it partitions the grid into objects. A blank canvas (`O`) is created.
+2. **BFS Iteration:** For each color object:
+    - **Center and Queue:** The center of mass is the starting point. A queue and a 'visited' set are initialized.
+    - **Queue Processing:** While the queue is not empty:
+        - Dequeue a cell (`curr`).
+        - For each unvisited neighbor of the same color:
+            - Mark as visited.
+            - Enqueue the neighbor for further exploration.
+3. **Paint Connected Component:** After processing the queue, the 'visited' set represents the connected component. It's recolored and painted onto the canvas. 
+
+### Program Version 3:
+
+```python
+def solve_41e4d17e(I):
+  O = canvas(0, shape(I))
+  for value in palette(I):  # Iterate through each color in the grid
+    obj = frozenset((value, (i, j)) for i, r in enumerate(I) for j, v in enumerate(r) if v == value)
+    center_cell = centerofmass(obj)
+    O = underpaint(O, recolor(value, grow(center_cell, obj)))
+  return O
+
+def grow(cell, obj):
+  visited = initset(cell)
+  queue = [cell]
+  while queue:
+    curr = queue.pop(0)
+    for neighbor in dneighbors(curr) & toindices(obj):
+      if neighbor not in visited:
+        visited = insert(neighbor, visited)
+        queue.append(neighbor)
+  return visited
+```
+
+**Explanation:**
+
+This version introduces a separate `grow` function to improve readability. It performs a very similar BFS approach as Version 2.
+
+1. **Canvas and Iteration:** Creates a blank canvas and iterates through each color in the input grid.
+2. **Object and Growth:**  Constructs the object for the current color and finds its center. The `grow` function is called to find the connected component starting from the center.
+3. **Underpaint:** The resulting connected component is recolored and underpainted onto the canvas.
+
+
+### Program Version 4: 
+
+```python
+def solve_41e4d17e(I):
+  O = I  # Modify the input grid directly
+  for value in palette(I):
+    obj = frozenset((value, (i, j)) for i, r in enumerate(I) for j, v in enumerate(r) if v == value)
+    center_cell = centerofmass(obj)
+    connected = grow(center_cell, obj)
+    O = fill(O, 0, toindices(obj) - connected)  # Fill the non-connected parts with 0s
+  return O
+
+def grow(cell, obj):
+  visited = initset(cell)
+  queue = [cell]
+  while queue:
+    curr = queue.pop(0)
+    for neighbor in dneighbors(curr) & toindices(obj):
+      if neighbor not in visited:
+        visited = insert(neighbor, visited)
+        queue.append(neighbor)
+  return visited
+```
+
+**Explanation:**
+
+Version 4 modifies the input grid directly instead of creating a new canvas.
+
+1. **Direct Modification:**  The input grid `I` is assigned to `O`, which will be modified.
+2. **Iterate and Fill:** It iterates through colors, finds the connected component, and fills the difference between the original object and its connected component with 0s.
+
+### Program Version 5: 
+
+```python
+def solve_41e4d17e(I):
+  objs = partition(I)
+  O = canvas(0, shape(I))
+  for obj in objs:
+    if len(obj) == 1:  # Single-cell objects remain unchanged
+      O = paint(O, obj)
+      continue
+    center_cell = centerofmass(obj)
+    connected = set()
+    explore_connected(center_cell, obj, connected)  # Recursive exploration
+    O = paint(O, recolor(color(obj), frozenset(connected)))
+  return O
+
+def explore_connected(cell, obj, connected):
+  connected.add(cell)
+  for neighbor in dneighbors(cell) & toindices(obj):
+    if neighbor not in connected:
+      explore_connected(neighbor, obj, connected)
+```
+
+**Explanation:**
+
+Version 5 uses a recursive function (`explore_connected`) to find the connected component, offering an alternative to the iterative BFS approach.
+
+1. **Handle Single Cells:** Directly paints single-cell objects onto the canvas.
+2. **Recursive Exploration:**  Calls the `explore_connected` function to recursively explore neighbors of the same color and build the connected component. 
+
+These five versions demonstrate different approaches to finding and isolating the central connected components in the input grids, using various DSL functions and control flow mechanisms.

@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves aligning objects of specific colors (3 and 7) along different edges of the grid, while leaving other objects untouched. 
+
+* **Color 3 objects:** These objects are moved vertically to align with the top edge of the grid.
+* **Color 7 objects:** These objects are moved vertically to align with the bottom edge of the grid.
+* **Other objects:**  These objects remain in their original positions. 
+
+## Program to be Generated:
+
+**Version 1:** (Using `valmax` and `valmin`)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  threes = colorfilter(objs, 3)
+  sevens = colorfilter(objs, 7)
+  other_objs = difference(objs, threes | sevens)
+  top_row = valmax(threes, uppermost) if threes else 0
+  bottom_row = valmin(sevens, lowermost) if sevens else height(I) - 1 
+  shifted_threes = apply(lambda obj: shift(obj, (top_row - uppermost(obj), 0)), threes)
+  shifted_sevens = apply(lambda obj: shift(obj, (bottom_row - lowermost(obj), 0)), sevens)
+  merged_objs = shifted_threes | shifted_sevens | other_objs
+  O = paint(cover(I, objs), merged_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects and colors:**  Identify all objects, color 3 objects, and color 7 objects.
+2. **Find target rows:**  Determine the top row for color 3 alignment (using `valmax` on `uppermost`) and the bottom row for color 7 alignment (using `valmin` on `lowermost`).
+3. **Shift objects:** Shift color 3 objects vertically to align with the top row and color 7 objects to align with the bottom row.
+4. **Merge and paint:** Merge the shifted objects with the untouched objects and paint them onto a blank canvas.
+
+**Version 2:** (Using `extract` and conditional shifting)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  threes = colorfilter(objs, 3)
+  sevens = colorfilter(objs, 7)
+  other_objs = difference(objs, threes | sevens)
+  shifted_threes = threes
+  shifted_sevens = sevens
+  if threes:
+    target_three = extract(threes, lambda obj: uppermost(obj) == valmax(threes, uppermost))
+    shifted_threes = apply(lambda obj: shift(obj, (uppermost(target_three) - uppermost(obj), 0)), threes)
+  if sevens:
+    target_seven = extract(sevens, lambda obj: lowermost(obj) == valmin(sevens, lowermost))
+    shifted_sevens = apply(lambda obj: shift(obj, (lowermost(target_seven) - lowermost(obj), 0)), sevens)
+  merged_objs = shifted_threes | shifted_sevens | other_objs
+  O = paint(cover(I, objs), merged_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects and colors:** Same as Version 1.
+2. **Conditional shifting:**  Shift color 3 and 7 objects only if they exist in the input.
+3. **Find target objects:** Use `extract` to find the uppermost color 3 object and lowermost color 7 object.
+4. **Shift objects:** Similar to Version 1, but shifting is based on the target object's position.
+
+**Version 3:** (Using helper function)
+
+```python
+def Program_to_be_generated(I):
+  def align_to_edge(objs, color, edge_func):
+    target_row = edge_func(objs, lambda obj: edge_func(obj))
+    return apply(lambda obj: shift(obj, (target_row - edge_func(obj), 0)), objs)
+
+  objs = objects(I, T, F, T)
+  threes = align_to_edge(colorfilter(objs, 3), 3, uppermost)
+  sevens = align_to_edge(colorfilter(objs, 7), 7, lowermost)
+  other_objs = difference(objs, threes | sevens)
+  merged_objs = threes | sevens | other_objs
+  O = paint(cover(I, objs), merged_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Helper function:** Defines a function `align_to_edge` to abstract the alignment logic.
+2. **Identify objects and align:**  Identifies objects and aligns color 3 objects to the top and color 7 objects to the bottom using the helper function.
+
+**Version 4:** (Using loops and conditions)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  shifted_objs = set()
+  top_three_row, bottom_seven_row = None, None
+  for obj in objs:
+    if color(obj) == 3 and (top_three_row is None or uppermost(obj) < top_three_row):
+      top_three_row = uppermost(obj)
+    if color(obj) == 7 and (bottom_seven_row is None or lowermost(obj) > bottom_seven_row):
+      bottom_seven_row = lowermost(obj)
+  for obj in objs:
+    if color(obj) == 3 and top_three_row is not None:
+      shifted_objs.add(shift(obj, (top_three_row - uppermost(obj), 0)))
+    elif color(obj) == 7 and bottom_seven_row is not None:
+      shifted_objs.add(shift(obj, (bottom_seven_row - lowermost(obj), 0)))
+    else:
+      shifted_objs.add(obj)
+  O = paint(cover(I, objs), frozenset(shifted_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects:** Identify all objects.
+2. **Find target rows:** Iterate through objects to find the topmost row for color 3 and bottommost row for color 7.
+3. **Shift and collect:**  Iterate again, shifting objects based on their color and the calculated target rows.
+
+**Version 5:** (Using list comprehensions)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  threes = [obj for obj in objs if color(obj) == 3]
+  sevens = [obj for obj in objs if color(obj) == 7]
+  top_row = uppermost(min(threes, key=uppermost)) if threes else 0
+  bottom_row = lowermost(max(sevens, key=lowermost)) if sevens else height(I) - 1
+  shifted_objs = [shift(obj, (top_row - uppermost(obj), 0)) if color(obj) == 3
+                   else shift(obj, (bottom_row - lowermost(obj), 0)) if color(obj) == 7
+                   else obj for obj in objs]
+  O = paint(cover(I, objs), frozenset(shifted_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects:** Identify all objects, color 3 objects, and color 7 objects.
+2. **Find target rows:**  Use list comprehensions and `min/max` with custom keys to find the target rows.
+3. **Shift and collect:**  Use a list comprehension to conditionally shift objects based on their color.
+
+
+This explanation and the five program versions should fulfill the requirements outlined in the prompt. Each version utilizes different DSL functions and logic while achieving the same transformation.

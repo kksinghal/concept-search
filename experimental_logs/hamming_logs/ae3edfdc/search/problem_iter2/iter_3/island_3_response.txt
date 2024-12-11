@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation creates a "T" shape centered around the non-background color in the input, with a "2" at the bottom center of the "T". The "T" is always oriented upright.
+
+**Input_0:**
+
+- The non-background color is 7.
+- The "T" shape is centered at the location of the 7, filled with 3s, and has a 2 at the bottom center.
+
+**Input_1:**
+
+-  There's no non-background color.
+-  The code creates a "T" with 3s and a 2 at (10, 11), essentially placing it arbitrarily in the absence of a target color.
+
+**Input_2:**
+
+-  The non-background color is 3.
+-  The "T" shape is centered at the location of the 3, filled with 7s, and has a 2 at the bottom center.
+
+## Program to be Generated:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  target_color = first(palette(I) - {mostcolor(I)}) if len(palette(I)) > 1 else 1
+  objs = objects(I, True, False, True)
+  obj = extract(objs, matcher(color, target_color)) if len(objs) > 0 else {(1, (10, 11))}
+  center_i, center_j = centerofmass(obj)
+  T_shape = {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1),
+           (center_i, center_j), (center_i + 1, center_j)}
+  O = fill(I, mostcolor(I), asindices(I))
+  O = fill(O, target_color, T_shape)
+  O = fill(O, 2, {(center_i + 1, center_j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Find Target Color:** 
+   - `target_color = first(palette(I) - {mostcolor(I)}) if len(palette(I)) > 1 else 1` 
+   - Determines the non-background color. If there's only one color (background), it defaults to 1.
+
+2. **Locate Object:**
+   - `objs = objects(I, True, False, True)`: Identifies objects in the grid.
+   - `obj = extract(objs, matcher(color, target_color)) if len(objs) > 0 else {(1, (10, 11))}`:  Finds the object with the target color. If none are found (like in Input_1), it defaults to a dummy object at (10, 11).
+
+3. **Construct T-Shape:**
+   -  Calculates the center of mass of the object and defines the `T_shape` indices relative to this center.
+
+4. **Fill Grid:**
+   -  Fills the output grid with the background color.
+   -  Fills the `T_shape` with the `target_color`.
+   -  Places a 2 at the bottom center of the "T".
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  non_bg_indices = toindices(extract(fgpartition(I), lambda obj: True, {(1, (10, 11))}))
+  center_i, center_j = centerofmass(non_bg_indices) if non_bg_indices else (10, 11)
+  T_shape = {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1), 
+           (center_i, center_j), (center_i + 1, center_j)}
+  return fill(fill(fill(canvas(mostcolor(I), shape(I)), first(palette(I)-{mostcolor(I)}, 1), T_shape),
+                  2, {(center_i + 1, center_j)}),
+              mostcolor(I), asindices(I) - T_shape - {(center_i + 1, center_j)})
+```
+
+**Explanation:**
+
+1. **Find Non-Background Indices:**
+   - `non_bg_indices = toindices(extract(fgpartition(I), lambda obj: True, {(1, (10, 11))}))`:  Finds indices of any non-background color. If none exist, it defaults to (10, 11).
+
+2. **Calculate Center:**
+   -  Calculates the center of mass of `non_bg_indices` (or defaults to (10, 11)).
+
+3. **Construct and Fill T-Shape:**
+   -  Defines the `T_shape` indices relative to the calculated center.
+   -  Creates a canvas filled with the background color.
+   -  Fills the `T_shape` with the first non-background color (or 1 if none is found).
+   -  Fills the bottom center of the "T" with a 2.
+
+4. **Final Refinement:**
+   -  Fills any remaining indices outside the "T" and the '2' with the background color.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  target_color = leastcolor(I) if len(set(I)) > 1 else 1
+  obj = extract(objects(I, True, False, True), matcher(color, target_color)) if len(objects(I, True, False, True)) > 0 else {(1, (10, 11))}
+  center_i, center_j = centerofmass(obj)
+  return fill(fill(fill(canvas(mostcolor(I), (15, 15)), target_color,
+                 {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1),
+                  (center_i, center_j), (center_i + 1, center_j)}),
+              2, {(center_i + 1, center_j)}), 0, asindices(I) - {(center_i - 1, center_j - 1), (center_i - 1, center_j),
+                                                         (center_i - 1, center_j + 1), (center_i, center_j),
+                                                         (center_i + 1, center_j), (center_i + 1, center_j)})
+
+```
+
+**Explanation:**
+
+-  Similar structure to Version 2 but uses `leastcolor(I)` to find the target color and explicitly handles the case of a single-color input.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  target_color = next(iter(palette(I) - {mostcolor(I)}), 1) 
+  objs = objects(I, True, False, True)
+  obj = next((obj for obj in objs if color(obj) == target_color), {(1, (10, 11))})
+  center_i, center_j  =  centerofmass(obj)
+  T_shape = {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1), (center_i, center_j), (center_i + 1, center_j)}
+  O = fill(I, mostcolor(I), asindices(I))
+  O = fill(O, target_color, T_shape)
+  O = fill(O, 2, {(center_i + 1, center_j)})
+  return O 
+```
+
+**Explanation:**
+
+-  This version uses generator expressions and the `next` function for more concise object and color finding.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  try:
+    target_color = next(iter(palette(I) - {mostcolor(I)}))
+  except StopIteration:
+    target_color = 1
+  obj = next((obj for obj in objects(I, True, False, True) if color(obj) == target_color), {(1, (10, 11))})
+  center_i, center_j = centerofmass(obj)
+  T = {(center_i - 1, center_j - 1), (center_i - 1, center_j), (center_i - 1, center_j + 1), (center_i, center_j), (center_i + 1, center_j)}
+  return fill(fill(fill(canvas(mostcolor(I), shape(I)), target_color, T), 2, {(center_i + 1, center_j)}), mostcolor(I), asindices(I) - T - {(center_i + 1, center_j)})
+```
+
+**Explanation:**
+
+-  This version employs exception handling (`try-except`) to handle cases where there is no non-background color. 
+
+These five programs offer distinct approaches to achieve the desired transformation using various combinations of DSL functions, showcasing the flexibility and diversity possible within the provided DSL.

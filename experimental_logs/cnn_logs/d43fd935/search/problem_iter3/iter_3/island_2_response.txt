@@ -1,0 +1,126 @@
+## Transformation Analysis:
+
+The transformation in all three examples follows a consistent logic:
+
+**General Logic:**
+
+1. **Identify Non-Background Objects:** The transformation focuses on objects formed by digits other than the most frequent digit (background color).
+2. **Vertical Compression:** Each object is compressed vertically towards its uppermost cell, effectively removing any internal empty rows within the object.
+3. **Horizontal Compression:**  Each object is then compressed horizontally towards its leftmost cell, removing any internal empty columns.
+
+**Example Breakdown:**
+
+* **Input 0:** The '1' objects, '3' object, and '6' objects all get compressed both vertically and horizontally. 
+* **Input 1:** Similar to Input 0, all non-background objects are compressed. Notice how the '8' object at the top right, despite being diagonally connected, is treated as a single object and compressed accordingly.
+* **Input 2:**  This example demonstrates that even if an object is split into multiple parts (like the '1's), each part is compressed individually towards its own extreme.
+
+## Program Versions:
+
+Here are five distinct program versions utilizing the provided DSL to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, True, False, True):
+    color = color(obj)
+    uppermost_row = uppermost(obj)
+    leftmost_col = leftmost(obj)
+    for i, j in toindices(obj):
+      I = paint(cover(I, {(color, (i, j))}), {(color, (uppermost_row + i - uppermost({(i, j)}), leftmost_col))})
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Through Objects:** The code iterates through each distinct object in the input grid.
+2. **Find Extremes:** For each object, it identifies the uppermost row and leftmost column.
+3. **Shift and Paint:** Every cell of the object is then moved to a new position. The new row is determined by maintaining the cell's relative distance from the object's uppermost row. The new column is simply the object's leftmost column, effectively compressing it horizontally.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  for color in palette(I) - {mostcommon(I)}:
+    for j in range(width(I)):
+      connected_cells = set()
+      for i in range(height(I)):
+        if I[i][j] == color:
+          connected_cells.add((i, j))
+      if len(connected_cells) > 0:
+        target_row = uppermost(connected_cells)
+        for i, _ in sorted(connected_cells):
+          I = paint(cover(I, {(color, (i, j))}), {(color, (target_row, j))})
+          target_row += 1
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Colors and Columns:** This version iterates through each non-background color and then each column of the grid.
+2. **Identify Connected Cells:** It finds all cells of the current color within the current column.
+3. **Vertical Compression:**  These cells are then moved to consecutive rows starting from the uppermost row of the connected group, achieving vertical compression.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  for color in palette(I) - {mostcommon(I)}:
+    for i in range(height(I)):
+      connected_cells = set()
+      for j in range(width(I)):
+        if I[i][j] == color:
+          connected_cells.add((i, j))
+      if len(connected_cells) > 0:
+        target_col = leftmost(connected_cells)
+        for _, j in sorted(connected_cells):
+          I = paint(cover(I, {(color, (i, j))}), {(color, (i, target_col))})
+          target_col += 1
+  return I
+```
+
+**Explanation:**
+
+This version mirrors Version 2 but focuses on horizontal compression. It iterates through rows instead of columns and compresses objects horizontally towards the leftmost column. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, True, False, True):
+    h = height(obj)
+    w = width(obj)
+    compressed_obj = frozenset({(color(obj), (i, j)) for i in range(h) for j in range(w) if (i, j) in toindices(normalize(obj))})
+    I = paint(cover(I, obj), shift(compressed_obj, ulcorner(obj)))
+  return I
+```
+
+**Explanation:**
+
+1. **Object-wise Compression:** This version directly creates a compressed version of each object.
+2. **Normalization:** It normalizes the object, bringing its upper-left corner to (0,0), making it easier to create the compressed form.
+3. **Reconstruction:** The compressed object is then shifted back to the original object's position and painted onto the grid. 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = extract(objects(I, True, False, True), lambda o: color(o) == color)
+    new_obj = frozenset()
+    for i in range(height(obj)):
+      row = {(v, (i, j)) for v, (i, j) in obj if i == uppermost(obj) + i}
+      if len(row) > 0:
+        for j in range(width(row)):
+          new_obj = new_obj | {(color, (i, leftmost(obj) + j))}
+    I = paint(cover(I, obj), new_obj)
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Colors:**  Iterates through each non-background color.
+2. **Extract and Compress:** Extracts the object of the current color, compresses it by iterating through its potential rows and columns, adding cells to the new object only if they are part of the original object.
+3. **Paint:** Replaces the original object with the compressed version.
+
+These five program versions showcase distinct approaches to achieving the desired transformation using the provided DSL. Each version offers a different perspective on solving the problem while adhering to the constraints of the DSL functions. 

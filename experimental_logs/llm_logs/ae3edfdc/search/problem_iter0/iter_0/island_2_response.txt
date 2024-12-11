@@ -1,0 +1,183 @@
+## Transformation Analysis:
+
+The transformation focuses on specific objects within the grid and performs a consistent manipulation:
+
+* **Target Objects:** Objects composed of digits `1`, `2`, and `3`.
+* **Transformation:** The target objects are horizontally centered around the digit `2` while maintaining their original spatial relationships. 
+* **Background Handling:** The background (digit `0`) and other digits remain unchanged.
+
+Let's illustrate with an example from Input_2:
+
+**Input_2:**
+
+```
+0 0 0 0 0 0 3 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 7 0 0 0 0 0 0 0 0 1 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 2 0 0 0 0 0 0 0 3 
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 3 0 0 0 7 0 0 0 0
+```
+
+**Output_2:**
+
+```
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 7 1 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 7 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 3 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 2 3 0 0 0 0 0 0 0
+0 0 0 0 0 0 3 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+```
+
+The object `3 2 3`  is horizontally centered around the digit `2`.
+
+## Program_to_be_generated:
+
+
+### Program Version 1:
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  target_objs = colorfilter(objs, 2) | colorfilter(objs, 3) | colorfilter(objs, 1)
+  other_objs = difference(objs, target_objs)
+  merged_target = merge(target_objs)
+  center_j = centerofmass(merged_target)[1]
+  center_offset = (0, len(I[0])//2 - center_j)
+  shifted_target = shift(merged_target, center_offset)
+  O = paint(paint(canvas(0, shape(I)), shifted_target), merge(other_objs))
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Extract all objects from the input grid (`objs`).
+2. **Filter Target Objects:** Isolate objects containing digits 1, 2, and 3 (`target_objs`).
+3. **Isolate Other Objects:** Separate objects not containing the target digits (`other_objs`).
+4. **Merge Target Objects:** Combine all target objects into a single patch (`merged_target`).
+5. **Calculate Center and Offset:** Determine the horizontal center of the merged object and calculate the offset to center it on the grid (`center_j`, `center_offset`).
+6. **Shift Target Objects:** Apply the calculated offset to horizontally center the merged target object (`shifted_target`).
+7. **Construct Output:** Create an empty canvas, paint the shifted target object, then paint the other objects on top, preserving their original positions (`O`). 
+
+### Program Version 2:
+
+```python
+def solve(I):
+  target_indices = ofcolor(I, 1) | ofcolor(I, 2) | ofcolor(I, 3)
+  min_j = leftmost(target_indices) 
+  max_j = rightmost(target_indices)
+  center_j = (min_j + max_j) // 2
+  offset = (0, len(I[0])//2 - center_j)
+  shifted_target = shift(target_indices, offset)
+  O = fill(I, 0, target_indices)
+  O = fill(O, 1, {(i, j) for i, j in shifted_target if 0 <= j < len(I[0])})
+  O = fill(O, 2, {(i, j) for i, j in shifted_target if 0 <= j < len(I[0]) and I[i][j - offset[1]] == 2})
+  O = fill(O, 3, {(i, j) for i, j in shifted_target if 0 <= j < len(I[0]) and I[i][j - offset[1]] == 3})
+  return O
+```
+
+**Explanation:**
+
+1. **Find Target Indices:** Identify indices of cells containing digits 1, 2, or 3 (`target_indices`).
+2. **Calculate Center and Offset:** Determine the leftmost and rightmost column indices of the target area and calculate the offset to center it (`min_j`, `max_j`, `center_j`, `offset`).
+3. **Shift Target Indices:** Apply the calculated offset to horizontally center the target indices (`shifted_target`).
+4. **Construct Output:**
+   - Create a copy of the input grid and clear the target area by filling with 0s (`O`).
+   - Fill the centered area with 1s, ensuring indices remain within grid bounds.
+   - Fill the centered area with 2s where the original input had 2s, accounting for the offset.
+   - Fill the centered area with 3s where the original input had 3s, accounting for the offset.
+
+### Program Version 3:
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  def is_target(obj): return any(v in {1, 2, 3} for v, _ in obj)
+  target_obj = extract(objs, is_target)
+  other_objs = difference(objs, {target_obj})
+  center_j = (leftmost(target_obj) + rightmost(target_obj)) // 2
+  offset = (0, len(I[0])//2 - center_j)
+  shifted_target = shift(target_obj, offset)
+  O = paint(paint(canvas(0, shape(I)), shifted_target), merge(other_objs))
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Extract all objects from the input grid (`objs`).
+2. **Find Target Object:**  Identify the object containing digits 1, 2, or 3 (`target_obj`).
+3. **Isolate Other Objects:** Separate objects not matching the target object (`other_objs`).
+4. **Calculate Center and Offset:** Determine the horizontal center of the target object and calculate the offset to center it (`center_j`, `offset`).
+5. **Shift Target Object:** Apply the calculated offset to horizontally center the target object (`shifted_target`).
+6. **Construct Output:** Create an empty canvas, paint the shifted target object, then paint the other objects on top, preserving their original positions (`O`). 
+
+### Program Version 4:
+
+```python
+def solve(I):
+  target_cells = {(i, j) for i, row in enumerate(I) for j, v in enumerate(row) if v in {1, 2, 3}}
+  min_j, max_j = min(j for _, j in target_cells), max(j for _, j in target_cells)
+  center_j = (min_j + max_j) // 2
+  offset = len(I[0]) // 2 - center_j 
+  new_grid = list(list(row) for row in I)
+  for i, j in target_cells:
+    new_j = j + offset
+    if 0 <= new_j < len(I[0]):
+      new_grid[i][new_j] = I[i][j]
+    new_grid[i][j] = 0 
+  return tuple(tuple(row) for row in new_grid)
+```
+
+**Explanation:**
+
+1. **Identify Target Cells:**  Find coordinates of all cells containing 1, 2, or 3 (`target_cells`).
+2. **Calculate Center and Offset:** Determine the leftmost and rightmost column indices of the target area and calculate the offset to center it (`min_j`, `max_j`, `center_j`, `offset`).
+3. **Create New Grid:**  Make a mutable copy of the input grid (`new_grid`).
+4. **Shift Target Cells:**  Iterate through `target_cells`, calculate the new column index (`new_j`) based on the offset, and move the digit to the new location in `new_grid`. Clear the original cell by setting it to 0. 
+5. **Return Grid:** Return the modified `new_grid` as a tuple of tuples.
+
+### Program Version 5:
+
+```python
+def solve(I):
+  def process_row(row):
+    target_values = [v for v in row if v in {1, 2, 3}]
+    center_index = (len(row) - 1) // 2  
+    new_row = [0] * len(row)
+    start_index = center_index - (len(target_values) // 2)
+    for i, v in enumerate(target_values):
+      new_row[start_index + i] = v
+    return tuple(new_row)
+  return tuple(process_row(row) for row in I)
+```
+
+**Explanation:**
+
+1. **Define `process_row` Function:** This function takes a single row from the grid as input and centers the target values (1, 2, 3) within that row.
+2. **Process Each Row:** The main function iterates through each row of the input grid (`I`) and applies the `process_row` function to it.
+3. **Center Target Values in Row:** 
+    - Extract the target values (1, 2, 3) from the row.
+    - Calculate the center index of the row.
+    - Create a new row filled with zeros.
+    - Determine the starting index to place the target values so they're centered.
+    - Place the target values in the new row. 
+4. **Return Modified Grid:** The main function returns a new grid constructed from the centered rows. 

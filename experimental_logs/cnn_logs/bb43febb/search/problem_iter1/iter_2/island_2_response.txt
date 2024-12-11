@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation involves identifying the largest object (excluding the background) in the input grid and then changing the color of a specific band within that object to the value '2'. 
+
+* **Horizontal Object:** If the object is wider than it is tall, the band consists of the second and third rows of the object.
+* **Vertical Object:** If the object is taller than it is wide, the band consists of the second and third columns of the object.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  start = add(ulcorner(obj), (ONE, ONE) if width(obj) > height(obj) else (ZERO, ONE))
+  dims = (TWO, width(obj) - TWO) if width(obj) > height(obj) else (height(obj) - TWO, TWO)
+  return fill(I, TWO, toindices(crop(I, start, dims))) 
+```
+
+**Explanation:**
+
+1. **Identify the largest object:** `obj = argmax(objects(I, T, F, T), size)` finds the largest object in the input grid `I` excluding the background.
+2. **Calculate starting point and dimensions of the band:**
+   - `start = add(ulcorner(obj), (ONE, ONE) if width(obj) > height(obj) else (ZERO, ONE))` determines the upper-left corner of the band based on object orientation. It adds (1,1) for wider objects and (0,1) for taller objects to the object's upper-left corner.
+   - `dims = (TWO, width(obj) - TWO) if width(obj) > height(obj) else (height(obj) - TWO, TWO)` sets the dimensions of the band as (2, width-2) for wider objects and (height-2, 2) for taller objects.
+3. **Fill the band with '2':** `return fill(I, TWO, toindices(crop(I, start, dims)))` fills the specified band with the value '2' using `fill` function.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  if width(obj) > height(obj):
+    band = frozenset((i, j) for i, j in toindices(obj) if uppermost(obj) + ONE <= i <= uppermost(obj) + TWO)
+  else:
+    band = frozenset((i, j) for i, j in toindices(obj) if leftmost(obj) + ONE <= j <= leftmost(obj) + TWO)
+  return fill(I, TWO, band)
+```
+
+**Explanation:**
+
+1. **Identify the largest object:** Same as version 1.
+2. **Define the band:** 
+   - This version directly defines the `band` as a set of indices belonging to the object.
+   - For wider objects, it includes indices where the row number is the second and third row of the object. 
+   - For taller objects, it includes indices where the column number is the second and third column of the object.
+3. **Fill the band with '2':** Same as version 1.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  if width(obj) > height(obj):
+    I = vconcat(
+        I[:uppermost(obj) + ONE],
+        fill(I[uppermost(obj) + ONE:uppermost(obj) + THREE], TWO, asindices(I[uppermost(obj) + ONE:uppermost(obj) + THREE])),
+        I[uppermost(obj) + THREE:]
+    )
+  else:
+    I = hconcat(
+        [r[:leftmost(obj) + ONE] for r in I],
+        [[TWO if leftmost(obj) + ONE <= j <= leftmost(obj) + TWO else v for j, v in enumerate(r)] for r in I],
+        [r[leftmost(obj) + THREE:] for r in I]
+    )
+  return I
+```
+
+**Explanation:**
+
+1. **Identify the largest object:** Same as version 1.
+2. **Slice and fill:**
+    - This version slices the grid horizontally or vertically based on object orientation.
+    - For wider objects, it fills the second and third rows of the object with '2'.
+    - For taller objects, it iterates through each row and fills the second and third columns of the object with '2'.
+3. **Reconstruct the grid:** The sliced parts are concatenated back together to form the output grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  orientation = 'horizontal' if width(obj) > height(obj) else 'vertical'
+  band = (slice(uppermost(obj) + ONE, uppermost(obj) + THREE), slice(None)) if orientation == 'horizontal' else (slice(None), slice(leftmost(obj) + ONE, leftmost(obj) + THREE))
+  return fill(I, TWO, toindices(crop(I, (band[0].start, band[1].start), (band[0].stop - band[0].start, band[1].stop - band[1].start))))
+```
+
+**Explanation:**
+
+1. **Identify the largest object:** Same as version 1.
+2. **Determine orientation:** Determine whether the object is wider than it is tall, storing the result in `orientation`.
+3. **Create slices:** Create slice objects representing the rows and columns to be filled based on `orientation`.
+4. **Fill the band:** Extract the start and stop indices from the slices to define the band's location and dimensions, then use the `fill` function to replace the values with '2'.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  obj = argmax(objects(I, T, F, T), size)
+  shifted_obj = shift(obj, (-ONE, -ONE) if width(obj) > height(obj) else (-ONE, ZERO))
+  band = intersection(toindices(shifted_obj), toindices(shift(shifted_obj, (TWO, ZERO) if width(obj) > height(obj) else (ZERO, TWO))))
+  return fill(I, TWO, band)
+```
+
+**Explanation:**
+
+1. **Identify the largest object:** Same as version 1.
+2. **Shift the object:** Shift the object one unit up and either one unit left (for wider objects) or zero units left (for taller objects) using the `shift` function.
+3. **Find the band:** Find the intersection of the shifted object and a second shifted object, offset by two units either down (for wider objects) or right (for taller objects). This intersection represents the desired band.
+4. **Fill the band with '2':** Same as version 1.
+
+Each version of the code utilizes different DSL functions and logic to achieve the same outcome, highlighting the flexibility and power of the provided DSL. 

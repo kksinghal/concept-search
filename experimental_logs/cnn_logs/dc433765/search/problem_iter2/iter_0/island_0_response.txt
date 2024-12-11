@@ -1,0 +1,140 @@
+## Transformation Analysis:
+
+The transformation taking place in the input-output pairs can be described as follows:
+
+1. **Identify Non-Zero Objects:** The transformation focuses on the digits in the input grid that are not the most frequent digit (assumed to be the background).
+2. **Separate Objects:** Each unique non-zero digit in the input grid is treated as a distinct object.
+3. **Vertical Repositioning:** Each object is repositioned vertically within its original column. The exact repositioning logic depends on the object's initial position and the grid dimensions but generally seems to involve moving the object towards the center. 
+4. **Maintain Relative Horizontal Positioning:** The objects maintain their relative horizontal positions from the input to the output grid.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, True, False, True)
+  new_objs = frozenset()
+  for obj in objs:
+    c = color(obj)
+    i, j = centerofmass(obj)
+    h = height(I)
+    new_i = h // 2 - (height(obj) // 2) if h % 2 == len(obj) % 2 else h // 2 - (height(obj) // 2) - (1 if i < h // 2 else -1)
+    new_objs = new_objs | shift(recolor(c, obj), (new_i - i, 0))
+  O = paint(canvas(mostcolor(I), shape(I)), new_objs)
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, True, False, True)` identifies connected components of non-zero values in the grid.
+2. **Calculate New Positions:** For each object, its center of mass is calculated. Based on the grid height and object size, a new vertical position (`new_i`) is determined to center the object.
+3. **Shift and Recolor:**  The object is shifted to its new position and its color is restored.
+4. **Paint on Canvas:** The shifted and recolored objects are painted onto a blank canvas of the same size and background color as the input.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  new_objs = set()
+  h = height(I)
+  for obj in objs:
+    v = color(obj)
+    indices = toindices(obj)
+    min_i = min(i for i, j in indices)
+    max_i = max(i for i, j in indices)
+    new_i = (h - (max_i - min_i + 1)) // 2
+    new_obj = frozenset((v, (new_i + i - min_i, j)) for i, j in indices)
+    new_objs.add(new_obj)
+  O = paint(canvas(mostcommon(I), shape(I)), frozenset(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Partition Foreground:** `fgpartition(I)` separates the input grid into objects based on color, excluding the background.
+2. **Determine Vertical Shift:** For each object, the minimum and maximum row indices are used to calculate a vertical shift that centers the object vertically.
+3. **Apply Shift:** The shift is applied to each cell of the object to create a new object at the desired position.
+4. **Reconstruct Output:** A new grid is created with the background color, and the repositioned objects are painted onto it.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  h = height(I)
+  values = set(v for row in I for v in row) - {mostcolor(I)}
+  new_objs = set()
+  for v in values:
+    obj = frozenset((v, (i, j)) for i, row in enumerate(I) for j, c in enumerate(row) if c == v)
+    min_i = uppermost(obj)
+    max_i = lowermost(obj)
+    new_i = (h - (max_i - min_i + 1)) // 2
+    new_obj = shift(obj, (new_i - min_i, 0))
+    new_objs.add(new_obj)
+  O = paint(canvas(mostcolor(I), shape(I)), frozenset(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Unique Values:**  The code first identifies unique non-background colors in the input grid.
+2. **Extract and Center Objects:** For each unique color, it extracts the corresponding object, calculates the required vertical shift to center it, and applies the shift.
+3. **Combine and Paint:** Finally, it paints the repositioned objects onto a new grid with the original background color.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  h, w = shape(I)
+  bg = mostcolor(I)
+  O = canvas(bg, (h, w))
+  for j in range(w):
+    column = tuple(I[i][j] for i in range(h))
+    values = [v for v in column if v != bg]
+    new_column = [bg for _ in range(h)]
+    start_i = (h - len(values)) // 2
+    for k, v in enumerate(values):
+      new_column[start_i + k] = v
+    O = tuple(O[i][:j] + (new_column[i],) + O[i][j+1:] for i in range(h))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate Columns:** This version iterates through each column of the input grid.
+2. **Process Column:** For each column, it extracts non-background values, calculates their centered positions within the column, and constructs a new column with the values in their new positions. 
+3. **Update Grid:** The new column replaces the original column in the output grid.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  h, w = shape(I)
+  O = canvas(mostcolor(I), (h, w))
+  for j in range(w):
+    obj = frozenset((I[i][j], (i, j)) for i in range(h) if I[i][j] != mostcolor(I))
+    if obj:
+      shift_amount = (h - height(obj)) // 2 - uppermost(obj)
+      O = paint(O, shift(obj, (shift_amount, 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate Columns:** Like Version 4, this version iterates through the columns of the input grid.
+2. **Extract and Shift Objects:** It extracts the non-background object within each column, calculates the shift required to center it vertically, and applies the shift.
+3. **Paint Objects:** The shifted object is painted onto the output grid.
+
+
+Each of these versions offers a distinct approach to achieve the desired transformation, utilizing different combinations of DSL functions and logic. 

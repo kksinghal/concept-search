@@ -1,0 +1,155 @@
+## Transformation Analysis:
+
+The transformation focuses on the bottom-leftmost object in the grid, changing the color of its rightmost cell to 1. 
+
+Let's break it down per input-output pair:
+
+**Pair 0:**
+- **Input:** The bottom-leftmost object consists of the three 2's at the bottom.
+- **Output:** The rightmost 2 of this object (bottom-left corner) changes to 1.
+
+**Pair 1:**
+- **Input:** The bottom-leftmost object consists of the two 2's at the bottom.
+- **Output:** The rightmost 2 of this object changes to 1. Additionally, the isolated 2 above it also becomes 1. 
+
+**Pair 2:**
+- **Input:** The bottom-leftmost object is the 2 in the third row.
+- **Output:** This 2 changes to 1.
+
+**Pair 3:**
+- **Input:** The bottom-leftmost object consists of the bottom two 2's.
+- **Output:** The rightmost 2 of this object changes to 1.
+
+## Code Improvement (x5):
+
+Here are five distinct program versions to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def find_bottom_left_object(grid):
+    objs = objects(grid, T, T, T) # Find all objects
+    return argmin(objs, lambda obj: lrcorner(obj)[0] * 100 + lrcorner(obj)[1]) # Prioritize lower row, then rightmost column
+  
+  target_obj = find_bottom_left_object(I)
+  rightmost_cell = argmax(toindices(target_obj), lambda cell: cell[1])
+  O = fill(I, 1, {rightmost_cell})
+  return O
+```
+
+**Explanation:**
+
+1. **`find_bottom_left_object(grid)`:**
+   - Finds all objects in the grid.
+   - Uses `argmin` with a custom lambda function to prioritize objects based on their lower-right corner:
+     - Multiplying the row index by 100 ensures that lower rows are always prioritized.
+     - If two objects share the same bottom row, the one with the larger column index (rightmost) is chosen.
+2. **`target_obj = find_bottom_left_object(I)`:**  Gets the bottom-leftmost object from the input grid.
+3. **`rightmost_cell = argmax(toindices(target_obj), lambda cell: cell[1])`:**  Finds the rightmost cell within the target object by maximizing the column index.
+4. **`O = fill(I, 1, {rightmost_cell})`:** Fills the rightmost cell of the target object with 1.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def rightmost_of_object(obj):
+    return argmax(toindices(obj), lambda cell: cell[1])
+
+  objs = objects(I, T, T, T)
+  bottom_row = lowermost(asindices(I)) # Find the index of the bottom row
+  bottom_objs = sfilter(objs, lambda obj: lowermost(obj) == bottom_row) # Filter objects touching the bottom row
+  target_obj = argmin(bottom_objs, lambda obj: leftmost(obj)) # Get leftmost object on the bottom row
+  target_cell = rightmost_of_object(target_obj) # Find its rightmost cell
+  O = fill(I, 1, {target_cell}) # Fill with 1
+  return O
+```
+
+**Explanation:**
+
+1. **`rightmost_of_object(obj)`:** Helper function to find the rightmost cell of an object.
+2. **`bottom_row = lowermost(asindices(I))`:**  Determines the index of the grid's bottom row.
+3. **`bottom_objs = sfilter(objs, lambda obj: lowermost(obj) == bottom_row)`:** Filters for objects that touch the bottom row.
+4. **`target_obj = argmin(bottom_objs, lambda obj: leftmost(obj))`:** Selects the leftmost object from those touching the bottom row.
+5. **`target_cell = rightmost_of_object(target_obj)`:**  Identifies the target cell (rightmost in the target object).
+6. **`O = fill(I, 1, {target_cell})`:** Colors the target cell with 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  def is_bottom_left(obj):
+    return lrcorner(obj) == (h-1, leftmost(obj)) # Check if object's lower-right corner is on the bottom row and leftmost
+
+  objs = objects(I, T, T, T)
+  target_obj = extract(objs, is_bottom_left) # Find the object satisfying the condition
+  target_cell = (lowermost(target_obj), rightmost(target_obj)) # Get its bottom-right corner
+  O = fill(I, 1, {target_cell})
+  return O
+```
+
+**Explanation:**
+
+1. **`is_bottom_left(obj)`:**
+   - Checks if an object's lower-right corner has the same row index as the grid's bottom row (`h-1`).
+   - Additionally, it ensures this corner also represents the leftmost point of the object.
+2. **`target_obj = extract(objs, is_bottom_left)`:**  Retrieves the object that meets the `is_bottom_left` criteria.
+3. **`target_cell = (lowermost(target_obj), rightmost(target_obj))`:**  Pinpoints the bottom-right corner of the target object.
+4. **`O = fill(I, 1, {target_cell})`:** Fills the identified cell with the value 1.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def rightmost_in_row(obj, row_idx):
+    row_cells = {(i, j) for v, (i, j) in obj if i == row_idx}
+    return argmax(row_cells, lambda cell: cell[1]) if row_cells else None
+
+  objs = objects(I, T, T, T)
+  for i in range(len(I)-1, -1, -1): # Iterate through rows from bottom to top
+    row_objs = sfilter(objs, lambda obj: any(c[0] == i for c in toindices(obj))) # Get objects intersecting the current row
+    if row_objs:
+      target_obj = argmin(row_objs, lambda obj: leftmost(obj)) # Find leftmost object in the row
+      target_cell = rightmost_in_row(target_obj, i) # Get rightmost cell of this object in the row
+      return fill(I, 1, {target_cell}) # Fill and return
+  return I # Return original grid if no object is found
+```
+
+**Explanation:**
+
+1. **`rightmost_in_row(obj, row_idx)`:** This helper function takes an object and a row index. It returns the rightmost cell of the object within that specific row, or None if the object doesn't have cells in that row.
+2. The program iterates through rows from bottom to top.
+3. For each row:
+   - It identifies objects intersecting the current row.
+   - If there are such objects, it selects the leftmost one.
+   - Then, it finds the rightmost cell of this object within the current row.
+   - Finally, it fills this cell with 1 and returns the modified grid.
+4. If no objects are found in any row during the iteration, the program returns the original grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  def bottom_left_cell(grid):
+    for j in range(w-1, -1, -1):  # Iterate through columns from right to left
+      for i in range(h-1, -1, -1):  # Iterate through rows from bottom to top
+        if (i, j) in toindices(objects(grid, T, T, T)): # Check if the cell belongs to an object
+          return (i, j)
+  target_cell = bottom_left_cell(I)
+  O = fill(I, 1, {target_cell})
+  return O
+```
+
+**Explanation:**
+
+1. **`bottom_left_cell(grid)`:**
+   - This function iterates through the grid's cells, starting from the bottom-right corner and moving leftward, then upward.
+   - For each cell, it checks if it's part of any object.
+   - The first cell encountered that belongs to an object is returned.
+2. **`target_cell = bottom_left_cell(I)`:**  This line calls the function to get the target cell.
+3. **`O = fill(I, 1, {target_cell})`:** This line fills the identified target cell with the value 1. 
+
+These are five distinct approaches to solving the transformation problem. Each leverages different DSL functions and logic to achieve the desired outcome.

@@ -1,0 +1,104 @@
+## Transformation Analysis:
+
+The transformation seems to involve identifying objects formed by the digit '1' and then creating a rectangular 'shadow' of the digit '3' below them. 
+
+* **Input_0:** The single '1' object gets a 3x3 square shadow of '3's directly below it. 
+* **Input_1:** Both '1' objects get a 1x3 vertical line shadow of '3's directly below them.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  shadows = mapply(lambda obj: recolor(THREE, backdrop(shift(toindices(obj), (1, 0)))), objs)
+  O = paint(I, shadows)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify '1' objects:** We use `objects` with `univalued=True` to find connected components of '1's. 
+2. **Create shadows:** For each object:
+    - `toindices`: Extract the object's cell indices.
+    - `shift`: Move the indices one row down.
+    - `backdrop`: Get the bounding box indices of the shifted object.
+    - `recolor`: Change the color of the bounding box to '3'.
+3. **Paint shadows:** Combine the shadows with the original grid using `paint`.
+
+**Version 2:**
+
+```python
+def solve(I):
+  ones = ofcolor(I, ONE)
+  shadow_indices = mpapply(lambda i, j: ((i+1, j), (i+2, j), (i+3, j)), ones, ones)
+  shadow = recolor(THREE, shadow_indices)
+  O = paint(I, shadow)
+  return O
+```
+
+**Explanation:**
+
+1. **Find '1' locations:**  Get indices of cells with the value '1' using `ofcolor`.
+2. **Generate shadow indices:** For each '1' location, generate a vertical line of three indices directly below using `mpapply`.
+3. **Create shadow object:** Create a new object with the value '3' at the calculated shadow indices.
+4. **Paint the shadow:** Combine the shadow with the original grid.
+
+**Version 3:**
+
+```python
+def solve(I):
+  objs = objects(I, True, False, True)
+  shadows = mapply(lambda obj: recolor(THREE, {(i + k, j) for i, j in toindices(obj) for k in range(1, 4)}), objs)
+  O = paint(I, shadows)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects:** Same as version 1.
+2. **Generate shadow indices:** For each object:
+    - Iterate through each cell index (i, j).
+    - Generate three new indices below it (i+1, j), (i+2, j), (i+3, j).
+    - Combine all generated indices.
+3. **Paint shadows:** Same as version 1.
+
+**Version 4:**
+
+```python
+def solve(I):
+  shifted = shift(asobject(I), (1, 0))
+  shadow_obj = recolor(THREE,  intersection(toindices(shifted), asindices(I)))
+  O = paint(I, shadow_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Shift the entire grid down:** Convert the grid to an object, shift it one row down, and extract its indices.
+2. **Find overlapping indices:** Find indices that exist in both the shifted grid and the original grid using `intersection`.
+3. **Create shadow object:** Create an object with value '3' at the overlapping indices.
+4. **Paint the shadow:** Combine the shadow with the original grid.
+
+**Version 5:**
+
+```python
+def solve(I):
+  shadow_grid = canvas(ZERO, shape(I))
+  for obj in objects(I, True, False, True):
+    for i, j in toindices(obj):
+      for k in range(1, 4):
+        if 0 <= i + k < len(I):
+          shadow_grid = fill(shadow_grid, THREE, {(i + k, j)})
+  O = cellwise(I, shadow_grid, lambda x,y: x if y==ZERO else y)
+  return O
+```
+
+**Explanation:**
+
+1. **Create an empty shadow grid:** Create a grid filled with '0's with the same dimensions as the input grid.
+2. **Iterate through objects:** For each '1' object:
+    - Iterate through its cell indices.
+    - For each cell, fill the corresponding column in the `shadow_grid` with '3's, starting one row below.
+3. **Combine with original grid:** Use `cellwise` to merge the original grid and `shadow_grid`, prioritizing values from the `shadow_grid` if they are not '0'. 

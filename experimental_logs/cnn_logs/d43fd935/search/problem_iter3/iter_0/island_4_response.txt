@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation seems to shift the rightmost cell of each connected object (considering only direct neighbors, not diagonals) to the leftmost column of the object while maintaining its row position. 
+
+**Let's break down the transformation for each input-output pair:**
+
+**Input_0 to Output_0:**
+
+* **1s Object:** The rightmost '1' at (0,1) moves to (0,0).
+* **3s Object:** The rightmost '3' at (4,3) moves to (4,1).
+* **6s Object:** The transformation is applied multiple times as there are multiple rightmost '6's. 
+    * The '6' at (1,9) moves to (1,8).
+    * The '6' at (7,7) moves to (7,6).
+    * The '6' at (8,6) moves to (8,1).
+    * The '6' at (9,6) moves to (9,1).
+
+**Input_1 to Output_1:**
+
+* **7s Object:**  The rightmost '7' at (9,9) moves to (9,5).
+* **8s Object:** The transformation is applied multiple times:
+    * The '8' at (0,8) moves to (0,6).
+    * The '8' at (2,9) moves to (2,7).
+    * The '8' at (6,8) moves to (6,6).
+    * The '8' at (7,8) moves to (7,6).
+* **3s Object:** The rightmost '3' at (2,8) moves to (2,5).
+
+**Input_2 to Output_2:**
+
+* **1s Object:** The transformation is applied multiple times:
+    * The '1' at (2,2) moves to (2,1).
+    * The '1' at (5,9) moves to (5,6).
+    * The '1' at (9,2) moves to (9,1).
+* **3s Object:** The rightmost '3' at (7,3) moves to (7,1).
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the DSL functions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(grid):
+  for obj in objects(grid, univalued=False, diagonal=False, without_bg=True):
+    rightmost_cell = argmax(obj, lambda cell: cell[1][1])
+    leftmost_column = leftmost(obj)
+    new_obj = {(v, (i, leftmost_column)) if (v, (i, j)) == rightmost_cell else (v, (i, j)) for v, (i, j) in obj}
+    grid = paint(cover(grid, obj), new_obj)
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:** We iterate over each object in the grid using `objects` with `univalued=False` (as objects can have multiple colors), `diagonal=False` (as connectivity is based on direct neighbors), and `without_bg=True` (to exclude the background).
+2. **Find Rightmost and Leftmost:** For each object, we find the rightmost cell using `argmax` based on the column index (`cell[1][1]`). We also find the leftmost column index using `leftmost`.
+3. **Create New Object:** We create a new object where the rightmost cell is moved to the leftmost column on the same row.
+4. **Update Grid:**  We update the grid by first covering the original object using `cover` and then painting the new object using `paint`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(grid):
+  new_grid = canvas(mostcolor(grid), shape(grid))
+  for obj in objects(grid, univalued=False, diagonal=False, without_bg=True):
+    for i in range(height(obj)):
+      row_cells = {(v, (a, b)) for v, (a, b) in obj if a == uppermost(obj) + i}
+      rightmost_cell = argmax(row_cells, lambda cell: cell[1][1])
+      new_obj = {(v, (i + uppermost(obj), leftmost(obj))) if (v, (a, b)) == rightmost_cell else (v, (a, b)) for v, (a, b) in row_cells}
+      new_grid = paint(new_grid, new_obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Create Empty Canvas:** We create a new empty grid (`new_grid`) with the same shape and background color as the input grid using `canvas`, `mostcolor`, and `shape`.
+2. **Iterate and Process Row-wise:** For each object, we iterate row by row within the object's bounding box (`height(obj)`). For each row, we collect the cells belonging to that row (`row_cells`).
+3. **Move Rightmost Cell:** We find the rightmost cell within the row and move it to the leftmost column on the same row.
+4. **Paint to New Grid:** We paint the modified row (`new_obj`) onto the new grid (`new_grid`).
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(grid):
+  for j in range(width(grid)-1, 0, -1):
+    for i in range(height(grid)):
+      if (i, j) in asindices(grid) and index(grid, (i, j)) != mostcolor(grid) and index(grid, (i, j-1)) == mostcolor(grid):
+        obj = extract(objects(grid, univalued=False, diagonal=False, without_bg=True), lambda x: (i, j) in toindices(x))
+        grid = move(grid, obj, (0, -1))
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate Column by Column:** We iterate through the grid column by column, starting from the second to last column (`width(grid)-1`) and moving towards the left (`0` with step `-1`). 
+2. **Check for Movable Cell:**  For each cell, we check if it's not the background color (`mostcolor`) and if its left neighbor is the background color. If these conditions are met, it means this cell can potentially be moved left.
+3. **Find and Move Object:** We find the object this cell belongs to using `extract` and `objects` and then move the entire object one step to the left using `move` with offset `(0, -1)`.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(grid):
+  processed_grid = canvas(mostcolor(grid), shape(grid))
+  for i in range(height(grid)):
+    for j in range(width(grid)):
+      if index(grid, (i, j)) != mostcolor(grid):
+        obj = extract(objects(grid, univalued=False, diagonal=False, without_bg=True), lambda x: (i, j) in toindices(x))
+        leftmost_col = leftmost(obj)
+        processed_grid = paint(processed_grid, {(v, (i, leftmost_col)) if (a, b) == (i, j) else (v, (a, b)) for v, (a, b) in obj})
+  return processed_grid
+```
+
+**Explanation:**
+
+1. **Initialize Processed Grid:** Create an empty grid (`processed_grid`) with the same dimensions and background color as the input grid.
+2. **Iterate Through Cells:** Go through each cell in the input grid.
+3. **Identify Object and Leftmost Column:** If a cell is not the background color, identify the object it belongs to and find the column index of the leftmost cell in that object.
+4. **Paint onto Processed Grid:** Paint the identified object onto the `processed_grid`, but shift the current cell's position to be in the leftmost column of its object while maintaining its row.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(grid):
+  for obj in objects(grid, univalued=False, diagonal=False, without_bg=True):
+    for i in range(height(obj)):
+      row = uppermost(obj) + i
+      obj_row = {(v, (a, b)) for v, (a, b) in obj if a == row}
+      k = width(obj_row)
+      for j in range(width(obj_row)):
+        c = index(grid, (row, leftmost(obj) + j))
+        grid = fill(grid, c, {(row, leftmost(obj) + (j - k) % width(obj_row))})
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate Through Objects and Rows:**  Iterate through each object and then each row within the object.
+2. **Shift Cells Within Row:** For each row in an object, determine the number of cells (`k`). Then, for each cell in that row, calculate a new column index by shifting it `k` positions to the left, using modulo (`%`) to wrap around within the object's width.
+3. **Fill Grid:** Fill the grid with the color of the shifted cell at its new position.
+
+These five versions provide different approaches to solving the transformation problem. Each utilizes distinct DSL function combinations and logic, ensuring diversity in solutions. 

@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation involves identifying cells with the value '1' and drawing a 3x3 square centered around them, but only filling in cells that have a '0' value. 
+
+**Input_0:** Two '1' cells are present. The transformation results in two 3x3 squares centered on these '1' cells with the value '3', except where the original grid already contained a '1'.
+
+**Input_1:**  Two '1' cells are present. The transformation results in two 3x3 squares centered on these '1' cells with the value '3', except where the original grid already contained a '1'.
+
+
+## Program_to_be_generated: 
+
+**Version 1 (Using shifts and underpaint):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Finds '1' cells, creates centered 3x3 squares, and underpaints.
+  """
+  one_cells = ofcolor(I, ONE)
+  squares = mapply(lambda ij: shift(recolor(THREE, frozenset({(i, j) for i in range(3) for j in range(3)})), subtract(ij, (1, 1))), one_cells)
+  O = underpaint(I, merge(squares))
+  return O
+```
+
+**Explanation:**
+
+1. **`one_cells = ofcolor(I, ONE)`:** Identifies the indices of all cells containing the value '1'.
+2. **`squares = mapply(...)`:**  For each '1' cell:
+    - Creates a base 3x3 square object with value '3'.
+    - Shifts this square so that its center aligns with the '1' cell.
+3. **`O = underpaint(I, merge(squares))`:** Merges all the shifted squares and underpaints them onto the input grid `I`, meaning only cells with the background color (0 in this case) are modified. 
+
+**Version 2 (Using product and underpaint):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies '1' cells and underpaints 3x3 squares around them.
+  """
+  return underpaint(I, merge(
+      mapply(lambda ij: recolor(THREE, frozenset(product(range(ij[0] - 1, ij[0] + 2), range(ij[1] - 1, ij[1] + 2)))), 
+             ofcolor(I, ONE))))
+```
+
+**Explanation:**
+
+1. **`ofcolor(I, ONE)`:**  Identifies indices of cells with value '1'.
+2. **`mapply(...)`:** For each '1' cell index `ij`:
+    - `product(...)` generates indices for a 3x3 square centered at `ij`.
+    - `recolor(THREE, ...)` assigns the value '3' to these indices, forming a square object.
+3. **`underpaint(I, merge(...))`:** Merges all the square objects and underpaints them onto the input grid `I`.
+
+**Version 3 (Iterative approach with paint):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Iterates through '1' cells and paints surrounding squares.
+  """
+  O = I
+  for i, row in enumerate(I):
+    for j, value in enumerate(row):
+      if value == ONE:
+        for di in range(-1, 2):
+          for dj in range(-1, 2):
+            ni, nj = i + di, j + dj
+            if 0 <= ni < len(I) and 0 <= nj < len(row) and I[ni][nj] == 0:
+              O = paint(O, {(THREE, (ni, nj))})
+  return O
+```
+
+**Explanation:**
+
+1. **`O = I`:** Initializes output grid `O` as a copy of input `I`.
+2. **Nested loops:** Iterates through each cell in the grid.
+3. **`if value == ONE`:** If a cell with value '1' is found:
+    - It iterates through its 3x3 neighborhood.
+    - If a neighbor cell is within the grid bounds and has a value of '0', it's painted with '3' in the output grid.
+
+**Version 4 (Using backdrop and underfill):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses backdrop to define square regions and underfills them.
+  """
+  one_cells = ofcolor(I, ONE)
+  squares = mapply(lambda ij: backdrop(frozenset({(ij[0] - 1, ij[1] - 1)})), one_cells)  # Adjusted to center
+  O = underfill(I, THREE, merge(squares))
+  return O
+```
+
+**Explanation:**
+
+1. **`one_cells = ofcolor(I, ONE)`:**  Finds indices of cells with value '1'.
+2. **`squares = mapply(...)`:** For each '1' cell:
+    - `backdrop(...)` generates indices for a 3x3 square centered around the '1' cell (adjusted by (-1,-1) to center correctly).
+3. **`O = underfill(I, THREE, merge(squares))`:** Merges all square indices and uses `underfill` to change the value to '3' only for cells that are originally '0'.
+
+**Version 5 (Functional composition and underpaint):**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses functional composition to underpaint squares around '1' cells.
+  """
+  paint_square = lambda ij: underpaint(I, recolor(THREE, frozenset({(i, j) for i in range(ij[0]-1, ij[0]+2) for j in range(ij[1]-1, ij[1]+2)})))
+  return merge(apply(paint_square, ofcolor(I, ONE)))
+```
+
+**Explanation:**
+
+1. **`paint_square = lambda ...`:** Defines a function that takes a cell index and:
+    - Creates a 3x3 square object centered at the given index with value '3'.
+    - Underpaints this square onto the input grid. 
+2. **`apply(paint_square, ofcolor(I, ONE))`:** Applies the `paint_square` function to the indices of all '1' cells.
+3. **`merge(...)`:** Merges the resulting grids from each '1' cell's underpainting into the final output. 

@@ -1,0 +1,98 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the grid and drawing a "border" around them using the color '2'. However, this border is drawn only within the object's bounding box, not extending outside of it.
+
+**Example:**
+
+Input:
+```
+0 0 0 0
+0 5 5 0
+0 5 5 0
+0 0 0 0
+```
+
+Output:
+```
+0 0 0 0
+0 5 2 0
+0 5 2 0
+0 0 0 0
+```
+
+## Program_to_be_generated:
+
+**Version 1:** (Inspired by Program_A's object identification and Program_B's use of `underfill`)
+
+```python
+def program_version_1(I):
+  objs = objects(I, T, T, T)
+  modified_objs = frozenset({recolor(2, difference(inbox(obj), toindices(obj))) for obj in objs})
+  return underfill(I, 2, merge(modified_objs))
+```
+
+**Explanation:**
+
+1. **Identify objects:** `objects(I, T, T, T)` identifies all connected components within the grid.
+2. **Calculate border indices:** For each object, `difference(inbox(obj), toindices(obj))` calculates the indices that form the border within the bounding box.
+3. **Recolor border:** `recolor(2, ...)` sets the color of the border indices to '2'.
+4. **Merge borders:** `merge(modified_objs)` combines all the individual object borders into a single set of indices.
+5. **Underfill:** `underfill(I, 2, ...)` fills the color '2' at the border indices only if the original color at that index was the background color (most frequent color).
+
+**Version 2:** (Using `prapply` for border calculation)
+
+```python
+def program_version_2(I):
+  return paint(I, merge(prapply(lambda loc1, loc2: (2, loc2) if loc2 in inbox(obj) - toindices(obj) else (index(I, loc2), loc2), obj, obj) for obj in objects(I, T, T, T)))
+```
+
+**Explanation:**
+
+1. **Identify objects:** Similar to Version 1.
+2. **Iterate and recolor:** For each object, we use `prapply` to iterate over all index pairs within the object. 
+   - If an index pair's second element is part of the border (`inbox(obj) - toindices(obj)`), we recolor it to '2'.
+   - Otherwise, we retain the original color at that index using `index(I, loc2)`.
+3. **Merge and Paint:** Similar to Version 1.
+
+**Version 3:** (Utilizing `mfilter` for concise border extraction)
+
+```python
+def program_version_3(I):
+  return paint(I, merge(recolor(2, mfilter(prapply(lambda loc1, loc2: loc2, obj, obj), lambda loc: loc in inbox(obj) - toindices(obj))) for obj in objects(I, T, T, T)))
+```
+
+**Explanation:**
+
+1. **Identify objects:** Similar to Version 1.
+2. **Extract border indices:** `prapply` with a lambda function extracts all indices of an object. `mfilter` then filters these indices to only include those belonging to the border (`inbox(obj) - toindices(obj)`).
+3. **Recolor, Merge and Paint:** Similar to previous versions.
+
+**Version 4:** (Focusing on background replacement within bounding boxes)
+
+```python
+def program_version_4(I):
+  return paint(I, merge(recolor(2, difference(inbox(obj), toindices(obj))) for obj in objects(I, T, T, T) if not bordering(obj, I)))
+```
+
+**Explanation:**
+
+1. **Identify objects:** Similar to Version 1.
+2. **Filter non-bordering objects:** We skip objects touching the grid boundary using `bordering(obj, I)`.
+3. **Calculate border, recolor, merge and paint:** Similar to Version 1.
+
+**Version 5:** (Directly painting the border within bounding boxes)
+
+```python
+def program_version_5(I):
+  for obj in objects(I, T, T, T):
+    I = underfill(I, 2, inbox(obj))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify objects:** Similar to Version 1.
+2. **Iterate and underfill:** We iterate through each object and directly use `underfill` to paint '2' within the object's bounding box (`inbox(obj)`). This automatically avoids painting outside the object or over non-background cells.
+
+
+Each of these versions provides a different approach to achieve the same transformation, utilizing various DSL functions and logic flow. They demonstrate the flexibility and expressiveness of the provided DSL for tackling this specific image processing task. 

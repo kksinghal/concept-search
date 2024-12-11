@@ -1,0 +1,108 @@
+## Transformation Analysis:
+
+The transformation applies the following logic to the input grid:
+
+* **Identifies the dominant color:** This color is likely considered the "background".
+* **Creates a frame around non-background objects:**  The frame outlines each object formed by connected pixels of colors different from the background.
+* **Fills the frame with the background color:** This effectively leaves the original object's outline intact while replacing its interior with the background color.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def gfeidcijbeegebcjijcbaffcgbaggfjc(I):
+  bg = mostcolor(I) 
+  objs = objects(I, T, F, F)
+  frames = mapply(lambda obj: box(obj), objs) # Extract the bounding box of each object
+  filled = canvas(bg, shape(I)) 
+  O = paint(filled, merge(frames)) 
+  return O
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:** Identifies the background color.
+2. **`objs = objects(I, T, F, F)`:** Finds all connected objects, considering pixels of the same color as connected (univalued=T), not considering diagonal connections (diagonal=F), and including the background as an object (without_bg=F).
+3. **`frames = mapply(lambda obj: box(obj), objs)`:**  Extracts the bounding box (a set of indices) of each object using the `box` function and merges them into a single set.
+4. **`filled = canvas(bg, shape(I))`:** Creates a new grid filled with the background color and having the same dimensions as the input grid.
+5. **`O = paint(filled, merge(frames))`:** Paints the indices from the `frames` set onto the `filled` grid, effectively drawing the frames.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def gfeidcijbeegebcjijcbaffcgbaggfjc(I):
+  bg = mostcolor(I)
+  objs = objects(I, T, F, F) 
+  padded_objs = mapply(lambda obj: outbox(obj), objs) # Extract the outer frame as outbox
+  filled = canvas(bg, shape(I)) 
+  O = paint(filled, merge(padded_objs))  
+  return O
+```
+
+**Explanation:**
+
+This version is similar to Version 1, but instead of using `box` to extract the frame, it uses `outbox` which gives an outer boundary, resulting in slightly thicker outlines. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def gfeidcijbeegebcjijcbaffcgbaggfjc(I):
+    bg = mostcolor(I)
+    objs = objects(I, T, F, F)
+    filled = canvas(bg, shape(I))
+    for obj in objs:
+        frame = box(obj) - toindices(obj) # Calculate frame for each object individually
+        filled = paint(filled, frame) # Paint each frame onto the canvas
+    O = filled
+    return O
+```
+
+**Explanation:**
+
+This version iterates through each identified object and calculates & paints its frame individually. While functionally similar to previous versions, it highlights a different approach using a loop. 
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def gfeidcijbeegebcjijcbaffcgbaggfjc(I):
+  inverted = replace(I, mostcolor(I), 0) # Invert colors: bg becomes 0, others become non-zero
+  objs = objects(inverted, T, F, T) # Find objects, excluding the background
+  frames = mapply(lambda obj: box(obj), objs) 
+  filled = canvas(0, shape(I)) 
+  O = paint(filled, merge(frames))
+  O = replace(O, 0, mostcolor(I)) # Restore the original background color
+  return O
+```
+
+**Explanation:**
+
+This version first inverts the colors in the grid, making the background color 0. This simplifies object detection as it can now exclude the background. After creating the frame, it restores the original background color.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def gfeidcijbeegebcjijcbaffcgbaggfjc(I):
+  bg = mostcolor(I)
+  objs = objects(I, T, F, F)
+  frames = []
+  for obj in objs:
+    for i, j in toindices(obj):
+      if any((i+di,j+dj) not in toindices(obj) for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]): # Check for edge pixels
+        frames.append(((i,j))) # Add edge pixels to the frame
+  filled = canvas(bg, shape(I))
+  O = paint(filled, frozenset((bg, idx) for idx in frames))
+  return O
+```
+
+**Explanation:**
+
+This version iterates over each object's pixels. If a pixel has at least one side not belonging to the same object (i.e., it's an edge pixel), it's added to the `frames` list. This approach directly identifies and collects edge pixels for frame drawing. 

@@ -1,0 +1,185 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit, excluding the background color 0) and drawing a specific shape around them. The shape appears to be a rectangle with the following properties:
+
+- **Color Pattern:** The rectangle has a specific color pattern for its corners and sides.
+    - Top Left Corner: 6
+    - Top Right Corner: Not always present, appears to be 1 when the object touches the top grid border.
+    - Bottom Left Corner: 6
+    - Bottom Right Corner:  Not always present, appears to be 1 when the object touches the bottom grid border.
+    - Top Side: 6
+    - Right Side: 1
+    - Bottom Side: 1
+    - Left Side: 6 
+- **Placement:** The rectangle encloses the object, leaving one empty cell between itself and the object on all sides. 
+
+Let's break it down for each input-output pair:
+
+**Input_0 - Output_0:**
+
+- The object (8) is enclosed in a rectangle formed by digits 6 and 1. 
+- Notice the corners where '1' is present only when the object is touching the edge of the grid.
+
+**Input_1 - Output_1:**
+
+- Similar to the previous example, a rectangle is drawn around the object (3).
+- Since the object is not touching any grid border, the corner '1's are absent.
+
+**Input_2 - Output_2:**
+
+-  The pattern holds, with rectangles drawn around both objects (3 and 2).
+-  The object '3' touches the top border, so the top right corner of the rectangle is '1'.
+
+**Input_3 - Output_3:**
+
+-  Again, a rectangle (using digit 4) encloses the object (8). 
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the DSL:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  result = I
+  for obj in objs:
+    up = uppermost(obj)
+    down = lowermost(obj)
+    left = leftmost(obj)
+    right = rightmost(obj)
+    result = fill(result, 6, {(up - 1, j) for j in range(left - 1, right + 2)})  # Top
+    result = fill(result, 6, {(down + 1, j) for j in range(left - 1, right + 2)}) # Bottom
+    result = fill(result, 6, {(i, left - 1) for i in range(up - 1, down + 2)})  # Left
+    result = fill(result, 1, {(i, right + 1) for i in range(up, down + 2)})    # Right
+    if up == 0:
+      result = fill(result, 1, {(up, right + 1)}) # Top Right Corner 
+    if down == len(I) - 1:
+      result = fill(result, 1, {(down, right + 1)}) # Bottom Right Corner
+  return result
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objs = objects(I, T, F, T)` finds all objects in the input grid.
+2. **Iterate and Draw:** The program iterates through each object.
+   - It calculates the bounding box (top, bottom, left, right) of the object.
+   - It fills the grid cells corresponding to the rectangle's top, bottom, left, and right sides with the appropriate colors (6 and 1).
+   - It checks for corner conditions (if the object touches top/bottom borders) and fills the corner cells with '1' if required.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  grid = I
+  for obj in objs:
+    box = outbox(obj) 
+    grid = fill(grid, 6, box - (shoot(ulcorner(box), (0, 1)) | shoot(llcorner(box), (0, 1))))
+    grid = fill(grid, 1, box - (shoot(ulcorner(box), (1, 0)) | shoot(urcorner(box), (1, 0))))
+    if uppermost(obj) == 0:
+      grid = fill(grid, 1, {urcorner(box)})
+    if lowermost(obj) == len(I) - 1:
+      grid = fill(grid, 1, {lrcorner(box)})
+  return grid
+```
+
+**Explanation:**
+
+1.  **Find Objects & Initialize:**  Similar to version 1.
+2.  **Draw Using Set Operations:**  This version cleverly uses set operations to draw the rectangle:
+    - It gets the `outbox` of the object.
+    - It fills the `outbox` with '6' except for the cells along the top and bottom horizontal lines using `shoot` and set difference (`-`).
+    - Similarly, it fills with '1' for vertical lines.
+    - Handles corner cases like version 1. 
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  canvas_grid = canvas(mostcolor(I), shape(I))
+  for obj in objs:
+    shifted_obj = shift(obj, (1, 1))
+    canvas_grid = underpaint(canvas_grid, recolor(6, outbox(shifted_obj)))
+    canvas_grid = underpaint(canvas_grid, recolor(1, {(i, rightmost(shifted_obj)) for i in range(uppermost(shifted_obj), lowermost(shifted_obj) + 1)}))
+    if uppermost(obj) == 0:
+      canvas_grid = underpaint(canvas_grid, recolor(1, {(0, rightmost(shifted_obj))}))
+    if lowermost(obj) == len(I) - 1:
+      canvas_grid = underpaint(canvas_grid, recolor(1, {(len(I) - 1, rightmost(shifted_obj))}))
+  return canvas_grid
+```
+
+**Explanation:**
+
+1. **Create Canvas:** This version creates a blank canvas (`canvas_grid`) of the same size and background color as the input.
+2. **Shift and Paint:** 
+   - It shifts the object by (1, 1) to account for the spacing.
+   - It uses `underpaint` to draw the rectangle on the `canvas_grid`, ensuring it only paints over the background. 
+   - Like previous versions, it handles corner conditions.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    ul = add(ulcorner(obj), (-1, -1))
+    lr = add(lrcorner(obj), (1, 1))
+    for i in range(ul[0], lr[0] + 1):
+      for j in range(ul[1], lr[1] + 1):
+        if i == ul[0] or i == lr[0] or j == ul[1] or j == lr[1]:
+          if i in range(uppermost(obj), lowermost(obj) + 1):
+            if j == lr[1]:
+              O = fill(O, 1, {(i, j)})
+            else:
+              O = fill(O, 6, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Calculate:** This version iterates over the objects and calculates the upper-left (`ul`) and lower-right (`lr`) corners of the rectangle.
+2. **Nested Loops & Conditions:** It uses nested loops to iterate through all cells within the rectangle's bounding box. 
+   - If a cell is on the border of the rectangle, it fills it with the appropriate color (6 or 1) based on its position. 
+   - The corner conditions are handled implicitly within the loops.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+  grid = I
+  for obj in objects(I, T, F, T):
+    top, left = ulcorner(obj)
+    bottom, right = lrcorner(obj)
+    for i in range(top - 1, bottom + 2):
+      for j in range(left - 1, right + 2):
+        if 0 <= i < len(grid) and 0 <= j < len(grid[0]):
+          if i == top - 1 or i == bottom + 1:
+            grid = fill(grid, 6, {(i, j)})
+          elif j == left - 1:
+            grid = fill(grid, 6, {(i, j)})
+          elif j == right + 1 and top <= i <= bottom:
+            grid = fill(grid, 1, {(i, j)})
+          if j == right + 1 and (i == top - 1 or i == bottom + 1): 
+            grid = fill(grid, 1, {(i, j)}) 
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate and Define Boundaries:** This version iterates over the objects and determines the upper-left and lower-right corners to define the rectangular boundaries.
+
+2. **Nested Loop and Conditions:** It utilizes nested loops to go through every cell within the defined rectangle's boundaries.
+
+3. **Conditional Filling:** Inside the loop, it conditionally fills cells based on their position relative to the object:
+    - Cells on the top and bottom rows within the boundaries are filled with '6'.
+    - Cells in the leftmost column within the boundaries are filled with '6'.
+    - Cells in the rightmost column within the boundaries and aligned with the object's height are filled with '1'.
+    - Corners where '1' should be are filled conditionally if the object touches the grid border.
+
+4. **Boundary Check:** It includes a check (`0 <= i < len(grid) and 0 <= j < len(grid[0])`) to ensure it's operating within the grid's boundaries, preventing potential "index out of range" errors.
+
+
+These five versions offer different approaches to achieving the same transformation, showcasing the flexibility and expressiveness of the provided DSL. 

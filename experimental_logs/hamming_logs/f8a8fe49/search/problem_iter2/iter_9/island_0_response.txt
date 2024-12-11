@@ -1,0 +1,125 @@
+## Transformation Analysis:
+
+The transformation involves taking all objects of value '5' and repositioning them around the object of value '2'.  The '5' objects are split into two groups based on their horizontal position relative to the center of the '2' object. The left '5's are positioned vertically above and below the left edge of the '2' object. The right '5's are positioned vertically above and below the right edge of the '2' object. 
+
+**Example:**
+
+In Input_1:
+- There's one '2' object and multiple '5' objects. 
+- The left '5's are placed above and below the leftmost '2' in the same column.
+- The right '5's are placed above and below the rightmost '2' in the same column.
+
+## Program to be Generated:
+
+**Version 1:**
+
+```python
+def program(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  c = center(two)
+  
+  def reposition(five):
+    offset = (-uppermost(five) + c[0], 
+               c[1] - leftmost(five) - width(five) 
+               if leftmost(five) < c[1] 
+               else c[1] - leftmost(five) + width(two))
+    return shift(five, offset)
+  
+  pattern = merge(apply(reposition, fives))
+  return paint(cover(I, ofcolor(I, 5)), pattern)
+```
+
+**Explanation:**
+
+1. **Identify Objects:** We locate the '2' object (`two`) and all '5' objects (`fives`).
+2. **Calculate Center:**  The center of the '2' object (`c`) is determined.
+3. **Reposition Function:** The `reposition` function calculates the offset needed to move each '5' object based on its position relative to the '2' object's center.
+4. **Apply and Merge:** The `reposition` function is applied to all '5' objects, and the results are merged into `pattern`.
+5. **Paint and Return:** The original '5's are removed, and the `pattern` is painted onto the grid.
+
+**Version 2:**
+
+```python
+def program(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  c = center(two)
+
+  left_pattern = merge(apply(lambda five: shift(five, (c[0] - uppermost(five), c[1] - leftmost(five) - width(five))),
+                            sfilter(fives, lambda obj: leftmost(obj) < c[1])))
+  right_pattern = merge(apply(lambda five: shift(five, (c[0] - uppermost(five), c[1] - leftmost(five) + width(two))),
+                            sfilter(fives, lambda obj: leftmost(obj) >= c[1])))
+  return paint(cover(I, ofcolor(I, 5)), left_pattern | right_pattern) 
+```
+
+**Explanation:**
+
+1. **Object Identification:** Similar to Version 1, we identify the '2' object and all '5' objects.
+2. **Center Calculation:** The center of the '2' object is calculated.
+3. **Separate Patterns:**  We create separate patterns for left and right '5's using `sfilter` and apply the appropriate shift to each.
+4. **Merge and Paint:** The left and right patterns are combined, and the final pattern is painted onto the grid after removing the original '5' objects.
+
+**Version 3:**
+
+```python
+def program(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  c2 = center(two)
+
+  def place_five(five):
+    offset_x = c2[0] - uppermost(five)
+    offset_y =  c2[1] - leftmost(five) - width(five) if leftmost(five) < c2[1] else c2[1] - leftmost(five) + width(two)
+    return shift(five, (offset_x, offset_y))
+
+  transformed_fives = frozenset(place_five(five) for five in fives) 
+  return paint(cover(I, ofcolor(I, 5)), transformed_fives)
+```
+
+**Explanation:**
+
+This version is structurally similar to Version 2 but uses a generator expression and `frozenset` for a slightly different approach to applying the transformation and managing the object collection. 
+
+**Version 4:**
+
+```python
+def program(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  c = center(two)
+
+  def move_five(five):
+    return shift(five, (c[0]-uppermost(five), c[1]-leftmost(five) - width(five) if leftmost(five) < c[1] else c[1]-leftmost(five) + width(two)))
+  
+  new_fives = frozenset(map(move_five, fives))
+  return paint(cover(I, ofcolor(I, 5)), new_fives)
+```
+
+**Explanation:**
+
+ This version utilizes the `map` function to apply the `move_five` function to each '5' object, resulting in a more concise way of transforming the objects. 
+
+**Version 5:**
+
+```python
+def program(I):
+  two = first(colorfilter(objects(I, T, F, T), 2))
+  fives = colorfilter(objects(I, T, F, T), 5)
+  target_up = (uppermost(two), center(two)[1] - len(fives) // 2) 
+  target_down = (lowermost(two) + 1, center(two)[1] - len(fives) // 2)
+  
+  return paint(
+      paint(
+          cover(I, ofcolor(I, 5)),
+          shift(recolor(5, {(j, 0) for j in range(len(fives) // 2)}), target_up)
+      ),
+      shift(recolor(5, {(j, 0) for j in range(len(fives) // 2, len(fives))}), target_down)
+  )
+```
+
+**Explanation:**
+
+This version takes a slightly different approach by calculating target positions above and below the '2' and directly painting the '5' objects onto these positions after recoloring and shifting. 
+
+Each of these program versions utilizes different DSL functions and logic to achieve the same transformation, demonstrating the diversity of solutions possible within the provided DSL. 

@@ -1,0 +1,129 @@
+## Transformation Analysis:
+
+The transformation involves these steps:
+
+1. **Identify Objects:** The input grid is parsed to identify distinct objects based on connected pixels of the same value (excluding the background color, which is the most frequent color).
+
+2. **Recolor Objects:**
+    * The topmost object is always recolored to '8'.
+    * Objects that are taller than they are wide ("portrait" objects) are recolored to '7'.
+    * A single pixel, diagonally adjacent to the upper-left corner of the topmost object, is recolored to '6'.
+
+3. **Maintain Background:**  The background color (most frequent color in the input grid) remains unchanged. 
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)  # Identify objects
+  topmost = argmin(objs, uppermost)  # Find the topmost object
+  O = paint(I, recolor(EIGHT, toindices(topmost)))  # Recolor topmost to '8'
+  for obj in objs:
+    if portrait(obj) and obj != topmost:  # Find portrait objects that aren't the topmost
+      O = paint(O, recolor(SEVEN, toindices(obj)))  # Recolor portrait objects to '7'
+  O = paint(O, recolor(SIX, {add(ulcorner(topmost), (1, 1))}))  # Recolor pixel near topmost to '6'
+  return O
+```
+
+**Explanation:**
+
+1.  **Identify Objects:** We use `objects(I, T, F, T)` to find all connected objects in the input grid, excluding the background. 
+2.  **Find Topmost Object:** `argmin(objs, uppermost)` efficiently finds the object with the smallest row index, indicating it's the topmost.
+3.  **Recolor Topmost:**  We use `paint` and `recolor` to change the color of the topmost object to '8'.
+4.  **Find and Recolor Portrait Objects:**  We iterate through each object, check if it's a portrait object (`portrait(obj)`) and not the topmost object (`obj != topmost`), and recolor it to '7'. 
+5.  **Recolor Pixel near Topmost:** Using `ulcorner` to get the upper-left corner of the topmost object, we add (1,1) to get the diagonal pixel's index and recolor it to '6'.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  O = I  # Start with the input grid
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != mostcommon(I):  # Ignore background pixels
+        obj = toobject(initset((i, j)), I)  # Create object from connected pixels
+        if uppermost(obj) == i:  # If it's the topmost part of the object 
+          O = paint(O, recolor(EIGHT if obj == topmost else (SEVEN if portrait(obj) else val), toindices(obj))) 
+          O = paint(O, recolor(SIX, {add((i, j), (1, 1))}))  # Recolor pixel near top-left
+  return O 
+```
+
+**Explanation:**
+
+1.  **Iterate and Identify Objects:**  The code iterates through each cell of the input grid. If a cell isn't the background color, it uses `toobject` to create an object from connected pixels.
+2.  **Handle Topmost Part:** If the current cell is the topmost part of the object, it determines the appropriate color: '8' for the topmost object, '7' for portrait objects, and the original color for others. It then recolors the entire object accordingly. 
+3.  **Recolor Diagonal Pixel:**  Similar to Version 1, we recolor the pixel diagonally adjacent to the top-left corner of each object. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = sorted(objects(I, T, F, T), key=lambda obj: (uppermost(obj), -len(obj))) # Sort by topmost, then size
+  O = I 
+  for i, obj in enumerate(objs):
+    if i == 0:  # Topmost object
+      O = paint(O, recolor(EIGHT, toindices(obj)))
+      O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))})) # Recolor pixel near top-left
+    elif portrait(obj):
+      O = paint(O, recolor(SEVEN, toindices(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Sorted Object List:** It first identifies objects and sorts them based on their uppermost row (ascending) and then size (descending). This ensures that the topmost and largest object is processed first. 
+2. **Iterate and Recolor:** It iterates through the sorted list. The first object (topmost) is recolored to '8', and the diagonal pixel is marked. Other portrait objects are then recolored to '7'.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  bg = mostcommon(I)  # Identify background color
+  O = canvas(bg, shape(I))  # Create a blank canvas with background color
+  for obj in objects(I, T, F, T):
+    color_to_use = EIGHT if uppermost(obj) == valmin(objects(I, T, F, T), uppermost) else (SEVEN if portrait(obj) else color(obj))
+    O = paint(O, recolor(color_to_use, toindices(obj)))
+    if color_to_use == EIGHT:
+      O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))})) 
+  return O
+```
+
+**Explanation:**
+
+1. **Blank Canvas:** It creates a blank canvas filled with the background color.
+2. **Iterate and Paint:** It iterates through each object and determines the color to use: '8' for the topmost object, '7' for portrait objects, and the object's original color otherwise. It paints the object on the canvas with the determined color.
+3. **Mark Diagonal Pixel:** After painting the topmost object, it marks the diagonal pixel.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  objs = objects(I, T, F, T)
+  topmost_row = valmin(objs, uppermost)  # Find the row of the topmost object
+  O = I
+  for obj in objs:
+    if uppermost(obj) == topmost_row: 
+      O = paint(O, recolor(EIGHT, toindices(obj)))
+      O = paint(O, recolor(SIX, {add(ulcorner(obj), (1, 1))})) 
+    elif portrait(obj):
+      O = paint(O, recolor(SEVEN, toindices(obj))) 
+  return O
+```
+
+**Explanation:**
+
+1. **Find Topmost Row:** This version first finds the row index of the topmost object.
+2. **Iterate and Compare:** It iterates through each object and checks if its uppermost row matches the `topmost_row`. If so, it's part of the topmost object and is recolored to '8', and the diagonal pixel is marked.
+3. **Recolor Portrait Objects:**  Other portrait objects are recolored to '7'.
+
+These five program versions showcase different logical approaches and combinations of DSL functions to achieve the same transformation, highlighting the flexibility and expressiveness of the provided DSL. 

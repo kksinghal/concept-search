@@ -1,0 +1,138 @@
+## Transformation Analysis:
+
+The transformation involves identifying the location of the digit '1' in the input grid and then painting horizontal lines of '3's and vertical lines of '7's centered on the '1' location. The length of each line corresponds to the total count of the respective digit in the input grid.
+
+**Example:**
+
+* **Input:** A grid with 'n' occurrences of '3' and 'm' occurrences of '7'.
+* **Output:**  A grid with a horizontal line of 'n' '3's and a vertical line of 'm' '7's, both centered on the location of the digit '1' in the input.
+
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  """
+  Calculates center offset for lines and paints them directly onto a blank canvas.
+  """
+  one_loc = first(ofcolor(I, ONE))
+  three_len = colorcount(I, THREE)
+  seven_len = colorcount(I, SEVEN)
+  center_offset_three = (0, (three_len // 2) * -1 + (three_len % 2))
+  center_offset_seven = ((seven_len // 2) * -1 + (seven_len % 2), 0)
+  threes = recolor(THREE, hline(range(three_len)))
+  sevens = recolor(SEVEN, vline(range(seven_len)))
+  return paint(paint(canvas(ZERO, shape(I)), 
+                   shift(threes, add(one_loc, center_offset_three))), 
+                   shift(sevens, add(one_loc, center_offset_seven)))
+```
+
+**Explanation:**
+
+1. **Find '1' Location:** `one_loc = first(ofcolor(I, ONE))` identifies the location of '1'.
+2. **Calculate Line Lengths:** `three_len` and `seven_len` store the counts of '3's and '7's.
+3. **Calculate Center Offsets:** `center_offset_three` and `center_offset_seven` calculate the offsets required to center the lines on '1'.
+4. **Create Lines:** `threes` and `sevens` are created using `hline` and `vline` with appropriate lengths and recolored.
+5. **Shift and Paint:** Lines are shifted to the correct position relative to '1' using `shift` and `add`, then painted onto a blank canvas.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  """
+  Iteratively builds lines from the center outwards.
+  """
+  one_loc = first(ofcolor(I, ONE))
+  threes = recolor(THREE, initset(one_loc))
+  sevens = recolor(SEVEN, initset(one_loc))
+  for i in range(1, colorcount(I, THREE) // 2 + 1):
+    threes = combine(threes, shift(threes, (0, i)))
+    threes = combine(threes, shift(threes, (0, -i)))
+  for i in range(1, colorcount(I, SEVEN) // 2 + 1):
+    sevens = combine(sevens, shift(sevens, (i, 0)))
+    sevens = combine(sevens, shift(sevens, (-i, 0)))
+  return paint(paint(canvas(ZERO, shape(I)), threes), sevens)
+```
+
+**Explanation:**
+
+1. **Find '1' and Initialize:** Similar to Version 1, it locates '1' and initializes `threes` and `sevens` with the '1' location.
+2. **Iterative Building:** Lines are built iteratively by shifting the existing line by increasing offsets in both directions and combining the results. 
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  """
+  Leverages `interval` function to generate line indices directly.
+  """
+  one_loc = first(ofcolor(I, ONE))
+  three_offset =  (0, -colorcount(I, THREE) // 2)
+  seven_offset = (-colorcount(I, SEVEN) // 2, 0)
+  threes = recolor(THREE, frozenset((one_loc[0], j) for j in 
+                    interval(one_loc[1] + three_offset[1], 
+                              one_loc[1] - three_offset[1] + colorcount(I, THREE) % 2, 1)))
+  sevens = recolor(SEVEN, frozenset((i, one_loc[1]) for i in 
+                    interval(one_loc[0] + seven_offset[0], 
+                              one_loc[0] - seven_offset[0] + colorcount(I, SEVEN) % 2, 1)))
+  return paint(paint(canvas(ZERO, shape(I)), threes), sevens)
+```
+
+**Explanation:**
+
+1. **'1' Location and Offsets:**  Finds '1' location and calculates center offsets like previous versions.
+2. **Direct Index Generation:**  Uses `interval` to generate a sequence of indices representing the horizontal and vertical lines, considering center alignment.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  """
+  Constructs lines using `product` and offsetting.
+  """
+  one_loc = first(ofcolor(I, ONE))
+  three_offset = (0, -colorcount(I, THREE) // 2)
+  seven_offset = (-colorcount(I, SEVEN) // 2, 0)
+  threes = recolor(THREE, shift(product(initset(one_loc[0]), range(colorcount(I, THREE))), three_offset))
+  sevens = recolor(SEVEN, shift(product(range(colorcount(I, SEVEN)), initset(one_loc[1])), seven_offset))
+  return paint(paint(canvas(ZERO, shape(I)), threes), sevens)
+```
+
+**Explanation:**
+
+1. **'1' Location and Offsets:** Same as before.
+2. **Cartesian Product for Lines:** Leverages `product` to generate indices for lines by creating a Cartesian product of a single-element set (row/column of '1') and a range representing line length. 
+3. **Shifting:**  Shifts the generated indices to the correct position based on calculated offsets.
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  """
+  Uses a loop and conditional painting for line construction.
+  """
+  one_loc = first(ofcolor(I, ONE))
+  three_count = colorcount(I, THREE)
+  seven_count = colorcount(I, SEVEN)
+  O = canvas(ZERO, shape(I))
+  for i in range(max(three_count, seven_count)):
+    if i < three_count:
+      O = paint(O, {(THREE, (one_loc[0], one_loc[1] + i - three_count // 2))})
+      if three_count > 1:
+        O = paint(O, {(THREE, (one_loc[0], one_loc[1] - i  + three_count // 2 - (1 - three_count % 2)))})
+    if i < seven_count:
+      O = paint(O, {(SEVEN, (one_loc[0] + i - seven_count // 2, one_loc[1]))})
+      if seven_count > 1:
+        O = paint(O, {(SEVEN, (one_loc[0] - i + seven_count // 2 - (1 - seven_count % 2), one_loc[1]))})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Locates '1' and gets counts of '3's and '7's. Initializes an empty canvas.
+2. **Loop and Conditional Painting:**  Iterates up to the maximum line length, painting '3's and '7's symmetrically around the '1' location based on the current loop index and line counts.
+
+
+These five versions offer diverse approaches to the transformation, utilizing different DSL functions and logical constructs, showcasing the flexibility of the provided DSL in solving the problem.

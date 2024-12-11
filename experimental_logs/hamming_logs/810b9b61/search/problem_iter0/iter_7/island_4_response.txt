@@ -1,0 +1,162 @@
+## Transformation Analysis:
+
+The transformation involves selectively recoloring connected components of the digit '1' to the digit '3' in the input grid. 
+
+* **Connected components** are defined as groups of adjacent '1's, considering only horizontal and vertical adjacency (not diagonal).
+* **Selective recoloring** means not all components of '1's are changed to '3's.  The specific criteria for selection is not immediately clear from the examples, and needs further investigation.
+
+Let's analyze each input-output pair to identify the selection pattern:
+
+**Input_0 to Output_0:** 
+- The large connected component of '1's in the top-middle section and the bottom-right corner are recolored to '3's.
+- The smaller components of '1's remain unchanged.
+
+**Input_1 to Output_1:**
+-  Only the connected component of '1's in the top-middle section is recolored to '3's. 
+-  All other '1's, including those forming a different connected component, remain unchanged.
+
+**Input_2 to Output_2:** 
+-  The two large connected components of '1's are recolored to '3's.
+-  The single '1' at the bottom-middle remains unchanged.
+
+**Hypothesis:** The transformation seems to recolor a connected component of '1's to '3's only if the component has a width of at least 3 cells. 
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program that aim to achieve the desired transformation:
+
+**Version 1: Using `objects` and size filtering**
+
+```python
+def Program_to_be_generated(I):
+  """Recolors connected components of '1's to '3' if their width is at least 3."""
+  objs = objects(I, True, False, False)  # Find connected components of '1's.
+  wide_objs = sfilter(objs, lambda obj: width(obj) >= 3) # Select components with width >= 3
+  recolored_objs = apply(lambda obj: recolor(obj, 3), wide_objs) # Recolor selected components
+  O = I
+  for obj in recolored_objs:
+    O = paint(O, obj)  # Paint recolored components onto the grid
+  return O
+```
+
+**Explanation:**
+1. **`objects(I, True, False, False)`:**  Identifies all connected components of '1's in the input grid `I`.
+2. **`sfilter(objs, lambda obj: width(obj) >= 3)`:** Filters the connected components, selecting only those with a width of 3 cells or more.
+3. **`apply(lambda obj: recolor(obj, 3), wide_objs)`:**  Recolors the selected components by changing the value of each cell to '3'.
+4. **`paint(O, obj)`:**  Overlays the recolored components onto a copy of the original grid `O`.
+
+**Version 2:  Iterative flood fill with size check**
+
+```python
+def Program_to_be_generated(I):
+  """Recolors connected '1's to '3' if their component width is at least 3."""
+  h, w = height(I), width(I)
+  visited = set()
+
+  def flood_fill(i, j):
+    """Recolors connected '1's to '3', tracking component width."""
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or I[i][j] != 1:
+      return 0
+    visited.add((i, j))
+    width = 1 + flood_fill(i, j + 1) + flood_fill(i, j - 1) 
+    if width >= 3:
+      I[i][j] = 3  # Recolor only if width condition is met
+    return width
+
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == 1:
+        flood_fill(i, j)
+  return I
+```
+
+**Explanation:**
+1. **`flood_fill(i, j)`:**  Recursively explores the connected component, counting the width and recoloring if the condition is met.
+2. **`width = 1 + flood_fill(i, j + 1) + flood_fill(i, j - 1)`:** Recursively calculates the width of the component.
+3. **`if width >= 3: I[i][j] = 3`:** Recolors the cell only if the width condition is satisfied.
+
+**Version 3: Using `ofcolor`, `dneighbors` and bounding box**
+
+```python
+def Program_to_be_generated(I):
+  """Recolors connected '1's to '3' based on component width."""
+  ones = ofcolor(I, 1)
+  recolor_indices = set()
+  for loc in ones:
+    component = {loc} 
+    for n in dneighbors(loc):
+      if n in ones:
+        component.add(n) 
+    if width(frozenset(component)) >= 3:
+      recolor_indices.update(component) 
+  return paint(I, recolor(3, frozenset(recolor_indices)))
+```
+
+**Explanation:**
+1. **`ofcolor(I, 1)`:** Finds all indices of '1's in the input grid.
+2.  **Loop through `ones`**:  For each '1', it expands to find its connected neighbors, forming a component.
+3. **`width(frozenset(component)) >= 3`:** Checks if the component width is at least 3. If so, marks its indices for recoloring. 
+4. **`paint(I, recolor(3, frozenset(recolor_indices)))`:** Applies the recoloring to the grid. 
+
+**Version 4:  Line-by-line scanning and recoloring**
+
+```python
+def Program_to_be_generated(I):
+  """Recolors connected '1's to '3' by scanning for horizontal runs."""
+  h, w = height(I), width(I)
+  O = I 
+  for i in range(h):
+    j = 0
+    while j < w:
+      if I[i][j] == 1:
+        start = j
+        while j < w and I[i][j] == 1: 
+          j += 1
+        if j - start >= 3:
+          for k in range(start, j):
+            O = paint(O, {(3, (i, k))})
+      else:
+        j += 1
+  return O
+```
+
+**Explanation:**
+1. **Iterate through rows:**  Scans the grid row by row.
+2. **Identify '1' runs:** Detects consecutive '1's in each row and calculates the run length.
+3. **Recolor if width >= 3:** If a run's length (width) is 3 or more, recolors the corresponding cells in the output grid `O`. 
+
+**Version 5: Recursive approach with width tracking**
+
+```python
+def Program_to_be_generated(I):
+  """Recolors connected components of '1's to '3' based on width."""
+  h, w = height(I), width(I)
+  visited = set()
+
+  def recolor_component(i, j, current_width):
+    """Recursively recolors a component if its width is at least 3."""
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or I[i][j] != 1:
+      return current_width
+    visited.add((i, j))
+    current_width = max(current_width, recolor_component(i, j+1, current_width+1))
+    current_width = max(current_width, recolor_component(i+1, j, 1))
+    current_width = max(current_width, recolor_component(i, j-1, current_width+1))
+    current_width = max(current_width, recolor_component(i-1, j, 1))
+    if current_width >= 3:
+      I[i][j] = 3
+    return current_width
+
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == 1 and (i, j) not in visited:
+        recolor_component(i, j, 1)
+  return I 
+```
+
+**Explanation:**
+1. **`recolor_component(i, j, current_width)`:** This function recursively explores the grid, tracking the current width of the connected component.
+2.  **Width Calculation:** It updates the `current_width` by recursively calling itself for adjacent cells.
+3. **Recoloring:** It recolors a cell to '3' only if the final `current_width` of the component is 3 or more.
+
+
+These five versions provide distinct approaches to achieve the desired transformation, utilizing various DSL functions and logic. 

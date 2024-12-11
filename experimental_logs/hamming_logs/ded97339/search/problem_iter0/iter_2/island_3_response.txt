@@ -1,0 +1,186 @@
+## Transformation Analysis:
+
+The transformation connects the non-background digits of the input grid into a single, continuous line.  The line's path prioritizes horizontal connections over vertical ones. Here's a breakdown:
+
+**Input_0:**
+
+* The isolated '8' digits are connected horizontally, forming a single line across the grid.
+
+**Input_1:**
+
+* The digits are connected to form a horizontal line extending to the rightmost '8' in the 7th row. 
+
+**Input_2:**
+
+*  Similar to Input_1, a horizontal line is formed, connecting to the rightmost '8' in the 8th row.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions utilizing the provided DSL to achieve the desired transformation:
+
+**Program Version 1**
+
+```python
+def connect_digits_horizontally(I):
+    bg = mostcolor(I)
+    objs = objects(I, True, False, True)
+    if len(objs) == 0:
+        return I
+    first_obj = first(objs)
+    start = centerofmass(first_obj)
+    current = start
+    O = I
+    visited = toindices(first_obj)
+    while True:
+        neighbors = dneighbors(current) - visited
+        found = False
+        for neighbor in neighbors:
+            if index(I, neighbor) != bg:
+                O = paint(O, recolor(index(I, start), connect(current, neighbor)))
+                current = neighbor
+                visited = visited | connect(current, neighbor)
+                found = True
+                break
+        if not found:
+            break
+    return O 
+```
+
+**Explanation:**
+
+1. **Initialization:** Identify background color, find objects, determine starting point.
+2. **Iteration:** Iteratively search for neighboring non-background cells.
+3. **Connection:** If a neighbor is found, connect it to the current position and update visited cells.
+4. **Termination:**  Stop when no more connectable neighbors are found.
+
+**Program Version 2**
+
+```python
+def connect_digits_horizontally(I):
+  c = mostcolor(I)
+  O = I
+  for i, row in enumerate(I):
+    for j, v in enumerate(row):
+      if v != c:
+        if j > 0 and row[j-1] != c:
+          O = paint(O, recolor(v, {(i, j-1), (i, j)}))
+        elif i > 0 and I[i-1][j] != c:
+          O = paint(O, recolor(v, {(i-1, j), (i, j)}))
+  return O
+```
+
+**Explanation:**
+
+1. **Iteration:**  Iterate through each cell in the grid.
+2. **Horizontal Check:**  Prioritize connecting to the left neighbor if it's not background.
+3. **Vertical Check:** If no left neighbor, connect to the top neighbor if it's not background.
+4. **Connection:**  Paint the connecting cells with the current cell's color.
+
+**Program Version 3**
+
+```python
+def connect_digits_horizontally(I):
+  bg = mostcolor(I)
+  objs = objects(I, True, False, True)
+  if len(objs) <= 1:
+    return I
+  O = I
+  current = centerofmass(first(objs))
+  visited = toindices(first(objs))
+  for _ in range(len(objs) - 1):
+    candidates = sorted(
+      ((manhattan(frozenset({current}), obj), obj) for obj in objs if not toindices(obj).issubset(visited)),
+      key=lambda x: x[0]
+    )
+    _, closest = first(candidates)
+    path = connect(current, argmin(toindices(closest), lambda loc: manhattan(frozenset({loc}), frozenset({current}))))
+    O = paint(O, recolor(index(I, current), path))
+    current = argmax(toindices(path), lambda loc: manhattan(frozenset({loc}), frozenset({current})))
+    visited = visited | toindices(closest)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Get objects, initialize current position, and visited cells.
+2. **Closest Object:** Find the closest unvisited object to the current position.
+3. **Path Connection:**  Connect the current position to the closest object using a straight line.
+4. **Update:** Update current position to the end of the path and mark the closest object as visited.
+5. **Iteration:**  Repeat until all objects are connected.
+
+**Program Version 4**
+
+```python
+def connect_digits_horizontally(I):
+    bg = mostcolor(I)
+    objs = objects(I, True, False, True)
+    if len(objs) == 0:
+        return I
+    O = I
+    while len(objs) > 1:
+        closest_pair = min(
+            (
+                (manhattan(obj1, obj2), obj1, obj2)
+                for obj1 in objs
+                for obj2 in objs
+                if obj1 != obj2
+            ),
+            key=lambda x: x[0],
+        )
+        _, obj1, obj2 = closest_pair
+        O = paint(O, recolor(color(obj1), connect(centerofmass(obj1), centerofmass(obj2))))
+        objs = frozenset({*remove(obj1, objs), *remove(obj2, objs), toobject(connect(centerofmass(obj1), centerofmass(obj2)), O)})
+    return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Find objects.
+2. **Closest Pair:**  Find the closest pair of objects based on Manhattan distance.
+3. **Connection:**  Connect the centers of the closest objects and update the object set.
+4. **Iteration:** Repeat until all objects are merged into one.
+
+**Program Version 5**
+
+```python
+def connect_digits_horizontally(I):
+    bg = mostcolor(I)
+    objs = objects(I, True, False, True)
+    if len(objs) == 0:
+        return I
+    O = I
+    while len(objs) > 1:
+        merged = False
+        for obj1 in objs:
+            for obj2 in objs:
+                if obj1 != obj2 and hmatching(obj1, obj2):
+                    O = paint(O, recolor(color(obj1), connect(centerofmass(obj1), centerofmass(obj2))))
+                    objs = frozenset({*remove(obj1, objs), *remove(obj2, objs), toobject(connect(centerofmass(obj1), centerofmass(obj2)), O)})
+                    merged = True
+                    break
+            if merged:
+                break
+        if not merged:
+            closest_pair = min(
+                (
+                    (manhattan(obj1, obj2), obj1, obj2)
+                    for obj1 in objs
+                    for obj2 in objs
+                    if obj1 != obj2
+                ),
+                key=lambda x: x[0],
+            )
+            _, obj1, obj2 = closest_pair
+            O = paint(O, recolor(color(obj1), connect(centerofmass(obj1), centerofmass(obj2))))
+            objs = frozenset({*remove(obj1, objs), *remove(obj2, objs), toobject(connect(centerofmass(obj1), centerofmass(obj2)), O)})
+    return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Find objects.
+2. **Horizontal Priority:**  Prioritize merging objects that share a row.
+3. **Closest Pair (Fallback):**  If no objects share a row, find and connect the closest pair.
+4. **Iteration:** Repeat until all objects are merged into one.
+
+These five program versions represent diverse approaches to achieving the desired transformation using the DSL. They showcase different strategies for connecting objects, ranging from iterative neighbor searches to finding and merging closest pairs. Each version prioritizes horizontal connections, reflecting the observed pattern in the input-output pairs.

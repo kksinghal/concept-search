@@ -1,0 +1,117 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as follows:
+
+1. **Identify the non-background objects:** Each input grid consists of a background color (most frequent) and one or more non-background objects. 
+2. **Create an outline one cell thick around each object:** The outline should have the same color as the background.
+3. **Maintain the original object pixels:** The pixels belonging to the original objects should remain unchanged.
+
+Essentially, the transformation creates a one-cell thick border around all non-background objects in the grid, effectively separating them from each other.
+
+## Program Versions:
+
+Here are five distinct versions of the `Program_to_be_generated` using the DSL from `dsl.py`, each with an explanation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)  # Identify the background color
+  objs = objects(I, False, False, True)  # Extract non-background objects
+  expanded_objs = mapply(lambda obj: obj | mapply(dneighbors, toindices(obj)), objs)  # Expand each object by one cell in all directions
+  outlines = mapply(lambda obj: obj - toindices(objs), expanded_objs)  # Get the outline by subtracting the original objects
+  O = fill(I, bg, merge(outlines))  # Fill the outlines with the background color
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Background and Objects:** Similar to Program_B, we first identify the background color and extract all non-background objects.
+2. **Expand Objects:** We use `mapply` and `dneighbors` to expand each object by one cell in all four directions (up, down, left, right).
+3. **Calculate Outlines:** By subtracting the original object indices from the expanded object indices, we are left with the outline.
+4. **Fill Outlines:** We fill the calculated outline indices with the background color using the `fill` function.
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, False, False, True)
+  shifted_outlines = merge([
+      mapply(lambda loc: shift({loc}, d), toindices(obj)) - toindices(obj) 
+      for obj in objs 
+      for d in [UP, DOWN, LEFT, RIGHT]
+  ])
+  O = fill(I, bg, shifted_outlines)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Background and Objects:** Similar to previous versions.
+2. **Generate Shifted Outlines:** For each object and each direction (UP, DOWN, LEFT, RIGHT), we shift a set containing each cell's location and subtract the original object to obtain the outline segment in that direction. 
+3. **Merge Outlines:**  We merge all the generated outline segments.
+4. **Fill Outlines:** Fill the merged outline indices with the background color.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  O = I  # Start with the original grid
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] != bg and any(I[i+di][j+dj] == bg for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]):
+        O = fill(O, bg, {(i, j)}) # Fill with background if a neighboring cell is background
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Check Neighbors:**  This version iterates through each cell of the grid (excluding the borders). If a cell is not the background color and has at least one neighboring cell with the background color, it's considered part of the outline.
+2. **Fill Outline Cells:** The identified outline cells are filled with the background color.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, False, False, True)
+  outlines = mapply(lambda obj:  
+                    {(i, j) for i, j in backdrop(obj) if any((i + di, j + dj) not in toindices(obj) 
+                                                                for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)])}, 
+                    objs)
+  O = fill(I, bg, merge(outlines)) 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Background and Objects:** Same as before.
+2. **Calculate Outlines Using Backdrop:** For each object, we iterate through all cells within its `backdrop` (bounding box). If a cell in the backdrop has at least one neighboring cell outside the object, it's considered an outline cell.
+3. **Fill Outlines:** The identified outline cells are filled with the background color.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = objects(I, False, False, True)
+    def outline_obj(obj):
+      shifted_objs = {shift(obj, d) for d in [UP, DOWN, LEFT, RIGHT]}
+      outline =  set.union(*shifted_objs) - set.union(*[toindices(obj) for obj in shifted_objs])
+      return outline
+    
+    outlines = mapply(outline_obj, objs)
+    O = fill(I, bg, outlines)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Background and Objects:** Similar to previous versions.
+2. **Generate Outline for each Object:** We define `outline_obj` function which shifts the object in all four directions, takes their union and then subtracts the union of the original objects from shifted objects, thus getting the outline. 
+3. **Apply and Fill:** Apply the `outline_obj` function to every object in the input and fill those indices with the background color. 
+
+
+These five program versions provide distinct approaches to achieving the desired transformation while using only the provided DSL functions. Remember that the goal is to have a score of 0, indicating that the output perfectly matches the desired transformation for all input grids.

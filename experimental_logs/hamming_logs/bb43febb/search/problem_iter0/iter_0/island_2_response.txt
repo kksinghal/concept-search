@@ -1,0 +1,128 @@
+## Transformation Analysis:
+
+The transformation replaces a subset of cells within each object with the value '2'. This subset forms a smaller rectangle within the original object's bounding box. 
+
+**Input_0 to Output_0:** 
+- The single object of '5's has its inner 3x3 rectangle replaced with '2's. The top row and bottom row of the original object remain '5's.
+
+**Input_1 to Output_1:**
+- The large horizontal object retains its top and bottom rows as '5's while the middle three rows have their inner segments replaced with '2's. 
+-  Similarly, the vertical object keeps its leftmost and rightmost columns as '5's and replaces the inner two columns with '2's.
+
+## Code Generation:
+
+Here are five distinct program versions using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T) 
+  modified_objs = frozenset()
+  for obj in objs:
+    ul = ulcorner(obj)
+    lr = lrcorner(obj)
+    inner_box = frozenset((i,j) for i in range(ul[0]+1, lr[0]) for j in range(ul[1]+1, lr[1]))
+    modified_obj = recolor(2, intersection(toindices(obj), inner_box))
+    modified_objs = insert(modified_obj, modified_objs)
+  O = paint(I, merge(modified_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, T)` identifies all distinct objects in the grid.
+2. **Iterate and Modify:** For each object:
+    - Determine its bounding box using `ulcorner` and `lrcorner`.
+    - Create an `inner_box` representing the indices to be replaced, excluding the outer layer.
+    - Use `intersection` to find the cells common to both the object and `inner_box`.
+    - `recolor` these cells to '2'.
+    - Add the modified object to `modified_objs`.
+3. **Paint Modified Objects:**  Paint all modified objects back onto the original grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  modified_grid = I
+  for obj in objs:
+    for i, row in enumerate(crop(I, ulcorner(obj), shape(obj))):
+      for j, val in enumerate(row):
+        if 0 < i < len(row)-1 and 0 < j < len(grid)-1:
+          modified_grid = fill(modified_grid, 2, {(i, j)})
+  return modified_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, T)` identifies all distinct objects.
+2. **Iterate and Modify:** For each object:
+    - Extract the object's subgrid using `crop`.
+    - Iterate through the subgrid, excluding the outer border.
+    - For each inner cell, directly modify the `modified_grid` to '2' using `fill`.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  inner_parts = mapply(lambda obj: difference(backdrop(obj), box(obj)), objs)
+  O = fill(I, 2, merge(inner_parts))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, T)` identifies all distinct objects.
+2. **Find Inner Parts:**
+    - For each object, determine the indices within its bounding box (`backdrop`) but exclude the outer border (`box`).
+    - Use `difference` for this exclusion.
+    - Collect all inner parts using `mapply`.
+3. **Fill Inner Parts:** Fill all the identified inner parts with '2' using `fill`.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, T, T)
+  modified_objs = frozenset()
+  for obj in objs:
+    trimmed_obj = toobject(trim(subgrid(obj, I)), I) 
+    modified_obj = recolor(2, toindices(trimmed_obj))
+    modified_objs = insert(modified_obj, modified_objs)
+  O = paint(I, merge(modified_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, T)` identifies all objects.
+2. **Iterate and Modify:** For each object:
+    - Extract the subgrid containing the object.
+    - Trim the outer border of this subgrid using `trim`.
+    - Convert the trimmed subgrid back to an object representation.
+    - Recolor this trimmed object to '2'.
+    - Add the modified object to `modified_objs`.
+3. **Paint Modified Objects:** Paint all modified objects back onto the original grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  modified_grid = I
+  for obj in objects(I, T, T, T):
+    ul = ulcorner(obj)
+    for i in range(ul[0] + 1, ul[0] + height(obj) - 1):
+      for j in range(ul[1] + 1, ul[1] + width(obj) - 1):
+        modified_grid = fill(modified_grid, 2, {(i, j)})
+  return modified_grid
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:**  Identifies objects and loops through each.
+2. **Calculate Inner Bounding Box:**  Finds the upper-left corner (`ul`) of the object and calculates the range of rows and columns for the inner bounding box.
+3. **Fill with '2':**  Iterates through the inner bounding box and fills each cell with '2'.
+
+These five programs showcase diverse approaches using different DSL function combinations to achieve the same grid transformation. 

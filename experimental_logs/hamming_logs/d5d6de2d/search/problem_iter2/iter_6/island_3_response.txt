@@ -1,0 +1,173 @@
+## Transformation Analysis:
+
+This transformation focuses on identifying non-background objects within the input grid and representing them differently on the output grid based on their size:
+
+**Input 0 & Output 0:**
+
+* **Input:** A single-cell object (value 2) is present.
+* **Output:** The output grid is 10x10. The object is represented by two adjacent vertical lines of '3's, positioned relative to the object's location in the input.
+
+**Input 1 & Output 1:**
+
+* **Input:** No non-background objects are present.
+* **Output:** The output grid is 10x10. Two adjacent vertical lines of '3's are drawn at a fixed location.
+
+**Input 2 & Output 2:**
+
+* **Input:** A single-cell object (value 2) is present.
+* **Output:** The output grid is 10x15. The object is represented by a 3x3 square of '3's, positioned relative to the object's location in the input. 
+
+
+## Program_to_be_generated:
+
+### Program Version 1:
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = canvas(0, (TEN, TEN)) if objs and len(first(objs)) == 1 else canvas(0, (TEN, FIFTEEN))
+  if objs:
+    obj = first(objs)
+    i, j = centerofmass(obj)
+    if len(obj) == 1:
+      O = fill(O, THREE, connect((i * FIVE + TWO, j * FIVE + THREE), (i * FIVE + TWO, j * FIVE + FOUR)))
+      O = fill(O, THREE, connect((i * FIVE + THREE, j * FIVE + THREE), (i * FIVE + THREE, j * FIVE + FOUR)))
+    else:
+      O = fill(O, THREE, backdrop(crop(O, (i * FIVE + THREE, j * THREE + THREE), (THREE, THREE))))
+  else:
+    O = fill(O, THREE, connect((TWO, FIVE), (THREE, FIVE)))
+    O = fill(O, THREE, connect((TWO, EIGHT), (THREE, EIGHT)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** It identifies non-background objects in the input grid.
+2. **Determine Output Size:** The output grid size is set to 10x10 if a single-cell object is found; otherwise, it's 10x15. 
+3. **Object Representation:** 
+   - **Single-cell:** Two vertical lines of '3's are drawn, offset based on the object's center of mass.
+   - **Multi-cell:** A 3x3 square of '3's is drawn, centered at an offset based on the object's center of mass.
+4. **No Objects:** If no objects are found, two vertical lines of '3's are drawn at a fixed location.
+
+### Program Version 2:
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  size_factor = (FIVE, FIVE) if objs and size(first(objs)) == ONE else (FIVE, THREE)
+  O = canvas(ZERO, multiply(shape(I), size_factor))
+  for obj in objs:
+    center_i, center_j = centerofmass(obj)
+    offset_i = center_i * size_factor[ZERO] + TWO
+    offset_j = center_j * size_factor[ONE] + TWO + (FIVE * (center_j % TWO) * ((len(O[ZERO]) // FIVE) - ONE))
+    if size(obj) == ONE:
+      O = fill(O, THREE, connect((offset_i, offset_j), (offset_i, offset_j + ONE)))
+      O = fill(O, THREE, connect((offset_i + ONE, offset_j), (offset_i + ONE, offset_j + ONE)))
+    else:
+      O = fill(O, THREE, backdrop(crop(O, (offset_i + ONE, offset_j + ONE), (THREE, THREE)))) 
+  if not objs:
+    O = fill(O, THREE, connect((TWO, FIVE), (THREE, FIVE)))
+    O = fill(O, THREE, connect((TWO, EIGHT), (THREE, EIGHT))) 
+  return O 
+```
+
+**Explanation:**
+
+1. **Object Detection:** Identifies distinct objects in the input.
+2. **Output Grid Scaling:**  Scales the output grid based on object size: 5x5 for single-cell objects, 5x3 otherwise.
+3. **Object-Specific Drawing:**
+   - **Single-Cell Objects:** Draws two adjacent vertical lines.
+   - **Other Objects:** Draws a filled 3x3 square.
+4. **Empty Input Handling:**  Draws two vertical lines at fixed positions for empty inputs.
+
+### Program Version 3:
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = canvas(ZERO, (TEN, TEN)) if objs and len(first(objs)) == ONE else canvas(ZERO, (TEN, FIFTEEN))
+  if objs:
+    obj = first(objs)
+    i, j = centerofmass(obj)
+    if len(obj) == ONE:
+      O = fill(O, THREE, connect((TWO + FIVE * i, THREE + FIVE * j), (TWO + FIVE * i, FOUR + FIVE * j)))
+      O = fill(O, THREE, connect((THREE + FIVE * i, THREE + FIVE * j), (THREE + FIVE * i, FOUR + FIVE * j)))
+    else:
+      start_i = THREE + FIVE * i
+      start_j = THREE + THREE * j
+      O = fill(O, THREE, {(start_i + di, start_j + dj) for di in range(THREE) for dj in range(THREE)})
+  else:
+    O = fill(O, THREE, {(TWO, FIVE), (THREE, FIVE)})
+    O = fill(O, THREE, {(TWO, EIGHT), (THREE, EIGHT)})
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection & Output Sizing:**  Identifies objects and sets output grid size (10x10 or 10x15).
+2. **Object-Specific Drawing:**
+   - **Single-Cell:** Draws two vertical lines using `connect`.
+   - **Others:** Draws a 3x3 square by iterating and filling individual cells.
+3. **Empty Input:**  Handles empty inputs by drawing lines at fixed positions.
+
+### Program Version 4:
+
+```python
+def solve(I):
+  is_single_object = len(objects(I, univalued=True, diagonal=False, without_bg=True)) == 1 and len(first(objects(I, univalued=True, diagonal=False, without_bg=True))) == 1
+  O = canvas(0, (10, 10)) if is_single_object else canvas(0, (10, 15))
+  if is_single_object:
+    obj = first(objects(I, univalued=True, diagonal=False, without_bg=True))
+    i, j = centerofmass(obj)
+    O = fill(O, 3, {(2 + 5 * i, 3 + 5 * j), (2 + 5 * i, 4 + 5 * j), (3 + 5 * i, 3 + 5 * j), (3 + 5 * i, 4 + 5 * j)})
+  else:
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    if objs:
+      obj = first(objs)
+      i, j = centerofmass(obj)
+      O = fill(O, 3, {(i * 5 + 3 + di, j * 3 + 3 + dj) for di in range(3) for dj in range(3)})
+    else:
+      O = fill(O, 3, {(2, 5), (3, 5), (2, 8), (3, 8)})
+  return O
+```
+
+**Explanation:**
+
+1. **Object Analysis:**  Determines if there's a single, one-cell object.
+2. **Output Grid Creation:** Creates a 10x10 grid for single-cell objects, otherwise a 10x15 grid.
+3. **Drawing Based on Object Type:**
+   - **Single-Cell:**  Directly fills cells for the two vertical lines.
+   - **Other/No Objects:** Uses loops for filling either a 3x3 square or the fixed lines.
+
+### Program Version 5:
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  is_single_pixel = objs and len(first(objs)) == ONE
+  output_shape = (TEN, TEN) if is_single_pixel else (TEN, FIFTEEN)
+  O = canvas(ZERO, output_shape)
+  if objs:
+    obj = first(objs)
+    i, j = centerofmass(obj)
+    if is_single_pixel:
+      O = fill(O, THREE, {(TWO + FIVE * i, THREE + FIVE * j), (TWO + FIVE * i, FOUR + FIVE * j)})
+      O = fill(O, THREE, {(THREE + FIVE * i, THREE + FIVE * j), (THREE + FIVE * i, FOUR + FIVE * j)})
+    else:
+      for di in range(THREE):
+        for dj in range(THREE):
+          O = fill(O, THREE, {(THREE + i * FIVE + di, THREE + j * THREE + dj)})
+  else:
+    O = fill(O, THREE, {(TWO, FIVE), (THREE, FIVE)})
+    O = fill(O, THREE, {(TWO, EIGHT), (THREE, EIGHT)})
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:**  Identifies objects and checks for a single-pixel object.
+2. **Adaptive Output Grid:** Creates a 10x10 grid for single-pixel objects and 10x15 otherwise.
+3. **Contextual Drawing:**
+   - **Single-Pixel Object:** Directly fills cells for the two vertical lines.
+   - **Other Objects:** Uses nested loops to fill a 3x3 square.
+4. **Empty Input Handling:** Draws fixed vertical lines when no objects are found. 

@@ -1,0 +1,168 @@
+## Transformation Analysis:
+
+The transformation involves identifying the most common color (background) and the least common color (foreground) in the input grid. Then, it rearranges the foreground objects so that:
+
+* **Input_0:** The single foreground object is moved to the center of the grid and its color is changed to the background color.
+* **Input_1:** The foreground object is split into four identical pieces, which are then moved to the corners of the grid.
+* **Input_2:** Similar to Input_1, the foreground object is split and rearranged to the corners, but this time the pieces are not perfectly identical due to the shape of the original object.
+
+### Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  bg = mostcolor(I)
+  fg = leastcolor(I)
+  objs = fgpartition(I)
+  center_i, center_j = divide(shape(I), 2)
+  
+  if len(objs) == 1:  # Single object case
+    obj = first(objs)
+    shifted_obj = shift(obj, (center_i - uppermost(obj) - height(obj) // 2, center_j - leftmost(obj) - width(obj) // 2))
+    O = underpaint(canvas(bg, shape(I)), shifted_obj)
+    return replace(O, fg, bg)
+
+  elif len(objs) > 1:  # Multiple object case
+    corner_objs = []
+    for i, corner in enumerate([(0, 0), (0, len(I[0])-1), (len(I)-1, 0), (len(I)-1, len(I[0])-1)]):
+      obj = extract(objs, lambda o: ulcorner(o) == corner)
+      corner_objs.append(obj)
+    shifted_objs = []
+    for i, obj in enumerate(corner_objs):
+      corner = [(0, 0), (0, len(I[0])-1), (len(I)-1, 0), (len(I)-1, len(I[0])-1)][i]
+      shifted_objs.append(shift(obj, subtract(corner, ulcorner(obj))))
+    return underpaint(canvas(bg, shape(I)), merge(shifted_objs))
+
+  else:
+    return I
+```
+
+**Explanation:**
+
+1. **Identify Colors:** The code starts by identifying the background and foreground colors using `mostcolor` and `leastcolor` respectively.
+2. **Partition Objects:** It partitions the grid into foreground objects based on color using `fgpartition`.
+3. **Case Handling:** The code then handles the transformation differently based on the number of foreground objects.
+    * **Single Object:** If there's only one object, it's moved to the center of the grid using `shift` and the object's color is changed to the background color using `replace`.
+    * **Multiple Objects:** If there are multiple objects (as in Input_1 and Input_2), the code assumes they need to be moved to the corners. It identifies each corner object and then shifts them to their respective corners using `shift`.
+4. **Reconstruction:** Finally, the transformed objects are painted back onto a canvas of the background color using `underpaint`.
+
+### Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  bg = mostcolor(I)
+  fg = leastcolor(I)
+  objs = fgpartition(I)
+  h, w = shape(I)
+
+  if len(objs) == 1:
+    return replace(I, fg, bg)
+  else:
+    quadrants = [crop(I, (0, 0), (h // 2, w // 2)),
+                 crop(I, (0, w // 2), (h // 2, w - w // 2)),
+                 crop(I, (h // 2, 0), (h - h // 2, w // 2)),
+                 crop(I, (h // 2, w // 2), (h - h // 2, w - w // 2))]
+    
+    rearranged_quadrants = [replace(q, fg, bg) if colorcount(q, fg) > 0 else q for q in quadrants]
+    
+    return vconcat(hconcat(rearranged_quadrants[0], rearranged_quadrants[1]), hconcat(rearranged_quadrants[2], rearranged_quadrants[3]))
+```
+
+**Explanation:**
+
+1. **Identify Colors:** Same as version 1.
+2. **Partition Objects:** Same as version 1.
+3. **Divide and Conquer:** This version divides the grid into four quadrants using `crop`.
+4. **Process Quadrants:** It iterates through the quadrants and checks if each quadrant contains the foreground color using `colorcount`. If it does, it replaces the foreground color with the background color using `replace`.
+5. **Reconstruct Grid:**  The processed quadrants are then concatenated back together horizontally and vertically using `hconcat` and `vconcat` to form the final output grid.
+
+### Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  bg = mostcolor(I)
+  fg = leastcolor(I)
+  objs = fgpartition(I)
+
+  if len(objs) == 1:
+    return paint(canvas(bg, shape(I)), shift(first(objs), subtract(divide(shape(I), 2), centerofmass(first(objs)))))
+  else:
+    corner_offsets = [(0, 0), (0, len(I[0])-1), (len(I)-1, 0), (len(I)-1, len(I[0])-1)]
+    shifted_objs = [shift(obj, subtract(corner, ulcorner(obj))) for obj, corner in zip(objs, corner_offsets)]
+    return underpaint(canvas(bg, shape(I)), merge(shifted_objs))
+```
+
+**Explanation:**
+
+1. **Identify Colors:** Same as version 1.
+2. **Partition Objects:** Same as version 1.
+3. **Case Handling:** Same as version 1.
+4. **Object Movement:** 
+    * **Single Object:** It calculates the offset needed to move the object's center of mass to the grid's center and then shifts the object using `shift`.
+    * **Multiple Objects:** It directly calculates the offsets to move each object to their respective corners and uses `shift` for the movement.
+
+This version simplifies object movement calculations compared to version 1.
+
+### Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  bg = mostcolor(I)
+  fg = leastcolor(I)
+
+  if colorcount(I, fg) == len(I) * len(I[0]) - colorcount(I, bg): # Only two colors present
+    return replace(I, fg, bg)
+  else:
+    return underpaint(canvas(bg, shape(I)), recolor(fg,  merge([ofcolor(I, c) for c in palette(I) if c != bg]))) 
+```
+
+**Explanation:**
+
+1. **Identify Colors:** Same as version 1.
+2. **Two-Color Check:** This version checks if only two colors are present in the grid using `colorcount`. If true, it simply replaces the foreground color with the background color.
+3. **Multi-Color Handling:** If more than two colors are present, it extracts all indices of non-background colors using `ofcolor` and merges them into a single set. It then recolors this combined set to the foreground color and paints it onto a blank canvas. 
+
+This version optimizes for the case where only two colors exist and handles multi-color grids differently.
+
+### Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  bg = mostcolor(I)
+  objs = fgpartition(I)
+  h, w = shape(I)
+  
+  if len(objs) == 1:
+    return fill(I, bg, toindices(first(objs)))
+  else:
+    quadrants = [asobject(crop(I, (0, 0), (h // 2, w // 2))),
+                 asobject(crop(I, (0, w // 2), (h // 2, w - w // 2))),
+                 asobject(crop(I, (h // 2, 0), (h - h // 2, w // 2))),
+                 asobject(crop(I, (h // 2, w // 2), (h - h // 2, w - w // 2)))]
+    
+    rearranged_quadrants = [recolor(bg, obj) if len(obj) > 0 else obj for obj in quadrants]
+    
+    top = paint(canvas(bg, (h // 2, w)), merge([rearranged_quadrants[0], rearranged_quadrants[1]]))
+    bottom = paint(canvas(bg, (h - h // 2, w)), merge([rearranged_quadrants[2], rearranged_quadrants[3]]))
+    
+    return vconcat(top, bottom)
+```
+
+**Explanation:**
+
+1. **Identify Background:** Same as version 2.
+2. **Partition Objects:** Same as version 1.
+3. **Divide and Conquer:** Same as version 2.
+4. **Process Quadrants:** Instead of replacing colors, this version recolors the entire quadrant to the background color if it contains any foreground object using `recolor`.
+5. **Reconstruct Grid:** Similar to version 2, but instead of directly concatenating, it paints the rearranged quadrants onto canvases of appropriate sizes and then concatenates them. 
+
+This version provides a slightly different approach to quadrant processing and reconstruction compared to version 2. 

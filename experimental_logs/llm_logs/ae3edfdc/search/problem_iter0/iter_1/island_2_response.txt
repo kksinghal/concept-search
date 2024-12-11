@@ -1,0 +1,187 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves the following steps:
+
+1. **Identify Target Objects:** The transformation focuses on objects formed by digits 1, 2, and 3. These objects are moved while the rest of the grid remains unchanged.
+2. **Horizontal Alignment:** Each target object is moved horizontally so that its leftmost cell aligns with the column containing digit '1'.  
+3. **Vertical Compression:** After horizontal alignment, all empty rows below the target objects are removed, effectively compressing the grid vertically.
+
+Let's analyze each input-output pair to confirm this pattern:
+
+* **Input_0:** The object '323' is shifted left to align with digit '1'. The same happens to the single '3' objects. Empty rows below are then removed.
+* **Input_1:** The object '32' is shifted left to align with '1'. Similarly, the '717' object is aligned with its '1'.  Empty rows below are removed.
+* **Input_2:** The '323' object is shifted right to align with '1'. The other objects '7' and '3' are also shifted accordingly. Empty rows below are removed. 
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" to achieve the desired transformation. Each version utilizes different combinations of DSL functions and logic.
+
+
+### Program Version 1:
+
+**Code:**
+```python
+def solve_25d8a9c8(I):
+    # Find the column with the digit '1'
+    one_column = first(extract(asindices(I), lambda ij: I[ij[0]][ij[1]] == 1))[1]
+
+    # Identify and move target objects
+    new_objs = frozenset()
+    for obj in objects(I, False, False, True):
+        if any(v in {1,2,3} for v, _ in obj):
+            leftmost_col = leftmost(obj)
+            offset = (0, one_column - leftmost_col)
+            new_objs = insert(shift(obj, offset), new_objs)
+
+    # Remove existing objects and paint the moved objects
+    I = fill(I, 0, asindices(I))
+    for obj in new_objs:
+        I = paint(I, obj)
+
+    # Compress the grid vertically
+    I = compress(I)
+    return I
+```
+
+**Explanation:**
+
+1. **Find '1' Column:**  The code identifies the column index (`one_column`) where the digit '1' is located.
+2. **Move Target Objects:** It iterates through each object, calculates the horizontal offset needed to align it with the '1' column, and shifts the object accordingly.
+3. **Paint and Compress:** The existing objects are removed from the grid, the moved objects are painted onto the grid, and finally, the grid is vertically compressed.
+
+
+### Program Version 2:
+
+**Code:**
+```python
+def solve_25d8a9c8(I):
+  # Find the target objects and their bounding box
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1,2,3} for v, _ in obj))
+  min_row, max_row = uppermost(merge(target_objs)), lowermost(merge(target_objs))
+  
+  # Find the column with the digit '1'
+  one_column = first(extract(asindices(I), lambda ij: I[ij[0]][ij[1]] == 1))[1]
+  
+  # Create new grid by iterating through the rows of target objects
+  new_grid = tuple()
+  for i in range(max_row + 1):
+    if i <= min_row:
+      new_grid += (I[i],)
+    else:
+      # Shift row elements to align with '1' column
+      row = list(I[i])
+      new_row = [0] * len(row)
+      for j, v in enumerate(row):
+        if v in {1, 2, 3}:
+          new_j = j + one_column - leftmost(objects(tuple((row,)), False, False, True))
+          new_row[new_j] = v
+      new_grid += (tuple(new_row),)
+  return new_grid
+```
+
+**Explanation:**
+1. **Identify Target Objects and Bounding Box:** The program identifies target objects and determines the range of rows (`min_row`, `max_row`) containing those objects.
+2. **Find '1' Column:**  Similar to version 1, it finds the column index (`one_column`) of digit '1'.
+3. **Shift and Construct:** It creates a new grid row by row. Rows before `min_row` are copied directly. For target object rows, elements are shifted left to align with the '1' column, and a new row is constructed.
+
+
+### Program Version 3:
+
+**Code:**
+```python
+def solve_25d8a9c8(I):
+  # Identify target cells 
+  target_cells = frozenset((i, j) for i, row in enumerate(I) for j, v in enumerate(row) if v in {1, 2, 3})
+  
+  # Find the leftmost column of target cells
+  target_leftmost = min(j for _, j in target_cells)
+
+  # Find the column with the digit '1'
+  one_column = first(extract(asindices(I), lambda ij: I[ij[0]][ij[1]] == 1))[1]
+
+  # Calculate the offset for shifting
+  offset = (0, one_column - target_leftmost)
+
+  # Create new grid by shifting target cells
+  new_grid = list(list(row) for row in I)
+  for i, j in target_cells:
+    new_j = j + offset[1]
+    if 0 <= new_j < len(I[0]):
+      new_grid[i][new_j] = I[i][j]
+    new_grid[i][j] = 0
+
+  # Remove empty rows from the bottom
+  new_grid = tuple(tuple(row) for row in new_grid)
+  while new_grid and all(v == 0 for v in new_grid[-1]):
+    new_grid = new_grid[:-1]
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Identify Target Cells:** This version directly identifies the coordinates of cells containing 1, 2, or 3.
+2. **Find Offsets:** It determines the leftmost column of target cells (`target_leftmost`) and calculates the offset needed to align with the '1' column.
+3. **Shift and Clean:** It creates a new grid and shifts target cells based on the calculated offset. Finally, it removes empty rows from the bottom to achieve vertical compression.
+
+### Program Version 4:
+
+**Code:**
+
+```python
+def solve_25d8a9c8(I):
+  # Find target objects and '1' position
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1, 2, 3} for v, _ in obj))
+  one_loc = extract(asindices(I), lambda ij: I[ij[0]][ij[1]] == 1)
+
+  # Calculate offsets for each object
+  offsets = {obj: (0, one_loc[1] - leftmost(obj)) for obj in target_objs} 
+
+  # Create a new grid with shifted objects
+  new_grid = canvas(0, shape(I))
+  for obj in target_objs:
+    new_grid = paint(new_grid, shift(obj, offsets[obj]))
+
+  # Find the lowest row containing a non-zero value
+  lowest_row = max((i for i, row in enumerate(new_grid) if any(v != 0 for v in row)), default=0)
+  
+  return new_grid[:lowest_row + 1]
+```
+
+**Explanation:**
+
+1. **Locate Targets and '1':** The code finds the target objects and the location of the digit '1'.
+2. **Calculate Offsets:** It pre-calculates the shifting offset for each target object relative to the '1' position.
+3. **Shift and Paint:** It initializes an empty canvas and paints the shifted objects onto it. 
+4. **Trim Grid:** It finds the lowest non-empty row and trims the grid accordingly, removing unnecessary rows. 
+
+### Program Version 5:
+
+**Code:**
+
+```python
+def solve_25d8a9c8(I):
+  # Transpose the grid
+  I = dmirror(I)
+  
+  # Apply similar logic as in previous versions but vertically
+  target_objs = mfilter(objects(I, False, False, True), lambda obj: any(v in {1,2,3} for v, _ in obj))
+  one_row = first(extract(asindices(I), lambda ij: I[ij[0]][ij[1]] == 1))[0]
+  offsets = {obj: (one_row - uppermost(obj), 0) for obj in target_objs}
+  new_grid = canvas(0, shape(I))
+  for obj in target_objs:
+    new_grid = paint(new_grid, shift(obj, offsets[obj]))
+
+  # Find the rightmost non-zero column and trim
+  rightmost_col = max((j for j, col in enumerate(zip(*new_grid)) if any(v != 0 for v in col)), default=0)
+  new_grid = dmirror(tuple(row[:rightmost_col + 1] for row in new_grid))
+
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Transpose:** This version cleverly utilizes transposition to apply the alignment and compression vertically.
+2. **Vertical Logic:** The core logic from previous versions (finding objects, calculating offsets, shifting, and trimming) is applied vertically after transposition.
+3. **Reverse Transpose:** Finally, the grid is transposed back to its original orientation.
+
+These five distinct program versions demonstrate different approaches to solve the given transformation task. Each leverages the provided DSL functions in unique ways, highlighting the flexibility and expressive power of the language. 

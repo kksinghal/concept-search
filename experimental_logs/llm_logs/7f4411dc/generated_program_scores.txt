@@ -1,0 +1,341 @@
+28.0, tensor(1.9828), Description: Fill the entire output grid with the most common color found in the input grid. 
+:: def ffijffcfcadbeaciiahbjjacidccdiic(I):
+  # Find the most common color
+  x1 = mostcolor(I)
+  # Create a canvas filled with the most common color and same dimensions as input
+  O = canvas(x1, shape(I)) 
+  return O
+ 
+6.333333333333333, tensor(0.0028), Description: Remove the bottom row of the colored object and keep the rest of the grid the same. 
+:: def fdgbcefffedbeacbafedchcfafjcabbe(I):
+  obj = first(objects(I, F, F, T))
+  bottom_row_index = lowermost(obj)
+  filtered_obj = frozenset((v, (i, j)) for v, (i, j) in obj if i != bottom_row_index)
+  O = paint(cover(I, obj), filtered_obj)
+  return O
+ 
+7.333333333333333, tensor(1.9819), Description: Shift the colored object one space to the left. Keep the rest of the grid the same. 
+:: def ecdbbbiicjbdedggiegebebidhjdfcaf(I):
+  obj = first(objects(I, F, F, T))
+  shifted_obj = shift(obj, (-1, 0))
+  O = paint(cover(I, obj), shifted_obj)
+  return O
+ 
+1.6666666666666667, tensor(1.1586), Description: Create an empty canvas with the same dimensions as the input grid and the most common color. Then, paint all the objects from the input grid that have more than one cell onto the canvas. 
+:: def dcjdifebebjhefibijgeghdcihebebba(I):
+    objs = objects(I, F, F, T) # Extract objects, not considering diagonals
+    filtered_objs = sfilter(objs, lambda obj: size(obj) > 1) # Filter out single-cell objects
+    O = canvas(mostcolor(I), shape(I))  # Create an empty canvas
+    for obj in filtered_objs:
+        O = paint(O, obj) # Paint the remaining objects onto the canvas
+    return O
+ 
+23.0, tensor(0.1537), Description: For each object in the input grid, shrink it by removing any cells that are not adjacent to another cell in the same object. Then, create an empty canvas with the same dimensions as the input grid and the most common color. Finally, paint the shrunk objects onto the canvas. 
+:: def dcfhfdjacgdiecfgbiiiiichdfccdieb(I):
+    objs = objects(I, T, T, T) # Extract all objects
+    shrunk_objs = set()
+    for obj in objs:
+        shrunk_obj = sfilter(obj, lambda cell: all(n in toindices(obj) for n in dneighbors(cell[1])))
+        shrunk_objs.add(shrunk_obj)
+    O = canvas(mostcolor(I), shape(I))
+    for obj in shrunk_objs:
+        O = paint(O, obj)
+    return O
+ 
+7.333333333333333, tensor(1.1474), Description: Add a row of the most common color at the top and bottom of the input grid. Keep the rest of the grid the same. 
+:: def acebaijceebieafbjecaaddfbfabaaad(I):
+    h = height(I)
+    O = vconcat(canvas(mostcolor(I), (1, width(I))), I[1:h-1])  
+    O = vconcat(O, canvas(mostcolor(I), (1, width(I))))
+    return O
+ 
+7.0, tensor(0.0163), Description: Copy the input grid and fill it with the most common color. Then, paint only the cells that have the least common color and are not on the edge of the grid. 
+:: def bchbcgebbfdcejdgaaigfadcachbbbag(I):
+    target_color = leastcolor(I) # Identify the target color for filtering
+    O = canvas(mostcolor(I), shape(I)) # Create an empty canvas
+    indices = ofcolor(I, target_color) # Get indices of the target color
+    for i, j in indices:
+        if i != 0 and i != height(I) - 1 and j != 0 and j != width(I) - 1: # Check if not on edge
+            O = paint(O, {(target_color, (i, j))}) # Paint the cell if it's not on the edge
+    return O
+ 
+15.0, tensor(0.0075), Description: Identify all objects in the input grid. Find the largest object based on its size (number of cells). Create an empty canvas with the same dimensions as the input grid and a black background. Paint the largest object onto this canvas, keeping its original color. 
+:: def fdjbcjeeeaajecbbajafhebijafhgbbc(I):
+  objs = objects(I, T, T, T) # identify all objects 
+  largest_obj = argmax(objs, size) # find the largest object
+  O = paint(canvas(0, shape(I)), largest_obj) # paint largest object on empty canvas
+  return O
+ 
+27.0, tensor(0.0087), Description: Identify all objects in the input grid. Find the object with the maximum color count (the color that appears most frequently within the object). Create an empty canvas with the same dimensions as the input grid and a black background. Paint the object with the maximum color count onto this canvas, keeping its original color. 
+:: def jjedjdghiceeeeaebfcfcbbchccfefia(I):
+  objs = objects(I, T, T, T) # identify all objects
+  obj_to_keep = argmax(objs, lambda obj: colorcount(I, color(obj))) # find object with maximum color count
+  O = paint(canvas(0, shape(I)), obj_to_keep) # paint the object onto an empty canvas
+  return O
+ 
+7.333333333333333, tensor(0.0084), Description: Partition the input grid into foreground objects. Identify the largest foreground object based on its size (number of cells). Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Paint the largest object onto this canvas, keeping its original color. 
+:: def aacedfdaajefehjgifjagafcaededcej(I):
+  objs = fgpartition(I) # partition the grid into foreground objects
+  largest_obj = argmax(objs, size) # find the largest foreground object
+  O = paint(canvas(mostcolor(I), shape(I)), largest_obj) # paint the largest object on a canvas filled with background color
+  return O
+ 
+167.33333333333334, tensor(1.9902), Description: Compress the colored object vertically, keeping its width the same. The compressed object should have the same color as the original object. The background of the output grid should be the most common color in the input grid. 
+:: def gfaacacfacaceefhjcaabjbijacbbcgb(I):
+    # Identify the object to be transformed (different from background)
+    obj = first(objects(I, F, F, T)) 
+    # Get the color of the object
+    val = color(obj)
+    # Determine the compressed height of the object
+    new_height = height(toindices(obj))
+    # Create a new canvas with the compressed height
+    O = canvas(mostcommon(I), (new_height, width(I)))
+    # Paint the compressed object onto the new canvas
+    O = paint(O, recolor(val, {(i,j) for i in range(new_height) for j in range(width(I))}))
+    return O
+ 
+6.666666666666667, tensor(1.9817), Description: For each object in the input grid, shift it to the left until it touches another object or reaches the left edge of the grid. Then, paint the shifted objects onto an empty canvas with the same dimensions as the input grid and the most common color as the background. 
+:: def cabaghhaacbfebdbbcfacdccacaffabc(I):
+    x1 = objects(I, T, T, T)  
+    O = canvas(mostcolor(I), shape(I))
+    for obj in x1:
+        shifted_obj = obj
+        while uppermost(shifted_obj) > 0 and len(intersection(toindices(shifted_obj), toindices(shift(shifted_obj, (-1, 0))))) == 0:
+            shifted_obj = shift(shifted_obj, (-1, 0)) 
+        O = paint(O, shifted_obj)
+    return O
+ 
+21.333333333333332, tensor(1.9820), Description: For each colored cell in the input grid, find the closest cell above it that has the most common color. Then, move the colored cell to the position of that closest cell. Keep the rest of the grid the same. 
+:: def effbdcgadecaebcjbehbdcffbbcceajf(I):
+  O = I
+  for i in range(1, height(I)):
+    for j in range(width(I)):
+      if index(I, (i, j)) != mostcolor(I) and index(I, (i - 1, j)) == mostcolor(I):
+        k = i
+        while k > 0 and index(I, (k - 1, j)) == mostcolor(I):
+          k -= 1
+        O = paint(cover(O, {(index(I, (i, j)), (i, j))}), {(index(I, (i, j)), (k, j))})
+  return O
+ 
+7.333333333333333, tensor(1.9847), Description: Copy the input grid and fill it with the most common color. Then, paint all the objects from the input grid onto the canvas, keeping their original colors, but paint them in the order of their uppermost position, starting with the object that has the highest uppermost position. 
+:: def dacfcgfefifcechbbfeabfiebcfhaajd(I):
+  x1 = objects(I, T, T, T)
+  x2 = order(x1, uppermost)
+  O = canvas(mostcolor(I), shape(I))
+  for obj in x2:
+    O = underpaint(O, obj)
+  return O
+ 
+43.333333333333336, tensor(1.9819), Description: Copy the input grid and fill it with the most common color. Then, for each column, move all the colored cells (excluding the most common color) to the top of the column, keeping their original colors. The colored cells should be stacked on top of each other, with no gaps between them. 
+:: def igadgcdbdfjaegcajadfbdgdcbdhfdif(I):
+  O = canvas(mostcolor(I), shape(I))
+  for j in range(width(I)):
+    column = [I[i][j] for i in range(height(I))]
+    k = 0
+    for i in range(height(I)):
+      if column[i] != mostcolor(I):
+        O = paint(O, {(column[i], (k, j))})
+        k += 1
+  return O
+ 
+7.333333333333333, tensor(0.0028), Description: Remove the bottom row of the colored object and keep the rest of the grid the same. 
+:: def dbhbaeegbfbhebfgifeehgfhgfjcagca(I):
+  O = paint(I, mfilter(objects(I, F, F, T), lambda obj: {(v, (i, j)) for v, (i, j) in obj if i != lowermost(obj)}))
+  return O
+ 
+11.333333333333334, tensor(1.1981), Description: For each colored object in the input grid, change the color of the bottom row of the object to the most common color in the input grid. Keep the rest of the grid the same. 
+:: def aedffjjfdaffefdbjdjigffgbdcbcabe(I):
+  O = paint(I, merge(apply(lambda obj: recolor(mostcolor(I), {(v, (i, j)) for v, (i, j) in obj if i == lowermost(obj)}), objects(I, F, F, T))))
+  return O
+ 
+6.333333333333333, tensor(1.1423), Description: Add a row of the most common color at the bottom of the input grid. Keep the rest of the grid the same. 
+:: def cbgiccahegbjefdaiedecihhdegccafc(I):
+  O = vconcat(I[:-1], (tuple(mostcolor(I) for _ in range(width(I))),))
+  return O
+ 
+7.666666666666667, tensor(0.0069), Description: Replace the last element of each row with the most common color in the input grid. Keep the rest of the grid the same. 
+:: def jafaacggdhicechijghaagdhjhhbhicf(I):
+  def process_row(row, bg):
+    return tuple(v if i < len(row) - 1 else bg for i, v in enumerate(row))
+  bg_color = mostcolor(I)
+  O = tuple(process_row(row, bg_color) for row in I)
+  return O
+ 
+14.333333333333334, tensor(0.0093), Description: Find the largest object in the input grid that is not a diagonal line. Then, create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Finally, paint only the top two-thirds of the identified object onto the canvas, keeping its original color. 
+:: def bffjeaffdchaedacbhbhfebajfjcaeda(I):
+  target_color = leastcolor(I)
+  obj = first(sizefilter(objects(I, False, True, False), maximum(apply(size, objects(I, False, True, False)))))
+  upper_obj = frozenset((v, (i, j)) for v, (i, j) in obj if i < height(I) // 3 * 2)
+  O = paint(canvas(mostcolor(I), shape(I)), upper_obj)
+  return O
+ 
+7.333333333333333, tensor(1.3271), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, paint all the objects from the input grid that are not diagonal lines, have more than one cell, and are located in the top two-thirds of the grid onto the canvas, keeping their original colors. 
+:: def hbahjeahbijdeaiijfaebfadhdaacbcb(I):
+  h, w = height(I), width(I)
+  O = canvas(mostcolor(I), (h, w))
+  for obj in objects(I, False, True, False):
+    if height(obj) > 1 and width(obj) > 1 and uppermost(obj) < h // 3 * 2:
+      O = paint(O, obj)
+  return O
+ 
+141.0, tensor(1.1463), Description: Replace the least common color in the input grid with the most common color. Then, identify all objects in the modified grid. Create an empty canvas with the same dimensions as the input grid and fill it with the least common color. Finally, paint all the identified objects onto the canvas, keeping their original colors. 
+:: def bcdiebdjchfaehidbdedajacadcifihe(I):
+  lc = leastcolor(I) # Find the least common color
+  objs = objects(replace(I, lc, mostcolor(I)), T, T, T) # Replace least common color with background color and find objects
+  O = paint(canvas(lc, shape(I)), objs) # Paint the objects onto a canvas of the least common color
+  return O
+ 
+7.333333333333333, tensor(0.0211), Description: Identify all single-cell objects (noise) in the input grid. Cover these noise locations with the background color, keeping the rest of the grid the same. 
+:: def bdhdadiegjadeeiciebbgcceedcjcfaa(I):
+  noise = mfilter(asindices(I), lambda loc: size(objects(crop(I, loc, (1,1)), F, F, T)) == 1) # Identify noise locations
+  O = cover(I, noise) # Cover the noise with the background color
+  return O
+ 
+2.3333333333333335, tensor(1.1778), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, paint all the objects from the input grid that have more than one cell onto the canvas, keeping their original colors. 
+:: def afbgdaaaabceedjgjfbaaeigeaebbffe(I):
+  objs = objects(I, T, T, T)
+  filtered_objs = frozenset(obj for obj in objs if size(obj) > 1)
+  O = canvas(mostcolor(I), shape(I))
+  for obj in filtered_objs:
+    O = paint(O, obj)
+  return O
+ 
+1.6666666666666667, tensor(1.1778), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, paint all the objects from the input grid that are not diagonal lines and have more than one cell onto the canvas, keeping their original colors. 
+:: def ahfhhfahbiafeaadafbcdhaaabibgdfc(I):
+  objs = objects(I, False, False, True)
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objs:
+    if size(toindices(obj)) > 1:
+      O = underpaint(O, obj)
+  return O
+ 
+8.333333333333334, tensor(1.9864), Description: For each colored object in the input grid, shift each cell of the object one space to the left, except for the leftmost cell of the object. Keep the rest of the grid the same. 
+:: def cadbjfdjicdbeiebjdidibefebjjeadb(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, F, F, T):
+    for v, (i, j) in obj:
+      if j != leftmost(obj): 
+        O = paint(O, {(v, (i, j - 1))})
+  return O
+ 
+7.0, tensor(1.9819), Description: Shift the entire grid one space to the left. If a cell is shifted off the grid, fill it with the most common color. 
+:: def dcfdacefdcibebedjidceccbbjiciffh(I):
+  shifted_grid = shift(asobject(I), (0, -1)) 
+  O = cellwise(
+    a = I, 
+    b = paint(canvas(mostcolor(I), shape(I)), shifted_grid), 
+    fallback = mostcolor(I)
+  )
+  return O
+ 
+28.0, tensor(1.4640), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, paint all the objects from the input grid that are not diagonal lines and are located in the bottom third of the grid onto the canvas, keeping their original colors. 
+:: def fcfhijfffbgdeebdaecedchcfbgecaea(I):
+  threshold = height(I) // 3 * 2 
+  objs = objects(I, False, True, False)
+  filtered_objs = sfilter(objs, lambda obj: uppermost(obj) >= threshold)
+  O = canvas(mostcolor(I), shape(I))
+  for obj in filtered_objs:
+    O = paint(O, obj)
+  return O
+ 
+21.0, tensor(0.0125), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, paint only the cells from the bottom third of the input grid that are not the most common color onto the canvas, keeping their original colors. 
+:: def iibbbigcaaaaeffebbhebefeaehaeead(I):
+  O = canvas(mostcolor(I), shape(I))
+  for i in range(height(I) // 3 * 2, height(I)):
+    for j in range(width(I)):
+      if index(I, (i, j)) != mostcolor(I):
+        O = paint(O, {(index(I, (i, j)), (i, j))})
+  return O
+ 
+36.666666666666664, tensor(0.0119), Description: Copy the input grid. Then, remove the top two-thirds of the grid, leaving only the bottom third. Fill the top two-thirds of the output grid with the most common color found in the input grid. 
+:: def iaeedeeeaeceeicfibaibfccacfgbgae(I):
+  return vconcat(canvas(mostcolor(I), (height(I) // 3 * 2, width(I))), bottomhalf(I))
+ 
+34.666666666666664, tensor(1.9821), Description: For each column in the input grid, move the first colored cell (excluding the most common color) to the top of the column, keeping its original color. The colored cells should be stacked on top of each other, with no gaps between them. The rest of the grid should be filled with the most common color. 
+:: def aageaaijcbhdejjbbdbifajegbifccjb(I):
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))
+  for j in range(width(I)):  # Iterate through columns
+    for i in range(height(I)): # Iterate through rows from bottom
+      if index(I, (i, j)) != bg:
+        O = paint(O, {(index(I, (i, j)), (uppermost(asobject(crop(I, (0, j), (i+1, 1)))), j))})
+        # Paint current pixel at the uppermost empty position in the column
+        break
+  return O
+ 
+43.333333333333336, tensor(1.9822), Description: For each column in the input grid, move all the colored cells (excluding the most common color) to the top of the column, keeping their original colors. The colored cells should be stacked on top of each other, with no gaps between them. The rest of the grid should be filled with the most common color. 
+:: def edhfcdgheaaaebgejebchfejbabaiagi(I):
+  bg = mostcolor(I)
+  h, w = shape(I)
+  O = canvas(bg, (h, w))
+  for j in range(w):
+    top = 0  # Track the topmost filled position in the column
+    for i in range(h):
+      if index(I, (i, j)) != bg:
+        O = paint(O, {(index(I, (i, j)), (top, j))})
+        top += 1 # Update the topmost filled position
+  return O
+ 
+22.0, tensor(1.9818), Description: For each horizontal line in the input grid, move the line down to the bottom of the grid, keeping its original color. The lines should be stacked on top of each other, with no gaps between them. The rest of the grid should remain the same. 
+:: def ajeiejeaddihecgjbehccajccgffbcef(I):
+  def is_bottom_most(obj, loc):
+    return all(other_loc[0] <= loc[0] for other_loc in occurrences(I, obj) if other_loc != loc)
+  for obj in objects(I, T, T, F):
+    for loc in occurrences(I, obj):
+      if is_bottom_most(obj, loc):
+        I = cover(I, shift(normalize(obj), loc))
+        break
+  return I
+ 
+23.666666666666668, tensor(1.7157), Description: Partition the input grid into foreground objects. Identify the largest object based on its size (number of cells). Shift this largest object one row down. Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Paint the shifted largest object onto this canvas, keeping its original color. 
+:: def ddeggdecfchfedebjjefadegfdfbcafg(I):
+  objs = fgpartition(I) # partition the grid into foreground objects
+  largest_obj = argmax(objs, size)  # find the largest object
+  shifted_obj = shift(largest_obj, (1, 0)) # Shift the largest object one row down 
+  O = paint(canvas(mostcolor(I), shape(I)), shifted_obj)  # Paint the shifted object on a blank canvas
+  return O
+ 
+24.666666666666668, tensor(0.0075), Description: Partition the input grid into foreground objects. Identify the largest foreground object based on its size (number of cells). Remove the top row from this object. Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Paint the trimmed object onto this canvas, keeping its original color. 
+:: def jcdabfedabdeegafjbcfegfechhdcffc(I):
+  objs = fgpartition(I) # partition the grid into foreground objects
+  largest_obj = argmax(objs, size) # find the largest foreground object
+  trimmed_obj = frozenset((v, (i-1,j)) for v, (i,j) in largest_obj if i != uppermost(largest_obj)) # Remove top row from object
+  O = paint(canvas(mostcolor(I), shape(I)), trimmed_obj)  # Paint the trimmed object on a blank canvas
+  return O
+ 
+8.0, tensor(0.0075), Description: Partition the input grid into foreground objects. Identify the largest foreground object based on its size (number of cells). Remove the top row from this object. Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Paint the trimmed object onto this canvas, keeping its original color. 
+:: def gcfceecadbheebjjjabfaceffcagbefe(I):
+  objs = fgpartition(I) # partition the grid into foreground objects
+  largest_obj = argmax(objs, size) # find the largest foreground object
+  trimmed_indices =  sfilter(toindices(largest_obj), lambda ind: ind[0] != uppermost(largest_obj)) # Remove indices corresponding to the top row
+  trimmed_obj = toobject(trimmed_indices, I) # Reconstruct the object from remaining indices
+  O = paint(canvas(mostcolor(I), shape(I)), trimmed_obj) # Paint the trimmed object on a blank canvas
+  return O 
+ 
+1.6666666666666667, tensor(1.1779), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, paint all the objects from the input grid that are not diagonal lines and have more than one cell onto the canvas, keeping their original colors. 
+:: def eaefdafffccbebabbiachddcibbecbaa(I):
+    return paint(canvas(mostcolor(I), shape(I)), 
+                 merge(sfilter(objects(I, False, False, True), lambda obj: size(obj) > 1)))
+ 
+29.333333333333332, tensor(1.9818), Description: For each horizontal line in the input grid, move the line up to the top of the grid, keeping its original color. The lines should be stacked on top of each other, with no gaps between them. The rest of the grid should remain the same. 
+:: def cedifiahjbgbeaejihabebddbjbiicfa(I):
+  objs = objects(I, T, T, F)
+  for obj in objs:
+    uppermost_row = uppermost(obj)
+    I = paint(cover(I, obj), shift(obj, (-uppermost_row, 0)))
+  return I
+ 
+0.0, tensor(0.0115), Description: Create an empty canvas with the same dimensions as the input grid and fill it with the most common color. Then, for each object in the input grid, identify the cells that have more than one neighbor within the same object. Paint only these cells onto the canvas, keeping their original colors. 
+:: def jajecfgccbdgegefjajhjjgcaagecdec(I):
+  objs = objects(I, T, T, T)
+  filtered_objs = set()
+  for obj in objs:
+    for cell in obj:
+      neighbors_count = size(sfilter(dneighbors(cell[1]), lambda n: n in toindices(obj)))
+      if neighbors_count > 1:
+        filtered_objs.add(cell)
+  O = canvas(mostcolor(I), shape(I))
+  for cell in filtered_objs:
+    O = paint(O, initset(cell))
+  return O
+ 

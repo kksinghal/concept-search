@@ -1,0 +1,174 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions) of the digit '1' in the input grid. Then, for each of these objects, a "halo" is created by highlighting the cells directly adjacent (not diagonally) to the object's boundary. This halo is filled with the digit '8'. The original '1' objects remain unchanged.
+
+**Example Breakdown:**
+
+Let's take Input_0 as an example:
+
+```
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 1 1 1 9 9 9 1 9 9 9
+9 1 9 1 9 9 9 1 9 9 9
+9 1 9 1 9 9 1 1 1 1 9
+9 1 1 1 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+```
+
+There are two separate '1' objects: one large one in the center-left and a small one on the right. The transformation creates a halo of '8's around both. The resulting output is:
+
+```
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 8 8 8 9 9 9 1 9 9 9
+9 8 9 8 9 9 9 1 9 9 9
+9 8 9 8 9 9 1 1 1 1 9
+9 8 8 8 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+```
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1:**
+
+```python
+def program_version_1(I):
+  one_objs = sfilter(objects(I, True, False, True), lambda obj: color(obj) == 1)
+  halo_indices = mapply(lambda obj: delta(toindices(obj)), one_objs)
+  O = paint(I, recolor(8, halo_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify '1' Objects:**  `one_objs = sfilter(objects(I, True, False, True), lambda obj: color(obj) == 1)` 
+   - Identifies all objects in the input grid `I` using `objects` (with `univalued=True`, `diagonal=False`, and `without_bg=True`).
+   - Filters these objects to keep only those where the color is '1' using `sfilter`.
+
+2. **Calculate Halo:** `halo_indices = mapply(lambda obj: delta(toindices(obj)), one_objs)`
+   - For each '1' object, calculates the halo indices using `delta`. The `delta` function returns indices that form the boundary of an object.
+   - Uses `mapply` to apply the `delta` function to all '1' objects and merge the results.
+
+3. **Paint the Halo:** `O = paint(I, recolor(8, halo_indices))`
+   - Colors the halo indices with the value '8' using `recolor`.
+   - Paints the colored halo onto the original input grid `I` using `paint`.
+
+4. **Return Output:** `return O`
+   - Returns the modified grid `O`.
+
+
+**Program Version 2:**
+
+```python
+def program_version_2(I):
+  one_indices = ofcolor(I, 1)
+  expanded_indices = mfilter(one_indices, lambda idx: any(n in dneighbors(idx) for n in one_indices))
+  halo_indices = difference(dneighbors(expanded_indices), expanded_indices)
+  O = paint(I, recolor(8, halo_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Find '1' Indices:** `one_indices = ofcolor(I, 1)`
+   - Directly finds all indices of the digit '1' in the input grid `I` using `ofcolor`.
+
+2. **Find Inner Halo Border:** `expanded_indices = mfilter(one_indices, lambda idx: any(n in dneighbors(idx) for n in one_indices))`
+   - Filters the '1' indices to find those which are adjacent to other '1' indices, essentially creating a slightly expanded version of the original '1' objects.
+
+3. **Calculate Halo:** `halo_indices = difference(dneighbors(expanded_indices), expanded_indices)`
+   - Expands the `expanded_indices` using `dneighbors` to include all directly adjacent cells.
+   - Removes the `expanded_indices` themselves from the expanded set, leaving only the halo indices.
+
+4. **Paint the Halo (Same as Version 1):** `O = paint(I, recolor(8, halo_indices))`
+   - Colors the halo and paints it onto the original grid.
+
+5. **Return Output (Same as Version 1):** `return O`
+
+
+**Program Version 3:**
+
+```python
+def program_version_3(I):
+  one_objs = objects(I, True, False, True)
+  halo_objs = mapply(lambda obj: toobject(difference(dneighbors(toindices(obj)), toindices(obj)), I), 
+                      sfilter(one_objs, lambda obj: color(obj) == 1))
+  O = I
+  for obj in halo_objs:
+    O = paint(O, recolor(8, toindices(obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify All Objects:** `one_objs = objects(I, True, False, True)`
+   - Finds all objects in the grid, not just those containing '1'.
+
+2. **Calculate and Paint Halo (Iteratively):** 
+   - `halo_objs = mapply(lambda obj: toobject(difference(dneighbors(toindices(obj)), toindices(obj)), I), sfilter(one_objs, lambda obj: color(obj) == 1))`
+     - This line filters for '1' objects and calculates their halo objects in a similar way to previous versions.
+   -  The code then iterates through each `halo_obj` and paints them onto the grid `O` one by one.
+
+3. **Return Output (Same as Version 1):** `return O`
+
+
+**Program Version 4:**
+
+```python
+def program_version_4(I):
+  O = I
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] == 1 and any(I[i+di][j+dj] != 1 for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]):
+        O = fill(O, 8, {(i-1,j),(i+1,j),(i,j-1),(i,j+1)})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and Check:**
+   - Iterates through each cell of the grid (excluding borders).
+   - Checks if the current cell is '1' and if any of its direct neighbors are not '1'.
+
+2. **Fill Halo:** `O = fill(O, 8, {(i-1,j),(i+1,j),(i,j-1),(i,j+1)})`
+   - If the condition is true, it fills the directly adjacent cells with '8' using `fill`.
+
+3. **Return Output (Same as Version 1):** `return O`
+
+
+**Program Version 5:**
+
+```python
+def program_version_5(I):
+  one_indices = ofcolor(I, 1)
+  halo_indices = set()
+  for i, j in one_indices:
+    for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]:
+      ni, nj = i+di, j+dj
+      if (ni, nj) not in one_indices and 0 <= ni < len(I) and 0 <= nj < len(I[0]):
+        halo_indices.add((ni, nj))
+  O = paint(I, recolor(8, frozenset(halo_indices)))
+  return O 
+```
+
+**Explanation:**
+
+1. **Find '1' Indices (Same as Version 2):** `one_indices = ofcolor(I, 1)`
+
+2. **Iterate and Find Halo:**
+   - Iterates through each '1' index.
+   - For each '1' index, it checks its four direct neighbors.
+   - If a neighbor is not a '1' index and is within the grid bounds, it's added to the `halo_indices` set.
+
+3. **Paint the Halo (Same as Version 1, but with conversion to frozenset):** `O = paint(I, recolor(8, frozenset(halo_indices)))`
+   - Before painting, converts the `halo_indices` set to a `frozenset` as required by the `recolor` function.
+
+4. **Return Output (Same as Version 1):** `return O` 

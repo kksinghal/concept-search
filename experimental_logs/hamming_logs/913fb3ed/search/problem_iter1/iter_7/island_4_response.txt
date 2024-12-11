@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+The transformation appears to involve the following steps for each non-background object:
+
+1. **Outlining:** A thin outline (color 6) is drawn around each object, excluding the corner cells.
+2. **Vertical Shift:** Objects with colors 8 and 2 are shifted one cell downwards.
+3. **Horizontal Lines:**  Objects with color 2 have horizontal lines (color 1) extending to the left and right, stopping at the outline or grid border. 
+4. **Square Expansion:** Objects with color 8 are replaced with a 3x3 square (color 4) centered on the original object's center of mass.
+
+Let's break down the transformation for each input-output pair:
+
+**Input_0 -> Output_0:**
+- The '3' object is outlined.
+- The '8' object is outlined, shifted down, and expanded to a 3x3 square.
+- The '2' object is outlined, shifted down, and has horizontal lines added.
+
+**Input_1 -> Output_1:**
+- The '3' object is outlined.
+
+**Input_2 -> Output_2:**
+- The '3' object is outlined.
+- The '2' object is outlined, shifted down, and has horizontal lines added.
+
+**Input_3 -> Output_3:**
+- The '8' object is outlined, shifted down, and expanded to a 3x3 square.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve the desired transformation:
+
+**Program Version 1:** (Iterative approach with object filtering)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in fgpartition(I):
+    O = paint(O, recolor(6, outbox(toindices(obj)) - corners(toindices(obj)))) # Outlining
+    if color(obj) in [8,2]:
+      O = paint(O, recolor(color(obj), shift(toindices(obj), DOWN))) # Vertical Shift
+    if color(obj) == 2:
+      O = paint(O, recolor(1, (shift(toindices(obj), LEFT) | shift(toindices(obj), RIGHT)) - recolor(6, outbox(toindices(obj))))) # Horizontal Lines
+    if color(obj) == 8:
+      center_i, center_j = centerofmass(obj) # Square Expansion
+      O = paint(O, recolor(4, frozenset((i, j) for i in range(center_i - 1, center_i + 2) for j in range(center_j - 1, center_j + 2))))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O` is initialized with the input grid `I`.
+2. **Iteration:** The code iterates through each object in the foreground partition of the grid.
+3. **Outlining:** The `outbox` function creates a bounding box around the object indices, and `corners` are removed to create the outline. The outline is painted with color 6.
+4. **Vertical Shift:** If the object's color is 8 or 2, the object is shifted one cell down using `shift(toindices(obj), DOWN)`.
+5. **Horizontal Lines:** If the object's color is 2, horizontal lines are drawn using `shift` to extend the object left and right. The `recolor(6, outbox(toindices(obj)))` part ensures the lines don't cross the outline.
+6. **Square Expansion:** If the object's color is 8, the `centerofmass` is calculated, and a 3x3 square is generated and painted with color 4.
+7. **Return:** The transformed grid `O` is returned.
+
+
+**Program Version 2:** (Functional approach using apply)
+
+```python
+def Program_to_be_generated(I):
+  def transform_object(obj):
+    obj_color = color(obj)
+    obj_indices = toindices(obj)
+    return merge([
+        recolor(6, outbox(obj_indices) - corners(obj_indices)),  # Outlining
+        recolor(obj_color, shift(obj_indices, DOWN)) if obj_color in [8, 2] else obj,  # Vertical Shift
+        recolor(1, (shift(obj_indices, LEFT) | shift(obj_indices, RIGHT)) - recolor(6, outbox(obj_indices))) if obj_color == 2 else frozenset(),  # Horizontal Lines
+        recolor(4, backdrop(shift(asindices(canvas(8, (3, 3))), subtract(centerofmass(obj_indices), (1, 1))))) if obj_color == 8 else frozenset()  # Square Expansion
+    ])
+  return paint(I, merge(apply(transform_object, fgpartition(I))))
+```
+
+**Explanation:**
+
+1. **transform_object Function:** This function encapsulates the transformation logic for a single object. 
+   - It first extracts the object's color and indices.
+   - It then uses a list comprehension with conditional statements to apply the outline, shift, lines, and expansion based on the object's color.
+   - The `merge` function combines the results of these transformations.
+
+2. **Main Function:**
+   - `fgpartition(I)` separates the input grid into objects.
+   - `apply(transform_object, fgpartition(I))` applies the `transform_object` function to each object.
+   - The results are merged and then painted onto a copy of the input grid using `paint`.
+
+**Program Version 3:** (Combining transformations with lambda expressions)
+
+```python
+def Program_to_be_generated(I):
+  O = paint(I, recolor(6, mfilter(asindices(I), lambda loc: any(index(I, n) != mostcommon(I) for n in dneighbors(loc)) and index(I, loc) != mostcommon(I)))) # Outlining
+  for c in palette(I) - {mostcommon(I)}:
+    if c in [8,2]:
+      O = paint(O, recolor(c, mapply(lambda loc: shift(frozenset({(c, loc)}), DOWN), ofcolor(O, c)))) # Vertical Shift
+    if c == 2:
+      O = paint(O, recolor(1, mapply(lambda loc: (connect(add(loc, (0, -1)), add(loc, (0, 1))) - recolor(6, outbox(frozenset({loc})))), ofcolor(O, c)))) # Horizontal Lines
+    if c == 8:
+      O = paint(O, recolor(4, mapply(lambda loc: backdrop(shift(asindices(canvas(8, (3, 3))), subtract(loc, (1, 1)))), ofcolor(O, c)))) # Square Expansion
+  return O
+```
+
+**Explanation:**
+
+1. **Outlining:** Outlining is done for all objects together by finding cells that have at least one different colored neighbor and are not the background color.
+2. **Iteration & Transformation:**  It iterates through each color in the grid (excluding the background) and applies the transformations based on color using lambda functions for conciseness.
+
+**Program Version 4:** (Leveraging 'apply_transform' helper function)
+
+```python
+def Program_to_be_generated(I):
+  def apply_transform(grid, color_val, transformation):
+    return paint(grid, recolor(color_val, mapply(lambda loc: transformation(frozenset({(color_val, loc)})), ofcolor(grid, color_val))))
+
+  O = paint(I, recolor(6, mfilter(asindices(I), lambda loc: any(index(I, n) != mostcommon(I) for n in dneighbors(loc)) and index(I, loc) != mostcommon(I))))  # Outlining
+  O = apply_transform(O, 8, lambda obj: backdrop(shift(asindices(canvas(8, (3, 3))), subtract(centerofmass(obj), (1, 1)))))  # Square Expansion
+  O = apply_transform(O, 8, lambda obj: shift(obj, DOWN))  # Vertical shift 8
+  O = apply_transform(O, 2, lambda obj: shift(obj, DOWN))  # Vertical shift 2
+  O = apply_transform(O, 2, lambda obj: connect(add(ulcorner(obj), (0, -1)), add(ulcorner(obj), (0, 1))) - recolor(6, outbox(frozenset({ulcorner(obj)}))))  # Horizontal Lines for 2
+  return O
+```
+
+**Explanation:**
+
+- This version introduces an `apply_transform` helper function to streamline the application of transformations based on color. 
+- It makes the code more readable and modular.
+
+
+**Program Version 5:** (Distinct logic using bounding box properties)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in fgpartition(I):
+    color_val = color(obj)
+    indices = toindices(obj)
+    O = paint(O, recolor(6, outbox(indices) - corners(indices))) # Outlining
+    if color_val in [2,8]:
+      O = paint(O, recolor(color_val, shift(indices, DOWN))) # Vertical Shift
+    if color_val == 2:
+      left_point = (uppermost(indices), leftmost(indices))
+      right_point = (uppermost(indices), rightmost(indices))
+      O = paint(O, recolor(1, connect(subtract(left_point, (0, 1)), add(right_point, (0, 1))) - recolor(6, outbox(indices))))  # Horizontal Lines
+    if color_val == 8:
+      center_i, center_j = centerofmass(indices)
+      expansion_indices = backdrop(shift(asindices(canvas(0, (3, 3))), (center_i - 1, center_j - 1)))
+      O = paint(O, recolor(4, expansion_indices))
+  return O
+```
+
+**Explanation:**
+
+-  This version utilizes bounding box properties like `uppermost`, `leftmost`, and `rightmost` to calculate the positions for horizontal lines and square expansions, offering a different approach to achieving the desired outcome.
+
+
+These five versions demonstrate different approaches to solving the transformation problem, showcasing the flexibility and expressiveness of the provided DSL. Each version offers a unique combination of functions and logic, highlighting the diversity of solutions possible within the given constraints. 

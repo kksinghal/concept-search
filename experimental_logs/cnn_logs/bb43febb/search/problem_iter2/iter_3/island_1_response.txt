@@ -1,0 +1,204 @@
+## Transformation Analysis:
+
+The transformation focuses on the largest object in the grid (excluding the background color, which is the most frequent color). It then applies these rules:
+
+1. **Horizontal Expansion:** The largest object expands horizontally to cover any objects of the second most frequent color that share a row with it.
+2. **Alternating Color Pattern:** The bottom half of the expanded largest object alternates its color with the second most frequent color in a checkerboard pattern. 
+
+**Example Breakdown:**
+
+* **Input_0:** The largest object (5) expands to cover the 2s on its row.  The bottom half of this expanded object then alternates between 5 and 2 in a checkerboard pattern.
+* **Input_1:** The largest object (5) expands horizontally to include the 2s. The bottom half of this expanded object alternates colors in a checkerboard pattern.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+  
+  # Horizontal Expansion
+  expanded_indices = frozenset().union(*({
+      frozenset(((i, j) for j in range(leftmost(largest_obj), rightmost(largest_obj) + 1)))
+      for i in range(uppermost(largest_obj), lowermost(largest_obj) + 1) 
+  }))
+  
+  expanded_obj = toobject(expanded_indices, I)
+  
+  # Alternating Pattern 
+  modified_obj = frozenset(
+      (second_color if (i,j) in expanded_indices and i >= uppermost(largest_obj) + height(expanded_obj) // 2 and even(i + j) else v, (i, j))
+      for v, (i, j) in expanded_obj
+  )
+  return paint(I, modified_obj)
+```
+
+**Explanation:**
+
+1. **Identifies Key Elements:** Identifies the largest object, the second most frequent color, and calculates necessary indices.
+2. **Horizontal Expansion:**  Creates `expanded_indices` to represent the horizontally expanded object and uses `toobject` to get the object from these indices.
+3. **Alternating Pattern:**  Iterates through `expanded_obj`, applying the alternating color logic based on row position and checkerboard pattern using `even(i+j)`.
+4. **Paints to Grid:** Uses `paint` to apply the modifications to the original grid.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+
+  # Horizontal Expansion 
+  expanded_obj =  frozenset().union(*({
+      frozenset(((v, (i, j)) for j, v in enumerate(row) if leftmost(largest_obj) <= j <= rightmost(largest_obj))) 
+      for i, row in enumerate(I) if uppermost(largest_obj) <= i <= lowermost(largest_obj)
+  }))
+
+  # Alternating Pattern
+  modified_grid = tuple(
+      tuple(
+          second_color if (i,j) in toindices(expanded_obj) and i >= uppermost(largest_obj) + height(expanded_obj) // 2 and even(i + j) 
+          else I[i][j] 
+          for j in range(len(I[0]))) 
+      for i in range(len(I))
+  )
+  return modified_grid
+```
+
+**Explanation:**
+
+1. **Identifies Key Elements:**  Identifies the largest object and the second most frequent color.
+2. **Horizontal Expansion:** Uses a set comprehension to directly create the `expanded_obj` by iterating through rows and selecting values within the horizontal bounds of the largest object.
+3. **Alternating Pattern:**  Modifies the grid directly using list comprehension. It checks if an index is within the expanded object and applies the alternating color logic.
+4. **Returns Modified Grid:** Directly returns the modified grid. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+  
+  h = height(largest_obj)
+  
+  # Horizontal Expansion
+  expanded_grid = tuple(
+      tuple(
+          second_color if any(leftmost(largest_obj) <= k <= rightmost(largest_obj) and I[i][k] == second_color for k in range(len(I[0]))) 
+          else v 
+          for j, v in enumerate(row)
+      ) 
+      for i, row in enumerate(I) if uppermost(largest_obj) <= i <= lowermost(largest_obj)
+  )
+  
+  modified_grid = I[:uppermost(largest_obj)] + expanded_grid + I[lowermost(largest_obj) + 1:]
+  
+  # Alternating Pattern
+  modified_grid = tuple(
+      tuple(
+          second_color if i >= uppermost(largest_obj) + h // 2 and even(i + j) 
+          else v 
+          for j, v in enumerate(row)
+      ) 
+      for i, row in enumerate(modified_grid) if uppermost(largest_obj) <= i <= lowermost(largest_obj) 
+  )
+  
+  modified_grid =  modified_grid[:uppermost(largest_obj)] + modified_grid[uppermost(largest_obj):]
+  return modified_grid 
+```
+
+**Explanation:**
+
+1. **Identifies Key Elements:** Similar to previous versions.
+2. **Horizontal Expansion:** Creates `expanded_grid` by iterating and checking for the presence of the second color within the horizontal bounds of the largest object in each row. 
+3. **Combines Grids:**  Combines the original grid parts with `expanded_grid`.
+4. **Alternating Pattern:** Directly modifies the grid using list comprehension, applying the alternating color pattern to the expanded rows.
+5. **Returns Modified Grid:**  Combines and returns the modified grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+
+  # Horizontal Expansion
+  modified_grid = tuple(
+      tuple(
+          second_color if any(
+              (i, k) in toindices(largest_obj) and I[i][k] == second_color 
+              for k in range(leftmost(largest_obj), rightmost(largest_obj) + 1)
+          ) 
+          else v 
+          for j, v in enumerate(row)
+      ) 
+      for i, row in enumerate(I) if uppermost(largest_obj) <= i <= lowermost(largest_obj) 
+  )
+  modified_grid = I[:uppermost(largest_obj)] + modified_grid + I[lowermost(largest_obj) + 1:]
+
+  # Alternating Pattern
+  modified_obj = frozenset(
+      (second_color if i >= uppermost(largest_obj) + height(largest_obj) // 2 and even(i + j) else v, (i, j))
+      for v, (i, j) in asobject(modified_grid) if (i, j) in toindices(largest_obj)
+  )
+  return paint(modified_grid, modified_obj) 
+```
+
+**Explanation:**
+
+1. **Identifies Key Elements:** Similar to previous versions.
+2. **Horizontal Expansion:**  Modifies the grid directly. It checks for the presence of the second color within the horizontal bounds of the largest object and replaces the corresponding cells.
+3. **Combines Grids:** Combines the original grid parts with the modified rows.
+4. **Alternating Pattern:** Creates `modified_obj` by iterating through the cells of the modified grid that belong to the largest object and applies the alternating color logic.
+5. **Paints to Grid:** Uses `paint` to apply the `modified_obj` to the `modified_grid`. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  objs = objects(I, T, F, T)
+  largest_obj = argmax(objs, size)
+  second_color = color(argmax(difference(objs, {largest_obj}), size))
+
+  # Horizontal Expansion
+  expansion_rows = tuple(
+      range(uppermost(largest_obj), lowermost(largest_obj) + 1)
+  )
+
+  modified_grid = tuple(
+      tuple(
+          second_color if i in expansion_rows and any(I[i][k] == second_color for k in range(len(I[0])))
+          else v 
+          for j, v in enumerate(row)
+      )
+      for i, row in enumerate(I)
+  ) 
+
+  # Alternating Pattern
+  return paint(modified_grid, 
+               frozenset(
+                   (second_color if i >= uppermost(largest_obj) + height(largest_obj) // 2 and even(i + j) else v, (i, j))
+                   for v, (i, j) in asobject(modified_grid) if (i, j) in toindices(largest_obj)
+               )
+  )
+```
+
+**Explanation:**
+
+1. **Identifies Key Elements:** Similar to previous versions.
+2. **Horizontal Expansion:** Identifies the row indices for expansion and directly modifies the grid by checking if the second color exists in each expansion row.
+3. **Alternating Pattern:**  Similar to Program Version 4, it creates a new object with the alternating color pattern applied to the expanded largest object and uses `paint` to apply it to the modified grid. 
+4. **Returns Modified Grid:** Returns the grid with both transformations applied. 

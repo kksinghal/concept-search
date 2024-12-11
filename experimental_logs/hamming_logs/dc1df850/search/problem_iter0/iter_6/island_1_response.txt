@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation seems to be applying a specific rule to non-zero digits in the input grid:
+
+* **For each non-zero digit in the input grid, draw horizontal and vertical lines with value '1' extending to the edges of the grid.** 
+* **The original non-zero digits remain unchanged.**
+
+Let's illustrate this with an example from Input_0:
+
+```
+Input_0:         Output_0:     Explanation:
+2 0 0 0 0      2 1 1 1 1     - '2' remains and extends lines to edges
+0 0 0 2 0  -->  1 1 1 2 1     - '2' remains and extends lines to edges
+0 0 0 0 0      0 0 1 1 1     
+0 6 0 0 0      0 6 0 0 0     - '6' remains, no horizontal line needed
+0 0 0 0 0      0 0 0 0 0     
+```
+
+
+## Program Versions:
+
+Here are five distinct versions of the program "Program_to_be_generated" using the DSL provided:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = height(grid), width(grid)
+  new_grid = canvas(0, (h, w))
+  for i, row in enumerate(grid):
+    for j, val in enumerate(row):
+      if val != 0:
+        new_grid = paint(new_grid, {(val, (i, j))})  # Paint the original value
+        new_grid = fill(new_grid, 1, connect((i, j), (i, w - 1))) # Horizontal Line
+        new_grid = fill(new_grid, 1, connect((i, j), (h - 1, j))) # Vertical Line
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialize:** Create a new grid (`new_grid`) of the same size as the input (`grid`) filled with zeros using `canvas(0, (h, w))`.
+2. **Iterate:** Loop through each cell in the input grid using nested loops.
+3. **Conditional Line Drawing:** If the cell value (`val`) is not zero:
+   - Use `paint` to place the original value (`val`) at the current cell in the `new_grid`.
+   - Use `fill` and `connect` to draw a horizontal line of '1's from the current cell to the right edge of the `new_grid`.
+   - Use `fill` and `connect` to draw a vertical line of '1's from the current cell to the bottom edge of the `new_grid`.
+4. **Return:** Return the modified `new_grid`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(grid):
+  h, w = height(grid), width(grid)
+  new_grid = canvas(0, (h, w))
+  indices = asindices(grid)
+  non_zero_indices = sfilter(indices, lambda loc: grid[loc[0]][loc[1]] != 0)
+  for i, j in non_zero_indices:
+    new_grid = paint(new_grid, {(grid[i][j], (i, j))})
+    new_grid = fill(new_grid, 1, hfrontier((i, j)))
+    new_grid = fill(new_grid, 1, vfrontier((i, j)))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to Version 1.
+2. **Find Non-Zero Indices:**  Use `asindices` to get all indices of the grid. Then, use `sfilter` to keep only those indices where the corresponding cell value is not zero.
+3. **Iterate and Draw:** Loop through the `non_zero_indices`. For each index:
+   - Paint the original value onto the `new_grid` using `paint`.
+   - Use `fill` and `hfrontier` to draw a horizontal line of '1's across the entire row of the current index in the `new_grid`.
+   - Use `fill` and `vfrontier` to draw a vertical line of '1's across the entire column of the current index in the `new_grid`.
+4. **Return:** Return the transformed `new_grid`.
+
+**Program Version 3:** (Using `rapply`)
+
+```python
+def Program_to_be_generated(grid):
+  h, w = height(grid), width(grid)
+  new_grid = canvas(0, (h, w))
+  for i, row in enumerate(grid):
+    for j, val in enumerate(row):
+      if val != 0:
+        lines = frozenset({connect((i, j), (i, w - 1)), connect((i, j), (h - 1, j))})
+        new_grid = paint(rapply(rbind(fill, 1), lines), {(val, (i, j))})
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Same as previous versions.
+2. **Iterate and Draw:** Loop through each cell of the input grid.
+3. **Conditional Line Drawing:** If the cell value is not zero:
+    - Create a set `lines` containing the horizontal and vertical lines represented as indices using `connect`. 
+    - Use `rapply`, `rbind`, and `fill` to apply the `fill` function with arguments '1' and each line from the `lines` set to the `new_grid`. This effectively draws the horizontal and vertical lines.
+    - Use `paint` to overlay the original non-zero value at the current cell on the modified `new_grid`. 
+4. **Return:** Return the final `new_grid`.
+
+**Program Version 4:** (Using `papply`)
+
+```python
+def Program_to_be_generated(grid):
+  h, w = height(grid), width(grid)
+  new_grid = canvas(0, (h, w))
+  for i, row in enumerate(grid):
+    new_grid = papply(
+        lambda j, val: paint(fill(fill(new_grid, 1, connect((i, j), (i, w - 1))), 1, connect((i, j), (h - 1, j))), {(val, (i, j))}) if val != 0 else new_grid, 
+        range(w), row)
+  return tuple(new_grid)
+```
+
+**Explanation:**
+
+1. **Initialization:** Create a new grid (`new_grid`) of the same size as the input (`grid`) filled with zeros using `canvas(0, (h, w))`.
+2. **Iterate:** Loop through each row in the input grid.
+3. **Apply Function:** For each row, apply the lambda function using `papply`. The lambda function:
+   - Takes the column index (`j`) and cell value (`val`) as input.
+   - If the `val` is not zero, it draws horizontal and vertical lines from the current cell (`i`, `j`) to the edges of the grid, similar to previous versions.
+   - It then uses `paint` to place the original value (`val`) at the current cell in the `new_grid`.
+   - If the `val` is zero, it returns the `new_grid` without modification.
+4. **Return:** Return the modified `new_grid` converted back to a tuple.
+
+**Program Version 5:** (Functional approach with nested `apply`)
+
+```python
+def Program_to_be_generated(grid):
+    h, w = height(grid), width(grid)
+    return tuple(
+        tuple(
+            1 if any(grid[i][j] != 0 for i in range(h)) or any(grid[i][j] != 0 for j in range(w)) else 0 
+            for j in range(w)
+        )
+        for i in range(h)
+    )
+```
+
+**Explanation:**
+
+1. **Iterate:** The code utilizes nested list comprehensions to iterate through every cell in the grid.
+2. **Check for Non-zero:** For each cell, it checks if there's any non-zero value in its corresponding row or column.
+3. **Assign Value:** If a non-zero value is found in either the row or column, the cell is assigned a value of '1'; otherwise, it remains '0'.
+4. **Return:** The transformed grid is returned.
+
+These five versions demonstrate different ways to achieve the desired transformation using various DSL functions. Each version offers a distinct approach, showcasing the flexibility of the DSL in solving the problem. 

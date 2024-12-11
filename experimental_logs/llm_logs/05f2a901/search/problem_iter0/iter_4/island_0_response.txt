@@ -1,0 +1,142 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as **"gravity" towards the bottom of the grid, but with a color-based separation**. Objects of different colors do not merge during the transformation and maintain their distinct positions relative to other objects of the same color. 
+
+Let's break down the movement for each input-output pair:
+
+**Input_0 to Output_0:**
+
+* The '2' object has moved down until it reached the bottom of the grid or another '2' object. 
+* The '8' object has also moved down, but it stopped above the '2' object, maintaining separation.
+
+**Input_1 to Output_1:**
+
+* The '2' objects have moved down similarly to the previous example.
+* The '8' object also moved down but stopped above the line of '2' objects. 
+
+**Input_2 to Output_2:**
+
+*  This example demonstrates the color separation clearly. The '8' object moves down but remains above the '2' object, settling on the topmost '2' cell. 
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  h = height(I)
+  def move_down(grid, obj):
+    for i in range(h - height(obj), -1, -1):
+      shifted_obj = shift(obj, (i, 0))
+      if not any((v, (si, sj)) in shifted_obj for obj2 in objs - {obj} for v, (si, sj) in obj2):
+        return shifted_obj
+    return obj
+  moved_objs = frozenset(move_down(I, obj) for obj in objs)
+  return paint(canvas(ZERO, shape(I)), moved_objs)
+```
+
+**Explanation:**
+
+1. **Identify Objects:** We identify all objects on the grid using `objects`.
+2. **Iterate and Move:** For each object, we iterate downwards from its original position until we find a row where it doesn't collide with any other object of a different color.
+3. **Paint on Canvas:**  We paint the moved objects onto a blank canvas to create the output grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  h, w = shape(I)
+  def new_pos(obj):
+    for i in range(h - 1, -1, -1):
+      collision = False
+      for j in range(w):
+        if (index(I, (i, j)) != ZERO) and ((index(I, (i, j)), (i, j)) not in obj) and any(manhattan(obj, {(v, (i, j))}) <= 1 for v, _ in obj):
+          collision = True
+          break
+      if not collision:
+        return (i, 0)
+    return (0, 0)
+  moved_objs = frozenset(shift(obj, subtract(new_pos(obj), ulcorner(obj))) for obj in objs)
+  return paint(canvas(ZERO, (h, w)), moved_objs)
+```
+
+**Explanation:**
+
+1. **Find New Positions:** We iterate through rows from bottom to top to find the lowest possible collision-free position for each object.
+2. **Calculate Shift:** We calculate the required shift based on the new and original positions of the object.
+3. **Shift and Paint:**  Similar to version 1, we shift the objects and paint them onto a blank canvas.
+
+**Program Version 3:** 
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  O = canvas(ZERO, (h, w))
+  for j in range(w):
+    column = {index(I, (i, j)) for i in range(h)} - {ZERO}
+    offset = 0
+    for c in sorted(column):
+      obj = {(c, (i, j)) for i in range(h) if index(I, (i, j)) == c}
+      O = paint(O, shift(obj, (h - uppermost(obj) - height(obj) - offset, 0)))
+      offset += height(obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Column-wise Processing:** This version iterates through the grid column by column.
+2. **Color Sorting:** We find unique colors in each column and sort them. 
+3. **Sequential Placement:** We move and paint objects of each color sequentially from bottom to top, ensuring color-based separation. 
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  h = height(I)
+  def drop_object(grid, obj):
+    new_obj = obj
+    for i in range(h - height(obj), -1, -1):
+      temp_obj = shift(new_obj, (1, 0))
+      if any(v != ZERO and (v, (i, j)) not in temp_obj for v, (i, j) in temp_obj for obj2 in objs - {obj} for v2, (si, sj) in obj2 if manhattan({(i, j)}, {(si, sj)}) <= 1):
+        break
+      new_obj = temp_obj
+    return new_obj
+  moved_objs = frozenset(drop_object(I, obj) for obj in objs)
+  return paint(canvas(ZERO, shape(I)), moved_objs)
+```
+
+**Explanation:**
+
+1. **Simulate Gravity:** This version simulates gravity by "dropping" each object until it collides with another object of a different color or reaches the bottom. 
+2. **Collision Detection:** We check for collisions with other objects during each step of the drop. 
+3. **Final Placement:** Once an object can no longer move down, it is placed in its final position. 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  h, w = shape(I)
+  def find_bottom(obj):
+    bottom = h
+    for i in range(h - 1, -1, -1):
+      for v, (si, sj) in obj:
+        if index(I, (i, sj)) != ZERO and (index(I, (i, sj)), (i, sj)) not in obj:
+          bottom = i
+    return bottom
+  moved_objs = frozenset(shift(obj, (find_bottom(obj) - uppermost(obj) - height(obj), 0)) for obj in objs)
+  return paint(canvas(ZERO, (h, w)), moved_objs)
+```
+
+**Explanation:**
+
+1. **Find Bottom Limit:** For each object, we determine the lowest row it can occupy without merging with other colors.
+2. **Calculate Shift:**  We calculate the shift needed to move the object to its new position based on its current position and the bottom limit.
+3. **Shift and Paint:** Similar to previous versions, we shift the objects and paint them onto a blank canvas. 
+
+These are just a few examples, and you can create many more variations by combining different DSL functions and logic. Remember that the key is to achieve the desired transformation while adhering to the constraints of the DSL and ensuring that objects of different colors maintain their separation during the "gravity" process. 

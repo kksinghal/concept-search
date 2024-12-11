@@ -1,0 +1,207 @@
+## Transformation Analysis:
+
+The transformation centers the least-color object in the grid and moves the other objects relative to it. 
+
+**Input 0:**
+- The least-color object (3) forms a square.
+- A horizontal line of two 2s (object 2) is moved to the right of the square.
+- A single 1 (object 1) is moved below the square.
+
+**Input 1:**
+- The least-color object (3) is already a square.
+- A horizontal line of two 2s (object 2) is moved to the right of the square.
+- A single 1 (object 1) is moved below the square.
+
+**Input 2:**
+- The least-color object (3) does not form a square initially.
+- One 3 is moved to form a square with the other two.
+- A horizontal line of two 2s (object 2) is moved to the right of the square.
+- A single 1 (object 1) is moved below the square.
+
+## Code Generation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def center_obj(obj):
+    return move(I, obj, subtract((height(I) // 2 - 1, width(I) // 2 - 1), ulcorner(obj)))
+
+  least_color = leastcolor(I)
+  objs = objects(I, False, False, True)
+
+  obj_to_center = first(sfilter(objs, lambda obj: color(obj) == least_color))
+  I = center_obj(obj_to_center)
+
+  # Form a square if necessary
+  if not square(obj_to_center):
+    missing_cell = first(delta(box(obj_to_center)))
+    other_obj = first(sfilter(objs, lambda obj: color(obj) == least_color and missing_cell in toindices(obj)))
+    I = move(I, other_obj, subtract(missing_cell, centerofmass(other_obj)))
+
+  # Re-find objects after potential modifications
+  objs = objects(I, False, False, True)
+  obj_to_center = first(sfilter(objs, lambda obj: color(obj) == least_color))
+
+  obj_right = first(sfilter(objs, lambda obj: color(obj) == 2 and hline(obj) and size(obj) == 2))
+  I = move(I, obj_right, (centerofmass(obj_to_center)[0], rightmost(obj_to_center) + 1))
+
+  obj_bottom = first(colorfilter(objs, 1))
+  I = move(I, obj_bottom,  (lowermost(obj_to_center) + 1, centerofmass(obj_to_center)[1]))
+  return I
+```
+
+**Explanation:**
+
+1. **`center_obj(obj)` function:** Moves the given object to the center of the grid.
+2. **Finding the least-color object:** The `leastcolor` and `objects` functions are used to find objects of the least color.
+3. **Centering the least-color object:** The object is moved to the center using the `center_obj` function.
+4. **Forming a square:** If the centered object is not a square, it finds the missing cell to form a square and moves another object of the same color to that location.
+5. **Moving the other objects:** The horizontal line of 2s and the single 1 are moved relative to the centered square.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  lc = leastcolor(I)
+  objs = objects(I, False, False, True)
+
+  obj_center = first(sfilter(objs, lambda obj: color(obj) == lc))
+  I = move(I, obj_center, subtract((height(I) // 2 - 1, width(I) // 2 - 1), ulcorner(obj_center)))
+
+  # Form a square if necessary
+  if not square(obj_center):
+    target_corner = (ulcorner(obj_center)[0] + 1, ulcorner(obj_center)[1] + 1)
+    I = fill(I, lc, {target_corner})
+
+  objs = objects(I, False, False, True)
+  obj_center = first(sfilter(objs, lambda obj: color(obj) == lc))
+
+  for obj in objs:
+    if color(obj) == 2 and hline(obj) and size(obj) == 2:
+      I = move(I, obj, (centerofmass(obj_center)[0], rightmost(obj_center) + 1))
+    elif color(obj) == 1:
+      I = move(I, obj, (lowermost(obj_center) + 1, centerofmass(obj_center)[1]))
+  return I
+```
+
+**Explanation:**
+
+1. **Centering the least-color object:** Similar to Version 1.
+2. **Forming a square:**  Instead of moving an existing object, this version directly fills the missing cell with the least color to form a square.
+3. **Moving other objects:**  Iterates through all objects and moves them based on their color and shape.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def place_relative_to(obj_target, obj_to_move, offset):
+    return move(I, obj_to_move, add(centerofmass(obj_target), offset))
+
+  lc = leastcolor(I)
+  objs = objects(I, False, False, True)
+
+  obj_3 = first(sfilter(objs, lambda obj: color(obj) == lc))
+  I = move(I, obj_3, subtract((height(I) // 2 - 1, width(I) // 2 - 1), ulcorner(obj_3)))
+
+  # Form a square if necessary
+  if not square(obj_3):
+    corners = {
+        (ulcorner(obj_3)[0] + 1, ulcorner(obj_3)[1] + 1),
+        (ulcorner(obj_3)[0] + 1, ulcorner(obj_3)[1]),
+        (ulcorner(obj_3)[0], ulcorner(obj_3)[1] + 1)
+    }
+    missing_corner = first(sfilter(corners, lambda corner: index(I, corner) != lc))
+    I = fill(I, lc, {missing_corner})
+  
+  objs = objects(I, False, False, True)
+  obj_3 = first(sfilter(objs, lambda obj: color(obj) == lc))
+
+  obj_2 = first(sfilter(objs, lambda obj: color(obj) == 2 and hline(obj) and size(obj) == 2))
+  I = place_relative_to(obj_3, obj_2, (0, width(obj_3) + 1))
+
+  obj_1 = first(colorfilter(objs, 1))
+  I = place_relative_to(obj_3, obj_1, (height(obj_3) + 1, 0))
+  return I
+```
+
+**Explanation:**
+
+1. **`place_relative_to(obj_target, obj_to_move, offset)` function:**  Moves `obj_to_move` to a position relative to `obj_target` based on the given `offset`.
+2. **Forming a square:**  Iterates through potential corner locations and fills the missing one with the least color.
+3. **Moving other objects:**  Uses the `place_relative_to` function for more readable and reusable code.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def move_to_side(obj, target_obj, side):
+    if side == 'right':
+      offset = (0, width(target_obj) + 1)
+    elif side == 'bottom':
+      offset = (height(target_obj) + 1, 0)
+    else:
+      return I 
+    return move(I, obj, add(centerofmass(target_obj), offset))
+
+  objs = objects(I, False, False, True)
+  least_color = leastcolor(I)
+
+  obj_3 = first(sfilter(objs, lambda obj: color(obj) == least_color))
+  I = move(I, obj_3, subtract((height(I) // 2 - 1, width(I) // 2 - 1), ulcorner(obj_3))) 
+
+  # Form a square if necessary
+  if not square(obj_3):
+    target_corner = first(delta(box(obj_3)))
+    I = fill(I, least_color, {target_corner})
+    objs = objects(I, False, False, True)
+    obj_3 = first(sfilter(objs, lambda obj: color(obj) == least_color))
+
+  obj_2 = first(sfilter(objs, lambda obj: color(obj) == 2 and hline(obj) and size(obj) == 2))
+  I = move_to_side(obj_2, obj_3, 'right') 
+
+  obj_1 = first(colorfilter(objs, 1))
+  I = move_to_side(obj_1, obj_3, 'bottom')
+  return I
+```
+
+**Explanation:**
+
+1.  **`move_to_side(obj, target_obj, side)` function:** Moves `obj` to the specified `side` of `target_obj`.
+2. **Forming a square:** Similar to Version 3.
+3. **Moving other objects:** Utilizes the `move_to_side` function for code clarity and conciseness.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def center_and_arrange(color_to_center, color_right, color_bottom):
+    objs = objects(I, False, False, True)
+
+    obj_center = first(colorfilter(objs, color_to_center))
+    I = move(I, obj_center, subtract((height(I) // 2 - 1, width(I) // 2 - 1), ulcorner(obj_center)))
+
+    # Form a square if necessary
+    if not square(obj_center):
+        missing_cell = first(delta(box(obj_center)))
+        I = fill(I, color_to_center, {missing_cell})
+        objs = objects(I, False, False, True)
+        obj_center = first(colorfilter(objs, color_to_center))
+
+    obj_right = first(sfilter(objs, lambda obj: color(obj) == color_right and hline(obj) and size(obj) == 2))
+    I = move(I, obj_right, (centerofmass(obj_center)[0], rightmost(obj_center) + 1)) 
+
+    obj_bottom = first(colorfilter(objs, color_bottom))
+    I = move(I, obj_bottom, (lowermost(obj_center) + 1, centerofmass(obj_center)[1])) 
+    return I
+
+  return center_and_arrange(leastcolor(I), 2, 1)
+```
+
+**Explanation:**
+
+1. **`center_and_arrange(color_to_center, color_right, color_bottom)` function:** Encapsulates the entire logic of centering an object of a specific color and arranging other objects based on their colors.
+2. **Forming a square:** Similar to Version 4.
+3. **Moving other objects:**  Directly integrated into the `center_and_arrange` function for a more modular approach.
+
+These five versions offer distinct approaches to achieving the desired transformation using various DSL functions and logic, demonstrating a range of potential solutions.

@@ -1,0 +1,204 @@
+## Transformation Analysis:
+
+The transformation involves extending the smallest object in the grid along its longest axis until it encounters another object with a different color.
+
+**Input 0:**
+
+* Smallest object: Single cell with value '1'
+* Longest axis: Horizontal (both axes are equal, but the transformation extends horizontally)
+* Extension: Extends rightward until hitting the '6' and leftward until hitting the grid border
+* Result: A horizontal line of '1's spanning the grid width.
+
+**Input 1:**
+
+* Smallest object: Two vertically aligned cells with value '8'
+* Longest axis: Vertical
+* Extension: Extends upward until hitting the '7' and downward until hitting the '7'
+* Result: A vertical line of '8's spanning the object.
+
+**Input 2:**
+
+* Smallest object: Several single cells with value '1'
+* Longest axis: Vertical (all objects are single cells, so the transformation chooses vertical)
+* Extension: Each '1' extends upward and downward until hitting either the grid border or a '3'
+* Result: Vertical lines of '1's spanning from top to bottom, except where interrupted by '3's.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  min_obj = argmin(objs, size)
+  min_color = color(min_obj)
+  if portrait(min_obj) or (height(min_obj) == width(min_obj)):
+    direction = (1, 0)
+  else:
+    direction = (0, 1)
+  extension = shoot(center(min_obj), direction)
+  for obj in objs:
+    if color(obj) != min_color:
+      extension = difference(extension, toindices(obj))
+  O = paint(I, recolor(min_color, extension))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects and smallest object:**  Finds all objects (`objs`) and the smallest one (`min_obj`).
+2. **Determine extension direction:**  If the smallest object is taller than wide or perfectly square, it extends vertically (`direction = (1, 0)`). Otherwise, it extends horizontally (`direction = (0, 1)`).
+3. **Calculate initial extension:**  Creates a line (`extension`) from the center of the smallest object in the determined direction.
+4. **Remove overlaps with other objects:** Iterates through all other objects and removes any indices from `extension` that overlap with objects of a different color.
+5. **Paint the extension:**  Paints the final `extension` onto the input grid (`I`) with the color of the smallest object.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  target_obj = argmin(objs, size)
+  target_color = color(target_obj)
+  other_objs = remove(target_obj, objs)
+  
+  def extend_line(start, direction):
+    line = shoot(start, direction)
+    for obj in other_objs:
+      if not intersection(toindices(obj), line):
+        continue
+      line = difference(line, {extract(line, lambda loc: index(I, loc) == color(obj))})
+      break
+    return line
+  
+  center_loc = center(target_obj)
+  extension = merge([
+    extend_line(center_loc, (1, 0)),
+    extend_line(center_loc, (-1, 0)),
+    extend_line(center_loc, (0, 1)),
+    extend_line(center_loc, (0, -1)),
+  ])
+  O = paint(I, recolor(target_color, extension))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects:** Similar to Version 1, it identifies all objects and the smallest one (`target_obj`).
+2. **Define extension function:** Defines a helper function `extend_line` which takes a starting point and direction. It generates a line and removes indices that collide with a different colored object.
+3. **Extend in all directions:** Calls `extend_line` for each of the four directions from the center of the smallest object and merges the results.
+4. **Paint the extension:**  Paints the final merged `extension` onto the input grid with the appropriate color.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  min_obj = argmin(objs, size)
+  min_color = color(min_obj)
+  
+  def get_extension(obj, dir):
+    start = center(obj)
+    line = shoot(start, dir)
+    for other in objs:
+      if color(other) != min_color and intersection(toindices(other), line):
+        return difference(line, {extract(line, lambda loc: index(I, loc) == color(other))})
+    return line
+
+  extension = merge([
+      get_extension(min_obj, (1, 0)), 
+      get_extension(min_obj, (-1, 0)), 
+      get_extension(min_obj, (0, 1)), 
+      get_extension(min_obj, (0, -1))
+  ])
+  O = paint(I, recolor(min_color, extension))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Smallest:** Similar to previous versions.
+2. **Define get_extension function:** Defines a helper function `get_extension` that takes an object and direction, generates a line, and stops the extension when encountering another colored object.
+3. **Extend from Center:** Calls `get_extension` for each direction from the center of the smallest object and merges the resulting lines.
+4. **Paint Extension:** Paints the final `extension` onto the input grid with the correct color.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  small_obj = argmin(objs, size)
+  target_color = color(small_obj)
+
+  def expand_obj(obj, dir):
+    line = shoot(center(obj), dir)
+    for other in objs:
+      if color(other) != target_color and intersection(toindices(other), line):
+        return difference(line, {extract(line, lambda loc: index(I, loc) == color(other))})
+    return line
+  
+  expanded = merge([expand_obj(small_obj, d) for d in [(1,0),(-1,0),(0,1),(0,-1)]])
+  O = paint(I, recolor(target_color, expanded))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:**  Identifies all objects and the smallest one (`small_obj`), storing its color.
+2. **Expansion Function (`expand_obj`):**  This function takes an object and a direction, and expands the object along that direction until it hits another object with a different color. It utilizes the `shoot` function to generate a line and iterates through other objects to find the intersection point. 
+3. **Expanding the Smallest Object:**  The `expand_obj` function is called for all four directions from the center of the smallest object.  The results are merged to form the `expanded` set of indices.
+4. **Painting the Grid:**  The `paint` function is used to color the `expanded` indices with the `target_color`, generating the final output grid (`O`).
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, F)
+  min_obj = argmin(objs, lambda obj: size(obj))
+  min_color = color(min_obj)
+  
+  def extend_until_collision(start, dir):
+    line = {start}
+    current = start
+    while True:
+      next_loc = add(current, dir)
+      if next_loc in asindices(I) and index(I, next_loc) == min_color:
+        line.add(next_loc)
+        current = next_loc
+      else:
+        break
+    return line
+  
+  center_loc = center(min_obj)
+  extension = merge([
+    extend_until_collision(center_loc, (1, 0)),
+    extend_until_collision(center_loc, (-1, 0)),
+    extend_until_collision(center_loc, (0, 1)),
+    extend_until_collision(center_loc, (0, -1)),
+  ])
+  
+  O = paint(I, recolor(min_color, frozenset(extension)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** The code starts by identifying all distinct objects in the input grid (`I`).
+2. **Find Smallest Object:**  It then identifies the smallest object (`min_obj`) based on the number of cells it occupies using `argmin(objs, lambda obj: size(obj))`. The color of this object is stored in `min_color`.
+3. **`extend_until_collision` Function:** This function takes a starting location (`start`) and a direction (`dir`). It iteratively extends a line from the starting point in the given direction, adding cells to the `line` set as long as they are within the grid bounds and have the same color (`min_color`) as the smallest object. The loop breaks when it encounters a cell of a different color or reaches the grid's edge.
+4. **Extending in All Directions:** The code then calls `extend_until_collision` for all four directions from the center of the smallest object (`center(min_obj)`) and merges the results into the `extension` set.
+5. **Painting the Extension:**  Finally, the code paints the cells in the `extension` set with the `min_color` on the input grid (`I`) to generate the final output grid (`O`).
+
+These versions demonstrate significantly different approaches to achieve the same transformation, showcasing the flexibility and diversity of solutions possible within the given DSL. 

@@ -1,0 +1,150 @@
+## Transformation Analysis:
+
+The transformation focuses on the topmost object in the grid and creates a horizontal line of 3s based on its properties:
+
+**Input_0:**
+* The topmost object (2s) is moved down by one unit. 
+* A horizontal line of 3s is drawn, starting from the original top-left corner of the object and extending to the right for half the object's width.
+* The same horizontal line is replicated two rows below, shifted two units to the right.
+
+**Input_1:**
+* The topmost object (2s) remains in place.
+* A horizontal line of 3s is drawn, starting from the top-left corner of the object and extending to the right for half the object's width.
+
+**Input_2:**
+* The topmost object (2s) remains in place.
+* A horizontal line of 3s is drawn, starting from the top-left corner of the object and extending to the right for the entire object's width.
+
+
+## Program Version 1:
+
+**Code:**
+```python
+def solve(I):
+  obj = first(objects(I, T, T, T))
+  offset = (ONE, ZERO) if uppermost(obj) <= ONE else (ZERO, ZERO)
+  start = add(ulcorner(obj), offset)
+  width_factor = halve(width(obj)) if uppermost(obj) <= ONE else width(obj)
+  indices_top = frozenset((start[0], start[1] + j) for j in range(width_factor))
+  indices_bottom = shift(indices_top, (TWO, TWO))
+  O = fill(I, THREE, indices_top)
+  O = fill(O, THREE, indices_bottom)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Topmost Object:** `obj = first(objects(I, T, T, T))` identifies the first object in the grid, effectively capturing the topmost one.
+2. **Calculate Offset:** `offset = (ONE, ZERO) if uppermost(obj) <= ONE else (ZERO, ZERO)` checks if the object is at the very top. If so, it applies a one-row downward offset; otherwise, no offset.
+3. **Determine Starting Point:** `start = add(ulcorner(obj), offset)` calculates the starting point for the line of 3s by adding the offset to the object's upper-left corner.
+4. **Calculate Line Width:** `width_factor = halve(width(obj)) if uppermost(obj) <= ONE else width(obj)` determines the width of the line, which is half the object's width if it's at the top, otherwise the full width.
+5. **Generate Line Indices:** 
+   * `indices_top = frozenset((start[0], start[1] + j) for j in range(width_factor))` creates a set of indices for the top line.
+   * `indices_bottom = shift(indices_top, (TWO, TWO))` shifts the top line's indices two rows down and two columns right to generate indices for the bottom line.
+6. **Fill with 3s:**
+   * `O = fill(I, THREE, indices_top)` fills the input grid `I` with 3s at the top line indices, creating the top line.
+   * `O = fill(O, THREE, indices_bottom)` further fills the grid with 3s at the bottom line indices, creating the replicated line.
+7. **Return Output:** `return O` returns the modified grid as the output.
+
+
+## Program Version 2:
+
+**Code:**
+```python
+def solve(I):
+    obj = first(objects(I, T, T, T))
+    is_top = uppermost(obj) <= ONE
+    start = ulcorner(obj)
+    width = width(obj)
+    O = fill(I, THREE, frozenset((start[0] + int(is_top), start[1] + j) for j in range(width if is_top else halve(width))))
+    O = fill(O, THREE, frozenset((start[0] + int(is_top) + TWO, start[1] + j + TWO) for j in range(width if is_top else halve(width))))
+    return O
+```
+
+**Explanation:**
+
+This version condenses the logic into fewer lines by using boolean values directly within calculations and consolidating the line generation and filling steps. 
+
+1. **Identify Object and Top Status:** Similar to Version 1, it identifies the topmost object and whether it's at the very top (`is_top`).
+2. **Calculate Line Properties:** It determines the starting point and width of the line based on the object.
+3. **Generate and Fill Lines:** It directly calculates and fills both the top and bottom lines within their respective `fill` function calls, leveraging `is_top` for conditional offset and width adjustments.
+
+
+## Program Version 3:
+
+**Code:**
+```python
+def solve(I):
+  obj = argmax(objects(I, T, T, T), uppermost)
+  offset = (ONE, ZERO) if uppermost(obj) == ZERO else (ZERO, ZERO)
+  line = frozenset((add(ulcorner(obj), offset)[0], j) for j in range(halve(width(obj))))
+  return paint(fill(I, mostcolor(I), obj), combine(line, shift(line, (TWO, TWO))))
+```
+
+**Explanation:**
+
+This version focuses on creating the line independently and then painting it onto a cleared version of the input grid.
+
+1. **Identify Topmost Object:** It uses `argmax` with `uppermost` as the key function to directly find the object with the smallest row index, ensuring the topmost object.
+2. **Calculate Offset:** It calculates the offset based on whether the object starts at row 0.
+3. **Generate Line:** It creates a set of indices `line` representing the top horizontal line.
+4. **Clear Object, Paint Lines:**
+   * `fill(I, mostcolor(I), obj)` clears the original object by filling it with the background color.
+   * `combine(line, shift(line, (TWO, TWO)))` creates a combined set of indices for both the top and bottom lines.
+   * `paint(..., ...)` paints the combined line onto the cleared grid.
+
+
+## Program Version 4:
+
+**Code:**
+```python
+def solve(I):
+  top_obj = first(objects(I, T, T, T))
+  is_at_top = uppermost(top_obj) == ZERO
+  start_j = leftmost(top_obj)
+  line_width = width(top_obj) // (ONE + is_at_top) 
+  modified_grid = tuple(
+      tuple(
+          THREE if (i == int(is_at_top) or i == int(is_at_top) + TWO) and j >= start_j and j < start_j + line_width else v 
+          for j, v in enumerate(row)
+      )
+      for i, row in enumerate(I)
+  )
+  return modified_grid
+```
+
+**Explanation:**
+
+This version directly iterates through the grid cells and modifies them based on their position relative to the topmost object and the calculated line properties.
+
+1. **Identify Object and Position:** It identifies the topmost object and whether it starts at the very top (`is_at_top`).
+2. **Calculate Line Properties:** It determines the starting column (`start_j`) and width (`line_width`) of the line based on the object's position and dimensions.
+3. **Iterate and Modify:** It iterates through each cell in the grid, checking its row (`i`) and column (`j`) against the calculated line properties. 
+4. **Conditional Filling:** If a cell's coordinates match the criteria for either the top or bottom line, it's filled with a 3; otherwise, it retains its original value.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  obj = argmax(objects(I, T, T, T), lambda o: -uppermost(o))
+  is_top_row = uppermost(obj) == ZERO
+  line_start = (int(is_top_row), leftmost(obj))
+  line_length = width(obj) if is_top_row else halve(width(obj))
+  line = connect(line_start, (line_start[0], line_start[1] + line_length - 1))
+  return paint(I, recolor(THREE, combine(line, shift(line, (TWO, TWO)))))
+```
+
+**Explanation:**
+
+This version utilizes the `connect` function to draw the horizontal lines and relies on object manipulation and painting for a concise solution.
+
+1. **Find Topmost Object:** Similar to previous versions, it identifies the topmost object.
+2. **Determine Line Start and Length:** It calculates the line's starting point and length based on the object's position and width.
+3. **Create Line:** `line = connect(line_start, (line_start[0], line_start[1] + line_length - 1))` uses the `connect` function to generate a set of indices representing the horizontal line.
+4. **Combine and Paint:**
+   * `combine(line, shift(line, (TWO, TWO)))` creates a combined set of indices for both the top and bottom lines.
+   * `recolor(THREE, ...)` recolors the combined line indices to 3.
+   * `paint(I, ...)` paints the recolored line onto the original grid.

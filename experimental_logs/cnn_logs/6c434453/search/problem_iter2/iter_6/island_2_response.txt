@@ -1,0 +1,146 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects with a specific color (in these examples, color '2'), rotating them 270 degrees counterclockwise, and then repositioning them based on the locations of objects with another specific color (in these examples, color '1').  
+
+**More specifically:**
+
+* **Each object of the target color ('2') is treated individually.**
+* **Rotation:** Each target object is rotated 270 degrees counterclockwise. 
+* **Repositioning:**  The repositioning of each rotated object appears to be related to the positions of objects with the second color ('1'). In both examples, the top-left corner of each rotated target object aligns with a cell containing the second color.  The exact mapping logic between the target objects and second color objects needs further clarification with more examples.
+
+
+##  Program to be Generated:
+
+Here are five distinct program versions attempting to achieve the transformation.  **Note:** Due to the ambiguity in the repositioning logic, these programs might not achieve a perfect score of 0. More examples are needed to deduce the exact relationship between the target objects and the second color objects.
+
+
+**Program Version 1** (Inspired by Program_A's object-based approach and color switching):
+
+```python
+def program_v1(I):
+  target_color = 2
+  other_color = 1
+  target_objects = colorfilter(objects(I, T, T, T), target_color)
+  O = canvas(0, shape(I)) # Create a blank canvas
+  for i, obj in enumerate(target_objects):
+    ref_index = totuple(ofcolor(I, other_color))[i] # Get the i-th '1' location 
+    shifted_obj = shift(rot270(toobject(toindices(obj), I)), subtract(ref_index, ulcorner(obj)))
+    O = paint(O, shifted_obj) # Paint the rotated and shifted object
+  return switch(O, other_color, target_color) # Switch the colors back
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:**  Finds all objects with the target color ('2').
+2. **Create Canvas:**  Prepares a blank canvas of the same size as the input.
+3. **Iterate and Transform:**  Loops through each target object:
+    * **Find Reference Location:**  Gets the i-th occurrence of the second color ('1').
+    * **Rotate and Shift:** Rotates the object counterclockwise and then shifts it so its upper-left corner aligns with the found reference location.
+    * **Paint:**  Paints the transformed object onto the canvas.
+4. **Switch Colors:** Swaps the target and second colors to match the output.
+
+**Program Version 2** (Focusing on direct pixel manipulation and color swapping):
+
+```python
+def program_v2(I):
+  O = switch(I, 1, 2) #  Swap colors '1' and '2' temporarily
+  h, w = shape(I)
+  for i in range(h):
+    for j in range(w):
+      if O[i][j] == 1:  # Process pixels that were originally '2'
+        ni = j
+        nj = w - i - 1 
+        if 0 <= ni < h and 0 <= nj < w:
+          O = fill(O, 1, {(ni, nj)}) # Place the rotated pixel 
+  return switch(O, 1, 2) #  Switch back the colors 
+```
+
+**Explanation:**
+
+1. **Swap Colors:** Temporarily swaps the colors '1' and '2' to simplify processing.
+2. **Iterate Pixels:** Loops through each pixel in the grid.
+3. **Rotate and Place:** If the pixel is now '1' (originally '2'):
+    * **Calculate Rotated Position:** Determines the new position after a 270-degree rotation.
+    * **Place Pixel:** If the new position is within the grid, places the '1' at that position.
+4. **Switch Colors Back:** Restores the original colors.
+
+**Program Version 3** (Using a combination of `rot270` and object manipulation):
+
+```python
+def program_v3(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, T, T, T):
+    if color(obj) == 2:
+      rotated_obj = toobject(toindices(rot270(toobject(toindices(obj), I))), I)
+      one_idx = first(ofcolor(I, 1)) # Get the first '1' location
+      O = paint(O, shift(rotated_obj, subtract(one_idx, ulcorner(rotated_obj)))) # Align with '1'
+    else:
+      O = paint(O, obj) #  Keep other objects as they are
+  return O 
+```
+
+**Explanation:**
+
+1. **Create Canvas:** Prepares a blank canvas.
+2. **Iterate Objects:** Loops through each object in the input.
+3. **Process Target Objects:** If the object's color is '2':
+    * **Rotate:** Rotates the object 270 degrees counterclockwise.
+    * **Find Reference '1':**  Gets the location of the first '1' in the grid.
+    * **Shift and Paint:** Shifts the rotated object to align its upper-left corner with the reference '1' and paints it onto the canvas. 
+4. **Paint Other Objects:** For non-target objects, paints them directly onto the canvas without modification.
+
+
+**Program Version 4** (Leveraging `occurrences` function):
+
+```python
+def program_v4(I):
+  target_color = 2
+  other_color = 1
+  target_object = first(colorfilter(objects(I, T, T, T), target_color))  # Get the first target object
+  rotated_object = rot270(toobject(toindices(target_object), I))
+  occurrences_one = occurrences(I, frozenset({(other_color, (0, 0))}))  # All occurrences of single '1' cells
+  O = canvas(0, shape(I))
+  for i, loc in enumerate(occurrences_one):
+    O = paint(O, shift(rotated_object, subtract(loc, ulcorner(rotated_object)))) 
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Object:**  Finds the first object with the target color.
+2. **Rotate Target:**  Rotates the target object 270 degrees.
+3. **Find '1' Occurrences:** Locates all single-cell occurrences of the second color ('1').
+4. **Iterate and Paint:** For each '1' occurrence:
+    * **Shift and Paint:** Shifts a copy of the rotated target object to align with the current '1' location and paints it onto the canvas.
+
+
+**Program Version 5** (Combining `hsplit` and `vconcat` for a different approach):
+
+```python
+def program_v5(I):
+  target_color = 2
+  other_color = 1
+  target_obj = first(colorfilter(objects(I, T, T, T), target_color))
+  rotated_obj = rot270(toobject(toindices(target_obj), I))
+  one_indices = toindices(ofcolor(I, other_color)) #  Find indices of '1'
+  O = canvas(0, shape(I))
+  for i, j in one_indices:
+    split_grid = hsplit(I, j + 1)
+    modified_grid =  vconcat(split_grid[0], paint(canvas(0, (len(split_grid[1]), len(split_grid[1][0]))), shift(rotated_obj, (i, 0))))
+    O = hconcat(O, modified_grid) 
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify and Rotate:**  Finds the first target object and rotates it.
+2. **Find '1' Indices:** Gets the indices of all cells containing the second color.
+3. **Iterate and Split:** For each '1' index:
+    * **Split Grid:**  Splits the grid vertically at the column of the '1'.
+    * **Paint on Right:** Paints the rotated target object at the top of the right part of the split grid.
+    * **Combine:** Concatenates the left and modified right parts back together. 
+4. **Return Combined Grid:** Returns the final grid with the rotated objects positioned based on the '1' locations. 
+
+----
+
+These programs offer diverse strategies for approaching the transformation. By analyzing these programs and experimenting with their variations, you can gain further insights into the DSL's capabilities and refine the code to achieve a perfect match with the intended transformation. 

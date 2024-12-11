@@ -1,0 +1,153 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:**
+
+The transformation recolors a central vertical line of each object. The top object (identified by its uppermost row) has its central line recolored to '1'. The bottom object has its central line recolored to '2'.
+
+**Input_1 to Output_1:**
+
+Similar to the previous transformation, this one also recolors the central vertical lines of objects. However, the top object's central line is now '2', and the bottom object's central line is '1'. This suggests a dependency on object position for color selection.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  top_obj = first(sorted(objs, key=lambda obj: uppermost(obj)))
+  bottom_obj = first(sorted(objs, key=lambda obj: -uppermost(obj)))
+
+  def recolor_center_line(obj, new_color):
+    min_j = leftmost(obj)
+    max_j = rightmost(obj)
+    center_j = (min_j + max_j) // 2
+    return frozenset(
+      (new_color, (i, j)) if j == center_j else (c, (i, j))
+      for c, (i, j) in obj
+    )
+
+  recolored_top = recolor_center_line(top_obj, 1)
+  recolored_bottom = recolor_center_line(bottom_obj, 2)
+
+  output_grid = paint(I, recolored_top)
+  output_grid = paint(output_grid, recolored_bottom)
+
+  return output_grid
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects` function finds all foreground objects.
+2. **Sort Objects:** The objects are sorted based on their vertical position (`uppermost`) to identify the top and bottom objects.
+3. **Recolor Function:** `recolor_center_line` recolors the center vertical line of an object.
+4. **Apply Recoloring:** The top and bottom objects are recolored with '1' and '2' respectively.
+5. **Paint Objects:** The recolored objects are painted back onto the input grid to generate the output.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  def color_center_vertical(obj, color_top):
+    new_color = 1 if color_top else 2
+    _, w = shape(obj)
+    offset = (w - 1) // 2
+    return frozenset(
+        (new_color, (i, j)) if j == leftmost(obj) + offset else (c, (i, j))
+        for c, (i, j) in obj
+    )
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = I
+  for i, obj in enumerate(sorted(objs, key=lambda obj: uppermost(obj))):
+    recolored_obj = color_center_vertical(obj, i == 0)
+    O = paint(O, recolored_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to version 1.
+2. **Iterate and Recolor:** Iterates through each object, using `color_center_vertical` to recolor the central vertical line based on the object's position (top or bottom).
+3. **Paint on the Fly:** Instead of painting at the end, this version paints each recolored object onto the grid (`O`) within the loop.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = partition(I) - {frozenset({(mostcolor(I), (i, j)) for i, r in enumerate(I) for j, v in enumerate(r)})}
+  O = I
+  for i, obj in enumerate(sorted(objs, key=lambda obj: -uppermost(obj))):
+      if len(obj) > 1:
+        center_j = (leftmost(obj) + rightmost(obj)) // 2
+        recolored_obj = frozenset((1 if j == center_j and i == 0 else 2 if j == center_j else c, (i, j)) for c, (i, j) in obj)
+        O = paint(O, recolored_obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Uses `partition` to get objects based on color.
+2. **Reverse Sort:** Sorts objects from bottom to top.
+3. **Inline Recoloring:** Directly recolors the central vertical line during iteration, using conditional logic within the `frozenset` comprehension.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    O = I
+    for i, obj in enumerate(sorted(objs, key=lambda o: (uppermost(o), leftmost(o)))):
+        if len(obj) > 1:
+            min_j, max_j = leftmost(obj), rightmost(obj)
+            mid_j = (min_j + max_j) // 2
+            recolored_obj = frozenset(((1 if i == 0 else 2) if j == mid_j else c, (i, j)) for c, (i, j) in obj)
+            O = paint(O, recolored_obj)
+    return O
+```
+
+**Explanation:**
+
+1. **Object Identification & Sorting:**  Identifies objects and sorts them first by `uppermost` then by `leftmost` to handle potential multiple objects on the same row.
+2. **Center Line Calculation:**  Calculates the middle column (`mid_j`) of each object for recoloring.
+3. **Conditional Recoloring:** Recolors the central line with '1' for the topmost object and '2' for all others.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+    def recolor_center(obj, new_color):
+        min_j, max_j = leftmost(obj), rightmost(obj)
+        mid_j = (min_j + max_j) // 2
+        return frozenset(
+            (new_color, (i, j)) if j == mid_j else (c, (i, j))
+            for c, (i, j) in obj
+        )
+    
+    objs = sorted(objects(I, univalued=True, diagonal=False, without_bg=True), key=lambda obj: uppermost(obj))
+    top_obj = objs[0] if objs else None
+    other_objs = objs[1:] if len(objs) > 1 else []
+
+    O = I
+    if top_obj:
+        O = paint(O, recolor_center(top_obj, 1))
+    for obj in other_objs:
+        O = paint(O, recolor_center(obj, 2))
+    return O
+```
+
+**Explanation:**
+
+1. **Sorted Objects:** Identifies and sorts objects based on their vertical position (`uppermost`).
+2. **Separate Top Object:** Explicitly separates the topmost object from the rest.
+3. **Iterative Recoloring:** Iterates through the remaining objects, recoloring their central line with '2'. The top object is treated separately and recolored with '1'.
+
+These five versions use distinct logic and function combinations to achieve the same transformation, ensuring diversity in the solutions.

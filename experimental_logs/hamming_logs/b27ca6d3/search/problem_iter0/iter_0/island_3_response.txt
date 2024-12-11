@@ -1,0 +1,161 @@
+## Transformation Analysis:
+
+The transformation aims to enclose specific objects within the grid with a border of a new color (3 in this case).  Let's break down the specific logic for each input-output pair:
+
+**Input_0 to Output_0:**
+
+* The object identified for bordering is the horizontally connected group of '2's near the top of the grid.
+* A 3-cell wide border is created around this object. 
+
+**Input_1 to Output_1:**
+
+* Two objects are identified for bordering:
+    * The horizontally connected group of '2's near the top.
+    * The diagonally connected group of '2's starting from the top left.
+* A border of '3's is created around these objects, maintaining a 1-cell gap between the object and the border.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve this transformation, using only functions from the DSL:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    obj = extract(objs, lambda obj: hline(obj) and color(obj) == 2)
+    bordered_obj = toindices(obj)
+    for direction in [UP, DOWN, LEFT, RIGHT]:
+        bordered_obj = bordered_obj | shift(bordered_obj, direction)
+    O = fill(I, 3, bordered_obj)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify the target object:** 
+    * `objects(...)` finds all connected objects in the grid. 
+    * `extract(...)` picks out the object that's a horizontal line (`hline(obj)`) and has a color value of 2.
+2. **Create the border:**
+    * `toindices(...)` gets the indices of the object's cells.
+    * A loop iterates through four cardinal directions (`UP`, `DOWN`, `LEFT`, `RIGHT`).
+    * `shift(...)` moves the object's indices in each direction, effectively drawing the border.
+    * The `|` operator combines the shifted indices to form the complete border.
+3. **Fill the border:**
+    * `fill(...)` changes the color of the border cells to 3.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+    objs = objects(I, univalued=True, diagonal=True, without_bg=True)
+    target_objs = sfilter(objs, lambda obj: color(obj) == 2 and size(obj) > 1)
+    border_indices = mpapply(lambda obj: delta(backdrop(obj)), target_objs)
+    O = fill(I, 3, border_indices)
+    return O
+```
+
+**Explanation:**
+
+1. **Find relevant objects:**
+   * `objects(...)` locates all connected objects (including diagonal connections this time).
+   * `sfilter(...)` selects objects with color 2 and a size greater than 1. 
+2. **Determine border cells:**
+   * `mpapply(...)` applies a function to each target object and merges the results.
+   * For each object:
+      * `backdrop(...)` gets the indices of its bounding box.
+      * `delta(...)` finds the indices within the bounding box that are not part of the object itself, effectively giving us the border. 
+3. **Fill the border:**
+    * `fill(...)` colors the identified border cells with 3.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+    target_color = 2
+    border_color = 3
+    padded_grid = canvas(mostcolor(I), add(shape(I), (2, 2))) 
+    painted_grid = paint(padded_grid, shift(asobject(I), (1, 1)))
+    border_indices = ofcolor(cellwise(painted_grid, shift(painted_grid, UP), mostcolor(I)), target_color)
+    for direction in [DOWN, LEFT, RIGHT]:
+        border_indices = border_indices | ofcolor(cellwise(painted_grid, shift(painted_grid, direction), mostcolor(I)), target_color)
+    O = fill(painted_grid, border_color, border_indices)
+    return trim(O)
+```
+
+**Explanation:**
+
+1. **Prepare the grid:**
+    * Create a `padded_grid` with a 1-cell border of the background color around the original grid.
+    * `paint(...)` the original grid onto the `padded_grid`, effectively shifting it by (1, 1).
+2. **Identify border cells:**
+    *  Iterate through cardinal directions. 
+    *  For each direction, use `cellwise(...)` to compare the `painted_grid` with a shifted version of itself. Cells matching the `target_color` in the original grid and the background color in the shifted grid are border cells.
+    *  Collect all border indices using the `|` operator.
+3. **Fill and trim:**
+    * `fill(...)` the `border_indices` on the `painted_grid` with the `border_color`.
+    * `trim(...)` removes the extra padding to return the final grid.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    obj_indices =  mpapply(
+        lambda obj: backdrop(obj),
+        sfilter(
+            objects(I, univalued=True, diagonal=False, without_bg=True),
+            lambda obj: color(obj) == 2
+        )
+    )
+    border_indices =  difference(
+        obj_indices,
+        mpapply(
+            lambda obj: toindices(obj),
+            sfilter(
+                objects(I, univalued=True, diagonal=False, without_bg=True),
+                lambda obj: color(obj) == 2
+            )
+        )
+    )
+    O = fill(I, 3, border_indices)
+    return O
+```
+
+**Explanation:**
+
+1. **Find object areas:**
+   * Identify objects with color 2 using `objects(...)` and `sfilter(...)`.
+   * `mpapply(...)` with `backdrop(...)` calculates the bounding boxes of these objects.
+2. **Exclude object cells from bounding boxes:**
+   *  `mpapply(...)` with `toindices(...)` gets the actual cell indices of the objects.
+   *  `difference(...)` subtracts these object cell indices from the bounding box indices, leaving only the border. 
+3. **Fill the border:**
+   *  `fill(...)` colors the border cells with 3.
+
+**Program Version 5:**
+
+```python
+def solve(I):
+    objs = objects(I, univalued=True, diagonal=True, without_bg=True)
+    filtered_objs = sfilter(objs, lambda obj: color(obj) == 2)
+    border_cells = set()
+    for obj in filtered_objs:
+        for cell in toindices(obj):
+            for direction in [UP, DOWN, LEFT, RIGHT]:
+                neighbor = add(cell, direction)
+                if neighbor not in toindices(obj) and index(I, neighbor) != 2:
+                    border_cells.add(neighbor)
+    O = fill(I, 3, frozenset(border_cells))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify target objects:** Find connected objects of color 2.
+2. **Iterate and check neighbors:**
+    * For each cell in each target object:
+        * Check its neighbors in four directions.
+        * If a neighbor is not part of the object and doesn't have color 2, it's a border cell.
+3. **Fill the border:** Fill identified border cells with color 3.
+
+These five versions showcase different approaches to solve the bordering problem, utilizing various DSL functions in distinct combinations. Each version achieves the same goal of identifying the objects to border and then correctly placing the border cells, resulting in the desired output grids. 

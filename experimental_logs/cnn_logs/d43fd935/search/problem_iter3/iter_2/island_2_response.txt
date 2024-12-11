@@ -1,0 +1,181 @@
+## Transformation Analysis:
+
+The transformation seems to follow these rules:
+
+* **Gravity:** Non-background objects "gravitate" towards the closest object of a different color.
+* **Single-File Alignment:**  Objects align in a single file, either vertically or horizontally, towards the attracting object.
+* **No Overlap:** Objects do not overlap during or after the gravitation process.
+
+Let's break down each example for clarity:
+
+**Input_0:**
+
+* The '1' objects gravitate towards the closest '6' object, aligning horizontally. 
+* The '3' object gravitates towards the closest '1' object, aligning horizontally.
+
+**Input_1:**
+
+* Similar to Input_0, objects gravitate towards the closest different-colored object and align in a single file (horizontally or vertically).
+
+**Input_2:**
+
+* The '1' objects gravitate towards the closest '3' object, aligning vertically.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  def calculate_gravity_direction(cell, target_obj):
+    if hmatching({cell[1]}, target_obj):
+      direction = (0, -1) if cell[1][1] > leftmost(target_obj) else (0, 1)
+    else:
+      direction = (-1, 0) if cell[1][0] > uppermost(target_obj) else (1, 0)
+    return direction
+
+  for color in palette(I) - {mostcommon(I)}:
+    obj = extract(objects(I, True, False, True), lambda o: color(o) == color)
+    for cell in obj:
+      closest_obj = None
+      closest_dist = float('inf')
+      for other_obj in objects(I, True, False, True):
+        if color(other_obj) != color(cell):
+          dist = manhattan({cell[1]}, other_obj)
+          if dist < closest_dist:
+            closest_dist = dist
+            closest_obj = other_obj
+      if closest_obj is not None:
+        direction = calculate_gravity_direction(cell, closest_obj)
+        while not bordering({cell[1]}, I):
+          next_pos = shift({cell[1]}, direction)
+          if len(intersection(toindices(next_pos), toindices(objects(I, True, False, True)))) == 0:
+            I = paint(cover(I, {cell}), {(color(cell), first(toindices(next_pos)))})
+            cell = (color(cell), first(toindices(next_pos)))
+          else:
+            break
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Colors:** Loop through each non-background color in the input grid.
+2. **Find Closest Object:** For each cell of the current color, find the closest object of a different color.
+3. **Calculate Gravity Direction:** Determine the direction (up, down, left, right) towards the closest object.
+4. **Move Cell:** Move the cell in the calculated direction until it encounters another object or the grid border.
+5. **Update Grid:** Update the grid after each cell movement.
+
+
+**Version 2:** (Using `gravitate` function for improved readability)
+
+```python
+def program_v2(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = extract(objects(I, True, False, True), lambda o: color(o) == color)
+    for cell in obj:
+      closest_obj = None
+      closest_dist = float('inf')
+      for other_obj in objects(I, True, False, True):
+        if color(other_obj) != color(cell):
+          dist = manhattan({cell[1]}, other_obj)
+          if dist < closest_dist:
+            closest_dist = dist
+            closest_obj = other_obj
+      if closest_obj is not None:
+        direction = gravitate({cell[1]}, closest_obj)
+        I = paint(cover(I, {cell}), {(color(cell), (cell[1][0] + direction[0], cell[1][1] + direction[1]))})
+  return I
+```
+
+**Explanation:**
+
+* Similar to Version 1, but utilizes the `gravitate` function to determine the direction and magnitude of movement towards the closest object.
+
+
+**Version 3:** (Optimizing for single cell objects)
+
+```python
+def program_v3(I):
+  for color in palette(I) - {mostcommon(I)}:
+    for cell in ofcolor(I, color):
+      closest_cell = None
+      closest_dist = float('inf')
+      for i in range(len(I)):
+        for j in range(len(I[0])):
+          if I[i][j] != color:
+            dist = manhattan({cell}, {(i, j)})
+            if dist < closest_dist:
+              closest_dist = dist
+              closest_cell = (i, j)
+      if closest_cell is not None:
+        if hmatching({cell}, {closest_cell}):
+          direction = (0, -1) if cell[1] > closest_cell[1] else (0, 1)
+        else:
+          direction = (-1, 0) if cell[0] > closest_cell[0] else (1, 0)
+        while not bordering({cell}, I):
+          next_pos = shift({cell}, direction)
+          if I[next_pos[0][0]][next_pos[0][1]] == mostcommon(I):
+            I = paint(cover(I, {(color, cell)}), {(color, first(toindices(next_pos)))})
+            cell = first(toindices(next_pos))
+          else:
+            break
+  return I
+```
+
+**Explanation:**
+
+* This version focuses on optimizing the process for single-cell objects.
+* Instead of calculating objects, it directly iterates through cells of each color.
+* It identifies the closest cell of a different color and moves the current cell towards it, ensuring no overlapping.
+
+**Version 4:** (Utilizing 'shoot' function)
+
+```python
+def program_v4(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = extract(objects(I, True, False, True), lambda o: color(o) == color)
+    closest_obj = None
+    closest_dist = float('inf')
+    for other_obj in objects(I, True, False, True):
+      if color(other_obj) != color(obj):
+        dist = manhattan(obj, other_obj)
+        if dist < closest_dist:
+          closest_dist = dist
+          closest_obj = other_obj
+    if closest_obj is not None:
+      direction = gravitate(obj, closest_obj)
+      for cell in obj:
+        path = shoot(cell[1], direction)
+        for pos in path:
+          if pos in toindices(closest_obj):
+            I = paint(cover(I, {cell}), {(color, pos)})
+            break
+  return I
+```
+
+**Explanation:**
+
+*  Instead of moving one step at a time, it uses the 'shoot' function to project a line from the cell towards the closest object. 
+*  It then iterates through points on the line within the closest object's bounding box, painting the cell at the first available position.
+
+**Version 5:** (Combining 'shoot' and 'extract' for efficiency)
+
+```python
+def program_v5(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = extract(objects(I, True, False, True), lambda o: color(o) == color)
+    closest_obj = min(((manhattan(obj, other_obj), other_obj) for other_obj in objects(I, True, False, True) if color(other_obj) != color(obj)), default=(None, None))[1]
+    if closest_obj is not None:
+      direction = gravitate(obj, closest_obj)
+      for cell in obj:
+        target_pos = extract(shoot(cell[1], direction), lambda pos: pos in toindices(closest_obj), default=None)
+        if target_pos is not None:
+          I = paint(cover(I, {cell}), {(color, target_pos)})
+  return I
+```
+
+**Explanation:**
+
+*  This version further optimizes the code by directly extracting the target position within the closest object using the 'extract' function. This avoids iterating through all points on the line projected by the 'shoot' function, potentially improving efficiency.
+
+These five program versions showcase diverse approaches to achieve the desired transformation, utilizing different DSL functions and logic while aiming for zero similarity between them. Each version provides a unique perspective on solving the problem within the constraints of the DSL.

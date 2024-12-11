@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions) of a specific color (5 in this case) and modifying the color of cells surrounding these objects based on their position relative to the object. 
+
+* **Inner Border:** Cells directly adjacent to the object (excluding diagonals) are colored with value 8.
+* **Outer Border (Conditional):** Cells further out (again, excluding diagonals), specifically those forming the outer boundary of the object's bounding box, are colored with:
+    * Value 7 if they are below the object.
+    * Value 6 if they are to the right of the object.
+
+Let's break down each input-output pair:
+
+* **Pair 0:** The top object gets an inner border of 8. The bottom object gets both an inner border of 8 and an outer border of 7 below.
+* **Pair 1:** The top object gets an inner border of 7. The bottom object gets an inner border of 8, an outer border of 7 below, and an outer border of 6 to the right.
+* **Pair 2:** Both objects get an inner border of 8 and an outer border of 7 below. 
+
+## Program to be Generated:
+
+Here are five distinct versions of the program:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)  # Get objects, not diagonally connected, without background
+  inner_border = mapply(delta, objs) # Find cells adjacent to objects 
+  O = fill(I, 8, inner_border) # Fill adjacent cells with 8
+
+  for obj in objs:
+    bottom_border = shift(
+        intersection(
+          backdrop(obj), 
+          frozenset((i, j) for i in range(lowermost(obj) + 1, lowermost(obj) + 2) for j in range(30))
+        ),
+        (0, 0)
+    ) # Identify cells forming the bottom outer border
+    right_border = shift(
+        intersection(
+          backdrop(obj),
+          frozenset((i, j) for j in range(rightmost(obj) + 1, rightmost(obj) + 2) for i in range(30))
+        ),
+        (0, 0)
+    ) # Identify cells forming the right outer border
+    O = fill(O, 7, bottom_border) # Fill bottom border cells with 7
+    O = fill(O, 6, right_border) # Fill right border cells with 6
+
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts objects formed by the color 5, considering only direct adjacency (not diagonal).
+2. **Inner Border:** `mapply(delta, objs)` finds cells directly surrounding each object, and `fill(I, 8, inner_border)` colors them with 8.
+3. **Iterate and Handle Borders:** For each object:
+    *  `bottom_border` and `right_border` identify the cell indices forming the bottom and right outer borders respectively using `intersection` and `backdrop`.
+    *  `fill(O, 7, bottom_border)` and `fill(O, 6, right_border)` color these borders with 7 and 6 respectively.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    O = fill(O, 8, delta(obj))  # Inner border with 8
+    for i, j in backdrop(obj): 
+      if i == lowermost(obj) + 1:  # Check if cell is below the object
+        O = fill(O, 7, {(i,j)})
+      if j == rightmost(obj) + 1:  # Check if cell is to the right of the object
+        O = fill(O, 6, {(i,j)})
+  return O 
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:** The code iterates through each identified object.
+2. **Inner Border:** `fill(O, 8, delta(obj))` directly colors the inner border with 8 for the current object.
+3. **Check and Fill Outer Border:** It then iterates through cells in the object's bounding box (`backdrop(obj)`) and uses conditional checks (`if i == lowermost(obj) + 1` and `if j == rightmost(obj) + 1`) to determine if a cell belongs to the bottom or right outer borders, filling them with 7 and 6 respectively.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+    O = I
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if I[i][j] == 5:  # Find cells belonging to an object
+                for di, dj in [(1,0), (-1,0), (0,1), (0,-1)]:  # Check adjacent cells 
+                    ni, nj = i + di, j + dj
+                    if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] != 5:
+                        O = fill(O, 8, {(ni, nj)})  # Inner border 
+                if i + 1 < len(I):
+                    O = fill(O, 7, {(i + 1, j)})  # Bottom border
+                if j + 1 < len(I[0]):
+                    O = fill(O, 6, {(i, j + 1)})  # Right border
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate through Grid:** Iterates through each cell in the grid.
+2. **Identify Object Cells:** Checks if the cell value is 5 (indicating object presence).
+3. **Handle Adjacent Cells:** For each object cell, it checks its four adjacent cells (up, down, left, right) and colors them 8 if they are not part of the object, effectively creating the inner border.
+4. **Bottom and Right Borders:** Directly colors the cell below and to the right of each object cell with 7 and 6 respectively, handling the outer border.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)
+  O = fill(I, 8, mapply(delta, objs))  # Apply inner border first
+
+  bottom_objs = frozenset(
+      shift(obj, (1, 0)) for obj in objs if lowermost(obj) < len(I) - 1
+  ) # Shift objects down and filter those that go out of bounds
+  right_objs = frozenset(
+      shift(obj, (0, 1)) for obj in objs if rightmost(obj) < len(I[0]) - 1
+  ) # Shift objects right and filter those that go out of bounds
+
+  O = underfill(O, 7, mapply(toindices, bottom_objs))  # Apply bottom border only under background
+  O = underfill(O, 6, mapply(toindices, right_objs))  # Apply right border only under background 
+  return O
+```
+
+**Explanation:**
+
+1. **Inner Border:** Similar to previous versions, it identifies objects and applies the inner border of 8 using `delta` and `fill`.
+2. **Shift and Filter:** It shifts the objects down (`bottom_objs`) and right (`right_objs`) and filters out shifted objects that would be out of bounds.
+3. **Conditional Outer Border:** It uses `underfill` to apply the outer border colors (7 below, 6 right) only to cells that are currently background, ensuring that the inner border is not overwritten.
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+    O = I
+    objs = objects(I, T, F, T)
+    for obj in objs:
+        O = paint(O, recolor(8, delta(obj)))  # Paint inner border
+        for (i, j) in delta(obj):
+            if i == lowermost(obj) + 1:
+                O = paint(O, {(7, (i, j))})  # Paint bottom border
+            if j == rightmost(obj) + 1:
+                O = paint(O, {(6, (i, j))})  # Paint right border
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate and Paint:** It iterates through identified objects and uses `paint` for precise color application.
+2. **Inner Border:** `recolor(8, delta(obj))` creates a new object representing the inner border with color 8, which is then painted onto the grid.
+3. **Outer Border with Check:** Similar to version 2, it iterates through the object's delta and uses conditional checks to identify and paint the bottom and right borders. 
+
+These five program versions showcase diverse approaches to achieve the desired transformation in the given DSL, utilizing different function combinations, iteration techniques, and conditional logic. 

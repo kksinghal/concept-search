@@ -1,0 +1,128 @@
+## Transformation Analysis:
+
+The transformation consistently involves identifying objects with the color "2" and drawing a one-pixel wide border around them using the color "3", but only if the object is not touching the edge of the grid. 
+
+**Example Breakdown:**
+
+Let's take an example from Input_0:
+
+```
+0 0 2 0 
+0 0 2 0 
+0 0 2 0 
+0 0 2 0 
+```
+
+This represents a vertical line object formed by the digit "2". The transformation adds a border using the digit "3":
+
+```
+0 0 0 0 
+0 3 2 3
+0 3 2 3
+0 3 2 3 
+0 0 0 0
+```
+
+However, if the "2" object touches the grid border, no "3" border is drawn.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)  # Extract non-background objects
+  twos = colorfilter(objs, 2)          # Filter for objects of color 2
+  inner_twos = sfilter(twos, lambda obj: not bordering(obj, I)) # Filter for non-bordering objects
+  borders = mapply(lambda obj: delta(toindices(obj)), inner_twos) # Extract the border indices of each object
+  return fill(I, 3, merge(borders))    # Fill the border indices with color 3
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, True, False, True)` identifies distinct objects in the grid, excluding the background.
+2. **Filter by Color:** `colorfilter(objs, 2)` selects objects consisting solely of color "2".
+3. **Identify Non-Bordering Objects:** `sfilter(twos, lambda obj: not bordering(obj, I))` filters out objects that touch the grid's edge.
+4. **Get Border Indices:** `mapply(lambda obj: delta(toindices(obj)), inner_twos)` iterates through the non-bordering objects and calculates the indices representing their one-pixel wide border using `delta`.
+5. **Fill Borders:** `fill(I, 3, merge(borders))` fills the extracted border indices with the color "3" on the original grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    return paint(I, recolor(3, 
+                          merge(mapply(lambda obj: difference(box(obj), obj), 
+                                      sfilter(colorfilter(objects(I, True, False, True), 2),
+                                              lambda obj: not bordering(obj, I))))))
+```
+
+**Explanation:**
+
+1. **Extract and Filter:** Similar to Version 1, we extract objects, filter by color "2", and then filter out bordering objects.
+2. **Calculate Border:** For each remaining object,  `difference(box(obj), obj)` calculates the difference between the object's bounding box (`box`) and the object itself, effectively giving us the border indices. 
+3. **Merge and Recolor:** All borders are combined using `merge`, and `recolor(3, ...)` changes their color to "3".
+4. **Paint onto Grid:** Finally, `paint(I, ...)` paints the recolored border objects onto the original grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def outline_if_inner(obj):
+    return difference(box(obj), obj) if not bordering(obj, I) else frozenset()
+  return fill(I, 3, merge(mapply(outline_if_inner, colorfilter(objects(I, True, False, True), 2))))
+```
+
+**Explanation:**
+
+1. **`outline_if_inner` Function:** This helper function encapsulates the logic of finding the border (`difference(box(obj), obj)`) but only if the object is not touching the border (`if not bordering(obj, I)`). 
+2. **Extract, Filter, and Map:** As before, we extract objects, filter by color "2", and use `mapply` to apply the  `outline_if_inner` function to each object.
+3. **Merge and Fill:**  We merge the resulting border indices and use `fill` to color them "3" on the original grid.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  filtered_objs = sfilter(objs, lambda obj: color(obj) == 2 and not bordering(obj, I))
+  borders =  frozenset({(i + di, j + dj) for obj in filtered_objs 
+                       for i, j in toindices(obj) 
+                       for di, dj in [(0,1),(1,0),(0,-1),(-1,0)]
+                       if (i + di, j + dj) not in toindices(obj) and 0 <= i + di < len(I) and 0 <= j + dj < len(I[0])})
+  return fill(I, 3, borders)
+```
+
+**Explanation:**
+
+1. **Extract & Filter:** Similar to previous versions, this version extracts non-background objects and then filters for color "2" and non-bordering objects.
+2. **Direct Border Calculation:**  This version directly calculates the border indices using a set comprehension. It iterates over each cell of the filtered objects and checks if its four neighboring cells are within the grid and not part of the object itself. If so, the neighboring cell's index is added to the `borders` set.
+3. **Fill:** Finally, it fills the collected border indices with color "3" in the input grid. 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def is_border(i, j, obj_indices):
+    return (i,j) not in obj_indices and 0 <= i < len(I) and 0 <= j < len(I[0]) and any(((i+di,j+dj) in obj_indices) for di,dj in [(0,1),(1,0),(0,-1),(-1,0)])
+  
+  objs = objects(I, True, False, True)
+  twos = colorfilter(objs, 2)
+  inner_twos = sfilter(twos, lambda obj: not bordering(obj, I))
+  
+  borders = frozenset((i, j) for obj in inner_twos 
+                     for i, j in product(range(len(I)), range(len(I[0]))) 
+                     if is_border(i, j, toindices(obj))) 
+  
+  return fill(I, 3, borders) 
+```
+
+**Explanation:**
+
+1. **`is_border` Function:** This helper function checks if a given cell index `(i, j)` is a border cell for a specific object. It verifies if the cell itself is not part of the object (`(i, j) not in obj_indices`) but has at least one neighboring cell that is part of the object.
+2. **Object Processing:**  The program extracts objects, filters by color "2", and filters out objects touching the grid borders.
+3. **Border Identification:**  For each remaining object, it iterates through all possible cell indices in the grid (`product(range(len(I)), range(len(I[0])))`). For each index, it calls the `is_border` function. If the function returns True, the index is added to the `borders` set.
+4. **Fill:** Finally, the collected border indices are filled with color "3" on the original grid. 
+
+
+These five versions showcase different approaches to achieving the same outcome. Each leverages various DSL functions and logic, demonstrating the flexibility and expressiveness of the DSL.

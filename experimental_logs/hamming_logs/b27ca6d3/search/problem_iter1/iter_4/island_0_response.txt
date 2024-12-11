@@ -1,0 +1,119 @@
+## Transformation Analysis:
+
+The transformation in both examples can be described as:
+
+1. **Identify '2' Objects:** Identify all connected regions of '2's in the input grid, treating each region as a distinct object.
+2. **Expand Objects:** Expand each '2' object by one cell in all directions. This includes diagonal expansion.
+3. **Paint Expanded Regions:**  Paint the expanded regions with the value '3'. The original '2's remain unchanged.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def solve(I):
+  """
+  Treats '2' cells as objects, expands them by 1 cell, and paints them with '3'.
+  """
+  two_objects = colorfilter(objects(I, univalued=True, diagonal=False, without_bg=False), 2)
+  expanded_objects = mapply(lambda obj: toobject(backdrop(obj), I), two_objects)  
+  O = paint(I, recolor(3, merge(expanded_objects)))
+  return O
+```
+
+**Explanation:**
+
+1. **`two_objects = colorfilter(objects(I, univalued=True, diagonal=False, without_bg=False), 2)`:** 
+   - Identifies all connected regions of '2's using `objects()` with `univalued=True` (each object has a single color) and `diagonal=False` (connectivity is only horizontal and vertical).
+   - Filters the identified objects to keep only those containing '2' using `colorfilter()`.
+
+2. **`expanded_objects = mapply(lambda obj: toobject(backdrop(obj), I), two_objects)`:**
+   - Expands each '2' object using `backdrop()`, which returns the indices of a bounding box around the object.
+   - Converts the expanded indices back into an object representation using `toobject()`.
+   - Applies these operations to each object in `two_objects` using `mapply()`.
+
+3. **`O = paint(I, recolor(3, merge(expanded_objects)))`:**
+   - Merges all expanded objects into a single set of indices using `merge()`.
+   - Recolors the merged object to '3' using `recolor()`.
+   - Paints the recoloured object onto the original grid `I` using `paint()`, effectively filling the expanded regions with '3'.
+
+**Version 2:**
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  expanded = mapply(lambda obj: delta(obj) if color(obj)==2 else frozenset(), objs)
+  O = fill(I, 3, merge(expanded))
+  return O 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, univalued=True, diagonal=False, without_bg=False)`:** Identifies connected '2' objects as in Version 1.
+2. **`expanded = mapply(lambda obj: delta(obj) if color(obj)==2 else frozenset(), objs)`:**
+   - Uses `delta(obj)` to get the indices surrounding each object (its "expansion").
+   - Conditionally applies expansion only if the `color(obj)` is 2.
+3. **`O = fill(I, 3, merge(expanded))`:** 
+   - Merges all expanded areas and fills them with '3' on the original grid.
+
+**Version 3:**
+
+```python
+def solve(I):
+  twos = ofcolor(I, 2)
+  expansion_area = mapply(neighbors, twos)
+  O = fill(I, 3, expansion_area - twos)
+  return O
+```
+
+**Explanation:**
+
+1. **`twos = ofcolor(I, 2)`:** Directly gets the indices of all '2' cells.
+2. **`expansion_area = mapply(neighbors, twos)`:** Finds all neighbors of '2' cells for expansion.
+3. **`O = fill(I, 3, expansion_area - twos)`:** Fills the expanded area (excluding the original '2's) with '3'.
+
+**Version 4:**
+
+```python
+def solve(I):
+  object_indices = partition(I)
+  expanded_indices = mapply(lambda indices:  sfilter(lambda ij: any(manhattan(astuple(*ij), astruple(*ind)) <= 1 for ind in indices), product(interval(0, len(I), 1), interval(0, len(I[0]), 1))) if color(first(indices)) == 2 else frozenset(), object_indices)
+  O = fill(I, 3, merge(expanded_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **`object_indices = partition(I)`:** Partitions the grid into objects based on color.
+2. **`expanded_indices = ...`:** This complex line iterates through each object:
+   - `if color(first(indices)) == 2`: It only processes objects with color 2.
+   - For each '2' object, it generates all possible grid indices using `product(interval(...), interval(...))`.
+   - For each index, it checks if it's within a Manhattan distance of 1 from any cell in the object using nested loops and `manhattan`. If so, it's part of the expanded area.
+3. **`O = fill(I, 3, merge(expanded_indices))`:** Fills the merged expanded areas with '3'. 
+
+**Version 5:**
+
+```python
+def solve(I):
+    O = I
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if I[i][j] == 2:
+                for di in range(-1, 2):
+                    for dj in range(-1, 2):
+                        ni, nj = i + di, j + dj
+                        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] != 2:
+                            O = fill(O, 3, {(ni, nj)})
+    return O
+```
+
+**Explanation:**
+
+1. **`O = I`:** Initializes the output grid `O` with the input grid `I`.
+2. **Iterate over each cell in the grid**: Two nested loops iterate over each cell in the grid.
+3. **`if I[i][j] == 2`**: If a cell contains the value 2:
+4. **Iterate over neighboring cells**: Two more nested loops iterate over the 8 neighboring cells (including diagonals) of the current cell.
+5. **`if ... and I[ni][nj] != 2`**: If the neighboring cell is within the grid boundaries and does not contain the value 2:
+6. **`O = fill(O, 3, {(ni, nj)})`**: Fill the neighboring cell in the output grid `O` with the value 3.
+
+This version effectively expands each '2' cell by one unit in all directions, replacing any non-'2' neighbor with a '3'.

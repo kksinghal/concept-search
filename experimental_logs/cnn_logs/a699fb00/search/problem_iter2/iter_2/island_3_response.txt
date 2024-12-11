@@ -1,0 +1,153 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects composed of the digit '1' and replacing them with a new object where the '1's are replaced by a '2' at the bottom and right edges of the object. The '5' digit seems to be irrelevant to the transformation.
+
+**Input_0:**
+
+* A single object of '1's exists.
+* The bottom and right edges of this object have their '1's replaced with '2's.
+
+**Input_1:**
+
+* Two objects of '1's exist.
+*  The transformation is applied to both objects independently.
+
+**Input_2:**
+
+* Three objects of '1's exist.
+* The transformation is applied to all three objects independently.
+
+## Program_to_be_generated: 
+
+**Version 1 (Inspired by object extraction and color manipulation):**
+
+```python
+def program_v1(I):
+  objs = objects(I, True, False, False)
+  new_objs = frozenset()
+  for obj in objs:
+    if color(obj) == ONE:
+      indices = toindices(obj)
+      rightmost_j = valmax(indices, lambda x: x[1])
+      lowermost_i = valmax(indices, lambda x: x[0])
+      new_obj = frozenset()
+      for i, j in indices:
+        if i == lowermost_i or j == rightmost_j:
+          new_obj = insert((TWO, (i, j)), new_obj)
+        else:
+          new_obj = insert((ONE, (i, j)), new_obj)
+      new_objs = insert(new_obj, new_objs)
+    else:
+      new_objs = insert(obj, new_objs)
+  O = paint(canvas(ZERO, shape(I)), new_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects:** Extract all connected objects from the input grid `I`.
+2. **Iterate and modify:** For each object:
+    * If the object's color is '1':
+        * Find the rightmost column and lowermost row indices within the object.
+        * Create a new object where cells on those edges have value '2', others remain '1'.
+        * Add this modified object to `new_objs`.
+    * Otherwise, keep the object unchanged in `new_objs`.
+3. **Construct output:** Create a blank canvas of the same size as the input and paint the modified objects onto it.
+
+**Version 2 (Inspired by filtering and conditional replacement):**
+
+```python
+def program_v2(I):
+  indices = asindices(I)
+  right_edges = mfilter(indices, lambda x: index(I, x) == ONE and index(I, (x[0], x[1] + 1)) != ONE)
+  bottom_edges = mfilter(indices, lambda x: index(I, x) == ONE and index(I, (x[0] + 1, x[1])) != ONE)
+  O = tuple(tuple(TWO if (i, j) in (right_edges | bottom_edges) else v for j, v in enumerate(row)) for i, row in enumerate(I))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify edges:**  Find indices of '1' cells that represent right edges (no '1' to their right) and bottom edges (no '1' below).
+2. **Replace conditionally:**  Iterate through the input grid and replace cells based on their indices:
+    * If the index is part of either `right_edges` or `bottom_edges`, replace with '2'.
+    * Otherwise, retain the original cell value.
+
+**Version 3 (Leveraging bounding boxes and delta):**
+
+```python
+def program_v3(I):
+  objs = objects(I, True, False, False)
+  new_grid = canvas(ZERO, shape(I))
+  for obj in objs:
+    if color(obj) == ONE:
+      box_indices = box(obj)
+      inner_indices = delta(obj)
+      new_grid = fill(new_grid, TWO, box_indices - inner_indices)
+      new_grid = paint(new_grid, recolor(ONE, inner_indices))
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Extract objects:** Identify all connected objects within the input grid.
+2. **Iterate and redraw:**  For each object composed of '1's:
+    * Obtain the indices forming its bounding box.
+    * Calculate the indices within the bounding box that are not part of the object itself (the "delta").
+    * Fill the bounding box outline with '2's, excluding the "delta" indices.
+    * Paint the "delta" indices with '1's.
+
+**Version 4 (Utilizing shifting and intersection):**
+
+```python
+def program_v4(I):
+  objs = objects(I, True, False, False)
+  new_grid = canvas(ZERO, shape(I))
+  for obj in objs:
+    if color(obj) == ONE:
+      shifted_right = shift(obj, RIGHT)
+      shifted_down = shift(obj, DOWN)
+      right_edge = intersection(toindices(obj), toindices(shifted_right))
+      bottom_edge = intersection(toindices(obj), toindices(shifted_down))
+      new_grid = paint(new_grid, recolor(TWO, right_edge | bottom_edge))
+      new_grid = paint(new_grid, obj) 
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Find objects:**  Identify connected objects of '1's in the grid.
+2. **Create edges:** For each object:
+    * Shift the object one cell to the right and down.
+    * Find the intersection of the original and shifted objects to get the right and bottom edges.
+3. **Paint edges and object:** Paint the calculated edges with '2's onto a blank canvas. Then, paint the original object on top, overwriting any overlapping '2's.
+
+**Version 5 (Using hconcat and vconcat):**
+
+```python
+def program_v5(I):
+  objs = objects(I, True, False, False)
+  new_objs = frozenset()
+  for obj in objs:
+    if color(obj) == ONE:
+      h = height(obj)
+      w = width(obj)
+      top_row = canvas(TWO, (1, w))
+      middle_rows = hconcat((canvas(TWO, (h - 2, 1)), canvas(ZERO, (h - 2, w - 1))), canvas(TWO, (h - 2, 1)))
+      bottom_row = canvas(TWO, (1, w))
+      new_obj = vconcat(vconcat(top_row, middle_rows), bottom_row)
+      new_obj = shift(asobject(new_obj), ulcorner(obj))
+      new_objs = insert(new_obj, new_objs)
+    else:
+      new_objs = insert(obj, new_objs)
+  O = paint(canvas(ZERO, shape(I)), new_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **Extract objects:**  Identify connected objects of '1's in the grid.
+2. **Construct new object pieces:** For each object:
+    * Create a top row, middle rows, and bottom row filled with '2's, leaving the inner area empty.
+    * Concatenate these pieces vertically to form a new object with the desired '2' border.
+    * Shift the new object to align with the original object's position.
+3. **Combine and paint:** Add the modified object (or the original object if it wasn't composed of '1's) to a set. Finally, paint all the objects onto a blank canvas to create the output grid. 

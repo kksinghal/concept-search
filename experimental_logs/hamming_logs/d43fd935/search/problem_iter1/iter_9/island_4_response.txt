@@ -1,0 +1,168 @@
+## Transformation Analysis:
+
+The transformation focuses on single-cell objects, "gravitating" them towards the nearest object of a different color. Let's break down each example:
+
+**Input 0:**
+
+* The lone '1' at (3,8) moves left to connect with the '1' object at (9,4). 
+* The '6' objects remain unchanged as they are not single-cell.
+
+**Input 1:**
+
+* The '8' at (2,9) moves left to connect with the '8' object at (0,6).
+*  Similarly, single-cell '7' objects move towards the nearest different colored objects.
+
+**Input 2:**
+
+*  The single-cell '1' objects all move upwards to connect with the nearest '1' object. 
+
+Essentially, the transformation identifies single-cell objects and extends them in a straight line towards the closest different-colored object until they connect.
+
+## Program Versions:
+
+Here are five distinct program versions using the provided DSL to achieve the described transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def closest_different_color(loc, grid):
+    own_color = index(grid, loc)
+    closest_loc = argmin([
+      (i, j) for i in range(height(grid)) for j in range(width(grid))
+      if index(grid, (i, j)) != own_color and index(grid, (i, j)) != mostcolor(grid)
+    ], lambda x: manhattan(astuple(*loc), x))
+    return closest_loc
+
+  changed = True
+  while changed:
+    changed = False
+    for obj in objects(I, T, T, T):
+      if size(obj) == 1:
+        loc = first(toindices(obj))
+        closest = closest_different_color(loc, I)
+        if closest:
+          direction = gravitate(frozenset({loc}), frozenset({closest}))
+          connection = shoot(loc, direction)
+          I = fill(I, index(I, loc), intersection(connection, asindices(I)))
+          changed = True
+          break
+  return I
+```
+
+**Explanation:**
+
+1. **`closest_different_color` Function:** This helper function finds the nearest location on the grid with a different color than the input location, excluding the background color.
+2. **Iterating through Single-Cell Objects:**  The program iterates through all objects in the grid. If an object has a size of 1 (single-cell):
+    * It finds the closest location of a different color.
+    * Determines the direction to "gravitate" towards that location.
+    * Creates a "connection line" using the `shoot` function.
+    * Fills the grid with the object's color along that connection line, effectively extending the object.
+3. **Looping for Changes:** The process repeats until no further changes are made to the grid, ensuring all single-cell objects have attempted to connect.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def extend_towards(grid, start, target):
+    direction = gravitate(frozenset({start}), frozenset({target}))
+    path = shoot(start, direction)
+    return fill(grid, index(grid, start), intersection(path, asindices(grid)))
+
+  objs = objects(I, T, T, T)
+  single_cells =  frozenset(obj for obj in objs if size(obj) == 1)
+  for cell in single_cells:
+    loc = first(toindices(cell))
+    closest_obj = argmin(
+      (obj for obj in objs if color(obj) != color(cell)),
+      lambda x: manhattan(cell, x)
+    )
+    if closest_obj:
+      closest_loc = argmin(toindices(closest_obj), lambda x: manhattan(loc, x))
+      I = extend_towards(I, loc, closest_loc)
+  return I
+```
+
+**Explanation:**
+
+1. **`extend_towards` Function:** This function encapsulates the logic of extending a cell towards a target location, making the code cleaner.
+2. **Pre-Filtering Objects:**  The program first identifies all single-cell objects and stores them in the `single_cells` set.
+3. **Finding Closest Objects:**  For each single-cell, it finds the nearest object with a different color. Then, within that object, it finds the closest location to the single-cell.
+4. **Direct Extension:** It directly extends the single-cell towards the closest location using the `extend_towards` function. This avoids the need for iteratively checking for changes.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def valid_neighbors(loc, grid):
+    return frozenset((i, j) for i, j in neighbors(loc) 
+               if 0 <= i < height(grid) and 0 <= j < width(grid) and
+                  index(grid, (i, j)) != mostcolor(grid))
+
+  for obj in objects(I, T, T, T):
+    if size(obj) == 1:
+      loc = first(toindices(obj))
+      for neighbor in valid_neighbors(loc, I):
+        if index(I, neighbor) != index(I, loc):
+          direction = gravitate(frozenset({loc}), frozenset({neighbor}))
+          I = fill(I, index(I, loc), shoot(loc, direction))
+          break  # Connect to only one neighbor
+  return I
+```
+
+**Explanation:**
+
+1. **`valid_neighbors` Function:** Returns neighboring locations that are within the grid boundaries and not the background color.
+2. **Iterating through Neighbors:**  This version directly iterates through valid neighbors of a single-cell object. If a neighbor has a different color, it extends towards that neighbor and immediately moves to the next single-cell object, preventing over-extension.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def find_connection_point(start, target, grid):
+    direction = gravitate(frozenset({start}), frozenset({target}))
+    path = shoot(start, direction)
+    return extract(path, lambda loc: index(grid, loc) != mostcolor(grid) and loc != start)
+
+  for obj in objects(I, T, T, T):
+    if size(obj) == 1:
+      start = first(toindices(obj))
+      end = argmin([
+        (i, j) for i in range(height(I)) for j in range(width(I)) 
+        if index(I, (i, j)) != mostcolor(I) and (i, j) != start
+      ], lambda x: manhattan(start, x))
+      if end:
+        connection_point = find_connection_point(start, end, I)
+        if connection_point:
+          I = fill(I, index(I, start), connect(start, connection_point))
+  return I
+```
+
+**Explanation:**
+
+1. **`find_connection_point` Function:** Determines the point on the grid where the extending line from the start location would first encounter a non-background color, effectively finding the "connection point".
+2. **Finding the Closest Non-Background Cell:** This version directly identifies the closest non-background cell to the single-cell object.
+3. **Precise Connection:** Instead of filling the entire `shoot` path, it only fills the line segment between the single-cell and the calculated `connection_point`, leading to more controlled extension.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if I[i][j] != mostcolor(I) and size(extract(objects(I, T, T, T), lambda x: (i, j) in toindices(x))) == 1:
+        closest = argmin([
+          (k, l) for k in range(height(I)) for l in range(width(I)) 
+          if I[k][l] != I[i][j] and I[k][l] != mostcolor(I)
+        ], lambda x: manhattan((i, j), x))
+        if closest:
+          I = fill(I, I[i][j], connect((i, j), closest))
+  return I
+```
+
+**Explanation:**
+
+1. **Direct Iteration and Connection:** This version iterates through every cell in the grid. If a cell is not the background color and belongs to a single-cell object, it finds the closest different-colored cell and directly connects them using the `connect` function. This approach is concise and avoids unnecessary object creation.
+
+These five versions offer distinct approaches to achieve the same transformation, showcasing the flexibility and power of the DSL. Each version utilizes different combinations of functions and logic, ensuring a diverse set of solutions.

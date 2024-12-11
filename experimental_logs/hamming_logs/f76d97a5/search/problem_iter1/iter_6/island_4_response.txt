@@ -1,0 +1,132 @@
+## Transformation Analysis:
+
+The transformation takes a grid and performs the following steps:
+
+1. **Identifies Object Outlines:**  It finds the cells that form the outline of each distinct object within the grid. An object is defined as a group of connected cells with the same value, excluding the background color.
+2. **Shifts Outlines:** It shifts the identified outline cells one unit diagonally down and to the right.
+3. **Replaces Original Object with Shifted Outline:**  The original object cells are replaced with the background color. Then, the shifted outline is drawn on the grid, effectively moving and outlining the original objects.
+
+## Program Version 1:
+
+**Code:**
+```python
+def program_v1(I):
+  bg = mostcolor(I)  # Identify the background color
+  objs = objects(I, T, F, T)  # Extract the objects
+  outlines = mpapply(lambda obj: shift(delta(toindices(obj)), (1, 1)), objs, objs)  # Extract and shift outlines
+  O = fill(I, bg, merge(objs)) # Fill the original objects with background color
+  return paint(O, outlines) # Paint the shifted outlines 
+
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:**  Identifies the background color in the input grid `I`.
+2. **`objs = objects(I, T, F, T)`:** Extracts all objects from the input grid `I`.
+3. **`outlines = mpapply(lambda obj: shift(delta(toindices(obj)), (1, 1)), objs, objs)`:** This line does the following for each object:
+    - `toindices(obj)`: Gets the indices of the object's cells.
+    - `delta(...)`: Finds the outline indices by getting the difference between the object's bounding box and the object itself.
+    - `shift(..., (1, 1))`: Shifts the outline indices one unit down and one unit right.
+    - `mpapply(...)`: Applies the shifting logic to all objects and merges the results into a single set of indices.
+4. **`O = fill(I, bg, merge(objs))`:** Fills the cells corresponding to all objects in the input grid with the background color, effectively erasing the original objects. 
+5. **`return paint(O, outlines)`:**  Paints the shifted outlines onto the modified grid `O`.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I))  # Create a canvas filled with background color
+  for obj in objects(I, T, F, T):
+    outline = shift(delta(toindices(obj)), (1, 1))  # Calculate shifted outline
+    O = paint(O, recolor(color(obj), outline))  # Paint the outline with the object's color
+  return O
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:**  Identifies the background color.
+2. **`O = canvas(bg, shape(I))`:** Creates a new grid `O` of the same size as the input, filled with the background color.
+3. **`for obj in objects(I, T, F, T):`:** Iterates through each object in the input grid.
+4. **`outline = shift(delta(toindices(obj)), (1, 1))`:** Calculates the shifted outline indices for the current object.
+5. **`O = paint(O, recolor(color(obj), outline))`:** 
+    - `color(obj)`: Gets the color of the current object.
+    - `recolor(..., outline)`: Creates a new object representing the shifted outline using the object's color.
+    - `paint(O, ...)`: Paints the colored outline onto the canvas `O`.
+6. **`return O`:**  Returns the transformed grid. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+    bg = mostcolor(I)
+    shifted_outlines = set()
+    for obj in objects(I, T, F, T):
+        for i, j in delta(toindices(obj)):  # Iterate over outline cells
+            shifted_outlines.add((color(obj), (i + 1, j + 1)))  # Add shifted outline cell with color
+    return paint(fill(I, bg, asindices(I)), frozenset(shifted_outlines))  # Fill with bg, then paint outlines
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:** Identifies the background color.
+2. **`shifted_outlines = set()`:** Initializes an empty set to store the shifted outline cells.
+3. **`for obj in objects(I, T, F, T):`:**  Iterates over each object in the input.
+4. **`for i, j in delta(toindices(obj)):`:** Iterates over the outline indices of the current object.
+5. **`shifted_outlines.add((color(obj), (i + 1, j + 1)))`:**  Adds the shifted indices of the current outline cell along with the object's color to the `shifted_outlines` set.
+6. **`return paint(fill(I, bg, asindices(I)), frozenset(shifted_outlines))`:** 
+    - `fill(I, bg, asindices(I))`: Creates a new grid filled with the background color (effectively clearing the original content).
+    - `paint(..., frozenset(shifted_outlines))`: Paints the collected shifted outlines onto the cleared grid. 
+
+## Program Version 4:
+
+**Code:**
+```python
+def program_v4(I):
+  bg = mostcolor(I)
+  O = replace(I, bg, -1) # Replace background with temporary color
+  for obj in objects(O, T, F, T):
+      O = underpaint(O, shift(recolor(color(obj), toindices(obj)), (1, 1)))  # Shift and underpaint
+  return replace(O, -1, 0) # Replace temporary color with 0 
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:** Identifies the background color.
+2. **`O = replace(I, bg, -1)`:**  Replaces the background color with a temporary color (-1) to distinguish it during processing.
+3. **`for obj in objects(O, T, F, T):`:** Iterates through objects in the modified grid `O`.
+4.  **`O = underpaint(O, shift(recolor(color(obj), toindices(obj)), (1, 1)))`:**
+    - `toindices(obj)`: Gets indices of the current object.
+    - `recolor(color(obj), ...)`: Recolors the object using its original color.
+    - `shift(..., (1, 1))`: Shifts the object down and right. 
+    - `underpaint(O, ...)`: Paints the shifted object onto `O` only where the background color (-1) is present.
+5.  **`return replace(O, -1, 0)`:** Replaces the temporary color (-1) with 0 in the final output grid.
+
+## Program Version 5:
+
+**Code:**
+```python
+def program_v5(I):
+  bg = mostcolor(I)
+  O = canvas(bg, shape(I)) # Create canvas with background
+  for obj in objects(I, T, F, T):
+    shifted_obj = shift(toindices(obj), (1,1)) # Shift the object indices
+    O = paint(O, recolor(color(obj), delta(shifted_obj))) # Paint only the outline of the shifted object
+  return O
+```
+
+**Explanation:**
+
+1.  **`bg = mostcolor(I)`:** Identifies the background color.
+2.  **`O = canvas(bg, shape(I))`:** Creates a new grid `O` filled with the background color.
+3.  **`for obj in objects(I, T, F, T):`:** Iterates through each object in the input.
+4.  **`shifted_obj = shift(toindices(obj), (1, 1))`:** Calculates the shifted indices for the current object.
+5.  **`O = paint(O, recolor(color(obj), delta(shifted_obj)))`:** 
+    - `delta(shifted_obj)`: Gets the outline of the shifted object (this is important to avoid filling the inside).
+    - `recolor(color(obj), ...)`: Colors the outline with the object's original color.
+    - `paint(O, ...)`: Paints the colored outline onto the canvas `O`.
+6.  **`return O`:** Returns the transformed grid. 

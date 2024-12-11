@@ -1,0 +1,186 @@
+## Transformation Analysis:
+
+The transformation involves replacing specific digits within objects in the input grid with the digit '8'.  The rule seems to be:
+
+* **Identify objects:**  An object is defined as a connected group of the same digit.
+* **For each object, locate cells NOT on the object's perimeter:** These are the inner cells.
+* **Replace the digit in the inner cells with '8'.**
+
+**Example:**
+
+In Input_0, the '2' object has inner cells that are then replaced by '8' in the Output_0. Similarly, the '3' object's inner cells are also replaced. This pattern holds for the other input-output pairs as well.
+
+## Program_to_be_generated:
+
+**Version 1:**  Using `delta` and `underfill`
+
+```python
+def Program_to_be_generated(grid):
+  """
+  Replaces the inner cells of each object in the grid with '8'.
+
+  Args:
+    grid: The input grid.
+
+  Returns:
+    The transformed grid.
+  """
+  objs = objects(grid, univalued=True, diagonal=False, without_bg=False)
+  for obj in objs:
+    grid = underfill(grid, EIGHT, delta(toindices(obj))) 
+  return grid
+```
+
+**Explanation:**
+
+1. **`objects(grid, ...)`:**  Identifies all connected objects in the grid.
+2. **`for obj in objs:`:**  Iterates through each found object.
+3. **`delta(toindices(obj))`:**  Finds the indices of the inner cells (not on the perimeter) of the current object.
+4. **`underfill(grid, EIGHT, ...)`:** Replaces the digit at the inner cell indices with '8'.
+
+
+**Version 2:** Using nested loops and `neighbors`
+
+```python
+def Program_to_be_generated(grid):
+  """
+  Replaces the inner cells of each object in the grid with '8'.
+
+  Args:
+    grid: The input grid.
+
+  Returns:
+    The transformed grid.
+  """
+  h, w = len(grid), len(grid[0])
+  new_grid = [list(row) for row in grid]
+  for i in range(h):
+    for j in range(w):
+      if all(0 <= ni < h and 0 <= nj < w and grid[ni][nj] == grid[i][j] for ni, nj in neighbors((i, j))):
+        new_grid[i][j] = EIGHT
+  return tuple(tuple(row) for row in new_grid) 
+```
+
+**Explanation:**
+
+1. **`new_grid = ...`:** Creates a mutable copy of the input grid.
+2. **Nested loops:** Iterates through each cell (`i`, `j`) of the grid.
+3. **`if all(...)`:** Checks if all neighboring cells of the current cell have the same value. 
+   - If true, the current cell is an inner cell.
+4. **`new_grid[i][j] = EIGHT`:** Replaces the digit in the inner cell with '8'.
+
+
+**Version 3:**  Leveraging `partition` and set operations
+
+```python
+def Program_to_be_generated(grid):
+  """
+  Replaces the inner cells of each object in the grid with '8'.
+
+  Args:
+    grid: The input grid.
+
+  Returns:
+    The transformed grid.
+  """
+  new_grid = [list(row) for row in grid]
+  for obj in partition(grid):
+    indices = toindices(obj)
+    inner_cells = indices - set().union(*(neighbors(loc) for loc in indices))
+    for i, j in inner_cells:
+      new_grid[i][j] = EIGHT
+  return tuple(tuple(row) for row in new_grid)
+```
+
+**Explanation:**
+
+1. **`partition(grid)`:** Divides the grid into distinct objects based on cell value.
+2. **`for obj in ...`:** Iterates through each object.
+3. **`indices = toindices(obj)`:** Gets the indices of all cells in the object.
+4. **`inner_cells = ...`:**  Calculates the inner cells by subtracting the set of all neighbor cells from the object's indices.
+5. **`for i, j in inner_cells:`:** Iterates through the inner cells and replaces their value with '8'.
+
+**Version 4:** Using recursion and `cahfbddhbjigeagfaaedddaabegechhj` as inspiration
+
+```python
+def replace_inner(grid, i, j, original_value):
+  """
+  Recursively replaces inner cells of an object with '8'.
+  """
+  if i < 0 or i >= len(grid) or j < 0 or j >= len(grid[0]) or grid[i][j] != original_value:
+    return grid
+  grid = fill(grid, EIGHT, {(i, j)})
+  for ni, nj in neighbors((i, j)):
+    grid = replace_inner(grid, ni, nj, original_value)
+  return grid
+
+def Program_to_be_generated(grid):
+  """
+  Replaces the inner cells of each object in the grid with '8'.
+
+  Args:
+    grid: The input grid.
+
+  Returns:
+    The transformed grid.
+  """
+  h, w = len(grid), len(grid[0])
+  new_grid = [list(row) for row in grid]
+  for i in range(h):
+    for j in range(w):
+      if new_grid[i][j] == grid[i][j]:  # Check if cell is already modified
+        new_grid = replace_inner(new_grid, i, j, grid[i][j])
+  return tuple(tuple(row) for row in new_grid)
+```
+
+**Explanation:**
+
+1. **`replace_inner(...)`:** 
+   - Takes the grid, cell coordinates (`i`, `j`), and the original value of the object as input.
+   - If the cell is out of bounds or doesn't match the original value, it returns the grid unchanged (base case).
+   - Otherwise, it replaces the current cell with '8' and recursively calls itself for each neighbor.
+2. **`Program_to_be_generated(...)`:**
+   - Iterates through every cell in the grid.
+   - If a cell's value hasn't been modified yet, it calls `replace_inner` to handle the connected object.
+
+**Version 5:** Combining `objects` and a flood-fill approach
+
+```python
+def flood_fill(grid, i, j, target_value, replacement_value):
+  """
+  Replaces a connected region of cells with a new value.
+  """
+  if i < 0 or i >= len(grid) or j < 0 or j >= len(grid[0]) or grid[i][j] != target_value:
+    return grid
+  grid = fill(grid, replacement_value, {(i, j)})
+  for ni, nj in neighbors((i, j)):
+    grid = flood_fill(grid, ni, nj, target_value, replacement_value)
+  return grid
+
+def Program_to_be_generated(grid):
+  """
+  Replaces the inner cells of each object in the grid with '8'.
+
+  Args:
+    grid: The input grid.
+
+  Returns:
+    The transformed grid.
+  """
+  objs = objects(grid, univalued=True, diagonal=False, without_bg=False)
+  new_grid = [list(row) for row in grid]
+  for obj in objs:
+    for i, j in toindices(obj):
+      if all(0 <= ni < len(grid) and 0 <= nj < len(grid[0]) and grid[ni][nj] == grid[i][j] for ni, nj in neighbors((i, j))):
+        new_grid = flood_fill(new_grid, i, j, grid[i][j], EIGHT)
+        break  # Only need to flood-fill once per object
+  return tuple(tuple(row) for row in new_grid)
+```
+
+**Explanation:**
+
+1. **`flood_fill(...)`:**  Recursively replaces a connected region of cells that have `target_value` with `replacement_value`.
+2. **`Program_to_be_generated(...)`:**
+   - Uses `objects` to find connected objects.
+   - For each object, it finds an inner cell (if any) and calls `flood_fill` to replace the inner region with '8'. 
+   - The `break` statement ensures that the flood-fill happens only once per object. 

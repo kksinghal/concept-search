@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation involves identifying horizontally or vertically adjacent "2" digits in the input grid and then painting the directly adjacent (up, down, left, right) cells with the digit "3" in the output grid.  Isolated "2" digits remain unchanged.
+
+**Example:**
+
+Input:
+```
+0 0 2 0
+0 0 2 0 
+```
+
+Output:
+```
+0 0 2 0
+0 3 2 3
+```
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the provided DSL:
+
+**Version 1** 
+(Inspired by Program_B's use of `ofcolor` and `fill`, but expands neighbor checking)
+
+```python
+def program_v1(I):
+  O = I
+  for i, j in ofcolor(I, 2):
+    for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+      ni, nj = i + di, j + dj
+      if (0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0 and
+          any((i, j + offset) in ofcolor(I, 2) for offset in [-1, 1] + [0 if di else 1, 0 if di else -1])):
+        O = fill(O, 3, {(ni, nj)}) 
+  return O
+```
+
+**Explanation:**
+1. **Iterate through "2" cells:** Uses `ofcolor(I, 2)` to find indices of cells containing "2".
+2. **Check for adjacent "2" and empty neighbors:** For each "2", it checks its four direct neighbors. If a neighbor is within the grid bounds, has a value of "0", and is adjacent to another "2" either horizontally or vertically, it's marked for filling.
+3. **Fill with "3":** Uses `fill(O, 3, {(ni, nj)})` to paint the identified neighbor cells with "3".
+
+**Version 2**
+(Inspired by Program_A's border detection, but applies it specifically to "2" digits)
+
+```python
+def program_v2(I):
+  objs = objects(I, T, F, F)
+  border_cells = set()
+  for obj in objs:
+    if color(obj) == 2:
+      for i, j in toindices(obj):
+        for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+          ni, nj = i + di, j + dj
+          if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0 and (ni, nj) not in toindices(obj) and any((i + offset * di, j + offset * dj) in toindices(obj) for offset in [-1, 2]):
+            border_cells.add((3, (ni, nj)))
+  return paint(I, frozenset(border_cells))
+```
+
+**Explanation:**
+1. **Identify objects:** Uses `objects(I, T, F, F)` to find all connected objects in the grid.
+2. **Filter for "2" objects:** Processes only objects where `color(obj)` is "2".
+3. **Find eligible border cells:** Checks direct neighbors of each cell in the "2" object. If a neighbor is within grid bounds, empty, not part of the current object, and has another "2" cell in a straight line (horizontally or vertically), it's marked as a border cell.
+4. **Paint border cells:** Uses `paint(I, frozenset(border_cells))` to fill the identified border cells with "3".
+
+**Version 3** 
+(Focuses on direct horizontal/vertical adjacency checks)
+
+```python
+def program_v3(I):
+  O = I
+  h, w = len(I), len(I[0])
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == 2 and ((j > 0 and I[i][j-1] == 2) or (j < w - 1 and I[i][j+1] == 2) or (i > 0 and I[i-1][j] == 2) or (i < h - 1 and I[i+1][j] == 2)):
+        for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+          ni, nj = i + di, j + dj
+          if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == 0:
+            O = fill(O, 3, {(ni, nj)})
+  return O
+```
+
+**Explanation:**
+1. **Iterate through the grid:** Iterates through each cell in the input grid.
+2. **Check for adjacent "2"s:** If a cell contains "2", it checks if it has a horizontally or vertically adjacent "2".
+3. **Fill empty neighbors:** If an adjacent "2" is found, the current cell's empty neighbors are filled with "3" using `fill(O, 3, {(ni, nj)})`.
+
+**Version 4**
+(Uses `rapply` for concise neighbor checking)
+
+```python
+def program_v4(I):
+  O = I
+  for i, j in ofcolor(I, 2):
+    if any(rapply(lambda off: index(I, (i, j+off)) == 2, [-1, 1])) or any(rapply(lambda off: index(I, (i+off, j)) == 2, [-1, 1])):
+      O = fill(O, 3, frozenset((i+di, j+dj) for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)] if 0 <= i+di < len(I) and 0 <= j+dj < len(I[0]) and I[i+di][j+dj] == 0))
+  return O
+```
+
+**Explanation:**
+1. **Iterate through "2" cells:** Uses `ofcolor` to find "2" cells.
+2. **Concise adjacency check:** Employs `rapply` to efficiently check for horizontally and vertically adjacent "2"s using `index` for boundary checks.
+3. **Fill empty neighbors:** If an adjacent "2" is found, `fill` is used to paint empty neighbors with "3".
+
+**Version 5**
+(Leverages `dneighbors` for a compact neighbor filling approach)
+
+```python
+def program_v5(I):
+  O = I
+  for i, j in ofcolor(I, 2):
+    if any(index(I, n) == 2 for n in dneighbors((i, j))):
+      O = fill(O, 3, frozenset((ni, nj) for ni, nj in dneighbors((i, j)) if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0))
+  return O
+```
+
+**Explanation:**
+1. **Find "2" cells:** Uses `ofcolor` to locate cells containing "2".
+2. **Check direct neighbors:**  For each "2" cell, `dneighbors` is used to get direct neighbors. If any direct neighbor also contains "2", it proceeds.
+3. **Fill empty neighbors:** `fill` is then used to paint empty direct neighbors with "3", again leveraging `dneighbors` and boundary checks. 

@@ -1,0 +1,140 @@
+## Transformation Analysis:
+
+The transformation consistently applies the following rules:
+
+1. **Identify objects:** It recognizes individual connected components (objects) formed by the digit '2' within the input grid. 
+2. **Expand object boundaries:** For each object, it extends the outline (box) by one cell to the left and right. However, the expansion only occurs if the adjacent cell contains the digit '0'.
+3. **Fill expanded boundaries:** Finally, it fills these expanded boundary cells with the digit '3', effectively outlining the objects with a '3' border.
+
+**Example:**
+
+Let's take a section of Input_0:
+
+```
+0 0 2 0
+0 0 2 0
+0 0 0 0
+```
+
+The transformation identifies the '2's as a single object. It then expands the object's boundary to the left and right where possible:
+
+```
+0 0 2 0
+0 0 2 0
+0 0 0 0
+```
+
+Finally, it fills the expanded boundaries with '3':
+
+```
+0 0 2 0
+0 0 2 0
+0 0 0 0
+```
+
+
+## Program Versions:
+
+Here are five distinct program versions using the DSL from `dsl.py`:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)  # Extract connected '2' objects
+  expanded_outlines = mapply(lambda obj: outbox(obj) - box(obj), objs)  # Find cells adjacent to the object outline
+  filtered_outlines = mapply(lambda indices: frozenset(loc for loc in indices if 0 <= loc[1] < len(I[0]) and I[loc[0]][loc[1]] == 0), expanded_outlines) # Filter cells containing '0'
+  return underfill(I, THREE, merge(filtered_outlines))  # Fill filtered cells with '3' 
+```
+
+**Explanation:**
+
+1. **Extract objects:** `objects(I, True, False, True)` extracts connected components of '2's, excluding the background.
+2. **Expand outlines:** `outbox(obj) - box(obj)` calculates the set difference between the outer and inner outlines of each object, yielding adjacent cells.
+3. **Filter cells:** The lambda function filters for adjacent cells containing '0' within the grid boundaries.
+4. **Fill cells:** `underfill(I, THREE, merge(filtered_outlines))` fills the filtered cells with '3' on the original grid.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  extended_boxes = frozenset()
+  for obj in objs:
+    for i, j in box(obj):
+      for shift in [-1, 1]:
+        if 0 <= j + shift < len(I[0]) and I[i][j + shift] == 0:
+          extended_boxes = insert((i, j + shift), extended_boxes)
+  return underfill(I, THREE, extended_boxes) 
+```
+
+**Explanation:**
+
+1. **Extract objects:** Similar to version 1.
+2. **Iterate and expand:** It iterates through each cell of each object's box and checks for '0' in adjacent left/right cells within grid boundaries.
+3. **Fill cells:** Similar to version 1.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    return underfill(I, THREE, 
+                   merge(
+                       mapply(lambda obj: 
+                              sfilter(
+                                  sfilter(dneighbors(centerofmass(obj)), 
+                                          lambda loc: 0 <= loc[1] < len(I[0])), 
+                                  lambda loc: I[loc[0]][loc[1]] == 0), 
+                              objects(I, True, False, True))))
+```
+
+**Explanation:**
+
+1. **Extract objects:** Similar to previous versions.
+2. **Find neighbors of center:** It finds direct neighbors of each object's center of mass.
+3. **Filter for valid cells:** It filters for neighbors within the grid and containing '0'.
+4. **Fill cells:** Similar to previous versions.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  modified_grid = I
+  for obj in objects(I, True, False, True):
+    for i, j in box(obj):
+      for di, dj in [(0, -1), (0, 1)]:  # Check left and right neighbors
+        ni, nj = i + di, j + dj
+        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0:
+          modified_grid = fill(modified_grid, THREE, {(ni, nj)})
+  return modified_grid
+```
+
+**Explanation:**
+
+1. **Iterate and modify:** It iterates directly through objects and their outline cells, checking and filling adjacent cells directly.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    return paint(I, 
+                 merge(
+                     mapply(lambda obj: 
+                            recolor(THREE, 
+                                    sfilter(
+                                        delta(obj), 
+                                        lambda loc: any(I[n[0]][n[1]] == 2 for n in dneighbors(loc) if 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]))
+                                    )
+                                   ), 
+                            objects(I, True, False, True))))
+```
+
+**Explanation:**
+
+1. **Extract objects:** Similar to previous versions.
+2. **Find delta cells:** It finds cells within the object's bounding box but not part of the object itself.
+3. **Filter for adjacent '2':** It keeps delta cells that have a direct neighbor with the value '2'.
+4. **Recolor and paint:** It recolors the filtered cells to '3' and paints them back onto the original grid.
+
+
+These five program versions showcase different approaches to achieving the desired transformation. Each version utilizes distinct combinations of DSL functions and logic, demonstrating the flexibility and expressiveness of the DSL. 

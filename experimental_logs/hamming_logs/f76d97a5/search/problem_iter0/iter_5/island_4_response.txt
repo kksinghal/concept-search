@@ -1,0 +1,114 @@
+## Transformation Analysis:
+
+The transformation being applied in these input-output pairs can be described as **"drawing the outline of objects, excluding the background"**. 
+
+Let's break down the transformation for each example:
+
+**Input_0:**
+- The input has a single object of '5's surrounded by a background of '4's.
+- The output outlines the object with '4's and sets the interior to '0's.
+
+**Input_1:**
+- The input has a more complex object of '5's on a background of '6's.
+- The output outlines this object using the background color '6', leaving the interior empty (filled with '0's).
+
+**Input_2:**
+-  Similar to Input_1, we have an object of '5's on a '9' background.
+-  The output outlines the object using the '9's and leaves the interior blank (filled with '0's).
+
+
+## Program_to_be_generated:
+
+Here are five distinct program versions utilizing the DSL functions to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  x1 = objects(I, T, F, T) # Identify all foreground objects
+  x2 = mapply(lambda obj: toindices(obj) - sfilter(toindices(obj), lambda i: all(n in toindices(obj) for n in dneighbors(i))), x1)
+  # Find cells on the boundary of each object
+  O = fill(I, 0, merge(x2)) # Fill boundary cells with 0
+  return O
+```
+
+**Explanation:**
+1.  `objects(I, T, F, T)`: Identifies all foreground objects in the input grid `I`.
+2.  `mapply(...)`: For each object:
+    -   `toindices(obj)`: Get the indices of all cells in the object.
+    -   `sfilter(...)`: Filter the indices, keeping only those where not all neighboring cells belong to the same object. This identifies the boundary cells.
+3.  `fill(I, 0, merge(x2))`: Fill the identified boundary cells with '0' in the original grid `I`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  x1 = partition(I) # Partition the grid into objects based on color
+  x2 = mapply(lambda obj: frozenset((v, i) for v, i in obj if any(index(I, n) != v for n in dneighbors(i) if n in asindices(I))), x1)
+  # Filter object cells, keeping only those that have a differently colored direct neighbor.
+  O = paint(cover(I, mostcolor(I)), merge(x2)) # Paint the filtered cells back onto a cleared grid
+  return O
+```
+
+**Explanation:**
+
+1.  `partition(I)`: Divides the input grid `I` into separate objects based on their color.
+2.  `mapply(...)`: Applies the following logic to each identified object:
+    -   Iterate through each cell (`v, i`) in the object.
+    -   Check if any direct neighbor (`n`) of the current cell has a different color (`v`).
+    -   Keep only the cells that meet this condition.
+3.  `paint(cover(I, mostcolor(I)), merge(x2))`:
+    -   `cover(I, mostcolor(I))`: Creates a blank grid by replacing all cells with the background color.
+    -   `merge(x2)`: Combines the filtered cells from all objects.
+    -   `paint(...)`: Paints the combined filtered cells onto the blank grid, effectively drawing the outline.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  x1 = objects(I, T, F, T) # Identify foreground objects
+  x2 = mapply(lambda obj: frozenset((v, i) for v, i in obj if any(index(I, n) != v for n in dneighbors(i) if 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]))), x1)
+  # Keep cells in each object that have a differently colored valid neighbor within the grid boundaries
+  O = paint(cover(I, mostcolor(I)), merge(x2)) # Paint these cells onto a cleared grid
+  return O
+```
+
+**Explanation:**
+
+1.  `objects(I, T, F, T)`: This identifies all the distinct objects in the input grid `I`, excluding the background.
+2.  `mapply(...)`: This applies a function to each identified object. The function finds cells within each object that have at least one directly adjacent neighbor with a different color. Crucially, it ensures that the considered neighbors fall within the grid's boundaries.
+3.  `paint(cover(I, mostcolor(I)), merge(x2))`: This part first creates a blank canvas by filling the input grid with the background color. Then, it takes the filtered boundary cells from all objects and paints them onto this blank canvas, effectively creating the outline.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = cellwise(I, paint(cover(I, mostcolor(I)), mfilter(objects(I, T, F, T), lambda o: size(o) > 1)), 0)
+  return O
+```
+
+**Explanation:**
+
+1. `objects(I, T, F, T)`: Identifies all foreground objects in the grid.
+2. `mfilter(..., lambda o: size(o) > 1)`: Filters the objects, keeping only those with more than one cell (to avoid outlining single-cell objects).
+3. `paint(cover(I, mostcolor(I)), ...)`:  Creates a blank canvas (filled with background color) and paints the outlines of the filtered objects onto it.
+4. `cellwise(I, ..., 0)`:  Compares the original grid `I` with the canvas containing object outlines. For matching cells, it keeps the original color; otherwise, it sets the cell to 0, effectively drawing the outline while preserving the original object colors in the output.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  x1 = objects(I, T, F, T)
+  x2 = mapply(lambda obj: sfilter(toindices(obj), lambda i: any(n not in toindices(obj) for n in dneighbors(i))), x1)
+  O = fill(I, 0, merge(x2))
+  return O
+```
+
+**Explanation:**
+
+1. `objects(I, T, F, T)`: Finds all foreground objects in the grid.
+2. `mapply(...)`: For each object:
+    -  `toindices(obj)`: Gets the indices of all cells within the object.
+    -  `sfilter(...)`: Filters these indices, keeping only the cells that have at least one direct neighbor not belonging to the same object (identifying boundary cells).
+3. `merge(x2)`: Combines all the identified boundary cells from each object.
+4. `fill(I, 0, ...)`:  Fills the original grid `I` with '0' at the locations of the identified boundary cells, creating the outlined effect. 

@@ -1,0 +1,112 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same color, excluding the background) and drawing a horizontal line of value '3' across their center of mass.
+
+**Input_0:** 
+
+- Two objects are detected, both with color '1'.
+- For each object, the center of mass is calculated.
+- A horizontal line (value '3') is drawn across the center of mass, spanning the object's width.
+
+**Input_1:** 
+
+- Two objects are detected, both with color '1'.
+- The transformation is applied identically to Input_0, resulting in horizontal lines across the center of mass of each object.
+
+
+## Program_to_be_generated: 
+
+**Version 1 (Inspired by `objects` and `fill`)**
+
+```python
+def solve(I):
+  def draw_line(obj):
+    i, _ = centerofmass(obj)
+    return {(i, j) for j in range(leftmost(obj), rightmost(obj) + 1)}
+  lines = mapply(draw_line, objects(I, True, False, True))
+  return fill(I, 3, lines)
+```
+
+**Explanation:**
+
+1. **`draw_line(obj)` Function:**
+   - Calculates the center of mass `(i, _)` of the object.
+   - Generates a set of indices representing a horizontal line at row `i`, spanning from the object's `leftmost` to `rightmost` column.
+2. **`objects(I, True, False, True)`:** Extracts objects from the input grid `I`.
+3. **`mapply(draw_line, ...)`:** Applies the `draw_line` function to each object, generating a set of lines.
+4. **`fill(I, 3, lines)`:**  Fills the input grid `I` with value '3' at the indices specified by the `lines` set.
+
+**Version 2 (Inspired by nested loops and `hmatching`)**
+
+```python
+def solve(I):
+  return tuple(
+      tuple(
+          3 if any(hmatching({(i, j)}, obj) for obj in objects(I, True, False, True))
+          else I[i][j]
+          for j in range(len(I[0])))
+      for i in range(len(I))
+  )
+```
+
+**Explanation:**
+
+1. **Nested Loops:** Iterates through each cell `(i, j)` of the input grid `I`.
+2. **`hmatching({(i, j)}, obj)`:**  Checks if the current cell is horizontally aligned (shares a row) with any object `obj` in the grid.
+3. **`any(...)`:**  Returns `True` if any object horizontally matches the current cell, `False` otherwise.
+4. **Conditional Expression:** If a horizontal match is found, the cell value is set to '3'; otherwise, the original value from `I[i][j]` is retained.
+
+**Version 3 (Inspired by `vconcat`, `hconcat`, and slicing)**
+
+```python
+def solve(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, True, False, True):
+    i, _ = centerofmass(obj)
+    line = canvas(3, (1, width(obj)))
+    O = vconcat(O[:i], (hconcat((0,) * leftmost(obj), line, (0,) * (width(I) - rightmost(obj) - 1)),), O[i + 1:])
+  return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(0, shape(I))`:** Creates an empty canvas `O` with the same shape as the input grid `I`.
+2. **Looping through Objects:** Iterates through each detected object `obj`.
+3. **`line = canvas(3, (1, width(obj)))`:** Creates a horizontal line filled with '3' and the same width as the object.
+4. **`hconcat(...)`:** Concatenates the line with appropriate padding of zeros on both sides to align it with the object's horizontal position.
+5. **`vconcat(...)`:** Inserts the constructed line into the canvas `O` at the row corresponding to the object's center of mass.
+
+**Version 4 (Inspired by `cellwise` and bounding box)**
+
+```python
+def solve(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, True, False, True):
+    O = cellwise(I, fill(O, 3, backdrop(obj)), O) 
+  return O
+```
+
+**Explanation:**
+
+1.  **`O = canvas(0, shape(I))`:** Creates an empty canvas `O`.
+2.  **Looping through Objects:** Iterates through each object.
+3.  **`fill(O, 3, backdrop(obj))`:** Creates a grid where the bounding box of the object is filled with '3'.
+4.  **`cellwise(...)`:** Merges this grid with the canvas `O`, prioritizing the '3' values from the filled bounding box.
+
+**Version 5 (Inspired by `underfill` and object indices)**
+
+```python
+def solve(I):
+  for obj in objects(I, True, False, True):
+    i, _ = centerofmass(obj)
+    indices = {(i, j) for _, (i, j) in obj}
+    I = underfill(I, 3, indices)
+  return I
+```
+
+**Explanation:**
+
+1.  **Looping through Objects:** Iterates through each object.
+2.  **`i, _ = centerofmass(obj)`:** Calculates the row `i` for the center of mass.
+3.  **`indices = {(i, j) for _, (i, j) in obj}`:**  Extracts the indices of the object, replacing the row index with the center of mass row `i`.
+4.  **`underfill(I, 3, indices)`:** Fills the input grid `I` with '3' at the specified `indices`, but only where the original value is the background color (most common color).

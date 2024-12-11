@@ -1,0 +1,105 @@
+## Transformation Analysis:
+
+The transformation in all examples involves identifying the object with the color '5' and strategically repositioning it within the grid while preserving the positions of other objects. 
+
+**Logic:**
+
+1. **Isolate '5' Object:** Identify and extract the object composed of '5' cells. 
+2. **Identify Target Location:** Determine the desired position for the '5' object.  Based on the examples, the target appears to be:
+    - **Output_0 & Output_1:** The topmost row that allows the object to be fully contained within the grid's bounds.
+    - **Output_2:**  The horizontal center of the non-'5' objects.
+3. **Calculate Offset:** Determine the required vertical and horizontal shift to move the '5' object from its current center of mass to the target location.
+4. **Move '5' Object:**  Shift the '5' object by the calculated offset, ensuring it remains within the grid boundaries.
+
+## Program to be Generated (5 Versions)
+
+**Version 1:** (Prioritizes vertical movement)
+
+```python
+def move_five_to_top(I):
+  objs = objects(I, False, True, True)  # Find all objects
+  five_obj = extract(objs, lambda obj: color(obj) == 5)  # Find '5' object
+  target_row = min(uppermost(obj) for obj in objs if color(obj) != 5) - height(five_obj)  # Find target row
+  target_row = max(target_row, 0) # Keep within grid bounds
+  offset = subtract((target_row, 0), ulcorner(five_obj))  # Calculate offset 
+  O = move(I, five_obj, offset)  # Move '5' object
+  return O
+```
+
+**Explanation:**
+
+1.  It identifies the topmost row occupied by non-'5' objects.
+2.  It calculates the target row for the '5' object, ensuring it doesn't go off-grid.
+3.  It calculates the offset needed to move the '5' object's upper-left corner to the target row.
+
+**Version 2:** (Iterative upward movement)
+
+```python
+def move_five_up(I):
+  objs = objects(I, False, True, True)
+  five_obj = extract(objs, lambda obj: color(obj) == 5)
+  O = I
+  while uppermost(five_obj) > 0 and index(O, subtract(ulcorner(five_obj), (1, 0))) == 0:
+    O = move(O, five_obj, (-1, 0))  # Move one step up
+    five_obj = shift(five_obj, (-1, 0)) # Update five_obj position
+  return O 
+```
+
+**Explanation:**
+
+1. It iteratively moves the '5' object upwards one row at a time.
+2.  The loop continues as long as the '5' object is not at the top and the cell above its upper-left corner is empty (color 0).
+
+**Version 3:** (Using bounding box)
+
+```python
+def move_five_to_top_bbox(I):
+  objs = objects(I, False, True, True)
+  five_obj = extract(objs, lambda obj: color(obj) == 5)
+  other_objs = sfilter(objs, lambda obj: color(obj) != 5)
+  target_loc = ulcorner(merge(other_objs)) # Top-left corner of non-'5' objects
+  offset = subtract(target_loc, ulcorner(five_obj))  # Calculate offset 
+  O = move(I, five_obj, offset)  # Move '5' object
+  return O
+```
+
+**Explanation:**
+
+1.  It finds the bounding box (using `ulcorner` and `merge`) that encloses all non-'5' objects.
+2.  It uses the upper-left corner of this bounding box as the target location for the '5' object.
+
+**Version 4:** (Horizontal centering in specific cases)
+
+```python
+def move_five_center_horizontal(I):
+  objs = objects(I, False, True, True)
+  five_obj = extract(objs, lambda obj: color(obj) == 5)
+  other_objs = sfilter(objs, lambda obj: color(obj) != 5)
+  if any(lowermost(obj) > uppermost(five_obj) for obj in other_objs): # Condition for horizontal centering
+    target_col = center(backdrop(merge(other_objs)))[1] - width(five_obj) // 2  # Horizontal center
+    offset = subtract((0, target_col), ulcorner(five_obj)) 
+    O = move(I, five_obj, offset)
+  else:
+    O = I # No change if condition not met
+  return O
+```
+
+**Explanation:**
+
+1.  It introduces a condition to determine when to apply horizontal centering (when any non-'5' object extends below the '5' object). 
+2.  If the condition is met, it calculates the horizontal center of non-'5' objects and moves the '5' object accordingly. 
+
+**Version 5:** (Combining vertical and horizontal movement)
+
+```python
+def move_five_top_and_center(I):
+  O = move_five_to_top(I)  # First move to the top (Version 1)
+  O = move_five_center_horizontal(O)  # Then center if needed (Version 4) 
+  return O
+```
+
+**Explanation:**
+
+This version leverages the logic from Version 1 and Version 4. It first moves the '5' object to the top and then applies horizontal centering based on the condition in Version 4.
+
+**Important Note:** The function `bbox` used in your provided programs is not defined in the given DSL.  The provided solutions utilize other DSL functions to achieve similar functionality. 

@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves the following steps:
+
+1. **Upscaling:** The input grid is upscaled by a factor of 2, effectively doubling the width and height of the grid and its elements. 
+
+2. **Rightward Outline:**  A single-cell wide outline is drawn around each upscaled object, but only on the right and top sides. This creates a "stair-step" effect where the outline extends to the right and top of the original object boundary.
+
+Let's break down how this applies to each input-output pair:
+
+**Input_0 & Output_0:**
+
+- Each '2' in the input grid becomes a 2x2 square of '2's in the upscaled grid.
+- The right and top edges of these squares then get outlined with '3's.
+
+**Input_1 & Output_1:**
+
+- This input showcases how the transformation handles objects of different sizes and shapes.
+- The outline logic remains consistent, highlighting the right and top edges of the upscaled objects regardless of their original dimensions.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  # Upscale the input
+  x1 = upscale(I, 2) 
+  # Identify objects in the upscaled grid
+  x2 = objects(x1, T, F, F)
+  # Create the right and top outline
+  x3 = mapply(lambda o: difference(outbox(toindices(o)),
+                                     {(i,j) for i,j in outbox(toindices(o)) if i == lowermost(o) + 1 or j == leftmost(o) -1}), x2) 
+  # Paint the outline
+  O = paint(x1, recolor(THREE, x3)) 
+  return O
+```
+
+**Explanation:**
+
+1. **`x1 = upscale(I, 2)`:**  Doubles the size of the input grid `I`.
+2. **`x2 = objects(x1, T, F, F)`:**  Identifies all distinct objects in the upscaled grid `x1`.
+3. **`x3 = ...`:** This line generates the outline. It iterates through each object (`o`) in `x2` and performs the following:
+   -  `outbox(toindices(o))`:  Gets the indices of the cells forming a one-cell thick outer boundary around the object.
+   -  `difference(..., {(i,j) for i,j in outbox(toindices(o)) if i == lowermost(o) + 1 or j == leftmost(o) -1})` : This crucial step removes indices corresponding to the bottom and left sides of the outline, ensuring only the right and top outlines remain.
+4. **`O = paint(x1, recolor(THREE, x3))`:** 
+   - `recolor(THREE, x3)`:  Changes the color of all indices in the outline `x3` to `THREE`.
+   - `paint(x1, ...)`: Applies the recoloring to the upscaled grid `x1`, effectively drawing the outline.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  x1 = upscale(I, 2)
+  x2 = objects(x1, T, F, F)
+  x3 = mapply(lambda o: frozenset((i + 1, j) for i, j in toindices(o)), x2)
+  x4 = mapply(lambda o: frozenset((i, j + 1) for i, j in toindices(o)), x2)
+  x5 = merge((x3, x4))
+  O = paint(x1, recolor(THREE, difference(x5, toindices(merge(x2)))))
+  return O
+```
+
+**Explanation:**
+
+1. **`x1 = upscale(I, 2)`:** Upscales the input grid.
+2. **`x2 = objects(x1, T, F, F)`:** Extracts objects from the upscaled grid.
+3. **`x3 = ...`:**  Shifts each object's indices one step down.
+4. **`x4 = ...`:** Shifts each object's indices one step to the right.
+5. **`x5 = merge((x3, x4))`:**  Combines the shifted indices.
+6. **`O = paint(x1, recolor(THREE, difference(x5, toindices(merge(x2))))`:** 
+    - `difference(..., toindices(merge(x2)))`: Removes the original object indices from the shifted indices, leaving only the outline.
+    - The outline is then recolored and painted onto the upscaled grid.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  x1 = upscale(I, 2)
+  x2 = objects(x1, T, F, F)
+  x3 = mapply(lambda o: difference(backdrop(toindices(o)), toindices(o)), x2)
+  x4 = mapply(lambda i: frozenset((a - 1, b) for a, b in i if a == lowermost(i)), x3)
+  x5 = mapply(lambda i: frozenset((a, b - 1) for a, b in i if b == leftmost(i)), x3)
+  O = paint(x1, recolor(THREE, merge((x4, x5))))
+  return O
+```
+
+**Explanation:**
+
+1. **`x1 = upscale(I, 2)`:** Upscales the input.
+2. **`x2 = objects(x1, T, F, F)`:**  Gets objects from the upscaled grid.
+3. **`x3 = ...`:**  Computes the difference between the bounding box and the object itself, essentially creating a filled outline.
+4. **`x4 = ...`:**  Removes the bottom row of the filled outline.
+5. **`x5 = ...`:** Removes the leftmost column of the filled outline.
+6. **`O = paint(x1, recolor(THREE, merge((x4, x5))))`:** Merges the remaining parts of the outline, recolors it, and paints it on the upscaled grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  x1 = upscale(I, 2)
+  x2 = objects(x1, T, F, F)
+  x3 = mapply(lambda o: {(i + 1, j) for i, j in toindices(o)}, x2)
+  x4 = mapply(lambda o: {(i, j + 1) for i, j in toindices(o)}, x2)
+  x5 = difference(merge((x3, x4)), toindices(merge(x2)))
+  O = paint(x1, recolor(THREE, difference(x5,  mapply(lambda o: {(lowermost(o) + 1, j) for j in range(leftmost(o), rightmost(o) + 1)}, x2))))
+  return O
+```
+
+**Explanation:**
+
+1. **`x1 = upscale(I, 2)`:** Upscales the input grid.
+2. **`x2 = objects(x1, T, F, F)`:**  Finds the objects in the upscaled grid.
+3. **`x3 = ...`:**  Shifts each object's indices one row down.
+4. **`x4 = ...`:**  Shifts each object's indices one column right.
+5. **`x5 = ...`:** Merges the shifted indices and removes the original object indices, resulting in an outline that includes an extra bottom-right corner.
+6. **`O = paint(..., recolor(THREE, difference(x5,...)))`:** Removes the extra bottom-right corner from the outline `x5` before recoloring and painting it.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  x1 = upscale(I, 2)
+  x2 = objects(x1, T, F, F)
+  x3 = mapply(lambda o: frozenset(
+              (i + a, j + b) for i, j in toindices(o) for a, b in ((1, 0), (0, 1)) if 
+              0 <= i + a < len(x1) and 0 <= j + b < len(x1[0])), x2)
+  O = paint(x1, recolor(THREE, difference(x3, toindices(merge(x2)))))
+  return O
+```
+
+**Explanation:**
+
+1. **`x1 = upscale(I, 2)`:**  Upscales the input.
+2. **`x2 = objects(x1, T, F, F)`:**  Identifies objects in the upscaled grid.
+3. **`x3 = ...`:**  Calculates the outline for each object:
+   -  It iterates through each cell (`i`, `j`) of the object and generates potential outline cell candidates by adding (1, 0) and (0, 1) to the cell's coordinates.
+   - It then filters out the candidates that fall outside the grid boundaries.
+4. **`O = paint(x1, recolor(THREE, difference(x3, toindices(merge(x2))))`:** 
+  -  Removes the original object's cells from the generated outline `x3`.
+  -  Recolors the remaining outline cells to `THREE`.
+  -  Paints the final outline on the upscaled grid.
+
+These five versions offer distinct approaches to generating the right and top outlines, demonstrating the flexibility of the provided DSL. Each version leverages different combinations of functions to achieve the desired transformation, showcasing a variety of solutions to the given problem.

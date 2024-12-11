@@ -1,0 +1,135 @@
+## Transformation Analysis:
+
+The transformation consistently replaces specific occurrences of the digit '1' with the digit '8' in the input grids. Let's break it down:
+
+- **Target '1's:** Only '1's that are part of an object directly connected (horizontally or vertically) to a '9' are targeted. 
+- **Connected Objects:** The '1's don't need to be directly connected to the '9', they can be part of a larger object, as long as there's a connection path of '1's to a '9' within the same object.
+- **Background '1's:**  '1's that exist as individual cells or objects not connected to a '9' are left unchanged.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the provided DSL:
+
+**Program Version 1**
+
+```python
+def program_v1(I):
+  # Find objects connected to '9'
+  connected_objects = mfilter(objects(I, False, False, True), lambda obj: vmatching(obj, ofcolor(I, NINE)))
+  # Extract '1's from those objects
+  target_ones = mfilter(connected_objects, lambda obj: color(obj) == ONE)
+  # Replace target '1's with '8'
+  O = paint(replace(I, ONE, EIGHT), target_ones)
+  return O
+```
+
+**Explanation:**
+
+1. **`connected_objects = mfilter(objects(I, False, False, True), lambda obj: vmatching(obj, ofcolor(I, NINE)))`**:
+   - `objects(I, False, False, True)`: Finds all objects in the grid `I`, considering objects with potentially multiple colors (`False`), not connecting diagonally (`False`), and excluding the background color (`True`).
+   - `lambda obj: vmatching(obj, ofcolor(I, NINE))`:  This lambda function checks if each object `obj` has at least one column matching with an object made of '9's (`ofcolor(I, NINE)`). 
+   - `mfilter`: Applies the lambda function to filter the `objects` and then merges the resulting objects into a single `frozenset`.
+2. **`target_ones =  mfilter(connected_objects, lambda obj: color(obj) == ONE)`**:
+   - Filters the `connected_objects` to keep only those objects where the color is '1' (`ONE`).
+   - Again, `mfilter` is used to filter and then merge the objects.
+3. **`O = paint(replace(I, ONE, EIGHT), target_ones)`**:
+   - `replace(I, ONE, EIGHT)`: Creates a new grid where all '1's are replaced by '8's.
+   - `paint(..., target_ones)`:  "Paints" the `target_ones` back onto the modified grid, effectively restoring the '1's that should remain unchanged.
+
+
+**Program Version 2**
+
+```python
+def program_v2(I):
+  # Find '9' indices
+  nines = ofcolor(I, NINE)
+  # Find adjacent '1' indices 
+  adjacent_ones = mfilter(apply(neighbors, nines), lambda loc: index(I, loc) == ONE)
+  # Expand to full connected objects
+  target_ones = mfilter(objects(I, False, False, True), lambda obj: len(intersection(toindices(obj), adjacent_ones)) > 0)
+  # Replace target '1's with '8'
+  O = paint(replace(I, ONE, EIGHT), target_ones)
+  return O
+```
+
+**Explanation:**
+
+1. **`nines = ofcolor(I, NINE)`**:  Identifies the indices of all cells containing '9'.
+2. **`adjacent_ones = mfilter(apply(neighbors, nines), lambda loc: index(I, loc) == ONE)`**:
+    - `apply(neighbors, nines)`: Finds all neighbor indices for each '9' index.
+    - `lambda loc: index(I, loc) == ONE`: Filters for neighbor indices containing '1'.
+    - `mfilter`: Merges the results into a single `frozenset`.
+3. **`target_ones = ...`**: This part is identical to Program Version 1, expanding the `adjacent_ones` to their full connected objects.
+4. **`O = ...`**: Same replacement logic as Version 1.
+
+**Program Version 3**
+
+```python
+def program_v3(I):
+  def check_connection(obj):
+    return any(manhattan(obj, ofcolor(I, NINE)) == 1 for cell in obj)
+
+  connected_objects = sfilter(objects(I, False, False, True), check_connection)
+  target_ones = mfilter(connected_objects, lambda obj: color(obj) == ONE)
+  O = paint(replace(I, ONE, EIGHT), target_ones)
+  return O
+```
+
+**Explanation:**
+
+- Similar structure to Version 1, but uses `any` and a generator expression within `check_connection` for a more concise check of adjacency between an object and the '9's.
+
+**Program Version 4**
+
+```python
+def program_v4(I):
+    def is_connected_to_nine(obj):
+        return any(index(I, n) == NINE for cell in obj for n in neighbors(cell[1]))
+
+    target_ones = mfilter(
+        sfilter(objects(I, False, False, True), is_connected_to_nine), 
+        lambda obj: color(obj) == ONE
+    )
+    O = paint(replace(I, ONE, EIGHT), target_ones)
+    return O
+```
+
+**Explanation:**
+
+- Uses nested generator expressions within `is_connected_to_nine` to directly check for adjacency between the object's cells and '9's.
+
+
+**Program Version 5**
+
+```python
+def program_v5(I):
+  def flood_fill(start):
+    visited = set()
+    queue = [start]
+    while queue:
+      (i, j) = queue.pop(0)
+      if (i, j) in visited:
+        continue
+      visited.add((i, j))
+      for ni, nj in dneighbors((i, j)):
+        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == ONE:
+          queue.append((ni, nj))
+    return visited
+
+  nines = ofcolor(I, NINE)
+  target_indices = set()
+  for i, j in nines:
+    target_indices.update(flood_fill((i, j)))
+
+  O = paint(replace(I, ONE, EIGHT), toobject(target_indices, I))
+  return O
+```
+
+**Explanation:**
+
+- Implements a flood-fill algorithm from the '9' indices to find all connected '1's.
+- `flood_fill`: Performs a breadth-first search to find all connected '1' cells.
+- The rest of the logic converts the found indices back to an object and applies the replacement.
+
+
+These five versions demonstrate different approaches to identifying the target '1's for replacement, showcasing the flexibility of the provided DSL for solving this spatial reasoning task.

@@ -1,0 +1,115 @@
+## Transformation Analysis:
+
+The transformation aims to identify objects (connected regions) of a specific color (in this case, 2) and expand them by one cell in all directions. The expansion fills the surrounding cells with the value '1'. 
+
+**Example Breakdown:**
+
+- **Input_0:** The '2' at (0,0) expands to create a 3x3 square of '1's around it. The '2' at (1,3) expands to create a horizontal line of '1's, limited by the grid boundary.
+- **Input_1:**  The '2' at (0,7) expands to create a vertical line of '1's, limited by the grid boundary. The '2' at (6,2) creates a small region of '1's.
+- **Input_2:** The '2' at (1,1) expands to create a plus-shaped region of '1's.
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" using functions from the provided DSL (dsl.py).
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(grid):
+  return paint(
+           fill(grid, 1, 
+                mapply(lambda loc: neighbors(loc), 
+                       ofcolor(grid, 2))), 
+           asobject(grid))
+```
+
+**Explanation:**
+
+1. **`ofcolor(grid, 2)`:** Identifies the indices of all cells containing the value '2'.
+2. **`mapply(lambda loc: neighbors(loc), ...)`:**  For each '2' cell, finds the indices of its neighboring cells (including diagonals).
+3. **`fill(grid, 1, ...)`:** Fills all the neighboring cell indices with the value '1'.
+4. **`asobject(grid)`:** Converts the grid into an object representation preserving original cell values.
+5. **`paint(..., ...)`:** Combines the filled grid with the original object representation, effectively overwriting only the expanded cells with '1's. 
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(grid):
+  return paint(
+           grid, 
+           merge(apply(lambda obj: recolor(1, 
+                                         mapply(neighbors, 
+                                               toindices(obj))), 
+                      colorfilter(objects(grid, T, T, T), 2))))
+```
+
+**Explanation:**
+
+1. **`objects(grid, T, T, T)`:** Extracts all objects from the grid.
+2. **`colorfilter(..., 2)`:** Selects only the objects with color '2'.
+3. **`apply(lambda obj: ..., ...)`:** For each object of color '2':
+   - **`toindices(obj)`:** Gets the indices of the object's cells.
+   - **`mapply(neighbors, ...)`:** Finds neighboring indices for each object cell.
+   - **`recolor(1, ...)`:**  Creates a new object with the neighboring cells colored '1'.
+4. **`merge(...)`:** Combines all the expanded objects into a single object.
+5. **`paint(grid, ...)`:** Paints the merged expanded object onto the original grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(grid):
+  for i, row in enumerate(grid):
+    for j, value in enumerate(row):
+      if value == 2:
+        for di in range(-1, 2):
+          for dj in range(-1, 2):
+            ni, nj = i + di, j + dj
+            if 0 <= ni < len(grid) and 0 <= nj < len(row):
+              grid = fill(grid, 1, {(ni, nj)})
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate through the grid:** The code iterates over each cell in the grid.
+2. **Check for value 2:** If a cell's value is 2:
+   - **Iterate through neighbors:** It iterates through all its neighbors (including itself).
+   - **Fill with 1:** If the neighbor is within the grid boundaries, it fills that cell with 1.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(grid):
+  return paint(grid, 
+               recolor(1, 
+                      mapply(lambda loc: backdrop(shift({loc}, (1, 1))), 
+                            ofcolor(grid, 2))))
+```
+
+**Explanation:**
+
+1. **`ofcolor(grid, 2)`:**  Finds indices of cells with color '2'.
+2. **`mapply(lambda loc: ..., ...)`:** For each such index:
+   - **`shift({loc}, (1, 1))`:** Creates a temporary single-cell object at the index and shifts it by (1, 1).
+   - **`backdrop(...)`:**  Calculates the indices within the bounding box of the shifted cell, which are its neighbors. 
+3. **`recolor(1, ...)`:**  Creates a new object with all the collected neighboring indices colored '1'.
+4. **`paint(grid, ...)`:** Paints the new object onto the original grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(grid):
+  return cellwise(grid, 
+                 fill(canvas(0, shape(grid)), 1,
+                      mapply(lambda loc: neighbors(loc), 
+                            ofcolor(grid, 2))),
+                 grid)
+```
+
+**Explanation:**
+
+1. **`ofcolor(grid, 2)`:** Gets indices of cells with color '2'.
+2. **`mapply(lambda loc: neighbors(loc), ...)`:**  Gets neighboring indices for each '2' cell.
+3. **`canvas(0, shape(grid))`:** Creates a blank grid of the same size as the input, filled with '0's. 
+4. **`fill(..., 1, ...)`:**  Fills the neighboring indices in the blank grid with '1's.
+5. **`cellwise(grid, ..., grid)`:**  Compares the original grid with the filled grid cell by cell. If the cells match, the original value is kept. If they don't match (meaning the cell was a neighbor of '2'), the value from the filled grid ('1') is used. 

@@ -1,0 +1,1148 @@
+3.5, tensor(0.6864), Description: For each colored shape in the input grid, add a red square to the right and below the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bfeeghaahbdcecefabbbhbbcgdbiecei(I):
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  for obj in objs:
+    corner = ulcorner(obj)
+    right_neighbor = (corner[0], corner[1] + 1)
+    bottom_neighbor = (corner[0] + 1, corner[1])
+    I = fill(I, 1, {right_neighbor, bottom_neighbor})
+  return I
+ 
+3.5, tensor(0.7840), Description: For each colored square in the input grid, add a red square to the right and below the square. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bciicddeffgeegacabjfaedceeacgddf(I):
+  indices = asindices(I)
+  for loc in indices:
+    if index(I, loc) != 0 and index(I, add(loc, UP)) == 0 and index(I, add(loc, LEFT)) == 0:
+      I = fill(I, 1, {add(loc, RIGHT), add(loc, DOWN)})
+  return I
+ 
+37.5, tensor(1.0820), Description: For each colored square in the input grid, add a red square to the right and below the square if the square to the left or above is black. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def aifbiddecadjebgcbbbbjfedgfjajbce(I):
+  shifted_right = shift(asobject(I), RIGHT)
+  shifted_down = shift(asobject(I), DOWN)
+  intersection_right = intersection(asobject(I), shifted_right)
+  intersection_down = intersection(asobject(I), shifted_down)
+  filtered_right = sfilter(intersection_right, lambda cell: index(I, add(cell[1], LEFT)) == 0)
+  filtered_down = sfilter(intersection_down, lambda cell: index(I, add(cell[1], UP)) == 0)
+  target_indices = {cell[1] for cell in filtered_right} | {cell[1] for cell in filtered_down}
+  return fill(I, 1, target_indices)
+ 
+5.5, tensor(1.0988), Description: For each black shape in the input grid, add a red square to the bottom right corner of the shape if that corner is also within the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gjccdddffeegecdeaiidhgbifjajacce(I):
+  objs = objects(I, T, F, F)
+  for obj in objs:
+    corner = ulcorner(obj)
+    target = (corner[0] + 1, corner[1] + 1)
+    if target in toindices(obj):
+      I = fill(I, ONE, {target})
+  return I
+ 
+3.5, tensor(1.0997), Description: For each colored shape in the input grid, add a red square to the top right corner of the shape if that corner is also within the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def faffdffebhhieecfiieceedjejcedfbh(I):
+  objs = fgpartition(I)
+  for obj in objs:
+    shifted = shift(obj, (1, 1))
+    intersection = toindices(obj) & toindices(shifted)
+    if intersection:
+      I = fill(I, ONE, {first(intersection)})
+  return I
+ 
+4.5, tensor(1.0245), Description: For each square in the input grid that is not the most common color, if the square below and to the right of it is the same color, then color that square red. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ejfcghfdfeafebjhjbccjhajbebgfchb(I):
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != mostcolor(I) and (i+1 < len(I) and j+1 < len(row)) and I[i+1][j+1] == val:
+        I = fill(I, ONE, {(i+1, j+1)})
+  return I
+ 
+4.5, tensor(1.0988), Description: For each black shape in the input grid, add a red square to the bottom right corner of the shape if that corner is also within the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ijdbbffhdbddeefgjjeecjdaacecihhf(I):
+  def modify_object(obj):
+    corner = ulcorner(obj)
+    return fill(subgrid(obj, I), ONE, {(corner[0]+1, corner[1]+1)})
+  
+  objs = objects(I, T, F, F)
+  modified_grids = [modify_object(obj) for obj in objs]
+  for modified_grid in modified_grids:
+    I = paint(I, asobject(modified_grid))
+  return I
+ 
+6.0, tensor(1.1068), Description: For each black shape in the input grid, add a red square to the top right corner of the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gcfdehfdifabedhbieaeeibecddcgafg(I):
+  objs = objects(I, T, F, F)
+  return paint(I, merge({recolor(ONE, {add(ulcorner(obj), (1,1))}) for obj in objs}))
+ 
+5.0, tensor(1.1376), Description: For each shape in the input grid that is colored light blue ('8'), find the leftmost column of the shape. Then, find the topmost cell in the second column of the shape and color it red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ihfdbacgdehfejegiddebjaehcccbdbf(I):
+    objs = objects(I, True, False, False)  # Get connected objects
+    target_cells = set()
+    for obj in objs:
+        if color(obj) == 8:  # Focus on '8' objects
+            indices = toindices(obj)
+            leftmost_j = min(j for i, j in indices)  # Find leftmost column
+            second_leftmost = sorted(
+                (i, j) for i, j in indices if j == leftmost_j + 1
+            )  # Get cells in the second column
+            if second_leftmost:
+                target_cells.add(second_leftmost[0])  # Add the topmost cell
+    O = fill(I, 1, frozenset(target_cells))  # Fill target cells with '1'
+    return O
+ 
+10.0, tensor(0.9153), Description: For each row in the input grid, find the first pair of adjacent light blue ('8') squares. If such a pair is found, color the corresponding square in the output grid red ('1'). The output grid should have a single red square in each row, corresponding to the first pair of adjacent light blue squares in that row. 
+:: def ifafdbdfdbbeebhfjaccaehedcabacag(I):
+  O = canvas(0, shape(I))
+  for i in range(height(I)):
+    for j in range(1, width(I)): # Start from the second column
+      if I[i][j] == 8 and I[i][j-1] == 8: # Check if current and left neighbor are '8'
+        O = paint(O, {(1, (i, j))})  # Paint '1' at the current position in the output grid
+        break  # Move to the next row after finding the first '8' pair
+  return O
+ 
+5.0, tensor(0.9153), Description: For each row in the input grid, find the first pair of adjacent light blue ('8') squares. If such a pair is found, color the corresponding square in the output grid red ('1'). The output grid should have a single red square in each row, corresponding to the first pair of adjacent light blue squares in that row. 
+:: def beejheedeebceaddjdadgfecgebibgee(I):
+    target_indices = set()
+    for i, row in enumerate(I):
+        for j, value in enumerate(row):
+            if value == 8 and j > 0 and I[i][j - 1] == 8: # Check current and left neighbor for '8'
+                target_indices.add((i, j))
+                break  # Move to next row after finding the first pair
+    new_grid = [list(row) for row in I] # Convert tuple of tuples to list of lists
+    for i, j in target_indices:
+        new_grid[i][j] = 1 # Modify the target cells
+    return tuple(tuple(row) for row in new_grid) # Convert back to tuple of tuples
+ 
+5.0, tensor(0.4473), Description: For each shape in the input grid that is colored light blue ('8'), add a red square ('1') to the cell directly to the left and above the upper-left corner of the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bddabefhcfdaefiebdefdaejajjbidca(I):
+  objs = objects(I, T, F, F)  # Identify all objects
+  target_objs = colorfilter(objs, EIGHT)  # Filter for objects made of '8'
+  modified_objs = set()
+  for obj in target_objs:
+    ul = ulcorner(obj)  # Get upper-left corner
+    modified_objs.add(insert((ONE, (ul[0]+1, ul[1]-1)), obj))  # Modify cell and update object
+  O = I
+  for obj in modified_objs:
+    O = paint(O, obj)  # Paint modified objects back onto the grid
+  return O
+ 
+3.0, tensor(0.8738), Description: For each light blue ('8') square in the input grid, check if the square diagonally below and to the right is also part of the same light blue shape. If it is, color that diagonally positioned square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gdeaefadhbfeebcbadiaiadciccfgcfd(I):
+  objs = objects(I, T, F, F)
+  def is_target_cell(cell):
+    v, (i, j) = cell
+    return v == EIGHT and (i - 1, j + 1) in toindices(extract(objs, lambda obj: (i, j) in toindices(obj)))
+  
+  modified_cells = frozenset((ONE, (i, j)) for i, row in enumerate(I) for j, v in enumerate(row) if is_target_cell((v, (i, j))))
+  O = paint(I, modified_cells)
+  return O
+ 
+7.5, tensor(1.6077), Description: Shift all the light blue ('8') squares diagonally down and to the left by one square, and color the shifted squares red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dddcajddfdijebjdjbabddfajbadajhe(I):
+  def shift_and_fill(grid, value, offset):
+    return fill(grid, value, shift(ofcolor(grid, value), offset))
+  O = shift_and_fill(I, EIGHT, (1, -1))  # Shift '8' indices and fill with '1'
+  return O
+ 
+16.0, tensor(0.9588), Description: For each square in the input grid, if the square below and to the right of it is the same color, then color that square red. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bcaidbcbfiecegbejhjjgaddhddeejha(I):
+  for i in range(len(I)-1):
+    for j in range(len(I[0])-1):
+      if I[i][j] == I[i+1][j+1]:
+        I = fill(I, ONE, {(i+1,j+1)})
+  return I
+ 
+8.5, tensor(1.1239), Description: For each colored shape in the input grid, find the corners of the shape. Then, identify the corners that are only adjacent to one other corner (i.e., outer corners). Color these outer corners red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def daebedejdcedeeajijbgeeibfadbbhcj(I):
+  obj = objects(I, True, True, True)
+  corner_indices = mapply(corners, obj)
+  is_outer_corner = lambda c: size(intersection(ineighbors(c), corner_indices)) == 1
+  outer_corners = sfilter(corner_indices, is_outer_corner)
+  O = fill(I, 1, outer_corners)
+  return O
+ 
+46.5, tensor(1.1364), Description: For each connected shape in the input grid, find the leftmost column of the shape. Then, find all the cells in the second column of the shape and color the topmost cell of that column red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def afcchfeefbagecfdiacfeaibbagfcbef(I):
+  def check_second_leftmost(obj):
+    indices = toindices(obj)
+    leftmost_j = leftmost(indices) # Find leftmost column index
+    return frozenset((i, j) for i, j in indices if j == leftmost_j + 1)  # Get indices of the second column
+
+  objs = objects(I, True, False, False)
+  target_cells = mfilter(objs, check_second_leftmost)
+  O = fill(I, 1, target_cells)
+  return O
+ 
+7.0, tensor(1.0324), Description: For each light blue ('8') square in the input grid, if the square diagonally below and to the left is within the grid, color that square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cccbccciaihceeaebcfbccgebchhcegc(I):
+  O = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] == EIGHT and i + 1 < len(I) and j - 1 >= 0:
+        O = fill(O, ONE, {(i + 1, j - 1)})
+  return O
+ 
+14.0, tensor(1.0324), Description: For each light blue ('8') square in the input grid, if the square diagonally below and to the left is within the grid, color that square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def hhfhjeaffgacefcdbjjbgecichajehdj(I):
+    O = canvas(ZERO, shape(I))
+    for i, row in enumerate(I):
+        for j, val in enumerate(row):
+            if val == EIGHT:
+                if 0 <= i + 1 < len(I) and 0 <= j - 1 < len(row):
+                    O = fill(O, ONE, {(i + 1, j - 1)})
+    return O
+ 
+8.5, tensor(1.0183), Description: For each colored square in the input grid, add a red square to the right and below the square if the square below or to the right is black. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fehebdageheeehdiafcijaacehbedhab(I):
+  def condition(loc):
+    return index(I, loc) != 0 and index(I, add(loc, DOWN, )) == 0 and index(I, add(loc, RIGHT)) == 0
+  return fill(I, 1, mapply(lambda loc: frozenset({add(loc, RIGHT), add(loc, DOWN)}), mfilter(asindices(I), condition)))
+ 
+7.0, tensor(0.6864), Description: For each colored shape in the input grid, add a red square to the right and below the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gaabeeabfebcebhcjcbigdhjcgcagjba(I):
+  objs = objects(I, univalued=False, diagonal=False, without_bg=True)
+  to_fill = set()
+  for obj in objs:
+    corner = lrcorner(obj)
+    to_fill.add(add(corner, RIGHT))
+    to_fill.add(add(corner, DOWN))
+  return fill(I, 1, frozenset(to_fill)) 
+ 
+6.5, tensor(0.6242), Description: For each colored square in the input grid, if the square to the right and the square below are black, then color those squares red. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def figiejffgjcfeefciicbfjdicifiaabc(I):
+  def is_corner(loc):
+    return index(I, loc) != 0 and index(I, add(loc, RIGHT)) == 0 and index(I, add(loc, DOWN)) == 0
+  
+  neighbors_to_fill = set()
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if is_corner((i, j)):
+        neighbors_to_fill.update({add((i, j), RIGHT), add((i, j), DOWN)})
+  
+  return fill(I, 1, frozenset(neighbors_to_fill))
+ 
+5.5, tensor(1.1006), Description: For each black shape in the input grid, add a red square to the top right corner of the shape if that corner is also within the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cedfbefaabbeeddgjfigaabeecadbagg(I):
+  objs = objects(I, T, F, F) # Extract connected objects
+  for obj in objs:
+    topleft = ulcorner(obj) # Find the upper-left corner of each object
+    target = add(topleft, (1,1)) # Calculate the target cell location 
+    if index(I, target): # Check if the target cell exists within the grid
+      I = fill(I, 1, {target}) # Fill the target cell with 1
+  return I
+ 
+33.5, tensor(1.0922), Description: For each colored square in the input grid, add a red square to the bottom right corner of the square if that corner is also within the square. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def acgfbidffeiheagiiebjgjjcbjiehjcf(I):
+  shifted = shift(asobject(I), (1,1)) # Shift all grid cells down and right
+  overlap = intersection(toindices(asobject(I)), toindices(shifted)) # Find overlapping cells
+  return fill(I, 1, overlap) # Fill overlapping cells with 1
+ 
+9.0, tensor(1.6034), Description: Shift all the light blue ('8') squares diagonally down and to the right by one square, and color the shifted squares red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dibfchjabaceeffeaaffebajdbcicjdf(I):
+  return paint(I, recolor(1, shift(ofcolor(I, 8), (1, 1)))) # Find 8s, shift down-right, recolor to 1, and paint back
+ 
+7.5, tensor(1.1239), Description: For each colored shape in the input grid, find the corners of the shape. Then, identify the corners that are only adjacent to one other corner (i.e., outer corners). Color these outer corners red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dceefbidaiifecjbadidcfcfeejaidja(I):
+  obj = objects(I, True, True, True) # Identify all objects in the grid
+  def is_outer_corner(cell, obj):
+    return size(intersection(ineighbors(cell), toindices(obj))) == 1 # Check for single diagonal neighbor within the object
+  outer_corners = set()
+  for o in obj:
+    outer_corners.update(sfilter(toindices(o), lambda c: is_outer_corner(c, o))) # Find outer corners for each object
+  O = fill(I, 1, frozenset(outer_corners)) # Fill outer corners with '1'
+  return O
+ 
+16.0, tensor(1.1261), Description: For each colored square in the input grid, if the square is an outer corner (meaning it has only one diagonal neighbor of the same color), color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dbccfihfbajiefjjahfcbcbdhgagafcf(I):
+  def is_outer_corner(i, j, I):
+    diag_neighbors = [(i - 1, j - 1), (i - 1, j + 1), (i + 1, j - 1), (i + 1, j + 1)]
+    neighbor_count = sum(1 for di, dj in diag_neighbors if 0 <= di < len(I) and 0 <= dj < len(I[0]) and I[di][dj] == I[i][j])
+    return neighbor_count == 1
+  h, w = len(I), len(I[0])
+  O = [[I[i][j] for j in range(w)] for i in range(h)] # Create a copy of the input grid
+  for i in range(h):
+    for j in range(w):
+      if is_outer_corner(i, j, I): # Check if the cell is an outer corner
+        O[i][j] = 1 # Change the color of outer corner to '1'
+  return tuple(tuple(row) for row in O) # Convert back to tuple of tuples
+ 
+7.0, tensor(1.1261), Description: For each colored square in the input grid, if the square is an outer corner (meaning it has only one diagonal neighbor of the same color), color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def aibgdchgdbececeijedjfidcchfbffai(I):
+    def is_outer_corner(cell, grid):
+        i, j = cell
+        if 0 <= i < len(grid) - 1 and 0 <= j < len(grid[0]) - 1:
+            diagonal_neighbors = [grid[i + 1][j + 1], grid[i + 1][j - 1], grid[i - 1][j + 1], grid[i - 1][j - 1]]
+            return diagonal_neighbors.count(grid[i][j]) == 1
+        return False
+    O = [[I[i][j] for j in range(len(I[0]))] for i in range(len(I))] # Create a copy of the input grid
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if is_outer_corner((i, j), I): # Check if the cell is an outer corner
+                O[i][j] = 1 # Change the color of outer corner to '1'
+    return tuple(tuple(row) for row in O) # Convert back to tuple of tuples
+ 
+10.0, tensor(0.6735), Description: Find all the light blue ('8') squares in the input grid. Then, find the light blue squares that are also present in the grid rotated 90 degrees clockwise. Color these squares red ('1') in the output grid. 
+:: def agaaaffagfihefjdbeeedhiaadeicefb(I):
+  shifted_grid = rot90(I)  
+  target_indices = ofcolor(hconcat(I, shifted_grid), 8)
+  O = fill(I, 1, target_indices)
+  return O
+ 
+3.0, tensor(1.7357), Description: For each light blue ('8') shape in the input grid, find the top-right corner of the shape. Then, shift that corner diagonally down and to the left by one square. If the shifted location is within the grid, color that shifted square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bdebedfdhbbaeabhidceehcjheegbhhc(I):
+  objs = objects(I, True, False, False)  # Identify objects in the grid
+  for obj in objs:
+    if color(obj) == EIGHT:  # Check if the object has value '8'
+      top_right = urcorner(obj) # Get the index of the top-right cell 
+      shifted_loc = (top_right[0] + 1, top_right[1] - 1)  # Calculate shifted location
+      if 0 <= shifted_loc[0] < len(I) and 0 <= shifted_loc[1] < len(I[0]):
+        I = fill(I, ONE, {shifted_loc})  # Fill the shifted location with '1'
+  return I
+ 
+7.0, tensor(1.4685), Description: For each row in the input grid, find the first light blue ('8') square that is not preceded by another light blue square in the same row. If such a square is found, color the square diagonally below and to the left of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ajdgeaijcjjieehhigefgfigfcdbhfdg(I):
+  for i in range(len(I) - 1):  # Iterate through rows (excluding last)
+    for j in range(1, len(I[0])):  # Iterate through columns (excluding first)
+      if I[i][j] == EIGHT and I[i][j - 1] != EIGHT: # Check for '8' and if it's a top-right cell of an object
+        I = fill(I, ONE, {(i + 1, j - 1)})  # Fill the shifted cell with '1'
+  return I
+ 
+5.0, tensor(1.1071), Description: For each black shape in the input grid, add a red square to the upper-left corner of the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def eadcbdcbfacaeecibadhefdheebeicic(I):
+  def change(obj):
+    corner = ulcorner(obj)
+    return frozenset({(1, corner)}) if corner else frozenset()
+  objs = objects(I, T, F, F)
+  return paint(I, merge(apply(change, objs)))
+ 
+5.5, tensor(1.1136), Description: For each light blue ('8') square in the input grid, if the square is a corner (meaning it has no light blue neighbors above or to the left), color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def feaaaecfbcaeeafbbgffgfdchigbhfdi(I):
+  def is_corner(loc):
+    return index(I, loc) == 8 and index(I, add(loc, UP)) != 8 and index(I, add(loc, LEFT)) != 8
+  corners = sfilter(asindices(I), is_corner)
+  return fill(I, 1, corners)
+ 
+6.0, tensor(1.1058), Description: For each black shape in the input grid, add a red square to the top-left corner of the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fbdidababcdhedhbbjfibebgcefdehdc(I):
+  def top_left(obj):
+    return frozenset({(1, min(toindices(obj)))})
+  objs = objects(I, T, F, F)
+  return paint(I, merge(apply(top_left, objs)))
+ 
+3.0, tensor(1.1092), Description: For each black shape in the input grid, add a red square to the bottom right corner of the shape if that corner is black. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def jghaebejhdfbecjdibdfebefgfhbgdjc(I):
+    marked = set()
+    for obj in objects(I, T, F, F):
+        i, j = ulcorner(obj)
+        if 0 <= i + 1 < len(I) and 0 <= j + 1 < len(I[0]) and I[i + 1][j + 1] == 0:
+            marked.add((i + 1, j + 1))
+    return fill(I, 1, marked)
+ 
+5.0, tensor(1.1220), Description: For each colored shape in the input grid, find the top-left corner of the shape. Color that corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fcgadeacjbigehbeifcaaaeaaifjaccb(I):
+    obj = objects(I, True, True, True)
+    def transform_object(obj):
+        if len(obj) == 0: return obj
+        corner = argmax(corners(obj), lambda c: c[0] + c[1]) # top-left has minimum sum of indices
+        return recolor(1, {corner})
+    new_objs = apply(transform_object, obj)
+    O = paint(I, merge(new_objs))
+    return O
+ 
+10.0, tensor(0.7527), Description: For each light blue ('8') square in the input grid, if the square is a corner (meaning it has no light blue neighbors above, below, to the left, or to the right), color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ccdccegfbhaeejbhidccebbfiefcaghc(I):
+    O = I
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if I[i][j] == 8 and ((i == 0 or I[i-1][j] != 8) or (j == 0 or I[i][j-1] != 8) or (i == len(I)-1 or I[i+1][j] != 8) or (j == len(I[0])-1 or I[i][j+1] != 8)):
+                O = fill(O, 1, {(i, j)})
+    return O
+ 
+7.5, tensor(1.3169), Description: For each row in the input grid, find the first light blue ('8') square that is not preceded by another light blue square in the same row. If such a square is found, color the square to the right of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fccbcadbjfdbechbbbdaacfddafcccae(I):
+  O = canvas(0, shape(I))  
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == 8 and (j == 0 or I[i][j-1] != 8):
+        if j+1 < len(row):
+          O = fill(O, 1, {(i, j+1)}) 
+      else:
+        if 0 <= i < len(O) and 0 <= j < len(O[0]):
+          O = fill(O, val, {(i, j)})
+  return O
+ 
+4.0, tensor(1.5446), Description: For each connected shape of light blue ('8') squares in the input grid, find the topmost light blue square in the shape. Then, color the square to the right of that topmost square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fchcceffjffdehebigfggcdebheadhcb(I):
+    objs = objects(I, True, False, False)  # Find connected objects of '8's
+    indices = set()
+    for obj in objs:
+        uppermost_i = uppermost(obj)  # Get the row index of the top-most '8'
+        for v, (i, j) in obj:
+            if i == uppermost_i:
+                indices.add((i, j + 1))  # Add index to the right of the top-most '8'
+                break
+    O = fill(I, ONE, frozenset(indices))  # Fill those indices with '1'
+    return O
+ 
+3.0, tensor(1.5446), Description: For each connected shape of light blue ('8') squares in the input grid, find the topmost light blue square in the shape. Then, color the square to the right of that topmost square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bjbfghgcfecfebicjbcfbhgefjiagjeb(I):
+  objs = fgpartition(I)  # Partition the grid based on '8's excluding background
+  indices = set()
+  for obj in objs:
+      if color(obj) == EIGHT:  # Only process objects made of '8's
+          uppermost_row = min(i for i, j in toindices(obj))  # Find the top-most row
+          indices.update({(uppermost_row, j + 1) for i, j in toindices(obj) if i == uppermost_row})  # Mark cells to the right in the top-most row
+  O = fill(I, ONE, frozenset(indices))  # Fill marked cells with '1'
+  return O
+ 
+5.5, tensor(1.3345), Description: For each row in the input grid, find the first light blue ('8') square that is not preceded by another light blue square in the same row. If such a square is found, color the square to the right of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bdhdcjbcadaaehcaibhjgabajffajegd(I):
+    O = I  # Initialize output as input
+    for i in range(len(I)):
+        for j in range(len(I[0]) - 1):
+            if I[i][j] == EIGHT and (i == 0 or I[i-1][j] != EIGHT):  # Identify top-most '8'
+                O = fill(O, ONE, {(i, j+1)})  # Fill right cell with '1'
+    return O
+ 
+8.0, tensor(1.3391), Description: For each light blue ('8') square in the input grid, if the square to the right of it is within the grid, color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def daacaebbcbbiejefibgafaejcgdcaeab(I):
+    eights = ofcolor(I, EIGHT)  # Get indices of all '8's
+    shifted_right = shift(eights, RIGHT)  # Shift indices one position to the right
+    to_fill = intersection(shifted_right, asindices(I))  # Find valid shifted indices within grid bounds
+    O = fill(I, ONE, to_fill)  # Fill those indices with '1'
+    return O
+ 
+2354.5, tensor(1.1059), Description: For each colored square in the input grid, if the square below and to the right of it is black, then color that square red. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gacagideffdfedfjjidbifgahgafhbeg(I):
+  shifted = shift(asobject(I), (1, 1))  # Shift the entire grid
+  def check_and_fill(cell1, cell2):
+    i, j = cell1[1]
+    if I[i][j] != 0 and cell2[0] == 0: # Check values at original and shifted positions
+      return fill(I, 1, {cell2[1]})
+    return I
+  return mapply(lambda x: check_and_fill(*x), pair(asobject(I), shifted))
+ 
+10.0, tensor(1.1261), Description: For each colored square in the input grid, if the square is an outer corner (meaning it has only one diagonal neighbor of the same color), color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fbcjcaijdfagegbeacdaahegccffeehe(I):
+  def is_outer_corner(i, j):
+    if index(I, (i,j)) == mostcolor(I):  # Ignore background cells
+      return False
+    neighbor_count = 0 
+    for di, dj in {(-1,-1), (-1,1), (1,-1), (1,1)}:
+      ni, nj = i + di, j + dj
+      if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and index(I, (ni, nj)) != mostcolor(I):
+        neighbor_count += 1
+    return neighbor_count == 1  # Outer corner if only one diagonal neighbor
+
+  h, w = len(I), len(I[0])
+  O = canvas(mostcolor(I), (h, w))  # Create output grid with background color
+  for i in range(h):
+    for j in range(w):
+      if is_outer_corner(i, j):
+        O = paint(O, {(1, (i,j))})  # Paint outer corner with value 1
+  return O
+ 
+6.5, tensor(1.1254), Description: For each square in the input grid that is not the background color, if the square has only one diagonal neighbor of the same color (i.e., it's an outer corner), color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def hdceccfceahaecibiacfjaeffbehccef(I):
+  h, w = len(I), len(I[0])
+  O = [list(row) for row in I]  # Make a mutable copy of the grid
+  for i in range(1, h - 1):
+    for j in range(1, w - 1):
+      if I[i][j] != mostcolor(I) and sum([I[i+di][j+dj] != mostcolor(I) for di, dj in {(-1,-1), (-1,1), (1,-1), (1,1)}]) == 1:
+        O[i][j] = 1
+  return tuple(tuple(row) for row in O)
+ 
+5.5, tensor(1.3169), Description: For each row in the input grid, find the first light blue ('8') square that is not preceded by another light blue square in the same row. If such a square is found, color the square to the right of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bbeeachjeheceedcidfecfcjagbaccdh(I):
+    h, w = len(I), len(I[0])
+    J = [[I[i][j] for j in range(w)] for i in range(h)]
+    for i in range(h):
+        for j in range(w-1):
+            if I[i][j] == 8 and (j == 0 or I[i][j-1] != 8):
+                J[i][j+1] = 1
+    return tuple(tuple(row) for row in J) 
+ 
+11.5, tensor(1.5446), Description: For each connected shape of light blue ('8') squares in the input grid, find the topmost light blue square in the shape. Then, color the square to the right of that topmost square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cgfhaggfaaededaeabdfjagijaaceacc(I):
+  O = canvas(ZERO, shape(I)) # Create an empty canvas with the same shape as I
+  for obj in objects(I, True, False, False): # Iterate through connected objects of '8's
+    topmost_i = uppermost(obj) # Find row index of the uppermost '8' in the object
+    for v, (i, j) in obj:
+      if i == topmost_i and j + 1 < width(I): # Check if it's the top-most '8' and has space on the right
+        O = fill(O, ONE, {(i, j + 1)}) # Fill the right cell with '1'
+        break # Move to the next object
+  return O
+ 
+15.0, tensor(1.5446), Description: For each connected shape of light blue ('8') squares in the input grid, find the topmost light blue square in the shape. Then, color the square to the right of that topmost square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cecfaffabjfieeaaahdbaebjdbbcefii(I):
+    O = canvas(ZERO, shape(I))
+    for obj in objects(I, True, False, False):
+        uppermost_row = min(i for i, j in toindices(obj))
+        right_indices = {(uppermost_row, j + 1) for v, (i, j) in obj if i == uppermost_row and j + 1 < width(I)}
+        O = fill(O, ONE, right_indices)
+    return O
+ 
+9.0, tensor(0.6806), Description: For each light blue ('8') square in the input grid, if the square diagonally below and to the right is within the grid, color that square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def hhfbghabgfgeecebbbdceeiafgcfhiec(I):
+  O = I
+  for i in range(len(I) - 1):
+    for j in range(len(I[0]) - 1):
+      if I[i][j] == EIGHT:
+        O = fill(O, ONE, {(i + 1, j + 1)})
+  return O 
+ 
+14.5, tensor(1.6035), Description: Shift all the light blue ('8') squares diagonally down and to the right by one square, and color the shifted squares red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bhcfecfhedihefbfibgddaafcjcadaba(I):
+  def shifted_fill(grid, value):
+    return fill(grid, value, shift(ofcolor(grid, value), (1, 1)))
+  O = shifted_fill(I, EIGHT)
+  return replace(O, EIGHT, ONE)
+ 
+3.5, tensor(1.4521), Description: For each light blue ('8') square in the input grid, if the square is a corner (meaning it has no light blue neighbors above or to the left), color the squares to the right and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ifihbgehdffaedgfjcdgbbdgfdjbdadi(I):
+  to_fill = frozenset()
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if index(I, (i, j)) == 8 and index(I, (i - 1, j)) != 8 and index(I, (i, j - 1)) != 8:
+        to_fill = to_fill | {(i, j + 1), (i + 1, j)}
+  return fill(I, 1, to_fill)
+ 
+7.5, tensor(1.1231), Description: For each row in the input grid, find the first light blue ('8') square that is not followed by another light blue square in the same row. If such a square is found, color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fbdheafciccfeaifafbejcfahaadibcd(I):
+  def is_rightmost_8(loc):
+    i, j = loc
+    h, w = len(I), len(I[0])
+    return I[i][j] == 8 and (j == w-1 or I[i][j+1] != 8)
+  rightmost_8s = sfilter(asindices(I), is_rightmost_8)
+  O = fill(I, 1, rightmost_8s)
+  return O 
+ 
+10.0, tensor(1.6702), Description: For each light blue ('8') shape in the input grid, shift all the cells in the shape one position to the right, except for the leftmost cell in each row, which remains in its original position. Color the shifted cells red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bccdccbffciaeabebfebcjhffbgfbhah(I):
+  def shift_right(obj):
+    if color(obj) != 8:
+      return obj
+    leftmost_j = leftmost(obj)
+    return frozenset((v, (i, j + 1 if j == leftmost_j else j)) for v, (i, j) in obj)
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  shifted_objs = frozenset(shift_right(obj) for obj in objs if color(obj) == 8)
+  return paint(canvas(0, shape(I)), shifted_objs)
+ 
+5.0, tensor(1.1224), Description: For each colored shape in the input grid, find the rightmost cell in the shape. Color that rightmost cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fdaefaaiibdgedeaiidbcabbfbafbida(I):
+  def rightmost_cell(obj):
+    return argmax(obj, lambda cell: cell[1][1])
+  
+  objs = objects(I, True, True, True)
+  rightmost_cells = apply(rightmost_cell, objs)
+  
+  return paint(I, frozenset((1, index) for value, index in rightmost_cells))
+ 
+3.5, tensor(1.7357), Description: For each light blue ('8') shape in the input grid, find the top-right corner of the shape. Then, shift that corner diagonally down and to the left by one square. If the shifted location is within the grid, color that shifted square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def debhdbbacadbecchjcchfjbfeceehhgb(I):
+  def process_object(obj):
+    tr = urcorner(toindices(obj)) 
+    new_loc = add(tr, DOWN_LEFT) 
+    return fill(I, ONE, {new_loc}) if contained(new_loc, asindices(I)) else I 
+  filtered_objects = colorfilter(objects(I, T, F, F), EIGHT)
+  output_grid = I 
+  for obj in filtered_objects:
+    output_grid = process_object(obj)
+  return output_grid
+ 
+6.5, tensor(1.1094), Description: For each colored square in the input grid, if the square above it is black, color that square red. If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def jfaedjabieagefdebdaebdfaefggdida(I):
+  O = I
+  for i in range(1, height(I)):
+    for j in range(width(I)):
+      if I[i][j] != ZERO and I[i-1][j] == ZERO:
+        O = fill(O, ONE, {(i, j)})
+  return O
+ 
+3.0, tensor(1.1057), Description: For each colored shape in the input grid, add a red square to the cell directly below the upper-left corner of the shape. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def aihdbccaabdfecifjadjdicdfbedifje(I):
+    objs = objects(I, True, False, True)
+    def get_target_index(obj):
+        top_left = ulcorner(obj)
+        return (top_left[0] + 1, top_left[1])
+    target_indices = frozenset(map(get_target_index, objs))
+    O = fill(I, ONE, target_indices)
+    return O
+ 
+12.5, tensor(1.6031), Description: For each row in the input grid, find the first pair of adjacent light blue ('8') squares. If such a pair is found, color the square two positions to the right of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def fbffhcfhffdfeijfafecfjedigdgjcce(I):
+    h, w = len(I), len(I[0])
+    new_grid = [[0 for _ in range(w)] for _ in range(h)]
+    for i in range(h):
+        for j in range(w - 1):
+            if I[i][j] == 8 and I[i][j + 1] == 8:
+                if j + 2 < w:
+                  new_grid[i][j + 2] = 1
+    return tuple(tuple(row) for row in new_grid)
+ 
+5.0, tensor(1.5961), Description: For each row in the input grid, find the first pair of adjacent light blue ('8') squares. If such a pair is found, color the square to the right of the second '8' in the pair red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def caddacaeaiffebbfabefbaeceicfchdb(I):
+  shifted_grid = shift(asobject(I), (0, -1))
+  return tuple(
+    tuple(
+      1 if (i, j + 1) in toindices(shifted_grid) and I[i][j] == 8 and I[i][j + 1] == 8 else I[i][j]
+      for j in range(len(I[0]))
+    )
+    for i in range(len(I))
+  )
+ 
+10.0, tensor(0.7523), Description: For each colored shape in the input grid, find the rightmost cell in the shape that has either a black cell to its right or is part of the same shape. Color that cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bfcbcjefiicdeaddaidjfdjhhifddhid(I):
+  objs = objects(I, T, F, T)
+  def find_target(obj):
+    for _, (i, j) in sorted(obj): 
+      if j + 1 < width(I) and (I[i][j+1] == 0 or (i, j+1) in toindices(obj)):
+        return (i, j + 1)
+    return None
+  target_indices = mfilter(objs, find_target)
+  O = fill(I, ONE, target_indices)
+  return O
+ 
+3.0, tensor(1.0033), Description: For each colored shape in the input grid, add a red square to the right of the shape's upper-left corner, if that square is within the grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bdbfhejcbaeaefddjefchcafddaffdbj(I):
+  objs = objects(I, T, F, T)
+  def get_target(obj):
+    corner = ulcorner(obj)
+    return (corner[0], corner[1] + 1) if corner[1] + 1 < width(I) else None
+  O = I
+  for obj in objs:
+    target = get_target(obj)
+    if target:
+      O = fill(O, ONE, {target})
+  return O
+ 
+5.5, tensor(1.3340), Description: For each row in the input grid, find the first light blue ('8') square that is either followed by another light blue square or a black square in the same row. If such a square is found, color the square to the right of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dhbgcdejhdffeabejjihjefgchcdbbgf(I):
+  O = I
+  for i in range(height(I)):
+    for j in range(width(I) - 1):
+      if I[i][j] == 8 and (I[i][j+1] == 0 or I[i][j+1] == 8):
+        O = fill(O, ONE, {(i, j+1)})
+        break
+  return O
+ 
+2.5, tensor(1.7410), Description: For each black shape in the input grid, find the top-right corner of the shape. Then, shift that corner diagonally down and to the left by one square. If the shifted location is within the grid, color that shifted square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def efceaddgbafhejdejcgbbbcfaebgdeda(I):
+  target_locations = mapply(lambda obj: add(urcorner(toindices(obj)), DOWN_LEFT), objects(I, T, F, F))
+  valid_locations = intersection(target_locations, asindices(I))
+  return fill(I, ONE, valid_locations)
+ 
+4.0, tensor(1.7410), Description: For each black shape in the input grid, find the top-right corner of the shape. Then, shift that corner diagonally down and to the left by one square. If the shifted location is within the grid, color that shifted square red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def edeabhbcadfaedicajaihcaggchjghbb(I):
+  def get_target_and_fill(obj):
+    target_loc = add(urcorner(toindices(obj)), DOWN_LEFT)
+    return (ONE, target_loc) if contained(target_loc, asindices(I)) else None
+  new_cells = frozenset(x for x in apply(get_target_and_fill, objects(I, T, F, F)) if x is not None)
+  return paint(I, new_cells)
+ 
+10.5, tensor(1.1452), Description: For each light blue ('8') shape in the input grid, find all the cells in the shape that have a valid neighbor above or below them (i.e., not on the edge of the grid). Color those neighboring cells red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gfjcbfddidhfeebdigaebbifafefdbcf(I):
+  objs = objects(I, True, False, False)
+  target_indices = set()
+  for obj in objs:
+    if color(obj) == 8:
+      for i, row in enumerate(I):
+        for j, val in enumerate(row):
+          if (i, j) in toindices(obj):
+            if i > 0:
+              target_indices.add((i - 1, j))
+            if i < len(I) - 1:
+              target_indices.add((i + 1, j))
+  O = fill(I, 1, frozenset(target_indices))
+  return O
+ 
+3.5, tensor(1.9878), Description: Find the shape made of light blue ('8') squares in the input grid. Color the upper-left corner of that shape red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bbjbciefdhfjeeacifffddfafafaffdf(I):
+  obj = first(objects(I, T, T, T)) # Find the object of 8s
+  corner = ulcorner(obj) # Find the upper left corner of the object
+  O = fill(I, 1, {corner}) # Fill the corner with 1
+  return O
+ 
+3.5, tensor(1.9879), Description: Find the top-left corner of the light blue ('8') shape in the input grid and color that corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bjccfgbdbafiecebafadecbadecefdbj(I):
+  indices = ofcolor(I, 8) # Find indices of all 8s
+  corner = argmin(indices, lambda x: x[0]*100+x[1]) # Find top-left corner by minimizing row then column
+  O = fill(I, 1, {corner}) # Fill the corner with 1
+  return O
+ 
+5.0, tensor(1.9829), Description: For each colored shape in the input grid, find the rightmost cell in the shape. Color that rightmost cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cjdfdgaejbbceegijidbgehhbdifdeef(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    rightmost_cell = argmax(obj, lambda cell: cell[1][1]) 
+    O = fill(O, 1, {rightmost_cell})  
+  return O
+ 
+7.5, tensor(1.9828), Description: For each row in the input grid, find the first light blue ('8') square that is not followed by another light blue square in the same row. If such a square is found, color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cjfdfgfcfedbebefacidbgcbadeedeja(I):
+  target_indices = set()
+  for i, row in enumerate(I):
+    for j, value in enumerate(row):
+      if value == 8 and (j == len(row) - 1 or row[j+1] != 8):
+        target_indices.add((i, j))
+  return fill(I, 1, target_indices)
+ 
+4.5, tensor(1.1441), Description: For each colored shape in the input grid, find the top-left corner of the shape. Color that corner red ('1'). All other cells in the shape should retain their original color. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gfefhbadaafeecajbidijigjdcfiahfa(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    new_objs = set()
+    for obj in objs:
+        topmost_i = uppermost(obj)
+        leftmost_j = leftmost(obj)
+        for v, (i, j) in obj:
+            if i == topmost_i and j == leftmost_j:
+                new_objs.add((1, (i, j)))
+            else:
+                new_objs.add((v, (i, j)))
+    O = paint(canvas(0, shape(I)), frozenset(new_objs))
+    return O
+ 
+4.0, tensor(1.1431), Description: For each colored shape in the input grid, find the upper-left corner of the shape. Color that corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def eegdhicajejceibdaajffcgjejdcedbb(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    corner = ulcorner(obj)
+    O = fill(O, 1, {corner})
+  return O
+ 
+3.5, tensor(1.1615), Description: Find the light blue ('8') shape in the input grid. Identify the rightmost or bottommost '8' in the shape, depending on whether the shape is horizontal or vertical. Replace that '8' with a red ('1') square. If the shape is on the edge of the grid, only modify the squares that are inside the grid. 
+:: def ececaehcbdcfebcaibadadghjfeaggef(I):
+  # Find all objects
+  objs = objects(I, False, True, True) 
+  # Filter for objects with color 8
+  obj_8 = extract(objs, lambda obj: color(obj) == 8)
+  # Get the index of the rightmost '8' in the object
+  rightmost_index = argmax(toindices(obj_8), lambda x: x[1])
+  # Get the index of the bottommost '8' in the object
+  bottommost_index = argmax(toindices(obj_8), lambda x: x[0])
+  # Check if the tail is horizontal or vertical
+  if rightmost_index[0] == bottommost_index[0]:
+    target_index = rightmost_index
+  else:
+    target_index = bottommost_index
+  # Modify the object by replacing the target '8' with a '1'
+  modified_obj = frozenset(((1, target_index) if ind == target_index else (8, ind)) for v, ind in obj_8)
+  # Paint the modified object back onto the grid
+  O = paint(I, modified_obj)
+  return O
+ 
+3.5, tensor(1.1622), Description: Find the light blue ('8') shape in the input grid. Identify the '8' square that has only one other '8' neighbor (the tail end of the shape). Replace that '8' with a red ('1') square. If the shape is on the edge of the grid, only modify the squares that are inside the grid. 
+:: def aedbgfcfabaeebccibdaebbecchaecgd(I):
+  # Directly modify the grid
+  O = I
+  # Find the indices of all '8's
+  indices_8 = ofcolor(I, 8)
+  for i, j in indices_8:
+    # Check for neighbors in all four directions
+    neighbors_list = [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]
+    neighbor_count = sum(1 for ni, nj in neighbors_list if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 8)
+    # If an '8' has only one '8' neighbor, it's the tail end
+    if neighbor_count == 1:
+      O = fill(O, 1, {(i, j)})
+      break # Assuming only one object needs modification
+  return O
+ 
+5.5, tensor(1.1632), Description: Find the light blue ('8') shape in the input grid. Identify the connected component of '8's that has the smallest number of squares. Replace all the '8's in that component with red ('1') squares. If the shape is on the edge of the grid, only modify the squares that are inside the grid. 
+:: def fcedabdbjffcefdejcaajgfddaaabjfe(I):
+  # Find all '8' indices
+  indices_8 = ofcolor(I, 8)
+  # Start with an empty set of connected components
+  components = set()
+  while indices_8:
+    start = next(iter(indices_8))
+    visited = {start}
+    queue = [start]
+    # Breadth-first search to find connected component
+    while queue:
+      i, j = queue.pop(0)
+      for ni, nj in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]:
+        if (ni, nj) in indices_8 and (ni, nj) not in visited:
+          visited.add((ni, nj))
+          queue.append((ni, nj))
+    components.add(frozenset(visited))
+    indices_8 -= visited
+  # Find the component with the smallest size, assuming it's the tail
+  tail_component = min(components, key=len)
+  # Replace the value in the tail component with '1'
+  O = fill(I, 1, tail_component)
+  return O
+ 
+5.5, tensor(1.1414), Description: For each light blue ('8') square in the input grid, color the squares directly above and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def efeafcadcjceejdeihecddefhhbbbbfa(I):
+  shifted_up = shift(recolor(8, ofcolor(I, 8)), (-1, 0)) # Shift 8s upward and recolor to 1
+  shifted_down = shift(recolor(8, ofcolor(I, 8)), (1, 0)) # Shift 8s downward and recolor to 1
+  target_indices = toindices(shifted_up) | toindices(shifted_down) # Combine the shifted indices
+  O = underfill(I, 1, target_indices) # Fill the target indices with 1 only if they were initially background
+  return O
+ 
+13.0, tensor(1.1414), Description: For each light blue ('8') square in the input grid, color the squares directly above and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def adeceiaehfgeeghbjgdfcdeehadjfibi(I):
+  new_grid = canvas(0, shape(I)) # Create a blank canvas with the same shape as the input
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == 8: # If the cell is 8
+        if i > 0:
+          new_grid = fill(new_grid, 1, {(i - 1, j)}) # Fill the cell above with 1
+        if i < len(I) - 1:
+          new_grid = fill(new_grid, 1, {(i + 1, j)}) # Fill the cell below with 1
+  return new_grid
+ 
+10.0, tensor(1.9880), Description: For each colored shape in the input grid, color all the cells that are on the top, bottom, left, or right edge of the shape red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dheaeicdjijcebhajfaeccbdcbfjfacb(I):
+  objs = objects(I, T, F, T)
+  for obj in objs:
+    uppermost_row = uppermost(obj)
+    lowermost_row = lowermost(obj)
+    leftmost_col = leftmost(obj)
+    rightmost_col = rightmost(obj)
+    for c, (i, j) in obj:
+      if (i == uppermost_row or i == lowermost_row) or (j == leftmost_col or j == rightmost_col):
+        I = fill(I, 1, {(i, j)})
+  O = I
+  return O
+ 
+7.5, tensor(1.9878), Description: For each colored shape in the input grid, color all the corners of the shape red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def jaahaffibabfeaecaiccgdgdceahcdcb(I):
+  objs = objects(I, T, F, T)
+  corner_indices = set()
+  for obj in objs:
+    corner_indices.update(corners(obj))
+  O = fill(I, 1, corner_indices)
+  return O
+ 
+10.0, tensor(1.1336), Description: For each colored shape in the input grid, add a red square to the bottom right corner of the shape if that corner is within the grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bifdbeicefadejjdafcbcabbcibejeac(I):
+  def modify_grid(grid, obj):
+    ul = ulcorner(obj)
+    i, j = ul[0] + 1, ul[1] + 1
+    if 0 <= i < len(grid) and 0 <= j < len(grid[0]):
+      grid = fill(grid, 1, {(i, j)})
+    return grid
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = canvas(0, shape(I)) 
+  for obj in objs:
+    O = modify_grid(O, obj)
+  return O
+ 
+4.5, tensor(1.1622), Description: Find the light blue ('8') shape in the input grid. Identify the '8' square that has only one other '8' neighbor (the tail end of the shape). Replace that '8' with a red ('1') square. If the shape is on the edge of the grid, only modify the squares that are inside the grid. 
+:: def adbdfbbgdheeejfcibcbebecefcbgcdf(grid):
+  def is_tail(grid, i, j):
+    if grid[i][j] != 8:
+      return False
+    neighbors_list = [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]
+    return sum(1 for ni, nj in neighbors_list if 0 <= ni < len(grid) and 0 <= nj < len(grid[0]) and grid[ni][nj] == 8) == 1
+
+  obj_8 = extract(objects(grid, False, True, True), lambda obj: color(obj) == 8)
+  indices_to_replace = frozenset(loc for loc in toindices(obj_8) if is_tail(grid, loc[0], loc[1]))
+  return paint(grid, recolor(1, indices_to_replace))
+ 
+3.5, tensor(1.9162), Description: For each colored shape in the input grid, if the shape is wider than it is tall, color the top-right corner red ('1'). If the shape is taller than it is wide, color the bottom-left corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ibiifcbajgibeheaaehjbdcdcjdcjfga(I):
+  objs = objects(I, T, F, T)  # Get connected components of '8's
+  for obj in objs:
+    if width(obj) >= height(obj):
+      I = fill(I, 1, {urcorner(obj)})  # Mark top-right corner
+    if height(obj) >= width(obj):
+      I = fill(I, 1, {llcorner(obj)})  # Mark bottom-left corner
+  O = I
+  return O
+ 
+3.5, tensor(1.9114), Description: For each colored shape in the input grid, if the shape is wider than it is tall, color the top-right corner red ('1'). If the shape is taller than it is wide, color the bottom-left corner red ('1'). If the shape is a square (width equals height), color both the top-right and bottom-left corners red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def adfdebgigdigegjbieibdbebbjejgeba(I):
+  marked = set()
+  for obj in objects(I, T, F, T):
+    h, w = shape(obj)
+    corner = urcorner(obj) if w >= h else llcorner(obj)
+    marked.add(corner)
+    if h == w:  # Mark both corners for squares
+      marked.add(other(corners(obj), corner)) 
+  O = fill(I, 1, marked)
+  return O
+ 
+5.0, tensor(1.9829), Description: For each colored shape in the input grid, find the rightmost cell in the shape. Color that rightmost cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dbidbgihhdiieccjjabceffdjcejaaga(I):
+    O = I
+    for obj in objects(I, T, F, T):
+        rightmost_cell = max([(j, (i, j)) for v, (i, j) in obj])[1]  # Find rightmost cell by column index
+        O = fill(O, 1, {rightmost_cell})
+    return O
+ 
+13.0, tensor(1.1441), Description: For each light blue ('8') square in the input grid, find its diagonal neighbors that are also within the grid. If a diagonal neighbor is not light blue, color that neighbor red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def gaefiabjcbcaebhfihfcggbicbiacffj(I):
+  one_neighbors = mapply(lambda loc: dneighbors(loc) & asindices(I), ofcolor(I, 8))
+  target_indices =  one_neighbors - ofcolor(I, 8)
+  O = fill(I, 1, target_indices)
+  return O
+ 
+7.5, tensor(1.9877), Description: For each colored shape in the input grid, find the corners of the shape. Then, identify the corners that are only adjacent to one other corner (i.e., outer corners). Color these outer corners red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def feaifjbegceeebbfbeafcijaidjfifec(I):
+  objs = objects(I, T, F, T)
+  corner_indices = set()
+  for obj in objs:
+    for c, (i, j) in obj:
+      neighbors_same = [(ni, nj) for (nc, (ni, nj)) in obj if (ni, nj) in dneighbors((i, j))]
+      if len(neighbors_same) < 2:
+        corner_indices.add((i, j))
+  O = fill(I, 1, corner_indices)
+  return O
+ 
+3.5, tensor(1.9878), Description: For each colored shape in the input grid, find the cells that are on the edge of the shape and have no neighbors of the same color in the opposite direction (i.e., if a cell is on the right edge, it should not have a neighbor of the same color to the left). Color these cells red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def chjgdifdbcggedhjbeeifdagbiccaedb(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    for i, j in toindices(obj):
+      if len(set(index(I, (i+di, j+dj)) for di, dj in [(0,1), (1,0)]) & set(index(I, (i+di, j+dj)) for di, dj in [(0,-1), (-1,0)])) == 0:
+        O = fill(O, 1, {(i, j)})
+  return O
+ 
+10.0, tensor(1.9829), Description: For each colored shape in the input grid, find the rightmost cell in the shape. Color that rightmost cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def degaedcjibcfeaaebecaadchejaejifh(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, T, F, T):
+      rightmost_cell = argmax(obj, lambda cell: cell[1][1])
+      O = paint(O, {(1, rightmost_cell[1])})
+  return O
+ 
+7.5, tensor(0.5114), Description: For each row in the input grid, find the first colored square that is not the same color as the square to its right. Color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def beeaacihabdiegafiabdcfiieebbebcd(I):
+    def process_row(row):
+        obj = None
+        for j, val in enumerate(row):
+            if obj is None and val != mostcolor(I):
+                obj = (val, j)
+            elif obj is not None and val != obj[0]:
+                row = row[:obj[1]] + (1,) + row[obj[1] + 1:]
+                obj = None
+        if obj is not None:
+            row = row[:obj[1]] + (1,) + row[obj[1] + 1:]
+        return row
+    return tuple(process_row(row) for row in I)
+ 
+5.0, tensor(1.1336), Description: For each colored shape in the input grid, add a red square to the bottom right corner of the shape if that corner is within the grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def aibicedecgebedcdajciddjjbcadfjef(I):
+  def modify_grid(grid, ul):
+    h, w = len(grid), len(grid[0])
+    target_index = (ul[0] + 1, ul[1] + 1)
+    if 0 <= target_index[0] < h and 0 <= target_index[1] < w:
+      grid = fill(grid, 1, {target_index})
+    return grid
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = I
+  for obj in objs:
+    O = modify_grid(O, ulcorner(obj))
+  return O
+ 
+10.0, tensor(1.1414), Description: For each light blue ('8') square in the input grid, color the squares directly above and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cabicehbdjfaeiieicddficbhbedefid(I):
+  shifted_up = shift(asobject(I), (-1, 0))
+  shifted_down = shift(asobject(I), (1, 0))
+  target_indices = (intersection(toindices(shifted_up), ofcolor(I, 8)) | 
+                   intersection(toindices(shifted_down), ofcolor(I, 8)))
+  O = fill(I, 1, target_indices)
+  return O
+ 
+9.0, tensor(1.1414), Description: For each light blue ('8') square in the input grid, color the squares directly above and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def egjfeaibahjheeffaeifijbcaeiiedii(I):
+    O = I
+    for i in range(1, len(I)-1):
+        for j in range(len(I[0])):
+            if I[i+1][j] == 8 or I[i-1][j] == 8:
+                O = fill(O, 1, {(i,j)})
+    return O
+ 
+2.5, tensor(1.9162), Description: For each colored shape in the input grid, if the shape is wider than it is tall, color the top-right corner red ('1'). If the shape is taller than it is wide, color the bottom-left corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def icedcecdbjcaecbhabfcbjciddefbcec(I):
+  def mark_corner(obj):
+    return fill(I, 1, {urcorner(obj)}) if width(obj) >= height(obj) else fill(I, 1, {llcorner(obj)}) if height(obj) >= width(obj) else I
+  return last(apply(mark_corner, objects(I, T, F, T)))
+ 
+3.0, tensor(1.9162), Description: For each colored shape in the input grid, if the shape is wider than it is tall, color the top-right corner red ('1'). If the shape is taller than it is wide, color the bottom-left corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def bcfdcdbbajeiedeeaegaffbgbjdhhfbf(I):
+  objs = objects(I, T, F, T)
+  for obj in objs:
+    I = fill(I, 1, {urcorner(obj)} if width(obj) >= height(obj) else {llcorner(obj)} if height(obj) >= width(obj) else set())
+  return I
+ 
+6.5, tensor(1.9829), Description: For each colored shape in the input grid, find the rightmost cell in the shape. Color that rightmost cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dbcgeeacdjhcebbhaaaicccfdeaedbgi(I):
+  def update_cell(cell):
+    value, (i, j) = cell  # Extract value and index from the cell tuple.
+    return (1 if j == rightmost(obj) else value, (i, j)) # If it's the rightmost cell, change value to 1, otherwise keep the original value. 
+  
+  O = I  # Initialize the output grid O as a copy of the input grid I.
+  for obj in objects(I, T, F, T):  # Iterate over each object found in the input grid I.
+    O = paint(O, frozenset(map(update_cell, obj)))  # Apply the update_cell function to each cell in the object and paint the result onto the output grid O.
+  return O  # Return the modified output grid O.
+ 
+7.5, tensor(1.5327), Description: For each light blue ('8') square in the input grid, color the squares directly to the right and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def idfgafagabhcedieijcaddcaggfhdaaf(I):
+  shifted_right = shift(recolor(0, ofcolor(I, 8)), (0, 1)) 
+  shifted_down = shift(recolor(0, ofcolor(I, 8)), (1, 0))
+  target_indices = toindices(shifted_right) | toindices(shifted_down) 
+  O = underfill(I, 1, target_indices)
+  return O
+ 
+14.5, tensor(1.7095), Description: For each colored shape in the input grid, shift the entire shape diagonally down and to the right by one square. If the shifted shape is within the grid, color the shifted cells red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def hicfdjcdibdaehjbifhegiehjeaebcbj(I):
+  def shifted_indices(obj):
+    return shift(toindices(obj), (1, 1))
+  
+  def modify_grid(grid, indices):
+    h, w = shape(grid)
+    for i, j in indices:
+      if 0 <= i < h and 0 <= j < w:
+        grid = fill(grid, 1, {(i, j)})
+    return grid
+
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = canvas(0, shape(I))
+  for obj in objs:
+    O = modify_grid(O, shifted_indices(obj))
+  return O
+ 
+3.0, tensor(1.9950), Description: For each colored shape in the input grid, find the corner of the shape that is furthest from the origin (top-left). If the shape is taller than it is wide, the bottom-left corner is furthest from the origin. If the shape is wider than it is tall, the top-right corner is furthest from the origin. Color that corner red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def dajfdbedffheebajacbjbgjeececfgef(grid):
+    def get_corner(obj):
+        return urcorner(obj) if height(obj) > width(obj) else llcorner(obj)
+    corners = {get_corner(obj) for obj in objects(grid, T, F, T)} 
+    return paint(grid, {(1, corner) for corner in corners})
+ 
+4.5, tensor(1.5860), Description: For each colored shape in the input grid, find the upper-left corner of the shape. Color the square diagonally below and to the right of that corner red ('1'). If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ecjdcdcceaafedgciicceafadacjadic(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  modified_cells = frozenset((ul[0] + 1, ul[1] + 1) for obj in objs for v, ul in obj if ul == ulcorner(obj))
+  return tuple(tuple(1 if (i, j) in modified_cells else I[i][j] for j in range(len(I[0]))) for i in range(len(I)))
+ 
+8.0, tensor(1.5327), Description: For each light blue ('8') square in the input grid, color the squares directly to the right and below it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ggabfgbecbddeidejdacccdgaaafcceb(I):
+  padded_I = ((0,) * (len(I[0]) + 2),) + tuple((0,) + r + (0,) for r in I) + ((0,) * (len(I[0]) + 2),)
+  shifted_right = shift(asobject(padded_I), (0, -1))
+  shifted_down = shift(asobject(padded_I), (1, 0))
+  target_indices = (intersection(toindices(shifted_right), ofcolor(I, 8)) |
+                    intersection(toindices(shifted_down), ofcolor(I, 8)))
+  O = fill(I, 1, { (i-1,j-1) for i, j in target_indices if 1 <= i < len(padded_I)-1 and 1 <= j < len(padded_I[0])-1 })
+  return O
+ 
+3.5, tensor(1.5350), Description: For each row in the input grid, find the first colored square that is not the same color as the square to its right. Color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def eecdiebdfcfjecadjcfccdjfcbceafda(I):
+  def process_row(row, row_index, grid):
+    for col_index, value in enumerate(row):
+      if value != 0:
+        objs = objects(grid, univalued=True, diagonal=False, without_bg=True)
+        if (row_index, col_index) == ulcorner(next(iter(objs))):
+          return row[:col_index + 1] + (1,) + row[col_index + 2:]
+    return row
+  
+  return tuple(process_row(row, i, I) for i, row in enumerate(I))
+ 
+2.5, tensor(1.9827), Description: For each colored shape in the input grid, find the second rightmost cell in the shape (or the rightmost cell if there's only one). Color that cell red ('1') in the output grid. If the shape is on the edge of the grid, only add the squares that are inside the grid. 
+:: def ehfeafghfccfegceaadcahdjeecjgeab(I):
+  def get_second_rightmost_cell(obj):
+    sorted_indices = sorted(toindices(obj), key=lambda x: (-x[1], x[0]))
+    return (color(obj), sorted_indices[1]) if len(sorted_indices) > 1 else (color(obj), sorted_indices[0])
+
+  return paint(I, {get_second_rightmost_cell(obj) for obj in objects(I, T, F, T)}) 
+ 
+7.0, tensor(0.5281), Description: For each light blue ('8') square in the input grid, if the square to the right or below it is black, color that square red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def hfeeibjiiageehbbjbdbgbjfffhgabbb(I):
+  O = I
+  for i in range(len(I) - 1):
+      for j in range(len(I[0]) - 1):
+          if I[i][j] == 8 and I[i][j+1] == 0:
+              O = fill(O, 1, {(i, j+1)})
+          if I[i][j] == 8 and I[i+1][j] == 0:
+              O = fill(O, 1, {(i+1, j)})
+  return O
+ 
+15.0, tensor(1.4200), Description: For each light blue ('8') square in the input grid, if the square to the right of it is black, color the square above it red ('1'). If the square below it is black, color the square to the left of it red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cgfbfdfaaggbecdbbbeagdbcciefcadb(I):
+  padded_I = ((0,) * (len(I[0]) + 2),) + tuple((0,) + row + (0,) for row in I) + ((0,) * (len(I[0]) + 2),)
+  O = canvas(0, shape(I))
+  for i in range(1, len(padded_I) - 1):
+      for j in range(1, len(padded_I[0]) - 1):
+          if padded_I[i][j] == 8 and padded_I[i][j + 1] == 0:
+              O = fill(O, 1, {(i - 1, j)})
+          if padded_I[i][j] == 8 and padded_I[i + 1][j] == 0:
+              O = fill(O, 1, {(i, j - 1)})
+  return O
+ 
+10.5, tensor(1.2174), Description: For each light blue ('8') square in the input grid, if the square to the right of it is black and the square above it is light blue, color the square to the right red ('1'). If the square below it is black and the square to the left of it is light blue, color the square below red ('1'). If the square is on the edge of the grid, only add the squares that are inside the grid. 
+:: def cjgcgedhcfdfehbbicbdicdiefbdeedd(I):
+  shifted_right = shift(asobject(I), RIGHT)
+  shifted_down = shift(asobject(I), DOWN)
+  filtered_right = sfilter(shifted_right, lambda cell: cell[0] == 0 and (cell[1][0] - 1, cell[1][1]) in ofcolor(I, 8))
+  filtered_down = sfilter(shifted_down, lambda cell: cell[0] == 0 and (cell[1][0], cell[1][1] - 1) in ofcolor(I, 8))
+  O = paint(paint(I, recolor(1, toindices(filtered_right))), recolor(1, toindices(filtered_down)))
+  return O
+ 
+14.5, tensor(0.4626), Description: For each colored square in the input grid, if the square below and to the right of it is within the grid, color that square red. If the square is on the edge of the grid, only add the squares that are inside the grid. Then, for each square in the input grid, if it is colored, change it to red. 
+:: def fhceafifaafeechfjdcdbehgbbficccb(I):
+  def is_valid_index(idx, h, w):
+    return 0 <= idx[0] < h and 0 <= idx[1] < w
+
+  h, w = len(I), len(I[0])
+  new_grid = canvas(0, shape(I))
+  for i in range(h-1):
+    for j in range(w-1):
+      if I[i][j] != 0 and is_valid_index((i+1, j+1), h, w):
+        new_grid = fill(new_grid, 1, {(i+1, j+1)})
+  return cellwise(I, new_grid, 1)
+ 
+3367.0, tensor(0.1231), Description: For each light blue ('8') square in the input grid, if the square is in the top half of the grid, move it down by the height of the light blue shape. If the square is in the bottom half of the grid, move it to the right by the width of the light blue shape. Then, color all the original light blue squares black ('0'). If the shape is on the edge of the grid, only modify the squares that are inside the grid. 
+:: def fgagageeaafhegcaicdcacgajeigdcab(I):
+  eights = ofcolor(I, 8)
+  new_eights = frozenset()
+  for i, j in eights:
+    if len(I) // 2 > i:  
+      new_eights = insert((i + height(eights), j), new_eights)
+    else:
+      new_eights = insert((i, j + width(eights)), new_eights)
+  return fill(fill(I, 8, new_eights), 0, eights)
+ 
+10.0, tensor(0.0184), Description: Copy the light blue shape and move it one square to the right and four squares down. Copy the red shape and move it four squares to the right and four squares down.  The output grid should be 7x7. 
+:: def abfcdabeahdhedcfaebegdaefefadjad(I):
+  indices_8 = ofcolor(I, 8)
+  indices_1 = ofcolor(I, 1)
+  obj_8 = toobject(indices_8, I)
+  obj_1 = toobject(indices_1, I)
+
+  O = canvas(0, (7,7))
+  O = paint(O, shift(obj_8, (1, 4)))
+  O = paint(O, shift(obj_1, (4, 4)))
+  return O
+ 
+3360.0, tensor(0.0151), Description: For each light blue ('8') square in the input grid, if the square is in the top half of the grid, mirror it vertically to the bottom half. If the square is in the bottom half of the grid, mirror it horizontally to the right half. The output grid should have a mirrored pattern of light blue squares. 
+:: def dbbfadbddcafeafhbabhabgbaeahheed(I):
+  h, w = len(I), len(I[0])
+  O = canvas(0, (h, w))  # Create an empty output grid
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == 8:  # If the cell is part of an '8' object
+        if i < h // 2:
+          O[i + h // 2][j] = 8  # Mirror down
+        else:
+          O[i][j + w // 2] = 8  # Mirror right
+  return O
+ 
+10.0, tensor(0.0233), Description: If the input grid is smaller than 20 squares, copy the light blue and red shapes and move them one square to the right and one square down. If the input grid is larger than 20 squares, copy the light blue and red shapes, mirror them horizontally, and then move them one square to the right and four squares down. The output grid should be 7x7. 
+:: def abedbeafeehbeijcbijbfgacddcdcdji(I):
+  eights = ofcolor(I, 8)
+  ones = ofcolor(I, 1)
+  target_loc = (1, 1) if len(I) < 20 else (1, 4)
+  O = canvas(0, (7, 7))
+  if len(eights) > 0 and len(ones) > 0:
+    if len(I) < 20:
+      O = fill(O, 8, shift(eights, target_loc))
+      O = fill(O, 1, shift(ones, target_loc))
+    else:
+      O = fill(O, 8, shift(hmirror(eights), target_loc))
+      O = fill(O, 1, shift(hmirror(ones), target_loc))
+  return O
+ 

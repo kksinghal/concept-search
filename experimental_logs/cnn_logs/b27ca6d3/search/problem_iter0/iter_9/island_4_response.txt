@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects of the non-background color and expanding them by one cell in the down and right directions, but only filling in cells that were originally the background color.
+
+**Input_0 to Output_0:**
+
+* The single 2-valued objects are identified.
+* Each object is expanded by adding a 3-valued cell to its right and below if that cell was originally a 0.
+
+**Input_1 to Output_1:**
+
+* The process is the same as for Input_0, with all 2-valued objects expanded downwards and rightwards with 3s, but only filling in existing background (0-valued) cells.
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" using the DSL provided in `dsl.py`:
+
+**Program Version 1:** (Inspired by using `ofcolor` and direct neighbor iteration)
+
+```python
+def Program_to_be_generated(I):
+    bg = mostcolor(I)  # Identify background color
+    target_color = other(palette(I), bg)  # Identify non-background color
+    target_cells = ofcolor(I, target_color)  # Get indices of target color cells
+    expanded = set()  
+    for i, j in target_cells:
+        for di, dj in [DOWN, RIGHT]:  # Check down and right neighbors
+            ni, nj = i + di, j + dj
+            if 0 <= ni < height(I) and 0 <= nj < width(I) and I[ni][nj] == bg:
+                expanded.add((ni, nj))
+    O = fill(I, THREE, frozenset(expanded))  # Fill expanded cells with 3
+    return O
+```
+
+**Explanation:**
+
+1. Identify the background and target colors.
+2. Find all cells with the target color.
+3. Iterate over these cells and their down and right neighbors.
+4. If a neighbor is within the grid bounds and has the background color, add it to the `expanded` set.
+5. Fill all cells in the `expanded` set with the value 3.
+
+**Program Version 2:** (Inspired by using `objects` and `mapply` for neighbor generation)
+
+```python
+def Program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = objects(I, True, False, True)  # Get single-color objects without background
+    expansion_candidates = mapply(
+        lambda obj: mapply(
+            lambda ind: sfilter(
+                lambda n: 0 <= n[0] < height(I) and 0 <= n[1] < width(I) and index(I, n) == bg,
+                apply(lambda d: add(ind, d), [DOWN, RIGHT])
+            ), 
+            toindices(obj)
+        ), 
+        objs
+    )
+    O = fill(I, THREE, expansion_candidates)
+    return O
+```
+
+**Explanation:**
+
+1. Identify the background color and extract single-color objects excluding the background.
+2. For each object:
+   - Get its indices.
+   - For each index, generate potential expansion candidates by adding DOWN and RIGHT offsets and filtering for in-bound indices with the background color.
+3. Fill all identified expansion candidates with the value 3.
+
+**Program Version 3:** (Focuses on manipulating indices directly)
+
+```python
+def Program_to_be_generated(I):
+    bg = mostcolor(I)
+    target_indices = ofcolor(I, other(palette(I), bg))
+    shifted_right = apply(lambda ind: (ind[0], ind[1] + 1), target_indices)
+    shifted_down = apply(lambda ind: (ind[0] + 1, ind[1]), target_indices)
+    valid_indices = sfilter(lambda ind: 0 <= ind[0] < height(I) and 0 <= ind[1] < width(I), combine(shifted_right, shifted_down))
+    expanded = sfilter(lambda ind: index(I, ind) == bg, valid_indices)
+    O = fill(I, THREE, expanded)
+    return O
+```
+
+**Explanation:**
+
+1.  Identify the background and target colors.
+2.  Get indices of the target color cells.
+3.  Create two sets of shifted indices: one shifted right and one shifted down.
+4.  Filter for valid indices within the grid bounds.
+5.  Filter again for indices corresponding to background cells.
+6.  Fill the selected indices with the value 3.
+
+**Program Version 4:** (Emphasizes using set operations)
+
+```python
+def Program_to_be_generated(I):
+    bg = mostcolor(I)
+    target_color = other(palette(I), bg)
+    target_indices = ofcolor(I, target_color)
+    down_neighbors = frozenset((i + DOWN[0], j + DOWN[1]) for i, j in target_indices if i + 1 < height(I))
+    right_neighbors = frozenset((i + RIGHT[0], j + RIGHT[1]) for i, j in target_indices if j + 1 < width(I))
+    expanded = (down_neighbors | right_neighbors) & ofcolor(I, bg)
+    O = fill(I, THREE, expanded)
+    return O
+```
+
+**Explanation:**
+
+1. Get the background and target color.
+2. Find indices of the target color.
+3. Generate down and right neighbor indices, staying within grid bounds.
+4. Use set intersection to keep only neighbors that are also background cells.
+5. Fill the resulting indices with 3.
+
+**Program Version 5:** (Uses nested `mapply` for a more functional approach)
+
+```python
+def Program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = objects(I, True, False, True)  
+    expanded = mapply(lambda obj: mapply(lambda n: sfilter(lambda loc: index(I, loc) == bg, apply(lambda d: add(n, d), [DOWN, RIGHT])), toindices(obj)), objs) 
+    O = fill(I, THREE, expanded)
+    return O
+```
+
+**Explanation:**
+
+1. Identify the background color and get single-color objects (excluding background).
+2. For each object:
+    - For each cell in the object:
+       - Generate down and right neighbor locations.
+       - Filter for neighbor locations that have the background color.
+3. Fill the resulting locations with the value 3.
+
+These five versions showcase different ways to achieve the same transformation, highlighting the flexibility and expressiveness of the provided DSL. Each version leverages different functions and strategies, demonstrating various approaches to solving the problem.

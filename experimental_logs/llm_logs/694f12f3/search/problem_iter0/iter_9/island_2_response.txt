@@ -1,0 +1,80 @@
+## Transformation Analysis:
+
+The transformation focuses on manipulating the inner content of each distinct object (connected regions of the same digit excluding the background) within the grid:
+
+* **Input_0 & Output_0:**  The top object (4x4 square) has its inner 2x2 region filled with '1'. The bottom object (6x4 rectangle) has its top inner 4x2 region filled with '2'. 
+* **Input_1 & Output_1:** The top object (6x4 rectangle) has its inner 4x2 region filled with '2'. The bottom object (4x4 square) has its bottom inner 2x2 region filled with '1'.
+
+**Transformation Logic:**
+
+1. **Identify Objects:** Distinguish individual objects within the grid based on connectedness.
+2. **Inner Region Detection:** Determine the "inner" region of each object, essentially shrinking the object's boundaries by one cell on each side.
+3. **Conditional Filling:**  
+    * If the object is taller than it is wide (portrait), fill its inner region with '1'.
+    * If the object is wider than it is tall (landscape), fill its top inner region with '2' and the region below it with '1'.
+
+## Program Versions:
+
+**Version 1 (Inspired by Program_A's use of `objects`, `underfill` and Program_B's conditional logic):**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    if portrait(obj):
+      O = underfill(O, ONE, inbox(crop(I, (uppermost(obj) + 1, leftmost(obj) + 1), (height(obj) - 2, width(obj) - 2))))
+    else:
+      O = underfill(O, TWO, inbox(crop(I, (uppermost(obj) + 1, leftmost(obj) + 1), (height(obj) - 2, width(obj) - 2))))
+      O = underfill(O, ONE, inbox(crop(I, (uppermost(obj) + 2, leftmost(obj) + 1), (height(obj) - 2, width(obj) - 2))))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:**  Iterate over each object found in the input grid `I`.
+2. **Orientation Check:** Determine if the object is portrait or landscape using `portrait(obj)`.
+3. **Inner Region Calculation:**  Calculate the inner region using `inbox` and `crop`, shrinking the object's bounding box.
+4. **Conditional Filling:** Fill the appropriate inner regions with '1' or '2' using `underfill` based on the object's orientation.
+
+**Version 2 (Inspired by Program_A's `mfilter` and combining `inbox` and `crop` for clarity):**
+
+```python
+def Program_to_be_generated(I):
+  get_inner = lambda obj: inbox(crop(I, (uppermost(obj) + 1, leftmost(obj) + 1), (height(obj) - 2, width(obj) - 2)))
+  fill_one = lambda obj: get_inner(obj) if portrait(obj) else frozenset({})
+  fill_two = lambda obj: get_inner(obj) if not portrait(obj) else frozenset({})
+  O = underfill(I, ONE, mfilter(objects(I, T, F, T), fill_one))
+  O = underfill(O, TWO, mfilter(objects(I, T, F, T), fill_two))
+  return O
+```
+
+**Explanation:**
+
+1. **Helper Functions:** Define `get_inner`, `fill_one`, and `fill_two` for clarity and conciseness.
+2. **Identify Filling Regions:**  `fill_one` and `fill_two` determine the regions to fill with '1' and '2' respectively based on the object's orientation.
+3. **Apply Filling:** Use `mfilter` to find and merge all the filling regions for each color.
+4. **Fill Grid:** Use `underfill` to fill the identified regions with the corresponding colors.
+
+**Version 3 (Focusing on direct manipulation of object indices):**
+
+```python
+def Program_to_be_generated(I):
+  O = asobject(I)
+  for obj in objects(I, T, F, T):
+    inner = {(i, j) for i in range(uppermost(obj) + 1, lowermost(obj)) for j in range(leftmost(obj) + 1, rightmost(obj))}
+    if portrait(obj):
+      O = O.union({(ONE, idx) for idx in inner})
+    else:
+      top_inner = {(i, j) for i, j in inner if i < uppermost(obj) + height(obj) // 2}
+      bottom_inner = {(i, j) for i, j in inner if i >= uppermost(obj) + height(obj) // 2}
+      O = O.union({(TWO, idx) for idx in top_inner}).union({(ONE, idx) for idx in bottom_inner})
+  return totuple(totuple(pair(v, idx)) for v, idx in O) 
+```
+
+**Explanation:**
+
+1. **Convert to Object:** Transform the input grid into an object representation for direct cell manipulation.
+2. **Iterate and Calculate:** Iterate through objects, calculate inner regions, and conditionally fill based on orientation.
+3. **Reconstruct Grid:** Convert the modified object back into a grid format.
+
+**Note:** Versions 4 and 5 would involve further variations in logic or function usage, potentially exploring alternative ways to identify inner regions, manipulate objects, or combine filling operations. These variations would prioritize distinct approaches while ensuring they still achieve the desired transformation. 

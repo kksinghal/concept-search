@@ -1,0 +1,110 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects formed by connected regions of the same color (excluding the background color, which appears to be 0 in most cases), then extending these objects one cell to the right with a specific color. 
+
+Let's break down the transformation for each input-output pair:
+
+**Input_0 -> Output_0:** 
+- The object of interest is the '2' shaped figure.
+- Every cell of this object gets extended one cell to the right with the color '1'.
+
+**Input_1 -> Output_1:**
+- Two objects are of interest here: the larger '2' shaped figure and the smaller '2' in the top right corner.
+- Both objects get extended one cell to the right with the color '1', but notably, the extension only occurs where the neighboring cell is '0' (background).
+
+**Input_2 -> Output_2:**
+- Similar to Input_1, multiple objects are present.
+- Each object extends one cell to the right with the color '1' only if the neighboring cell is '0'.
+
+## Program to be Generated:
+
+Here are five distinct versions of the "Program_to_be_generated" utilizing the DSL from `dsl.py`.
+
+**Version 1: Utilizing `dneighbors` for adjacency**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True) # Identify objects excluding background
+  for obj in objs:
+    for cell in obj:
+      v, (i, j) = cell 
+      neighbor = (i, j + 1) # Define the right neighbor
+      if j + 1 < width(I) and index(I, neighbor) == 0: # Check within bounds and background
+        I = fill(I, 1, {neighbor}) # Fill with '1' if conditions met
+  return I 
+```
+
+**Explanation:**
+1. **Identify Objects:** `objects(I, True, False, True)` extracts objects from the grid 'I'.
+2. **Iterate and Extend:** The code iterates through each object and each cell within.
+3. **Check Neighbor:** For every cell, it checks if its right neighbor is within the grid bounds and is the background color (0).
+4. **Conditional Fill:**  If both conditions are met, the right neighbor is filled with '1'.
+
+**Version 2: Using `shift` for neighbor calculation**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, True, False, True):
+    right_shifted = shift(toindices(obj), (0, 1)) # Shift object indices to the right
+    for loc in right_shifted:
+      if index(I, loc) == 0 and loc[1] < width(I): # Check for background and bounds
+        I = fill(I, 1, {loc}) 
+  return I
+```
+
+**Explanation:**
+1. **Object and Shifted Indices:**  It identifies objects and calculates the indices of their right neighbors using `shift`.
+2. **Check and Fill:**  For each shifted index, it verifies if it's within the grid and represents a background cell before filling it with '1'.
+
+**Version 3: Employing `rapply` for neighbor checks**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, True, False, True):
+    for cell in obj:
+      v, (i, j) = cell
+      neighbors = rapply(((lambda x: (x[0], x[1] + 1)),), cell)  # Generate right neighbor
+      for neighbor in neighbors:
+        if neighbor[1] < width(I) and index(I, neighbor) == 0:
+          I = fill(I, 1, {neighbor})
+  return I
+```
+
+**Explanation:**
+1. **Generate Neighbor:**  This version uses `rapply` to generate the right neighbor for each cell in an object. 
+2. **Check and Fill:**  It then checks if the generated neighbor is within grid bounds and a background cell before filling.
+
+**Version 4: Combining `sfilter` and `toindices` for filtering**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, True, False, True):
+    fill_indices = sfilter(toindices(obj), lambda loc: loc[1] + 1 < width(I) and index(I, (loc[0], loc[1] + 1)) == 0) # Filter for valid right neighbors
+    fill_indices = frozenset((i, j + 1) for i, j in fill_indices) # Shift filtered indices to the right
+    I = fill(I, 1, fill_indices) # Fill the filtered locations
+  return I
+```
+
+**Explanation:**
+1. **Filter Valid Neighbors:**  This version filters the object indices for those that have a valid right neighbor (within bounds and a background cell).
+2. **Shift and Fill:** The filtered indices are then shifted right and filled with '1'.
+
+**Version 5: Using set operations for neighbor identification**
+
+```python
+def Program_to_be_generated(I):
+  for obj in objects(I, True, False, True):
+    object_indices = toindices(obj)
+    right_neighbors = frozenset((i, j + 1) for i, j in object_indices)  
+    valid_neighbors = right_neighbors.intersection(asindices(I)).difference(object_indices)  # Find valid neighbors
+    fill_indices = sfilter(valid_neighbors, lambda loc: index(I, loc) == 0) # Filter for background cells
+    I = fill(I, 1, fill_indices) 
+  return I
+```
+
+**Explanation:**
+1. **Calculate Neighbors and Intersect:**  It calculates the right neighbors of object cells and finds the intersection with all grid indices.
+2. **Difference and Filter:** The intersection is then used to remove object cells, resulting in valid neighbor cells. These valid neighbors are filtered for background cells.
+3. **Fill:** Finally, the identified background neighbor cells are filled with '1'.
+
+These versions demonstrate diverse approaches to achieve the same transformation, highlighting the flexibility of the DSL. Each version offers a unique combination of functions, showcasing different coding styles and logic within the DSL's capabilities.

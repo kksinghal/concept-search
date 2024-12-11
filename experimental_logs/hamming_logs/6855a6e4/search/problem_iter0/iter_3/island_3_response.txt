@@ -1,0 +1,194 @@
+## Transformation Analysis:
+
+The transformation applied to each input grid aims to move the object(s) composed of the digit "5" towards the center of the grid, but only by a single unit in either the horizontal or vertical direction. The movement is determined by whether the object is farther from the grid's center row or column.  The original positions of the "5" objects are then replaced with the background color (0).
+
+**Example:**
+
+* **Input_0:** The "5" objects are initially located in columns 5 and 6, and rows 1, 2, 10, and 13.
+* **Output_0:** The "5" objects have moved one unit towards the center column (column 7). 
+
+This pattern holds for all provided input-output pairs.
+
+
+## Program to Be Generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  fives = toindices(colorfilter(objects(I, True, False, True), FIVE))  
+  center_i, center_j = center(asindices(I))  
+  h, w = shape(I) 
+
+  shifted_fives = set()
+  for i, j in fives:
+    if abs(i - center_i) >= abs(j - center_j):
+      new_i = i + sign(center_i - i) 
+      new_j = j
+    else:
+      new_i = i
+      new_j = j + sign(center_j - j)
+    shifted_fives.add((new_i, new_j))
+
+  O = fill(cover(I, fives), FIVE, frozenset(shifted_fives))
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify "5" cells:**  Find the indices of cells containing "5" using `colorfilter` and `toindices`.
+2. **Grid Center:** Determine the grid's center coordinates `(center_i, center_j)` using `center` and `asindices`.
+3. **Iterate and Shift:** Loop through the "5" cell indices.
+    *  If the cell is farther from the center row (`abs(i - center_i) >= abs(j - center_j)`), shift it one unit vertically towards the center using `sign(center_i - i)`.
+    * Otherwise, shift it one unit horizontally towards the center using `sign(center_j - j)`.
+4. **Update Grid:**
+   * Erase the original "5" objects using `cover`.
+   * Fill the shifted positions with "5" using `fill`.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  objs = objects(I, True, False, True)
+  center_i, center_j = divmod(size(I), 2)  
+  
+  def shift_to_center(obj):
+    if color(obj) != FIVE:
+      return obj
+    obj_indices = toindices(obj)
+    offset = gravitate(obj_indices, {center(obj_indices)})
+    return shift(obj, offset)
+
+  O = paint(I, merge(apply(shift_to_center, objs)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Extract all objects from the input grid using `objects`.
+2. **Grid Center:** Calculate the grid's center using `divmod(size(I), 2)`.
+3. **Define Shifting Function:** Create a function `shift_to_center` that:
+   *  Ignores non-"5" objects.
+   *  Calculates the offset for "5" objects towards the center using `gravitate`.
+   *  Returns the shifted object.
+4. **Apply and Paint:**
+   * Apply `shift_to_center` to all objects using `apply`.
+   *  Paint the shifted objects onto the input grid using `paint`.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  five_objs = colorfilter(objects(I, True, False, True), FIVE)
+  center_point = center(asindices(I))
+
+  def move_obj(obj):
+    obj_center = center(obj)
+    x_diff = center_point[1] - obj_center[1]
+    y_diff = center_point[0] - obj_center[0]
+    if abs(x_diff) > abs(y_diff):
+      return shift(obj, (0, sign(x_diff)))
+    elif abs(y_diff) > abs(x_diff):
+      return shift(obj, (sign(y_diff), 0))
+    else:
+      return obj  
+
+  moved_objs = apply(move_obj, five_objs)
+  O = paint(cover(I, merge(five_objs)), merge(moved_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Find "5" Objects:**  Locate all objects consisting of the color "5" using `colorfilter` and `objects`.
+2. **Grid Center:** Calculate the grid center coordinates `(center_i, center_j)` using `center` and `asindices`.
+3. **Define Movement Function:** Define a function `move_obj` to:
+   *  Determine the object's center using `center`.
+   *  Calculate the horizontal and vertical differences between the object's center and the grid center.
+   *  Shift the object horizontally or vertically by one unit towards the grid center based on the larger difference.
+   *  Return the shifted object.
+4. **Apply, Erase, and Paint:**
+   * Apply `move_obj` to each "5" object using `apply`.
+   *  Erase the original "5" objects from the grid using `cover`.
+   *  Paint the shifted objects onto the grid using `paint`.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  fives = toindices(colorfilter(objects(I, True, False, True), FIVE))
+  grid_center = center(asindices(I))
+  
+  def closer_to_center(old_pos, new_pos):
+    return  sum(abs(a - b) for a, b in zip(new_pos, grid_center)) <= sum(abs(a - b) for a, b in zip(old_pos, grid_center))
+  
+  shifted_fives = set()
+  for i, j in fives:
+    up = (i - 1, j)
+    down = (i + 1, j)
+    left = (i, j - 1)
+    right = (i, j + 1)
+
+    if closer_to_center((i, j), up):
+      shifted_fives.add(up)
+    elif closer_to_center((i, j), down):
+      shifted_fives.add(down)
+    elif closer_to_center((i, j), left):
+      shifted_fives.add(left)
+    elif closer_to_center((i, j), right):
+      shifted_fives.add(right)
+    else:
+      shifted_fives.add((i, j))
+
+  O = fill(cover(I, fives), FIVE, frozenset(shifted_fives))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify "5" Cells:** Find indices of "5" cells.
+2. **Find Grid Center:**  Calculate the grid center coordinates.
+3. **Define Closeness Function:** Define a function `closer_to_center` to check if a new position is closer to the grid center than the old position by comparing the sum of absolute differences of coordinates.
+4. **Iterate and Compare:** Loop through "5" cell indices. For each cell:
+    * Calculate potential up, down, left, right positions.
+    * Check which of these positions, if any, is closer to the center using `closer_to_center` and add the closest position to `shifted_fives`.
+    * If no position is closer, keep the original position.
+5. **Update Grid:**
+    * Erase the original "5" objects.
+    * Fill the shifted positions with "5".
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  fives = colorfilter(objects(I, True, False, True), FIVE)
+  center_i, center_j = center(asindices(I))
+
+  def shift_obj(obj):
+    indices = toindices(obj)
+    closest_point = min(indices, key=lambda x: abs(x[0] - center_i) + abs(x[1] - center_j))
+    offset = (sign(center_i - closest_point[0]), sign(center_j - closest_point[1]))
+    return shift(obj, offset)
+    
+  shifted_fives = apply(shift_obj, fives)
+  O = paint(cover(I, merge(fives)), merge(shifted_fives))
+  return O
+```
+
+**Explanation:**
+
+1. **Find "5" Objects:** Locate all objects of color "5".
+2. **Grid Center:** Calculate the grid center coordinates.
+3. **Define Shifting Function:** Define a function `shift_obj` to:
+    * Find the point within the object closest to the grid center using `min` and a lambda function to calculate Manhattan distance.
+    * Calculate the offset to move the object one unit towards the center based on the closest point.
+    * Return the shifted object.
+4. **Apply, Erase, and Paint:**
+    * Apply `shift_obj` to all "5" objects.
+    * Erase original "5" objects.
+    * Paint the shifted objects onto the grid. 
+
+
+Each program version offers a distinct approach to the task, leveraging different combinations of DSL functions and logic. This demonstrates the flexibility and expressive power of the provided DSL. 

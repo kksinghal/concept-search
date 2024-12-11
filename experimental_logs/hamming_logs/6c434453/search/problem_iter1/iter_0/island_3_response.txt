@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation involves identifying specific objects within the input grid and replacing them with a different object, while preserving the background and other objects.
+
+* **Object Selection:** The program seems to select objects based on their color and shape. For instance, in both examples, groups of adjacent '1's are targeted for replacement. 
+* **Replacement Object:** The selected objects are replaced with an L-shaped object consisting of the digit '2'. 
+* **Background and Other Objects:** The background color (most frequent color) and any other objects not matching the selection criteria are left unchanged. 
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve_239be575(I):
+  objs = objects(I, T, F, T)  # Extract objects, not diagonally connected, without background
+  target_color = 1  # Define the color of objects to be replaced
+  target_objs = colorfilter(objs, target_color)  # Filter objects by color
+  new_obj = frozenset({(2, (0, 0)), (2, (1, 0)), (2, (2, 0)), (2, (2, 1)), (2, (2, 2))})  # Define the replacement L-shaped object
+  O = I  # Initialize output grid as input grid
+  for obj in target_objs:
+    O = cover(O, obj)  # Remove target objects from output grid
+    center_i, center_j = centerofmass(obj)  # Find center of mass of the object
+    new_obj_shifted = shift(new_obj, (center_i - 2, center_j - 2))  # Shift new object to the object's center
+    O = paint(O, new_obj_shifted)  # Paint the shifted new object onto the output grid
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objects(I, T, F, T)` extracts objects from the input grid (`I`), considering only directly adjacent cells (`T`), ignoring diagonal connections (`F`), and excluding the background (`T`).
+2. **Filter Target Objects:**  The code identifies and filters objects with the color '1' (`target_color`) using `colorfilter(objs, target_color)`.
+3. **Define Replacement Object:** An L-shaped object (`new_obj`) consisting of '2's is defined. 
+4. **Iterate and Replace:** The code iterates through each `target_objs`. For every object:
+    - **Remove Target Object:** `cover(O, obj)` removes the target object from the output grid (`O`).
+    - **Calculate Center and Shift:** `centerofmass(obj)` finds the center of mass of the target object. The replacement object (`new_obj`) is then shifted using `shift` to align with the calculated center.
+    - **Paint Replacement:** `paint(O, new_obj_shifted)` paints the shifted replacement object onto the output grid. 
+5. **Return Output Grid:** Finally, the modified output grid (`O`) is returned.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve_239be575(I):
+  O = canvas(mostcolor(I), shape(I))  # Create output grid with background color
+  for i, row in enumerate(I):  
+    for j, val in enumerate(row):
+      if val == 1 and any(I[i+k][j+l] == 1 for k in range(-1,2) for l in range(-1,2)):  # Check for '1' and neighboring '1's
+        O = paint(O, shift(frozenset({(2, (0, 0)), (2, (1, 0)), (2, (2, 0)), (2, (2, 1)), (2, (2, 2))}), (i-2, j-2)))  # Paint L-shape
+      elif val != mostcolor(I):  # Preserve other non-background colors
+        O = paint(O, {(val, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize Output with Background:** `canvas(mostcolor(I), shape(I))` creates the output grid (`O`) filled with the background color of the input grid.
+2. **Iterate through Cells:** The code iterates through each cell of the input grid (`I`) using nested loops.
+3. **Identify and Replace:** For each cell:
+    - **Check for '1' and Neighbors:** If the cell value is '1' and at least one of its neighbors (including diagonals) is also '1', it's considered part of a target object.
+    - **Paint L-shape:** If a target object is identified, the pre-defined L-shaped object is shifted to the current cell's location and painted onto the output grid.
+    - **Preserve Non-Background:** If the cell is not part of the background and doesn't match the target object condition, its value is directly copied to the output grid.
+4. **Return Output Grid:** The modified output grid (`O`) is returned.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve_239be575(I):
+  objs = objects(I, F, T, T)  # Extract objects, not diagonally connected, without background
+  target_color = 1  # Color of objects to be replaced
+  def is_target(obj):
+    return color(obj) == target_color and len(obj) > 1  # Identify target objects: color '1' and size greater than 1
+  target_objs = sfilter(objs, is_target)  # Filter target objects
+  O = I
+  for obj in target_objs:
+    O = cover(O, obj)  # Remove the target object
+    top_left = ulcorner(obj)
+    O = paint(O, shift(frozenset({(2, (0, 1)), (2, (1, 1)), (2, (2, 0)), (2, (2, 1)), (2, (2, 2))}), top_left))  # Paint the L-shape
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects and Define Target:** Similar to previous versions, this code extracts objects and defines the target color (`target_color`).
+2. **Custom Filter Function:**  A function `is_target(obj)` is defined to check if an object has the `target_color` and a size greater than 1, ensuring only groups of '1's are selected.
+3. **Filter Using `sfilter`:** The `sfilter` function filters the extracted objects based on the `is_target` condition.
+4. **Iterate and Replace:**  The code iterates through each `target_objs`. For every object:
+    - **Remove Target Object:** The target object is removed from the output grid using `cover`.
+    - **Find Top Left Corner and Shift:**  The `ulcorner` function identifies the top left corner of the object. The L-shaped replacement object is then shifted to this corner using `shift`.
+    - **Paint Replacement:** The shifted L-shaped object is painted onto the output grid.
+5. **Return Output Grid:**  The modified output grid (`O`) is returned. 
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve_239be575(I):
+  O = replace(I, 1, mostcolor(I))  # Replace all '1's with background color
+  for i in range(len(I) - 2):
+    for j in range(len(I[0]) - 2):
+      if I[i+1][j+1] == 1 and sum(I[i+k][j+l] == 1 for k in range(3) for l in range(3)) > 2:  # Check for '1' cluster
+        O = paint(O, shift(frozenset({(2, (0, 1)), (2, (1, 1)), (2, (2, 0)), (2, (2, 1)), (2, (2, 2))}), (i, j)))  # Paint L-shape 
+  return O
+```
+
+**Explanation:**
+
+1. **Replace All '1's with Background:**  `replace(I, 1, mostcolor(I))` replaces all occurrences of '1' in the input grid with the background color, effectively clearing them. 
+2. **Iterate and Check for Clusters:** The code iterates through the grid, excluding the last two rows and columns. For each cell:
+    - **Check for '1' Cluster:** It checks if the current cell and its surrounding 3x3 neighborhood form a cluster of '1's (at least two '1's besides the center).
+    - **Paint L-shape:**  If a cluster is found, the L-shaped object is shifted to the current cell's location and painted onto the modified output grid (`O`).
+3. **Return Output Grid:**  The output grid, now containing the replaced L-shaped objects, is returned.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve_239be575(I):
+  def is_one_cluster(i, j):
+    return I[i][j] == 1 and sum(I[i+k][j+l] == 1 for k in range(-1, 2) for l in range(-1, 2)) > 2
+  ones_clusters = frozenset((i, j) for i in range(1, len(I)-1) for j in range(1, len(I[0])-1) if is_one_cluster(i, j))
+  O = I
+  for i, j in ones_clusters:
+    O = cover(O, toobject(dneighbors((i,j)), I))  # Clear the 3x3 area around the cluster center
+    O = paint(O, shift(frozenset({(2, (0, 1)), (2, (1, 1)), (2, (2, 0)), (2, (2, 1)), (2, (2, 2))}), (i-1, j-1)))  # Paint L-shape
+  return O
+```
+
+**Explanation:**
+
+1. **Define Cluster Detection Function:**  `is_one_cluster(i, j)` checks if the cell at (i, j) is a '1' and belongs to a cluster of '1's.
+2. **Find Cluster Centers:**  The code identifies the centers of all '1' clusters and stores their indices in `ones_clusters`. 
+3. **Iterate through Cluster Centers:**  It iterates through each cluster center in `ones_clusters`.
+4. **Clear and Paint:**  For every cluster center:
+    - **Clear 3x3 Area:**  The `cover` function, along with `toobject` and `dneighbors`, clears a 3x3 area around the cluster center on the output grid.
+    - **Paint L-shape:**  The L-shaped object is shifted to the top-left corner of the cleared 3x3 area and painted onto the output grid.
+5. **Return Output Grid:** The modified output grid, now containing the L-shaped objects in place of '1' clusters, is returned. 

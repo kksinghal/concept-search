@@ -1,0 +1,211 @@
+## Transformation Analysis:
+
+The transformation focuses on recoloring objects based on their position relative to their horizontal center of mass. It seems to apply specifically to objects with more than one cell and doesn't affect single-cell objects. Here's a breakdown:
+
+**General Logic:**
+
+1. **Identify Objects:**  The input grid is parsed to identify individual objects, considering connected cells with the same color as a single object.
+2. **Center of Mass:** For each object, the horizontal (x-axis) coordinate of its center of mass is calculated.
+3. **Relative Position & Recoloring:**  Each cell within an object is then recolored based on its position relative to the object's center of mass:
+    - **Left of Center:** Cells to the left of the center of mass are recolored with incrementally increasing values starting from 6. The closer a cell is to the center, the higher its value.
+    - **Right of Center:** Cells to the right of the center of mass are recolored with incrementally increasing values starting from 8. Similar to the left side, closer proximity to the center results in a higher value.
+    - **Center Cell:** The cell at the exact horizontal center remains unchanged.
+
+**Input-Output Pair Specifics:**
+
+* **All Pairs:** The logic applies consistently across all provided input-output pairs. 
+
+## Code Generation:
+
+Here are five distinct program versions, leveraging functions from the DSL and inspired by the provided sample programs, to achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_object(obj):
+    center_j = centerofmass(obj)[1]
+    return frozenset(
+      (
+        (6 + center_j - j - 1) if j < center_j 
+        else (8 + j - center_j - 1) if j > center_j 
+        else v, 
+        (i, j)
+      ) 
+      for v, (i, j) in obj
+    )
+  
+  objects = fgpartition(I)
+  recolored_objects = frozenset(
+    recolor_object(obj) if len(obj) > 1 else obj 
+    for obj in objects
+  )
+  O = paint(canvas(mostcolor(I), shape(I)), merge(recolored_objects))
+  return O
+```
+
+**Explanation:**
+
+1.  **`recolor_object(obj)`:** This helper function takes an object as input and returns a recolored version based on the transformation rules. 
+    *   It first determines the horizontal center (`center_j`) of the object.
+    *   Then, it iterates through each cell of the object and applies the recoloring logic based on the cell's position relative to `center_j`.
+
+2. **`Program_to_be_generated(I)`:**
+    *   Identifies objects in the input grid (`I`) using `fgpartition`.
+    *   Applies `recolor_object` to each object, skipping single-cell objects.
+    *   Paints the recolored objects onto a blank canvas using `paint`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def process_cell(v, i, j, center_j):
+    return (
+        (6 + center_j - j - 1) if j < center_j 
+        else (8 + j - center_j - 1) if j > center_j 
+        else v
+    ) 
+
+  def process_object(obj):
+    center_j = centerofmass(obj)[1]
+    return frozenset(
+      (process_cell(v, i, j, center_j), (i, j)) 
+      for v, (i, j) in obj
+    )
+
+  recolored_grid = tuple(
+      tuple(
+          process_cell(v, i, j, centerofmass(next(obj for obj in fgpartition(I) if (i, j) in toindices(obj)))[1]) 
+          if any(v != mostcolor(I) for v in r) 
+          else v 
+          for j, v in enumerate(r)
+      ) 
+      for i, r in enumerate(I)
+  )
+  O = recolored_grid
+  return O
+```
+
+**Explanation:**
+
+1.  **`process_cell(v, i, j, center_j)`:** Similar to `recolor_object` in Version 1, this helper function handles the recoloring logic for a single cell based on its coordinates and the object's `center_j`.
+
+2. **`process_object(obj)`:** Takes an object and applies `process_cell` to each of its cells, returning the recolored object.
+
+3. **`Program_to_be_generated(I)`:**
+    *   Iterates through each cell of the input grid (`I`).
+    *   For each cell, it finds the object it belongs to and calculates the object's horizontal center of mass.
+    *   Applies `process_cell` to recolor the cell if it's not a background cell.
+    *   Constructs and returns the recolored grid.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_row(row, i):
+    for obj in sfilter(fgpartition(row), lambda o: len(o) > 1):
+      center_j = centerofmass(obj)[1]
+      row = tuple(
+          (6 + center_j - j - 1) if j < center_j and (v, (i, j)) in obj
+          else (8 + j - center_j - 1) if j > center_j and (v, (i, j)) in obj
+          else v
+          for j, v in enumerate(row)
+      )
+    return row
+
+  O = tuple(recolor_row(tuple((v, (i, j)) for j, v in enumerate(row)), i) for i, row in enumerate(I))
+  return O
+```
+
+**Explanation:**
+
+1. **`recolor_row(row, i)`:** Processes each row individually. It identifies objects within the row, calculates their `center_j`, and applies the recoloring logic to cells belonging to objects with more than one cell.
+
+2. **`Program_to_be_generated(I)`:**
+   *  Iterates through each row of the input grid (`I`).
+   *  Applies `recolor_row` to each row, effectively recoloring objects horizontally. 
+   *  Constructs and returns the recolored grid.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  def recolor_indices(indices, center_j):
+    return frozenset(
+      (i, (6 + center_j - j - 1) if j < center_j else (8 + j - center_j - 1) if j > center_j else j) 
+      for i, j in indices
+    )
+
+  new_grid = canvas(mostcolor(I), shape(I))
+  for obj in sfilter(fgpartition(I), lambda o: len(o) > 1):
+      center_j = centerofmass(obj)[1]
+      indices = toindices(obj)
+      recolored_indices = recolor_indices(indices, center_j)
+      new_grid = tuple(
+          tuple(
+              next(v for i2, v in recolored_indices if i2 == i and j2 == j) if any((i, j2) in recolored_indices for j2 in range(len(row))) 
+              else v 
+              for j, v in enumerate(row)
+          )
+          for i, row in enumerate(new_grid)
+      )
+  O = new_grid
+  return O
+```
+
+**Explanation:**
+
+1.  **`recolor_indices(indices, center_j)`:** Takes a set of indices belonging to an object and the object's `center_j`. It returns a new set of indices where the column index (`j`) is recolored based on the transformation logic.
+
+2. **`Program_to_be_generated(I)`:**
+    *   Creates a blank canvas (`new_grid`).
+    *   Iterates through objects in the input grid (`I`), focusing on objects with more than one cell.
+    *   For each object:
+        *   Gets the object's `center_j`.
+        *   Extracts the indices of its cells.
+        *   Recolors the column indices using `recolor_indices`.
+        *   Updates the `new_grid` with the recolored values at the corresponding indices.
+    *   Returns the `new_grid`.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  def shift_color(v, offset):
+    return v + offset if v != mostcolor(I) else v
+
+  recolored_grid = tuple(
+    tuple(
+        shift_color(v, 5 + j - center_j) if j < center_j 
+        else shift_color(v, 7 + j - center_j) if j > center_j 
+        else v 
+        for j, v in enumerate(row)
+    ) 
+    for row in (
+        tuple(
+            shift_color(v, -1) if any((i, j2) in toindices(obj) and j2 < center_j for obj in fgpartition(I) if len(obj) > 1) else v 
+            for j, v in enumerate(row)
+        ) 
+        for row in (
+            tuple(
+                shift_color(v, 1) if any((i, j2) in toindices(obj) and j2 > center_j for obj in fgpartition(I) if len(obj) > 1) else v 
+                for j, v in enumerate(row)
+            ) 
+            for i, row in enumerate(I)
+        )
+    )
+  )
+  O = recolored_grid
+  return O
+```
+
+**Explanation:**
+1. **`shift_color(v, offset)`:**  This helper function shifts the color value (`v`) by a given `offset`, ensuring that the background color remains unchanged. 
+
+2. **`Program_to_be_generated(I)`:**
+   *  Iterates through the input grid (`I`) with nested loops to access individual cells.
+   *  For each cell, it checks its position relative to the center of mass (`center_j`) of the object it belongs to.
+   *  It uses `shift_color` to adjust the cell's color based on its position: left of the center, right of the center, or at the center.
+   *  Constructs and returns the recolored grid. 
+
+These five versions demonstrate different approaches to achieve the same transformation using the provided DSL. Each version utilizes distinct logic or function combinations, making them meaningfully different rather than just minor variations.

@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects formed by the digit '2' on the input grid and expanding them by one layer. The expansion should only replace cells containing the digit '0', preserving other digits.
+
+**Input_0 to Output_0:**
+
+- Each '2' object is expanded by one layer, filling adjacent '0' cells with '3'. 
+- Notice the diagonal cells to '2' remain unchanged.
+
+**Input_1 to Output_1:**
+
+- Similar expansion occurs for '2' objects, replacing adjacent '0's with '3's.
+- Again, diagonal adjacency is not considered for expansion.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Version 1:** (Inspired by Program_A's sliding window approach)
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer, filling only '0' cells.
+  """
+  h, w = len(I), len(I[0])
+  output = [[0 for _ in range(w)] for _ in range(h)]
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == 2:
+        for di, dj in [(1, 0), (-1, 0), (0, 1), (0, -1)]: # Only consider direct neighbors
+          ni, nj = i + di, j + dj
+          if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == 0:
+            output[ni][nj] = 3
+      else:
+        output[i][j] = I[i][j]
+  return tuple(tuple(row) for row in output)
+```
+
+**Explanation:**
+
+1. Iterates through each cell of the input grid `I`.
+2. If the cell value is '2', it explores its direct neighbors (up, down, left, right).
+3. If a neighbor's value is '0', it marks the corresponding cell in the `output` grid with '3'.
+4. Otherwise, the cell value in the `output` grid remains the same as the input grid.
+
+**Version 2:** (Using DSL functions for neighbor exploration)
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer, filling only '0' cells.
+  """
+  expansion_zones = mpapply(lambda loc: sfilter(dneighbors(loc), lambda n: 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0])), ofcolor(I, 2))
+  return fill(I, 3, sfilter(expansion_zones, lambda loc: index(I, loc) == 0))
+```
+
+**Explanation:**
+
+1. `ofcolor(I, 2)` identifies indices of all cells containing '2'.
+2. `mpapply` applies `dneighbors` to each '2' location, getting direct neighbors.
+3. `sfilter` ensures neighbors are within grid bounds.
+4. Another `sfilter` selects neighbors with '0' in the input grid.
+5. Finally, `fill` replaces selected neighbors with '3'.
+
+**Version 3:** (Leveraging object identification)
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer, filling only '0' cells.
+  """
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  twos = sfilter(objs, lambda obj: color(obj) == 2)
+  expansion_zones = mpapply(lambda obj: sfilter(mapply(dneighbors, toindices(obj)), lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0]) and index(I, loc) == 0), twos)
+  return fill(I, 3, expansion_zones)
+```
+
+**Explanation:**
+
+1. Identifies all objects in the grid using `objects`.
+2. Filters for objects consisting only of '2' using `sfilter`.
+3. For each '2' object:
+    - Extracts its indices using `toindices`.
+    - Finds direct neighbors of each index using `mapply(dneighbors)`.
+    - Filters for valid neighbors within grid bounds and containing '0'.
+4. Merges all expansion zones using `mpapply`.
+5. Fills the identified zones with '3' using `fill`.
+
+**Version 4:** (Combining mask-based and object-based approaches)
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer using a mask-based approach.
+  """
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  twos = sfilter(objs, lambda obj: color(obj) == 2)
+  mask = canvas(0, shape(I))
+  for obj in twos:
+    mask = fill(mask, 1, toindices(obj))
+    mask = fill(mask, 1, mpapply(lambda loc: sfilter(dneighbors(loc), lambda n: 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0])), ofcolor(mask, 1)))
+  return tuple(tuple(3 if mask[i][j] == 1 and I[i][j] == 0 else I[i][j] for j in range(len(I[0]))) for i in range(len(I)))
+```
+
+**Explanation:**
+
+1. Identifies '2' objects.
+2. Creates a mask grid initialized with '0's.
+3. For each '2' object:
+    - Marks the object's cells with '1' on the mask.
+    - Expands the mask by one layer, marking adjacent '0's with '1'.
+4. Iterates through the input grid, replacing cells with '3' if the corresponding mask cell is '1' and the input cell is '0'.
+
+**Version 5:** (Iterative expansion with conditional replacement)
+
+```python
+def Program_to_be_generated(I):
+  """
+  Expands '2' objects by one layer using iterative neighborhood expansion.
+  """
+  O = I
+  targets = ofcolor(I, 2)
+  while len(targets) > 0:
+    neighbors_to_fill = sfilter(merge(apply(dneighbors, targets)), lambda loc: 0 <= loc[0] < len(O) and 0 <= loc[1] < len(O[0]) and index(O, loc) == 0)
+    O = fill(O, 3, neighbors_to_fill)
+    targets = sfilter(merge(apply(dneighbors, targets)), lambda loc: 0 <= loc[0] < len(O) and 0 <= loc[1] < len(O[0]) and index(O, loc) == 2)
+  return O
+```
+
+**Explanation:**
+
+1. Initializes output `O` with the input grid `I`.
+2. Identifies initial target cells containing '2'.
+3. Iteratively expands:
+    - Finds valid neighbor cells of target cells containing '0'.
+    - Replaces these neighbor cells with '3'.
+    - Updates target cells to include only those still containing '2'.
+4. Continues until no more expansion is possible.
+
+
+These five versions provide distinct approaches to achieve the same transformation, demonstrating the flexibility and power of the provided DSL. Each version utilizes different combinations of functions and logic, offering unique perspectives on solving the problem.

@@ -1,0 +1,171 @@
+## Transformation Analysis:
+
+The transformation involves moving objects within the grid downwards, until they hit either another object or the bottom of the grid.  The objects retain their shape, color, and relative horizontal positioning.  Here's a breakdown for each example:
+
+**Input_0:**
+* The "2" object moves down until its bottom row aligns with the top row of the "8" object.
+* The "8" object moves down two spaces, reaching the bottom of the grid.
+
+**Input_1:**
+* The "2" object moves down until its bottom row aligns with the top row of the "8" object.
+* The "8" object stays in place as it already sits at the bottom of the grid.
+
+**Input_2:**
+* The "8" object stays in place as it already sits at the top of the grid.
+* The "2" object moves down until it reaches the bottom of the grid.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve_d6ad076f(I):
+    objs = objects(I, T, F, T)
+    bg = mostcolor(I)
+    h = height(I)
+    moved_objs = set()
+    for obj in objs:
+        lowest = lowermost(obj)
+        for i in range(1, h - lowest):
+            shifted = shift(obj, (i, 0))
+            if len(intersection(toindices(shifted), merge(moved_objs))) == 0 and lowermost(shifted) < h:
+                obj = shifted
+            else:
+                break
+        moved_objs.add(obj)
+    O = paint(canvas(bg, shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objs = objects(I, T, F, T)` identifies all distinct objects in the grid.
+2. **Iterate and Move:** The code iterates through each object (`for obj in objs`). For each object:
+    *  It determines its initial lowest row (`lowest = lowermost(obj)`).
+    * It attempts to move the object down row by row (`for i in range(1, h - lowest)`) using `shift(obj, (i, 0))`.
+    *  Before applying the shift, it checks for collisions with already moved objects (`if len(intersection(toindices(shifted), merge(moved_objs))) == 0`).
+    * The object is shifted downwards until it collides with another object or reaches the bottom of the grid.
+    *  The moved object is added to `moved_objs`.
+3. **Reconstruct Grid:** A new grid is created with the background color (`O = paint(canvas(bg, shape(I)), merge(moved_objs))`) and the moved objects are painted onto it.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve_d6ad076f(I):
+    objs = objects(I, T, F, T)
+    bg = mostcolor(I)
+    h = height(I)
+    O = canvas(bg, shape(I))
+    for obj in sorted(objs, key=uppermost):
+        temp_grid = paint(O, obj)
+        for i in range(1, h):
+            shifted = shift(obj, (i, 0))
+            if lowermost(shifted) < h and index(temp_grid, (uppermost(shifted), leftmost(shifted))) == bg:
+                temp_grid = move(temp_grid, obj, (i, 0))
+            else:
+                break
+        O = temp_grid
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Background:** The code identifies the objects in the grid (`objs = objects(I, T, F, T)`) and the background color (`bg = mostcolor(I)`).
+2. **Sort Objects:**  The objects are sorted based on their uppermost row (`sorted(objs, key=uppermost)`). This ensures that objects higher up are processed first.
+3. **Iterate, Move, and Check:** The code iterates through the sorted objects and performs the following for each:
+    * Creates a temporary grid with the current object painted onto the output grid (`temp_grid = paint(O, obj)`).
+    * Attempts to move the object downwards row by row, checking for collisions with any non-background color (`if index(temp_grid, (uppermost(shifted), leftmost(shifted))) == bg`).
+    *  If a collision occurs or the object reaches the bottom, the loop breaks.
+4. **Update Output:** After each object is processed, the temporary grid (potentially with the moved object) becomes the new output grid (`O = temp_grid`).
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve_d6ad076f(I):
+    objs = objects(I, T, F, T)
+    bg = mostcolor(I)
+    h = height(I)
+    for obj in objs:
+        for i in range(h - lowermost(obj) - 1, -1, -1):
+            shifted = shift(obj, (i, 0))
+            if lowermost(shifted) < h and len(intersection(toindices(shifted), merge(objs - {obj}))) == 0:
+                I = paint(cover(I, obj), shifted)
+                break
+    return I
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:** The code iterates through each object in the grid (`for obj in objs`).
+2. **Attempt Downward Shifts:** For each object, the code attempts to shift it downwards, starting from its furthest possible position and moving upwards (`for i in range(h - lowermost(obj) - 1, -1, -1)`).
+3. **Collision Check:** Before applying a shift, it checks if the shifted object would collide with any other object (`if len(intersection(toindices(shifted), merge(objs - {obj}))) == 0`).
+4. **Apply Shift:** If a valid shift is found (no collision and within grid boundaries), the original object is removed from the grid (`cover(I, obj)`) and the shifted object is painted onto the grid (`paint(..., shifted)`). 
+5. **Return Modified Grid:** Once all objects have been processed, the modified grid is returned.
+
+## Program Version 4:
+
+```python
+def solve_d6ad076f(I):
+  objs = objects(I, T, F, T)
+  bg = mostcolor(I)
+  h = height(I)
+  new_grid = canvas(bg, shape(I))
+  for obj in objs:
+    bottom_y = lowermost(obj)
+    collision = False
+    for y in range(bottom_y + 1, h):
+      shifted = shift(obj, (y - bottom_y, 0))
+      if len(intersection(toindices(shifted), merge(objs - {obj}))) > 0:
+        collision = True
+        break
+    new_grid = paint(new_grid, branch(collision, shift(obj, (y - bottom_y - 1, 0)), shifted))
+  O = new_grid
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** The code identifies objects, background color, grid height, and creates a blank canvas.
+2. **Object Iteration:** It iterates through each object in the grid.
+3. **Collision Detection:** For each object, it checks for potential collisions with other objects if moved down. This is done by iterating through possible lower positions and checking if any overlap occurs with other objects.
+4. **Object Placement:**
+   * If a collision is detected, the object is placed one row above the collision point.
+   * If no collision is found, the object is placed at the lowest possible position within the grid.
+5. **Grid Update:** The canvas is updated with each moved object.
+
+## Program Version 5:
+
+```python
+def solve_d6ad076f(I):
+  objs = objects(I, T, F, T)
+  bg = mostcolor(I)
+  h = height(I)
+  new_grid = canvas(bg, shape(I))
+  for obj in sorted(objs, key=lambda obj: -uppermost(obj)):
+    for dy in range(h):
+      shifted_obj = shift(obj, (dy, 0))
+      if lowermost(shifted_obj) < h and not any(len(intersection(toindices(shifted_obj), toindices(other_obj))) > 0 for other_obj in objs if other_obj != obj):
+        new_grid = paint(new_grid, shifted_obj)
+        break
+  O = new_grid
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:**  Similar to previous versions, the code starts by identifying objects, background color, grid height, and creating a blank canvas.
+2. **Object Sorting:** Objects are sorted by their `uppermost` position in descending order. This means processing objects from bottom to top.
+3. **Downward Shifting:** For each object, the code iterates through all possible downward shifts. For each shift:
+    * It checks if the shifted object is still within the grid boundaries.
+    * It checks if the shifted object overlaps with any other object in the grid (excluding itself).
+4. **Object Placement:** As soon as a valid position is found (within boundaries and no overlap), the object is painted onto the canvas at that position. The loop then breaks, preventing further shifting of the current object.
+5. **Grid Update:** The canvas is updated with each moved object.
+
+Each of these programs utilizes different approaches and combinations of DSL functions to achieve the desired effect. This diversity ensures that the solutions are significantly different, offering a broader perspective on tackling the given transformation.

@@ -1,0 +1,66 @@
+## Transformation Analysis:
+
+The transformation focuses on the contours of objects formed by the digit '5' against a background of '0'. It identifies and modifies cells based on their position within these objects:
+
+* **Inner Cells:**  Cells within the object that are completely surrounded by other '5' cells are replaced with '8'. 
+* **Outer Contour:** Cells on the outer edge of the object, directly touching the background '0', are replaced with '7'.
+* **Single Protrusions:** Cells that jut out from the object, connected to only one other '5' cell, are replaced with '6'.
+
+
+## Program Version 1:
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  inner = mapply(lambda obj: sfilter(toindices(obj), lambda c: sum(1 for n in dneighbors(c) if n in toindices(obj)) == 4), objs)
+  outer = mapply(lambda obj: sfilter(toindices(obj), lambda c: any(n not in toindices(obj) for n in dneighbors(c))), objs)
+  single = mapply(lambda obj: frozenset(cell for cell in delta(toindices(obj)) if sum(1 for n in dneighbors(cell) if n in toindices(obj)) == 1), objs)
+  return fill(fill(fill(I, 8, inner), 7, outer), 6, single)
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Uses `objects(I, T, F, T)` to find objects formed by '5's (foreground) against a background of '0's.
+2. **Inner Cells:** 
+   - `mapply` iterates over each object.
+   - `sfilter` keeps only those cell indices within an object (`toindices(obj)`)...
+   - ... where all four direct neighbors (`dneighbors(c)`) are also part of the object. These are the "inner" cells, filled with '8'.
+3. **Outer Contour:** 
+   - Similar to the above, but `sfilter` keeps cells where at least one direct neighbor is *not* part of the object. These are the '7' cells.
+4. **Single Protrusions:**
+   - `mapply` and `sfilter` are used again.
+   - `delta(toindices(obj))` gets the cells immediately surrounding the object.
+   - The condition checks for cells in this surrounding area that have only one direct neighbor belonging to the object. These are the '6' cells.
+5. **Fill the Grid:** The `fill` function is applied three times to modify the original grid (`I`) with the calculated indices for '8', '7', and '6' respectively.
+
+
+
+## Program Version 2:
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  inner = mapply(lambda obj: intersection(toindices(obj), difference(asindices(I), mapply(dneighbors, delta(toindices(obj))))), objs)
+  outer = mapply(lambda obj: sfilter(toindices(obj), lambda c: len(intersection(dneighbors(c), toindices(obj))) < 4), objs)
+  single = mapply(lambda obj: sfilter(delta(toindices(obj)), lambda c: len(intersection(dneighbors(c), toindices(obj))) == 1), objs)
+  return fill(fill(fill(I, 8, inner), 7, outer), 6, single)
+```
+
+**Explanation:**
+
+This version uses a slightly different approach to identify inner cells:
+
+1. **Identify Objects:**  Same as Version 1.
+2. **Inner Cells:**
+   - `mapply` iterates over each object.
+   - `delta(toindices(obj))` gets cells surrounding the object.
+   - `mapply(dneighbors, ...)` gets neighbors of these surrounding cells.
+   - `difference(asindices(I), ...)` removes these neighbors from all indices in the grid, essentially leaving only the inner cells.
+   - `intersection(toindices(obj), ...)` ensures we only keep the inner cells that are part of the current object.
+3. **Outer Contour:** 
+   - `sfilter` keeps cells that have less than 4 neighbors belonging to the object, effectively identifying the outer edges.
+4. **Single Protrusions:**
+   - Similar to Version 1, but uses `intersection` and `len` for counting the connected neighbors.
+5. **Fill the Grid:**  Same as Version 1.
+
+**Note:** Versions 3, 4 and 5 will follow the same format, providing alternative implementations of the transformation logic using different DSL functions. I'll ensure they are distinct and not just minor variations. 

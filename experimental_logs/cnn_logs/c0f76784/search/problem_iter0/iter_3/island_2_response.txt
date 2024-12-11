@@ -1,0 +1,116 @@
+## Transformation Analysis:
+
+The transformation takes a grid and identifies the "objects" within it, where an object is a connected group of cells with the same value (excluding the background color). It then performs the following actions:
+
+* **Outer Boundary (7):** The cells immediately surrounding each object (touching diagonally) are identified and filled with the value '7'.
+* **Inner Boundary (8):** The cells within the object's bounding box, but not part of the object itself, are filled with the value '8'. 
+
+**Key Difference from Provided Programs:**
+
+The crucial difference in this transformation lies in the handling of concavity within objects. The 'inner boundary' (8) needs to be filled even in areas where the object itself is concave, leaving only a single-cell-wide gap from the 'outer boundary' (7). 
+
+## Program_to_be_generated:
+
+### Program Version 1: Using `delta` and `inbox` with Filtering
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    outer_boundary = mapply(delta, objs)  
+    all_inner = mapply(inbox, mapply(toindices, objs))
+    inner_boundary = difference(all_inner, mapply(toindices, objs))
+    O = fill(I, SEVEN, outer_boundary)
+    O = underfill(O, EIGHT, inner_boundary) 
+    return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Identifies all objects (excluding the background) in the input grid `I`.
+2. **`outer_boundary = mapply(delta, objs)`:**  Calculates the outer boundary of each object (cells touching the object diagonally) using the `delta` function and merges the results.
+3. **`all_inner = mapply(inbox, mapply(toindices, objs))`:**  Calculates the entire bounding box for each object using `inbox` and merges the results.
+4. **`inner_boundary = difference(all_inner, mapply(toindices, objs))`:** Subtracts the actual object cells from the bounding box, leaving only the desired inner boundary.
+5. **`O = fill(I, SEVEN, outer_boundary)`:**  Fills the outer boundary cells with '7'.
+6. **`O = underfill(O, EIGHT, inner_boundary)`:**  Fills the inner boundary cells with '8', only if they are part of the background.
+
+### Program Version 2: Iterative Approach with `paint`
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    O = paint(O, recolor(SEVEN, delta(obj)))
+    O = paint(O, recolor(EIGHT, difference(inbox(toindices(obj)), toindices(obj))))
+  return O
+```
+
+**Explanation:**
+
+1. **`O = I`:** Initializes the output grid `O` as a copy of the input `I`.
+2. **`for obj in objects(I, T, F, T):`:** Iterates through each identified object in the grid.
+3. **`O = paint(O, recolor(SEVEN, delta(obj)))`:**  Paints the outer boundary of the current object with '7'.
+4. **`O = paint(O, recolor(EIGHT, difference(inbox(toindices(obj)), toindices(obj))))`:**  Calculates the inner boundary (bounding box minus object cells) and paints it with '8'. 
+
+### Program Version 3: Exploiting Concavity with `neighbors`
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    outer_boundary = mapply(delta, objs)
+    expanded_objects = mapply(lambda obj:  mapply(neighbors, toindices(obj)), objs)
+    inner_boundary = difference(expanded_objects, mapply(toindices, objs))
+    O = fill(I, SEVEN, outer_boundary)
+    O = underfill(O, EIGHT, inner_boundary)
+    return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:**  Same as in previous versions.
+2. **`outer_boundary = mapply(delta, objs)`:**  Same as in previous versions.
+3. **`expanded_objects = mapply(lambda obj: mapply(neighbors, toindices(obj)), objs)`:** This line identifies all the neighbor cells of each object, effectively expanding the object outwards by one cell.
+4. **`inner_boundary = difference(expanded_objects, mapply(toindices, objs))`:** The difference between the expanded object and the original object gives us the inner boundary, accounting for concavity. 
+
+### Program Version 4:  Using Set Operations for Efficiency
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T) 
+    all_cells = asindices(I)
+    object_cells = mapply(toindices, objs)
+    outer_boundary = difference(mapply(backdrop, objs), object_cells)
+    inner_boundary = difference(all_cells, outer_boundary, object_cells)
+    O = fill(I, SEVEN, outer_boundary)
+    O = fill(O, EIGHT, inner_boundary)
+    return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Same as in previous versions.
+2. **`all_cells = asindices(I)`:**  Gets the indices of all cells in the grid.
+3. **`object_cells = mapply(toindices, objs)`:** Gets the indices of all cells belonging to any object.
+4. **`outer_boundary = difference(mapply(backdrop, objs), object_cells)`:** Calculates the outer boundary by finding the difference between the backdrop of each object and the object itself. 
+5. **`inner_boundary = difference(all_cells, outer_boundary, object_cells)`:** Calculates the inner boundary by removing the object cells and the outer boundary from the set of all cells. 
+
+### Program Version 5: Combining `neighbors` and `difference`
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    all_neighbors = mapply(lambda obj: mapply(neighbors, toindices(obj)), objs)
+    outer_boundary = difference(all_neighbors, mapply(toindices, objs))
+    inner_boundary = difference(mapply(inbox, mapply(toindices, objs)), outer_boundary, mapply(toindices, objs))
+    O = fill(I, SEVEN, outer_boundary)
+    O = underfill(O, EIGHT, inner_boundary)
+    return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Same as in previous versions.
+2. **`all_neighbors = mapply(lambda obj: mapply(neighbors, toindices(obj)), objs)`:**  Identifies all neighbor cells of every object in the grid.
+3. **`outer_boundary = difference(all_neighbors, mapply(toindices, objs))`:** The outer boundary is defined as the neighbor cells that are not part of the objects themselves.
+4.  **`inner_boundary = difference(mapply(inbox, mapply(toindices, objs)), outer_boundary, mapply(toindices, objs))`:**  Calculates the inner boundary by taking the bounding box, then removing the outer boundary and the object cells.
+
+Each of these program versions provides a distinct approach to achieve the target transformation, utilizing various DSL functions and strategies for handling the concavity of objects in the grid. 

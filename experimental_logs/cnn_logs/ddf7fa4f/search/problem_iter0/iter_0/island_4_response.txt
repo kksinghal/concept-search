@@ -1,0 +1,134 @@
+## Transformation Analysis:
+
+The transformation in all examples can be described as **"recoloring objects based on their original top-left corner color"**. This means:
+
+1. **Identify Objects:** The input grid is analyzed to identify distinct objects formed by connected pixels of the same color.
+2. **Determine Top-Left Color:** For each object, the color of the pixel at its top-left corner is determined.
+3. **Recolor Object:** The entire object is then recolored using the color identified in the previous step. 
+
+Let's analyze each input-output pair:
+
+**Pair 0:** The '5' object at the bottom is recolored to '2' (the color of its top-left corner), the '8' object is recolored to '8' (preserving its color), and the '6' object is recolored to '6'.
+
+**Pair 1:** The '5' object is recolored to '1', the '4' object is recolored to '4', and the '7' object is recolored to '7'.
+
+**Pair 2:** The '5' object is recolored to '1', the '6' object is recolored to '6', and the '7' object is recolored to '7'.
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve this transformation:
+
+
+### Program Version 1: Using `objects` and cell iteration
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    O = canvas(mostcolor(I), shape(I))
+    for obj in objs:
+        color_to_apply = next(iter(obj))[0]
+        for c, (i, j) in obj:
+            O = fill(O, color_to_apply, {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Identify all objects in the input grid `I`.
+2. **`O = canvas(mostcolor(I), shape(I))`:** Create an empty canvas `O` of the same size as the input, filled with the most frequent color in the input.
+3. **Iterate through objects:** 
+    - **`color_to_apply = next(iter(obj))[0]`:**  Get the color of the first cell of the object, which represents the top-left corner color.
+    - **Iterate through cells:**
+        - **`O = fill(O, color_to_apply, {(i, j)})`:**  Fill each cell of the object on the canvas `O` with the `color_to_apply`.
+4. **`return O`:** Return the transformed grid.
+
+
+### Program Version 2: Using `partition` and list comprehension
+
+```python
+def solve(I):
+    objs = partition(I)
+    O = [[next(v for v, (i, j) in obj if i == uppermost(obj) and j == leftmost(obj)) 
+          if (i, j) in toindices(obj) else I[i][j] 
+          for j in range(len(I[0]))] 
+          for i in range(len(I))]
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **`objs = partition(I)`:**  Partition the input grid into objects based on cell values.
+2. **List comprehension:** Create the output grid `O` using nested list comprehension. 
+    -  **Outer loop:**  Iterate over rows (`i`) of the input grid.
+    -  **Inner loop:** Iterate over columns (`j`) of the input grid.
+    -  **Conditional recoloring:** 
+        - **`next(v for v, (i, j) in obj if i == uppermost(obj) and j == leftmost(obj))`:**  Find the top-left corner cell of the object containing the current cell and get its color.
+        - **`if (i, j) in toindices(obj) else I[i][j]`:**  Apply the corner color if the current cell is part of the object; otherwise, keep the original color from the input grid.
+3. **`return tuple(tuple(row) for row in O)`:** Convert the list `O` back to a tuple representing a grid.
+
+
+### Program Version 3: Utilizing `toobject` and nested loops
+
+```python
+def solve(I):
+    O = canvas(mostcolor(I), shape(I))
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if I[i][j] != mostcolor(I):
+                obj = toobject({(i, j)}, I)
+                corner_color = I[uppermost(obj)][leftmost(obj)]
+                O = paint(O, recolor(corner_color, obj))
+    return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(...)`:**  Create a canvas `O`  like in previous versions.
+2. **Nested loops:** Iterate through each cell of the input grid `I`.
+3. **`if I[i][j] != mostcolor(I)`:** If the cell is not background:
+    -  **`obj = toobject({(i, j)}, I)`:** Create an object from the current cell and its connected neighbors with the same color.
+    -  **`corner_color = I[uppermost(obj)][leftmost(obj)]`:**  Find the color of the top-left corner of this object.
+    -  **`O = paint(O, recolor(corner_color, obj))`:**  Recolor the object on the output canvas with the `corner_color`.
+4. **`return O`:**  Return the transformed grid.
+
+
+### Program Version 4: Leveraging `asobject` and set operations
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T)
+    O = asobject(I)
+    for obj in objs:
+        target_color = next(iter(obj))[0]
+        O = frozenset((target_color if (i, j) in toindices(obj) else v, (i, j)) for v, (i, j) in O)
+    return tuple(tuple(v for v, (i, _) in sorted(filter(lambda x: x[1][0] == row, O), key=lambda x: x[1][1])) for row in range(len(I)))
+```
+
+**Explanation:**
+
+1.  **`objs = objects(...)`:**  Identify objects in the input grid.
+2.  **`O = asobject(I)`:** Convert the input grid into an object representation.
+3. **Iterate through objects:**
+    -  **`target_color = next(iter(obj))[0]`:** Get the color of the first cell (top-left corner) of the object.
+    -  **`O = frozenset(...)`:**  Update the `O` object representation using a set comprehension:
+        -  Recolor the cell with `target_color` if it belongs to the current object (`(i, j) in toindices(obj)`); otherwise, keep the original color.
+4. **`return ...`:**  Convert the object representation back to a grid using nested comprehensions and sorting to maintain the original order of cells. 
+
+
+### Program Version 5: Functional approach with `apply` and `lambda`
+
+```python
+def solve(I):
+   return tuple(tuple(apply(lambda j: next((v for v, (k, l) in apply(lambda obj: ((I[uppermost(obj)][leftmost(obj)], (i, j)) if (i, j) in toindices(obj) else (I[i][j], (i, j))), objects(I, T, F, T))) if k == i and l == j else I[i][j]), range(len(I[0])))) for i in range(len(I))) 
+```
+
+**Explanation:**
+
+This version is a more compact and functional approach achieving the transformation in a single line of code using nested `apply` functions and `lambda` expressions. 
+
+It iterates through each cell and uses `apply` and nested comprehensions to find the top-left corner color of the object containing that cell and applies it if the cell is part of an object.
+
+---
+
+These five versions demonstrate distinct approaches to achieving the same transformation, utilizing different combinations of DSL functions and programming paradigms. Each version showcases the flexibility and expressiveness of the provided DSL. 

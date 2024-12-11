@@ -1,0 +1,163 @@
+## Transformation Analysis:
+
+The transformation aims to identify and preserve only the "border" cells of objects within the input grid. The background color (most common color) remains unchanged.
+
+* **Input_0:** The '5's form a single object. The border cells are the '5's directly touching the '4' background. 
+* **Input_1:** The '6's form a single object.  The border cells are the '6's directly touching the '5' background.
+* **Input_2:**  The '9's form a single object. The border cells are the '9's directly touching the '5' background.
+
+## Code Generation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies object border cells by checking for neighboring background cells.
+  """
+  bg = mostcolor(I)
+  h, w = len(I), len(I[0])
+  O = [[bg] * w for _ in range(h)]  # Initialize with background
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != bg:  # Only check non-background cells
+        for di in [-1, 0, 1]:
+          for dj in [-1, 0, 1]:
+            ni, nj = i + di, j + dj
+            if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == bg:
+              O[i][j] = I[i][j]  # Mark as border cell
+              break  # Move to next cell once a border is found
+  return tuple(tuple(row) for row in O) 
+```
+
+**Explanation:**
+
+1. **Identify Background:** Determine the background color using `mostcolor(I)`.
+2. **Initialize Output:** Create an output grid `O` filled with the background color.
+3. **Iterate & Check Neighbors:** Iterate through each cell in the input grid `I`. For each non-background cell, check its 8 neighbors. If a neighbor is the background color, mark the current cell as a border cell in the output grid and proceed to the next cell.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Utilizes object and delta functions for concise border extraction.
+  """
+  bg = mostcolor(I)
+  objs = objects(I, T, F, T)
+  O = canvas(bg, shape(I))  # Canvas of background color
+  for obj in objs:
+    border_indices = delta(toindices(obj))
+    border_obj = toobject(border_indices, I) 
+    O = paint(O, border_obj)  # Paint border onto the canvas
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Background and Objects:** Get background color (`mostcolor(I)`) and extract objects (`objects(I, T, F, T)`).
+2. **Create Background Canvas:** Generate a canvas `O` of the background color and input grid size.
+3. **Extract and Paint Borders:** For each object, find its border indices (`delta(toindices(obj))`), convert them to an object with colors (`toobject(...)`), and paint this border object onto the canvas.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Leverages set operations to find border cells.
+  """
+  bg = mostcolor(I)
+  all_indices = asindices(I)
+  obj_indices = set(merge([toindices(obj) for obj in objects(I, T, F, T)]))  # All object cell indices
+  inner_indices = set()
+  for i, j in obj_indices:
+    for di in [-1, 0, 1]:
+      for dj in [-1, 0, 1]:
+        ni, nj = i + di, j + dj
+        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and (ni, nj) in obj_indices:
+          inner_indices.add((i, j))  # Mark cells with object neighbors as inner
+
+  border_indices = all_indices - inner_indices  # Border is everything but inner cells
+  O = canvas(bg, shape(I)) 
+  for i, j in border_indices:
+    O = fill(O, I[i][j], {(i, j)})  # Fill border cells with original colors
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Background and Indices:**  Get background color, all grid indices, and indices of all object cells.
+2. **Find Inner Cells:**  Iterate through object cell indices. If any neighbor is also an object cell, mark the current cell as an "inner" cell.
+3. **Calculate Border:** Subtract the set of inner cells from the set of all indices to get the border indices.
+4. **Construct Output:** Create a background canvas and fill border indices with their original colors from the input.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Uses a recursive flood-fill approach to identify inner cells and consequently borders.
+  """
+  h, w = len(I), len(I[0])
+  bg = mostcolor(I)
+  visited = set() 
+
+  def flood_fill(i, j):
+    if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or I[i][j] == bg:
+      return 
+    visited.add((i, j))
+    for di in [-1, 0, 1]:
+      for dj in [-1, 0, 1]:
+        if (di, dj) != (0, 0):
+          flood_fill(i + di, j + dj)
+
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != bg:
+        flood_fill(i, j)
+        break  # Only need to flood-fill one object cell
+
+  O = [[bg] * w for _ in range(h)]
+  for i in range(h):
+    for j in range(w):
+      if (i, j) not in visited and I[i][j] != bg:
+        O[i][j] = I[i][j]
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Initialization:**  Store grid dimensions, background color, and use a set `visited` to track visited cells.
+2. **Recursive Flood Fill:** Define `flood_fill` to recursively explore connected object cells and mark them as visited.
+3. **Initiate Flood Fill:** Start flood fill from a single non-background cell.
+4. **Construct Output:** Create a background canvas and fill in cells that were not visited during the flood fill (border cells).
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies border cells using a convolution-like approach with a kernel.
+  """
+  h, w = len(I), len(I[0])
+  bg = mostcolor(I)
+  kernel = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+  O = [[bg] * w for _ in range(h)]
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != bg:
+        for di, dj in kernel:
+          ni, nj = i + di, j + dj
+          if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == bg:
+            O[i][j] = I[i][j] 
+            break
+  return tuple(tuple(row) for row in O) 
+```
+
+**Explanation:**
+
+1. **Initialization:**  Store grid dimensions, background color, and define a `kernel` representing neighbor offsets.
+2. **Convolution-like Approach:** Iterate through the grid. For each non-background cell, check its neighbors using the kernel. If a neighbor is the background, mark the current cell as a border cell.
+3. **Construct Output:** The output grid `O` is initialized with the background and filled with border cells during the process.
+
+These five versions demonstrate diverse approaches to solve the given transformation problem, showcasing the flexibility and expressiveness of the provided DSL. 

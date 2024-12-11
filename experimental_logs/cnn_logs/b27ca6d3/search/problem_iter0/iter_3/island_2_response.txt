@@ -1,0 +1,111 @@
+## Transformation Analysis:
+
+The transformation appears to involve identifying objects (connected groups of the same color) and extending them horizontally by one cell to the left and right. However, the extension only occurs if the neighboring cell is the background color (0).
+
+**Example:**
+
+In Input_0, the object "2" at coordinates (2,2) is extended to the left and right, resulting in "3 2 3" in the output. This is because the neighboring cells at (2,1) and (2,3) were initially background color "0".
+
+
+## Program_to_be_generated: 
+
+Here are five distinct versions of the program, each using a slightly different approach:
+
+**Program Version 1:** (Inspired by `objects` and `fill` functions)
+
+```python
+def program(I):
+  objs = objects(I, T, F, T) 
+  output = I
+  for obj in objs:
+    for v, (i, j) in obj:
+      if j > 0 and output[i][j-1] == 0:
+        output = fill(output, 3, {(i, j-1)})
+      if j < len(output[0]) - 1 and output[i][j+1] == 0:
+        output = fill(output, 3, {(i, j+1)})
+  return output
+```
+
+**Explanation:**
+
+1. **Identify Objects:** We use `objects(I, T, F, T)` to get a set of objects in the input grid, considering only directly connected cells and excluding the background.
+2. **Iterate and Extend:** For each object and its cells:
+    - **Check Left:** If the cell to the left exists and is background (0), fill it with color 3.
+    - **Check Right:** If the cell to the right exists and is background (0), fill it with color 3.
+3. **Return Output:** The modified grid `output` is returned.
+
+**Program Version 2:** (Using `dneighbors` and set operations)
+
+```python
+def program(I):
+  output = I
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != 0:
+        for ni, nj in dneighbors((i, j)):
+          if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and I[ni][nj] == 0:
+            output = fill(output, 3, {(ni, nj)})
+  return output
+```
+
+**Explanation:**
+
+1. **Iterate Through Grid:** We iterate through each cell in the input grid.
+2. **Check for Non-Background:** If a cell is not background (0), we find its direct neighbors using `dneighbors`.
+3. **Extend to Neighbors:**  For each valid neighbor (within grid bounds) that is background (0), we fill it with color 3 in the `output` grid.
+
+**Program Version 3:** (Leveraging `shift` and `underfill`)
+
+```python
+def program(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    O = underfill(O, 3, shift(toindices(obj), (0, -1)))
+    O = underfill(O, 3, shift(toindices(obj), (0, 1)))
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Obtain objects from the input grid using `objects`.
+2. **Shift and Fill:** For each object:
+    - **Left Extension:** Shift the object's indices one step left (`shift(toindices(obj), (0, -1))`) and use `underfill` to fill these shifted positions with color 3 only if they were initially background in `O`.
+    - **Right Extension:** Repeat the process, shifting right (`(0, 1)`) instead.
+
+**Program Version 4:** (Combining `hconcat`, `trim`, and `cellwise`)
+
+```python
+def program(I):
+  left_shifted = hconcat(((0,),)*len(I), trim(I))
+  right_shifted = hconcat(trim(I), ((0,),)*len(I))
+  O = cellwise(left_shifted, I, 3)
+  O = cellwise(right_shifted, O, 3)
+  return O
+```
+
+**Explanation:**
+
+1. **Shifting:** Create two shifted versions of the input: `left_shifted` (shifted one column left) and `right_shifted` (shifted one column right).
+2. **Cellwise Comparison:** Use `cellwise` twice to compare the shifted grids with the original:
+    - If the shifted cell matches the original, keep the original value.
+    - If they don't match (meaning the shifted cell is over a background 0), fill with 3.
+
+**Program Version 5:** (Exploiting horizontal periodicity with `hperiod`)
+
+```python
+def program(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    if hperiod(obj) == 1:
+      O = underfill(O, 3, shift(toindices(obj), (0, -1)))
+      O = underfill(O, 3, shift(toindices(obj), (0, 1)))
+  return O 
+```
+
+**Explanation:**
+
+1. **Object and Periodicity:** We find objects and calculate their horizontal periodicity using `hperiod`.
+2. **Selective Extension:** Only objects with a period of 1 (meaning they are not repeating horizontally) are considered for extension. This potentially improves efficiency for inputs with repeating patterns.
+3. **Extend if Not Periodic:** The rest of the logic remains the same as in previous versions, using `shift` and `underfill` to extend the selected objects. 
+
+These five versions demonstrate different approaches to solve the transformation task within the DSL constraints. Each leverages unique aspects of the provided functions, offering varying levels of code complexity and potential efficiency gains.

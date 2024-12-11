@@ -1,0 +1,109 @@
+## Transformation Analysis:
+
+**Input 0 -> Output 0:**  The transformation identifies the largest object (the '5' shape) and replaces the inner 3x3 portion with the value '2'. The outer layer of the object remains unchanged.
+
+**Input 1 -> Output 1:**  Similar to the previous transformation, this one targets all objects and replaces their inner portions with '2'.  The difference here is that the replacement happens only if the inner portion would be at least 2x2. If an object's inner portion is smaller, no change is made.
+
+## Program Versions:
+
+Here are five distinct program versions that achieve the desired transformations. Each leverages different DSL functions and approaches. 
+
+**Program Version 1 (Inspired by Program_B):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Find all objects
+  recolored_objs = frozenset()
+  for obj in objs:
+    inner_indices = toindices(obj) - mfilter(toindices(obj), lambda loc: len(dneighbors(loc) & toindices(obj)) < 4)
+    if len(inner_indices) >= 4: # Check if inner area is at least 2x2
+      recolored_objs = recolored_objs | frozenset({recolor(2, toobject(inner_indices, I))})
+  O = I 
+  for obj in recolored_objs:
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Find Objects:** `objects(I, T, F, T)` identifies all distinct objects in the input grid `I`.
+2. **Iterate and Modify:** For each object, we calculate the `inner_indices` that represent cells fully surrounded by the object. We then check if the number of `inner_indices` is at least 4 (meaning the inner area is at least 2x2). If so, we recolor the corresponding object using `recolor(2, toobject(inner_indices, I))` and add it to `recolored_objs`.
+3. **Paint Changes:** Finally, we iterate through `recolored_objs` and paint them onto a copy of the input grid `I` to generate the output grid `O`.
+
+**Program Version 2 (Combined approach):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  recolored_objs = frozenset({recolor(2, toobject(crop(I, add(ulcorner(obj),(1,1)), subtract(shape(obj), (2, 2))), I)) for obj in objs if all(x >= 2 for x in shape(obj))})
+  O = I 
+  for obj in recolored_objs:
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Find Objects:** Similar to Version 1, we begin by identifying all objects.
+2. **Process and Recolor:** This version employs a more compact approach. It directly uses `crop` with adjusted coordinates (`add(ulcorner(obj),(1,1))` for the starting point, `subtract(shape(obj), (2, 2))` for dimensions) to extract the inner rectangle of each object, provided its dimensions are at least 2x2 (`all(x >= 2 for x in shape(obj))`). Then, it recolors these cropped portions to '2' and collects them in `recolored_objs`.
+3. **Paint Changes:** We paint the recolored objects onto the input grid to produce the final output.
+
+**Program Version 3 (Shape-based Filtering):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  large_objs = sfilter(objs, lambda obj: all(x >= 4 for x in shape(obj))) # Filter for objects with width and height >= 4
+  recolored_objs = mapply(lambda obj: recolor(2, toobject(crop(I, add(ulcorner(obj), (1, 1)), (shape(obj)[0]-2, shape(obj)[1]-2)), I)), large_objs)
+  O = I
+  for obj in recolored_objs:
+    O = paint(O, obj) 
+  return O
+```
+
+**Explanation:**
+
+1. **Find Objects and Filter:** After identifying objects, this version filters them based on their size using `sfilter` and keeps only those with both width and height greater than or equal to 4 (`all(x >= 4 for x in shape(obj))`).
+2. **Recolor Inner Portion:** The `mapply` function is used to apply a transformation to each of the filtered large objects. For each such object, `crop` extracts the inner rectangle (dimensions reduced by 2 from each side). This cropped portion is then recolored to '2' and stored in `recolored_objs`. 
+3. **Paint Changes:** Similar to previous versions, the recolored objects are painted onto the input grid.
+
+**Program Version 4 (Direct Index Manipulation):** 
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  inner_indices = frozenset()
+  for obj in objs:
+    if all(x >= 4 for x in shape(obj)): # Consider objects with width and height at least 4
+      ul_i, ul_j = ulcorner(obj)
+      lr_i, lr_j = lrcorner(obj)
+      inner_indices = inner_indices | frozenset((i, j) for i in range(ul_i+1, lr_i) for j in range(ul_j+1, lr_j))
+  O = fill(I, 2, inner_indices)
+  return O 
+```
+
+**Explanation:**
+
+1. **Object Identification and Filtering:**  Identifies objects and filters those smaller than 4x4.
+2. **Direct Index Calculation:** For each qualifying object, directly calculate the indices of its inner rectangle using the corner coordinates obtained from `ulcorner` and `lrcorner`.
+3. **Fill Inner Indices:**  Fills all the calculated inner indices with the value '2' using the `fill` function.
+
+**Program Version 5 (Neighbor Count Check):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  recolored_indices = frozenset()
+  for obj in objs:
+    for i, j in toindices(obj):
+      if all(neighbor in toindices(obj) for neighbor in dneighbors((i,j))):  # Check if all direct neighbors belong to the same object
+          recolored_indices = recolored_indices | frozenset({(i, j)})
+  O = fill(I, 2, recolored_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:**  Identifies all distinct objects.
+2. **Neighbor-Based Filtering:**  Iterates through each cell of each object. If all direct neighbors of a cell belong to the same object (indicating an inner cell), its index is added to `recolored_indices`.
+3. **Fill Recolored Indices:**  Fills all cells indexed in `recolored_indices` with the value '2'. 

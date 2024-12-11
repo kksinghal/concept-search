@@ -1,0 +1,149 @@
+## Transformation Analysis:
+
+The transformation appears to follow these rules:
+
+* **Horizontal Extension:**  Non-background digits are extended horizontally to the right until they encounter another non-background digit or the grid boundary. 
+* **Vertical Alignment:** If a horizontally extended digit shares a column with another non-background digit below it, the extension continues downwards until reaching that digit or the bottom grid boundary.
+
+**Example Breakdown:**
+
+* **Input_0:** The '8's are extended to the right. The rightmost '8' in the top row doesn't extend downwards because there's no '8' below it. The other '8's form a connected line extending downwards.
+* **Input_1:** Similar to Input_0, the '8's extend rightwards.  The bottom row's '8' doesn't trigger vertical extension for the '8' above it because it's not directly connected.
+* **Input_2:** Demonstrates both horizontal and vertical extension, with '8's forming a connected shape.
+
+
+## Program_to_be_generated:
+
+Here are five distinct code versions in the DSL to achieve this transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(height(I)):
+    current_color = mostcolor(I)
+    for j in range(width(I)):
+      if index(O, (i, j)) != mostcolor(I): 
+        current_color = index(O, (i,j))
+        for k in range(j+1, width(O)):
+          if index(O,(i,k)) != mostcolor(I):
+            break
+          else:
+            O = fill(O, current_color, {(i, k)})
+        for l in range(i+1, height(O)):
+          if index(O, (l, j)) != mostcolor(I):
+            for m in range(j+1, width(O)):
+              if index(O, (l, m)) != mostcolor(I):
+                break
+              else:
+                O = fill(O, current_color, {(l, m)})
+            break
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O` (output) is initialized as a copy of `I` (input).
+2. **Iteration:** The code iterates through each cell of the grid.
+3. **Horizontal Extension:** If a non-background color (`current_color`) is encountered, it extends rightwards by filling cells with `current_color` until another non-background color is found.
+4. **Vertical Extension:**  It checks if a non-background color exists directly below the current cell. If so, it extends the fill downwards in the same manner as horizontal extension. 
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, False, False, True):
+    start_j = leftmost(obj)
+    end_j = rightmost(obj)
+    for j in range(start_j, end_j + 1):
+      bottom_i = max({i for i, jj in toindices(obj) if jj == j}, default=-1)
+      if bottom_i != -1:
+        O = fill(O, color(obj), {(i, j) for i in range(uppermost(obj), bottom_i + 1)})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** `O` is initialized as a blank canvas of the same size as the input, filled with the background color.
+2. **Object-based Processing:** It iterates through each object (connected components of non-background colors) in the input grid.
+3. **Horizontal Span:** For each column within the object's bounding box, it determines the lowest row containing a part of the object.
+4. **Vertical Fill:** It then draws a vertical line from the object's top row to the determined bottom row, effectively filling the object according to the transformation rules.
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for j in range(width(I)):
+    for i in range(height(I)):
+      if index(O, (i, j)) != mostcolor(I):
+        current_color = index(O, (i, j))
+        for k in range(j + 1, width(I)):
+          if index(O, (i, k)) != mostcolor(I):
+            break
+          O = fill(O, current_color, {(i, k)})
+        break  # Move to the next column once a color is found
+  return O
+```
+
+**Explanation:**
+
+1. **Column-First Iteration:** It iterates through the grid column by column.
+2. **First Non-Background Color:** Within each column, it searches for the first non-background color.
+3. **Horizontal Fill:** Once found, it extends that color rightwards until encountering another non-background color or the grid boundary.
+4. **Column Skip:**  The `break` statement ensures that only the first non-background color in each column triggers the fill, preventing unnecessary iterations.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(height(I)):
+    fill_color = mostcolor(I)
+    for j in range(width(I)):
+      if index(O, (i, j)) != mostcolor(I) and fill_color == mostcolor(I):
+        fill_color = index(O, (i, j))
+      O = fill(O, fill_color, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Row-wise Processing:**  Iterates through the grid row by row.
+2. **Color Tracking:**  `fill_color` stores the color to be used for filling within each row. It's initialized with the background color.
+3. **Fill or Update:**  For each cell, if it's a non-background color and the current `fill_color` is the background, `fill_color` is updated. Otherwise, the cell is filled with `fill_color`. This effectively extends the first encountered non-background color throughout the row. 
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, False, False, True):
+    min_i, min_j = ulcorner(obj)
+    max_i, max_j = lrcorner(obj)
+    for i in range(min_i, max_i + 1):
+      found_color = False 
+      for j in range(min_j, max_j + 1):
+        if index(O, (i, j)) != mostcolor(I) and not found_color:
+          found_color = True
+        if found_color:
+          O = fill(O, index(O, (i, min_j)), {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Object-Centric:** Iterates through objects (non-background color components).
+2. **Bounding Box:**  Determines the top-left and bottom-right corners of each object's bounding box.
+3. **Row-wise Fill:**  For each row within the bounding box, it fills cells from left to right, starting from the column where the first non-background color is found in that row. 
+
+
+## Note:
+
+These program versions offer different approaches to achieve the desired transformation. 
+* **Program Versions 1 & 2**  closely mimic the conceptual understanding of the transformation.
+* **Program Versions 3, 4 & 5** provide alternative implementations that might be more efficient or concise.
+
+Choose the version that best suits your needs in terms of readability, efficiency, or alignment with the DSL's strengths. 

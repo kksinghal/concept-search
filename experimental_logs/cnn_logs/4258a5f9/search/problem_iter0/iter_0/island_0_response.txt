@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (clusters of the same digit different from the background) and drawing a bounding box around them. The bounding box is filled with the digit '1', except for the cells originally occupied by the object, which retain their original value. 
+
+**Example:**
+
+Let's say we have an object formed by the digit '5' on a background of '0' in the input:
+
+```
+0 0 0 0 5 0 0
+0 0 0 0 5 0 0
+0 0 5 5 5 0 0 
+```
+
+The output would be:
+
+```
+0 0 0 0 1 0 0
+0 0 0 0 1 0 0
+0 0 1 5 1 0 0
+```
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the DSL:
+
+**Version 1:**
+
+```python
+def solve(I):
+  # Identify objects
+  objs = objects(I, T, F, T) 
+  # Generate bounding boxes 
+  boxes = mapply(box, objs) 
+  # Fill bounding boxes with '1'
+  filled_boxes = fill(I, ONE, merge(boxes))
+  # Combine original objects with filled bounding boxes
+  O = cellwise(I, filled_boxes, ONE)  
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects (objs):**  Uses `objects` to find connected components of non-background digits in the input grid.
+2. **Generate bounding boxes (boxes):** Applies the `box` function to each object to get the indices forming the bounding box.
+3. **Fill bounding boxes with '1' (filled_boxes):**  Fills the `boxes` with the value '1' using the `fill` function.
+4. **Combine objects and filled boxes (O):** Uses `cellwise` to combine the original grid `I` with `filled_boxes`, giving priority to the original values and filling the rest with '1'.
+
+**Version 2:**
+
+```python
+def solve(I):
+  # Identify and paint objects with a unique color 
+  objs = objects(I, T, F, T)
+  painted = paint(I, merge(apply(lambda obj: recolor(TEN, obj), objs)))
+  # Find bounding boxes of the unique color
+  boxes = mapply(box, objects(painted, T, F, T))
+  # Fill with '1' and restore original colors
+  O = cellwise(fill(painted, ONE, merge(boxes)), I, ONE)
+  return O
+```
+
+**Explanation:**
+
+1. **Paint objects with unique color (painted):**  Identifies objects, recolors each object to a temporary color (`TEN`), and paints them onto the input grid. 
+2. **Find bounding boxes (boxes):**  Identifies the bounding boxes of the recolored objects.
+3. **Fill and restore (O):** Fills the boxes with '1', then uses `cellwise` to restore the original colors from the input grid, keeping the '1' fill for the bounding boxes.
+
+**Version 3:**
+
+```python
+def solve(I):
+  # Iterate through each unique color in the grid
+  O = I
+  for value in palette(I) - {mostcolor(I)}:
+    # Identify objects of the current color
+    objs = colorfilter(objects(I, T, F, T), value)
+    # Generate bounding boxes and fill with '1'
+    boxes = mapply(box, objs)
+    filled_boxes = fill(O, ONE, merge(boxes))
+    # Update the output grid
+    O = cellwise(O, filled_boxes, ONE)
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through colors:** Iterates over each unique color in the input grid (excluding the background).
+2. **Identify objects (objs):**  Finds objects of the current color.
+3. **Generate boxes and fill (filled_boxes):** Creates bounding boxes for these objects and fills them with '1'.
+4. **Update output grid (O):** Combines the filled boxes with the output grid, preserving the original object values.
+
+**Version 4:**
+
+```python
+def solve(I):
+  # Find indices of all non-background cells
+  non_bg_indices = difference(asindices(I), ofcolor(I, mostcolor(I)))
+  # Expand each index to create a small square object
+  small_squares = apply(lambda idx: frozenset({(ONE, (i, j)) for i in range(idx[0]-1, idx[0]+2) for j in range(idx[1]-1, idx[1]+2)}), non_bg_indices)
+  # Paint all small squares onto the input grid
+  painted = paint(I, merge(small_squares))
+  # Replace all non-background values with '1'
+  O = replace(painted, ONE, ONE)
+  return O
+```
+
+**Explanation:**
+
+1. **Find non-background indices (non_bg_indices):** Identifies the indices of all cells not containing the background color.
+2. **Create small squares (small_squares):** Creates a set of small 3x3 objects, each centered around a non-background index and filled with '1'.
+3. **Paint squares (painted):** Paints these squares onto the input grid.
+4. **Replace non-background with '1' (O):** Replaces all remaining non-background values in the painted grid with '1', effectively creating the bounding boxes filled with '1'. 
+
+**Version 5:**
+
+```python
+def solve(I):
+  # Define a function to create a filled box object given upper-left and lower-right corners
+  def filled_box(ul, lr): 
+    return frozenset({(ONE, (i, j)) for i in range(ul[0], lr[0]+1) for j in range(ul[1], lr[1]+1)})
+  # Get bounding box corners for each object
+  objs = objects(I, T, F, T)
+  corners = apply(lambda obj: (ulcorner(obj), lrcorner(obj)), objs)
+  # Create filled boxes for each object 
+  filled_boxes = apply(lambda corner_pair: filled_box(*corner_pair), corners)
+  # Paint the filled boxes onto the input grid
+  O = paint(I, merge(filled_boxes))
+  return O
+```
+
+**Explanation:**
+
+1. **Define `filled_box` function:** Creates a helper function to generate a filled box object given its corner coordinates. 
+2. **Get bounding box corners (corners):**  Extracts the upper-left and lower-right corners of each object's bounding box.
+3. **Create filled boxes (filled_boxes):**  Applies the `filled_box` function to each corner pair to generate filled box objects.
+4. **Paint boxes (O):**  Paints the filled boxes onto the input grid to produce the final output. 
+
+These five versions provide diverse approaches to achieving the desired transformation using the provided DSL. They leverage different combinations of functions and strategies, showcasing the flexibility of the DSL for solving this spatial reasoning task. 

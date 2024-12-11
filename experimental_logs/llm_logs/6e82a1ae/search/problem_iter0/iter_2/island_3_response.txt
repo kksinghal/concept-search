@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation relabels connected components (objects) in the input grid based on their spatial ordering. The relabeling follows these rules:
+
+* **Connectivity:**  Objects are considered connected if their cells share a side (not just a corner).
+* **Ordering:** Objects are labeled based on the top-to-bottom, left-to-right order of their top-leftmost cells. 
+* **Label Assignment:** The first object encountered gets label '1', the second '2', and so on. The background (color '0') remains unchanged.
+
+Let's illustrate with `Input_0`:
+
+1. The top-leftmost object is the '5' at (2,1). This object gets label '1'.
+2. The next object is the '5' at (6,9), getting label '2'.
+3. The last object, the '5' at (7,1), receives label '3'.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving this transformation:
+
+**Version 1: Recursive Flood Fill**
+
+```python
+def Program_to_be_generated(I):
+  def flood_fill(i, j, label):
+    if 0 <= i < height(I) and 0 <= j < width(I) and I[i][j] != ZERO and (i, j) not in visited:
+      visited.add((i, j))
+      O = paint(O, {(label, (i, j))})
+      for ni, nj in dneighbors((i, j)):
+        O = flood_fill(ni, nj, label)
+    return O
+
+  O = canvas(ZERO, shape(I))
+  visited = set()
+  label = 1
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if I[i][j] != ZERO and (i, j) not in visited:
+        O = flood_fill(i, j, label)
+        label += 1
+  return O 
+```
+
+**Explanation:**
+
+1. **Initialization:**  Creates an empty canvas `O` and a `visited` set to keep track of processed cells. `label` starts at 1.
+2. **Iteration:** Iterates through each cell of the input grid `I`.
+3. **Flood Fill:** If an unvisited non-zero cell is found, `flood_fill` is called:
+   - It marks the current cell as visited and paints it with the `label` on canvas `O`.
+   - Recursively calls itself for each non-zero neighbor.
+4. **Label Increment:** After each object is filled, the `label` is incremented for the next object.
+
+**Version 2: Iterative Flood Fill**
+
+```python
+def Program_to_be_generated(I):
+  def flood_fill(i, j, label):
+    queue = [(i, j)]
+    while queue:
+      ci, cj = queue.pop()
+      if 0 <= ci < height(I) and 0 <= cj < width(I) and I[ci][cj] != ZERO and (ci, cj) not in visited:
+        visited.add((ci, cj))
+        O = paint(O, {(label, (ci, cj))})
+        for ni, nj in dneighbors((ci, cj)):
+          queue.append((ni, nj))
+    return O
+
+  O = canvas(ZERO, shape(I))
+  visited = set()
+  label = 1
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if I[i][j] != ZERO and (i, j) not in visited:
+        O = flood_fill(i, j, label)
+        label += 1
+  return O
+```
+
+**Explanation:**
+
+- Similar to Version 1, but uses an explicit queue instead of recursion for flood fill. 
+
+**Version 3: Object-Based Labeling** 
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T) 
+    O = canvas(ZERO, shape(I))
+    label = 1
+    for obj in objs:
+        O = paint(O, recolor(label, obj))
+        label += 1
+    return O
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Uses `objects` function to directly extract connected components, excluding the background.
+2. **Labeling and Painting:** Iterates through each extracted object and paints it on the canvas with an incrementing `label`.
+
+**Version 4: Sorted Object Labeling**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)
+    sorted_objs = sorted(objs, key=lambda obj: min(i * 100 + j for v, (i, j) in obj))  # Sort by top-left
+    O = canvas(ZERO, shape(I))
+    label = 1
+    for obj in sorted_objs:
+        O = paint(O, recolor(label, obj))
+        label += 1
+    return O
+```
+
+**Explanation:**
+
+- Similar to Version 3, but explicitly sorts the objects by their top-left corner before labeling.
+
+**Version 5:  Combined Labeling and Painting**
+
+```python
+def Program_to_be_generated(I):
+    O = canvas(ZERO, shape(I))
+    label = 1
+    for i in range(height(I)):
+        for j in range(width(I)):
+            if I[i][j] != ZERO and O[i][j] == ZERO: # Check if already painted
+                O = paint(O, recolor(label, toobject(flood_fill(I, i, j, I[i][j], -1), I)))
+                label += 1
+    return O
+
+def flood_fill(grid, i, j, target, replacement):
+    if 0 <= i < height(grid) and 0 <= j < width(grid) and grid[i][j] == target:
+        grid = paint(grid, {(replacement, (i, j))})
+        for ni, nj in dneighbors((i, j)):
+            grid = flood_fill(grid, ni, nj, target, replacement)
+    return grid
+```
+**Explanation:**
+
+1. **Simultaneous Processing:** Iterates through the grid, and upon encountering an unpainted non-zero cell, performs labeling and painting together.
+2. **Temporary Filling:** Uses `flood_fill` with a temporary replacement value to mark the object during processing.
+3. **Object Creation:**  Creates an object from the temporarily filled region using `toobject` and then paints it with the current `label`.
+
+Each version demonstrates a different approach using various DSL functions to achieve the same connected component labeling and ordered relabeling. 

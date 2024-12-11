@@ -1,0 +1,148 @@
+## Transformation Analysis
+
+The transformation applied to the input grids can be described as **"gravity shifting"**:
+
+* **Identify Objects:**  Each unique digit (excluding the background color, 0) represents a distinct object.
+* **Shift Downwards:** Each object is independently shifted downwards until it reaches the bottom of the grid or encounters another object.
+
+Let's illustrate with an example using `Input_1`:
+
+**Input_1:**
+
+```
+0 0 0 0 0 0 0 0 0 0
+0 2 2 0 0 0 0 0 0 0
+0 2 2 0 0 0 0 0 0 0
+2 2 2 0 0 0 0 0 0 0
+0 2 2 0 0 0 8 8 0 0
+0 0 0 0 0 0 8 8 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 
+```
+
+**Output_1:**
+
+```
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 2 2 0 0 0 0
+0 0 0 0 2 2 0 0 0 0
+0 0 0 2 2 2 0 0 0 0
+0 0 0 0 2 2 8 8 0 0
+0 0 0 0 0 0 8 8 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 
+```
+
+The '2' object is shifted down until its lowest point reaches the bottom. The '8' object also shifts down, but its descent is stopped by the presence of the '2' object. 
+
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve the "gravity shift" transformation:
+
+**Program Version 1: Object Iteration with Maximum Lowermost**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Extract non-background objects
+  shifted_objs = set()
+  for obj in objs:
+    lowest_row = lowermost(obj)  # Find the lowest row of the object
+    shift_distance = height(I) - lowest_row - 1  # Calculate downward shift distance
+    shifted_objs.add(shift(obj, (shift_distance, 0)))  # Shift the object downwards
+  return paint(canvas(ZERO, shape(I)), frozenset(shifted_objs))  # Paint onto a blank canvas
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Identifies all non-background objects using `objects(I, T, F, T)`.
+2. **Iterate and Shift:**  Iterates through each object and determines the required downward shift to bring its lowest point to the grid's bottom. It achieves this using `lowermost` and `height` functions. The object is then shifted using the `shift` function.
+3. **Paint:** Finally, all shifted objects are painted onto a blank canvas of the same size as the input grid.
+
+**Program Version 2: Sorting Objects by Lowermost Row**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  sorted_objs = order(objs, lowermost)  # Sort objects from top to bottom
+  shifted_objs = set()
+  occupied = set()
+  for obj in sorted_objs:
+    for v, (i, j) in obj:
+      new_i = i
+      while (new_i, j) not in occupied and new_i < height(I) - 1:
+        new_i += 1  # Find the next available space below
+      shifted_objs.add((v, (new_i, j)))
+      occupied.add((new_i, j))
+  return paint(canvas(ZERO, shape(I)), frozenset(shifted_objs))
+```
+
+**Explanation:**
+
+1. **Extract and Sort:** Extracts objects and sorts them based on their lowest row position using `lowermost` within the `order` function. This ensures that objects are processed from top to bottom.
+2. **Find and Shift:** Iterates through each sorted object. For every cell in the object, it finds the lowest available empty space below its current position and places the cell there.
+3. **Paint:**  Paints the shifted cells onto a blank canvas.
+
+**Program Version 3: Column-wise Shifting**
+
+```python
+def Program_to_be_generated(I):
+  h, w = shape(I)  # Get grid dimensions
+  new_grid = [[ZERO for _ in range(w)] for _ in range(h)]  # Initialize empty grid
+  for j in range(w):  # Iterate over columns
+    column = [I[i][j] for i in range(h)]  # Extract column
+    non_zeros = [v for v in column if v != ZERO]  # Filter out zeros
+    new_grid[h - len(non_zeros):h] = non_zeros  # Place non-zeros at the bottom
+  return tuple(tuple(row) for row in new_grid)  # Convert to tuple
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates an empty grid of the same size as the input.
+2. **Column Processing:**  Iterates over each column, extracts it from the input grid, and filters out the zero (background) values.
+3. **Shifting:** Places the non-zero values at the bottom of the corresponding column in the new grid. 
+4. **Output:** Returns the modified grid.
+
+**Program Version 4: Using `gravitate` Function (adapted from Program_B)**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Extract objects
+  bottom_edge = frozenset((height(I) - 1, j) for j in range(width(I)))  # Define the bottom edge 
+  shifted_objs = set()
+  for obj in objs:
+    shift_amount = gravitate(obj, bottom_edge)  # Calculate shift needed to reach bottom
+    shifted_objs.add(shift(obj, shift_amount))  # Apply the shift
+  return paint(canvas(ZERO, shape(I)), frozenset(shifted_objs)) # Paint onto a blank canvas
+```
+
+**Explanation:**
+
+1. **Extract Objects and Define Bottom Edge:** Identifies all non-background objects. Defines the bottom edge of the grid as the target for gravitation.
+2. **Calculate and Apply Shifts:** Iterates through each object and uses the `gravitate` function to determine the shift required to bring the object to the bottom edge. This shift is then applied to the object using the `shift` function. 
+3. **Paint:** Paints the shifted objects onto a blank canvas.
+
+**Program Version 5:  Direct Shifting with Object Modification (inspired by Program_A)**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) # Extract objects
+  return paint(canvas(ZERO, shape(I)), 
+               frozenset(
+                   recolor(color(obj), # Maintain object color
+                           {(i + height(I) - 1 - lowermost(obj), j) 
+                            for i, j in toindices(obj)}) # New indices for bottom placement
+                   for obj in objs
+               ))
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Identifies all non-background objects. 
+2. **Calculate New Indices and Recolor:** For each object, calculates the new indices of its cells after shifting to the bottom. It utilizes `height`, `lowermost`, and `toindices` functions for this. Recolors the new indices with the original object's color.
+3. **Paint:** Paints the objects with the updated indices and colors onto a blank canvas.
+
+
+These five program versions provide diverse implementations of the "gravity shift" transformation using different DSL functions and logical approaches, showcasing the flexibility and expressiveness of the provided DSL.

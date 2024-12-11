@@ -1,0 +1,101 @@
+## Transformation Analysis:
+
+The transformation applied in all examples is to **extend each non-background object by one cell to the right**, effectively adding a "shadow" or "outline" to their right side. The extension only occurs if the cell to the right is within the grid boundaries and doesn't already belong to another object.
+
+Here's a breakdown for each example:
+
+* **Input 0:** The "1" objects at the top and bottom are extended to the right.
+* **Input 1:** All the "1" objects are extended to the right.
+* **Input 2:** Similar to the other examples, all non-background objects gain a one-cell extension on their right side.
+
+## Code Generation:
+
+Here are five distinct program versions that achieve the desired transformation using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+    x1 = fgpartition(I)  # Get non-background objects
+    x2 = apply(lambda obj: shift(obj, RIGHT), x1)  # Shift all objects one cell to the right
+    x3 = apply(lambda obj: {(v, (i, j)) for v, (i, j) in obj if 0 <= j < len(I[0])}, x2)  # Remove cells outside the grid boundaries
+    O = underpaint(I, merge(x3))  # Paint onto background cells only
+    return O
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:**  Identifies all non-background objects in the input grid `I`.
+2. **`apply(lambda obj: shift(obj, RIGHT), x1)`:**  Applies the `shift` function to each object, moving it one cell to the right.
+3. **`apply(lambda obj: {(v, (i, j)) for v, (i, j) in obj if 0 <= j < len(I[0])}, x2)`:** Filters each shifted object, keeping only the cells within the grid's horizontal boundaries.
+4. **`underpaint(I, merge(x3))`:**  Merges all the filtered objects and paints them onto the input grid `I`, but only on cells currently occupied by the background color.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    x1 = fgpartition(I)
+    x2 = apply(lambda obj: {(v, (i, j + 1)) for v, (i, j) in obj if (i, j + 1) in asindices(I)}, x1) # Extend right if the new cell is within the grid
+    O = underpaint(I, merge(x2))
+    return O
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Identifies non-background objects in the grid.
+2. **`apply(...)`:** Iterates through each object and creates a new set of cells that represents the object extended one cell to the right, but only if that new cell is within the grid's boundaries (checked using `asindices(I)`). 
+3. **`underpaint(I, merge(x2))`:** Merges the extended objects and paints them onto the input grid, respecting existing object boundaries.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    x1 = fgpartition(I)
+    x2 = apply(lambda obj:  obj | {(v, (i, j + 1)) for v, (i, j) in obj if 0 <= j + 1 < len(I[0]) and (v, (i, j + 1)) not in obj}, x1)  # Add the right cell to the object if it's in bounds and not already part of the object
+    O = underpaint(I, merge(x2))
+    return O
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Gets all the non-background objects.
+2. **`apply(...)`:** For each object, it adds a cell to its right if and only if:
+    -  The new cell's column index (`j + 1`) is within the grid's bounds.
+    -  The new cell is not already part of the object itself.
+3. **`underpaint(I, merge(x2))`:** Merges all modified objects and paints them onto the original grid, ensuring that only background cells are affected.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+    x1 = fgpartition(I)
+    x2 = apply(lambda obj: {(v, (i, j)) for v, (i, j) in obj} | {(v, (i, j + 1)) for v, (i, j) in obj if 0 <= j + 1 < len(I[0]) and index(I,(i, j + 1)) == 0}, x1)
+    O = paint(I, merge(x2))
+    return O
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:** Extracts non-background objects from the input grid.
+2. **`apply(...)`:** This lambda function iterates over each object's cells:
+    - It keeps the original cells.
+    - It adds a cell to the right (`j + 1`) if the new cell is within the grid's boundaries (`0 <= j + 1 < len(I[0])`) and the new cell's value in the input grid is 0 (`index(I,(i, j + 1)) == 0`).
+3. **`paint(I, merge(x2))`:** Merges all modified objects and paints them onto the original grid, potentially overwriting existing object pixels. 
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    x1 = objects(I, univalued = True, diagonal = False, without_bg = True)
+    x2 = apply(lambda obj: {(v, (i, j + 1)) for v, (i, j) in obj if 0 <= j + 1 < len(I[0]) and (v, (i, j + 1)) not in obj}, x1)
+    O = underpaint(I, merge(x2))
+    return O
+```
+
+**Explanation:**
+
+1. **`objects(I, univalued=True, diagonal=False, without_bg=True)`:** This line identifies connected components (objects) in the input grid `I`. The parameters specify that objects must have the same value for all cells (`univalued=True`), connections are only considered horizontally and vertically (`diagonal=False`), and the background color is excluded from object formation (`without_bg=True`).
+2. **`apply(...)`:** Similar to previous versions, it iterates through each object and adds a rightward extension if the new cell is in bounds and not already part of the object.
+3. **`underpaint(I, merge(x2))`:** This merges the extended objects and paints them onto the input grid, only affecting cells that were originally background.
+
+These five programs provide distinct approaches to achieving the same image transformation, showcasing the flexibility and expressiveness of the provided DSL.

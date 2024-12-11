@@ -1,0 +1,110 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit, excluding the background digit which is the most frequent) and extending them to the right by one cell, but only if that cell is part of the background. 
+
+Let's illustrate with Input_0:
+
+```
+Input_0:
+1 0 1 0 0
+0 0 0 0 0
+0 0 0 0 0
+0 1 0 1 0
+0 0 0 0 0 
+```
+
+Here, the objects are the three '1' digits. Notice how each '1' is extended to the right by a '2' in the output, but only when the cell to the right is initially a '0'.
+
+```
+Output_0:
+1 2 1 0 0
+0 0 0 0 0
+0 0 0 0 0
+0 1 2 1 0
+0 0 0 0 0 
+```
+
+This pattern holds for all the input-output pairs.
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  right_neighbors = mapply(lambda obj: frozenset((TWO, (i, j + 1)) for v, (i, j) in obj), objs)
+  O = underpaint(I, right_neighbors)
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objs = objects(I, univalued=True, diagonal=False, without_bg=True)` identifies all objects (connected components of the same digit) in the input grid `I`.
+2. **Find Right Neighbors:**  `right_neighbors = mapply(lambda obj: frozenset((TWO, (i, j + 1)) for v, (i, j) in obj), objs)` calculates the coordinates of cells immediately to the right of each object cell and assigns them the value '2'.
+3. **Underpaint:** `O = underpaint(I, right_neighbors)` paints the '2's onto the input grid `I` only where the background color (most common color, assumed to be '0') exists.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  shifted_objs = mapply(lambda obj: shift(obj, RIGHT), objs)
+  O = cellwise(I, shifted_objs, fallback=ZERO)
+  O = replace(O, ONE, TWO)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects & Shift:** Similar to Version 1, we identify objects. Then, `shifted_objs = mapply(lambda obj: shift(obj, RIGHT), objs)` shifts each object one cell to the right.
+2. **Cellwise Comparison:**  `O = cellwise(I, shifted_objs, fallback=ZERO)` compares the original and shifted grids cell by cell. If both grids have a '1' at a location, the output gets a '1'. Otherwise, it gets the fallback value '0'. 
+3. **Replace:** `O = replace(O, ONE, TWO)` replaces all occurrences of '1' in the output grid with '2'.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    O = I
+    for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+        for v, (i, j) in obj:
+            if j + 1 < len(I[0]) and I[i][j + 1] == ZERO:
+                O = fill(O, TWO, {(i, j + 1)})
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate and Check:** This version iterates through each object and each cell within the object. It checks if the cell to the right is within the grid boundaries (`j + 1 < len(I[0])`) and contains the background value ('0').
+2. **Fill:** If both conditions are met, it fills the cell to the right with '2' using `O = fill(O, TWO, {(i, j + 1)})`.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  right_edges = mapply(lambda obj: frozenset({(i, rightmost(obj)) for i, j in toindices(obj)}), objs)
+  extension = mapply(lambda edge: shift(edge, RIGHT), right_edges)
+  O = underfill(I, TWO, extension)
+  return O
+```
+
+**Explanation:**
+
+1. **Objects & Right Edges:** Identify objects and find the rightmost indices of each object using `right_edges = mapply(lambda obj: frozenset({(i, rightmost(obj)) for i, j in toindices(obj)}), objs)`.
+2. **Shift and Extend:** Shift the right edge indices one cell to the right to get the extension area.
+3. **Underfill:** Fill the extension area with '2' only if the original grid contains the background value using `O = underfill(I, TWO, extension)`.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  shifted_I = fill(I, TWO, shift(asindices(I), RIGHT))
+  O = cellwise(I, shifted_I, fallback=ZERO)
+  return O
+```
+
+**Explanation:**
+
+1. **Shift and Fill:** Create a shifted version of the input grid `I` where all cells are moved one position to the right and filled with '2' using `shifted_I = fill(I, TWO, shift(asindices(I), RIGHT))`.
+2. **Cellwise Combination:**  Use `O = cellwise(I, shifted_I, fallback=ZERO)` to combine the original and shifted grids. If a cell in the original grid contains a non-zero value, the output grid retains that value. Otherwise, it takes the value from the shifted grid (which would be '2' if the original cell was '0'). 

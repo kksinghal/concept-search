@@ -1,0 +1,157 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit that is not the background digit 0) and extending them horizontally either left or right until they hit another object or the edge of the grid. The direction of the extension is determined by the initial position of the object relative to other objects of the same color.
+
+* **Horizontal Extension:** Objects are extended horizontally, preserving their vertical structure.
+* **Collision Detection:** The extension stops when it encounters another object (of any color) or the grid boundary.
+* **Directionality:**  The direction of extension seems dependent on the relative position of other objects with the same color. If another object with the same color exists to the right, the object will extend to the right, otherwise, it will extend to the left.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    color_obj = color(obj)
+    for (i, j) in toindices(obj):
+      right_extension = connect((i, j), (i, max(k for k in range(j, len(I[0])) if I[i][k] == color_obj)))
+      left_extension = connect((i, j), (i, min(k for k in range(j+1) if I[i][k] == color_obj)-1))
+      if any(I[i][k] != 0 and (i,k) not in toindices(obj) for k in range(j+1, len(I[0]))):
+        O = fill(O, color_obj, right_extension)
+      else:
+        O = fill(O, color_obj, left_extension)
+  return O 
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:** The code iterates through each object in the input grid.
+2. **Determine Extension Direction:** For each cell in the object, it checks if there's another object of the same color to its right. If so, it extends to the right; otherwise, it extends to the left.
+3. **Horizontal Extension:** The `connect` function draws a line (horizontal in this case) from the current cell to the furthest cell of the same color.
+4. **Fill:** The `fill` function colors the connected line with the object's color.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(ZERO, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    color_obj = color(obj)
+    for (i, j) in toindices(obj):
+      right_edge = next((k for k in range(j + 1, len(I[0])) if I[i][k] != 0 or k == len(I[0]) - 1), len(I[0]) - 1)
+      left_edge = next((k for k in range(j - 1, -1, -1) if I[i][k] != 0 or k == 0), 0)
+      if any(I[i][k] == color_obj and (i,k) not in toindices(obj) for k in range(j + 1, len(I[0]))):
+        O = fill(O, color_obj, connect((i, j), (i, right_edge))) 
+      else:
+        O = fill(O, color_obj, connect((i, j), (i, left_edge)))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize Output Grid:** Creates an empty output grid of the same size as the input.
+2. **Object Iteration:** Iterates through each object in the input grid.
+3. **Find Extension Boundaries:**  For each cell of an object, it finds the nearest non-zero cell (or grid edge) to the right and left, acting as boundaries.
+4. **Directional Extension:** It extends the object horizontally to the right boundary if there exists another object of the same color to the right, and to the left boundary otherwise.
+5. **Paint to Output:**  The connected line is painted onto the output grid.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for i in range(height(I)):
+    row_objects = objects(crop(I, (i, 0), (1, width(I))), univalued=True, diagonal=False, without_bg=True)
+    for obj_index, obj in enumerate(row_objects):
+      color_obj = color(obj)
+      if any(color(other_obj) == color_obj and other_obj != obj for other_obj in row_objects):
+        if obj_index < len(row_objects) - 1:
+          next_obj = next(obj for k, obj in enumerate(row_objects) if k > obj_index)
+          O = fill(O, color_obj, connect(lrcorner(obj), ulcorner(next_obj)))
+        else:
+          O = fill(O, color_obj, connect(lrcorner(obj), (i, width(I))))
+      else:
+        if obj_index > 0:
+          prev_obj = next(obj for k, obj in enumerate(row_objects) if k < obj_index)
+          O = fill(O, color_obj, connect(ulcorner(obj), lrcorner(prev_obj)))
+        else:
+          O = fill(O, color_obj, connect(ulcorner(obj), (i, -1)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate Through Rows:** Processes the grid row by row.
+2. **Identify Row Objects:** Extracts objects from each row.
+3. **Check for Same-Color Objects:**  Determines if there are multiple objects of the same color in the row.
+4. **Connect Based on Position:** If multiple objects of the same color exist, connect the current object to the next one on the right. Otherwise, connect it to the previous object on the left.
+5. **Handle First and Last Objects:**  Special handling for the first and last objects in a row to ensure connections to the grid edges.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    color_obj = color(obj)
+    left_bound = leftmost(obj)
+    right_bound = rightmost(obj)
+    for i in range(uppermost(obj), lowermost(obj) + 1):
+      if any(I[i][k] == color_obj and (i, k) not in toindices(obj) for k in range(right_bound + 1, len(I[0]))):
+        O = fill(O, color_obj, connect((i, right_bound), (i, len(I[0]) - 1)))
+      else:
+        O = fill(O, color_obj, connect((i, left_bound), (i, 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Iteration:**  Iterates through each object in the input grid.
+2. **Find Object Boundaries:** Determines the leftmost and rightmost column indices of the object.
+3. **Row-wise Extension:** For each row within the object's vertical span:
+    - If a same-colored object exists to the right, extend to the right edge of the grid.
+    - Otherwise, extend to the left edge of the grid.
+4. **Fill Extension:** Fill the extended line with the object's color. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(ZERO, shape(I))
+  processed = set()
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if I[i][j] != 0 and (i, j) not in processed:
+        current_color = I[i][j]
+        right_extension = connect((i, j), (i, max(k for k in range(j, len(I[0])) if I[i][k] == current_color)))
+        left_extension = connect((i, j), (i, min(k for k in range(j + 1) if I[i][k] == current_color) - 1))
+        if any(I[i][k] == current_color and (i, k) not in right_extension for k in range(j + 1, len(I[0]))):
+          O = fill(O, current_color, right_extension)
+        else:
+          O = fill(O, current_color, left_extension)
+        processed = processed | toindices(right_extension) | toindices(left_extension)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialize Output and Processed Sets:**  Creates an empty output grid and a set to track processed cells.
+2. **Iterate Through Cells:**  Iterates through each cell in the grid.
+3. **Process Unprocessed Non-Zero Cells:** If a cell is non-zero and hasn't been processed yet:
+    - Determine extension direction based on the presence of the same-colored object to the right.
+    - Extend and fill accordingly.
+    - Mark the processed cells.
+4. **Return Output Grid:**  Return the transformed grid. 
+
+Each version of the program uses a slightly different approach to achieve the same transformation, showcasing the flexibility and expressive power of the DSL. 

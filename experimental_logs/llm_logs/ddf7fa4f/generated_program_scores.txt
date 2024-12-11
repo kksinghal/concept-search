@@ -1,0 +1,1786 @@
+23.333333333333332, tensor(0.2354), Description: Change the color of the smallest object to the color of the most common color in the grid. Then, paint the entire grid with that color. 
+:: def aabbjfgbaddbehafjdfbgjfaeabfigff(I):
+  objs = objects(I, T, F, T)
+  smallest_obj = argmin(objs, size)
+  new_color = color(smallest_obj)
+  return paint(canvas(mostcolor(I), shape(I)), recolor(new_color, merge(objs))) 
+ 
+21.666666666666668, tensor(1.6270), Description: Change the color of all the smallest objects to the color of the smallest object. Then, paint the entire grid with that color. 
+:: def bhdcgbdbjageejdjbcbdbhgjifeidefa(I):
+  bg = mostcolor(I)
+  objs = [obj for obj in objects(I, T, F, T)]
+  min_size = size(min(objs, key=size))
+  new_grid = canvas(bg, shape(I))
+  for obj in objs:
+    if size(obj) == min_size:
+      new_color = color(obj)
+  for obj in objs:
+    new_grid = paint(new_grid, recolor(new_color, obj))
+  return new_grid
+ 
+33.666666666666664, tensor(0.1968), Description: For each object in the input grid, find the color of the object and the color of the center of the object. Then, move the object to the closest location where the center of the object has the same color as the center of the object in the input grid. For example, if the object is red and the center of the object is blue, then move the object to the closest location where the center of the object is blue. If there are multiple locations with the same color, move the object to the location that is closest to the original location of the object.:: def ccbefcibjcaieacajbdffehdajdifeec(I):
+    objs = partition(I)
+    O = canvas(0, shape(I))
+    for obj in objs:
+        if len(obj) > 1:
+            color_obj = color(obj)
+            destination_color = I[centerofmass(obj)[0]][centerofmass(obj)[1]]
+            new_obj = {(destination_color, (i + gravitate(obj, {(destination_color, (0,0))})[0], j + gravitate(obj, {(destination_color, (0,0))})[1])) for _, (i, j) in obj}
+            O = paint(O, new_obj)
+    return O
+ 
+34.333333333333336, tensor(0.2028), Description: Move each colored square to the closest location where the color of the square matches the color of the square at the origin. If there are multiple locations with the same color, move the square to the location that is closest to the original location of the square. 
+:: def jefigeachedbebehjdbbafcfbbjdibbg(I):
+    h, w = len(I), len(I[0])
+    O = [[0 for _ in range(w)] for _ in range(h)]
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] != 0:
+                target_i = i + gravitate({(0, (i, j))}, {(I[i][j], (0, 0))})[0]
+                target_j = j + gravitate({(0, (i, j))}, {(I[i][j], (0, 0))})[1]
+                if 0 <= target_i < h and 0 <= target_j < w:
+                    O[target_i][target_j] = I[i][j]
+    return tuple(tuple(row) for row in O)
+ 
+45.0, tensor(1.9879), Description: For each object in the input grid, shift it by an offset determined by its color. The offset is calculated by dividing the color by the number of rows in the grid to get the vertical offset and taking the modulo of the color by the number of columns in the grid to get the horizontal offset. For example, if the color is 5 and the grid is 3x3, the offset would be (1, 2) because 5 // 3 = 1 and 5 % 3 = 2. The shifted object is then painted onto the output grid with its original color. 
+:: def bafhccchjcddefdcbgfgifbdbfeggbdh(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    O = canvas(0, shape(I))
+    for obj in objs:
+        color_obj = color(obj)
+        offset = (color_obj // len(I), color_obj % len(I[0]))
+        O = paint(O, recolor(color_obj, shift(obj, offset)))
+    return O
+ 
+33.333333333333336, tensor(0.5922), Description: Move the top group of colored squares down until they touch the bottom group of colored squares. Move the bottom group of colored squares up until they touch the top group of colored squares. The background should be the most common color in the input grid. 
+:: def ifcgiegjfbiaeeegjjgeeibaadciahgc(I):
+  objs = fgpartition(I)
+  obj1 = first(objs)
+  obj2 = other(objs, obj1)
+  
+  def move_down(obj):
+    while lowermost(obj) < height(I) - 1 and not any(index(I, add(loc, DOWN)) for loc in toindices(obj)):
+      obj = shift(obj, DOWN)
+    return obj
+
+  def move_up(obj):
+    while uppermost(obj) > 0 and not any(index(I, add(loc, UP)) for loc in toindices(obj)):
+      obj = shift(obj, UP)
+    return obj
+
+  moved_obj1 = move_down(obj1)
+  moved_obj2 = move_up(obj2)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+35.666666666666664, tensor(0.5922), Description: Move the top group of colored squares down until they touch the bottom group of colored squares. Move the bottom group of colored squares up until they touch the top group of colored squares. The background should be the most common color in the input grid. 
+:: def ejegficghdbcebecidjfcfffdaaebicc(I):
+  obj1 = argmin(fgpartition(I), lambda obj: centerofmass(obj)[0])
+  obj2 = other(fgpartition(I), obj1)
+
+  def vertical_slide(obj, direction):
+    while any(0 <= add(loc, direction)[0] < height(I) and index(I, add(loc, direction)) == mostcolor(I) for loc in toindices(obj)):
+      obj = shift(obj, direction)
+    return obj
+
+  moved_obj1 = vertical_slide(obj1, DOWN)
+  moved_obj2 = vertical_slide(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+22.333333333333332, tensor(0.1632), Description: Change the color of all objects except the smallest object to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. 
+:: def fbedbdbcgceaejjfibcefcgbfgfigdgb(I):
+  # 1. Identify objects excluding background
+  objs = fgpartition(I)
+  # 2. Find the size of the smallest object
+  min_size = valmin(objs, size)
+  # 3. Filter for the smallest object
+  smallest_obj = extract(objs, matcher(size, min_size))
+  # 4. Get the color of the smallest object
+  new_color = color(smallest_obj)
+  # 5. Recolor all non-background objects with the new color
+  return paint(canvas(mostcolor(I), shape(I)), recolor(new_color, merge(difference(objs, {smallest_obj}))))
+ 
+21.333333333333332, tensor(0.0777), Description: Change the color of all objects in the input grid to the color of the smallest object. The background should remain the most common color in the input grid. 
+:: def egefegjccdbeeiefbcbcgcdibbbfgfea(I):
+  objs = fgpartition(I)
+  min_color = color(argmin(objs, size))
+  return tuple(tuple(min_color if v != mostcolor(I) else v for v in row) for row in I)
+ 
+51.0, tensor(1.9879), Description: For each object in the input grid, shift it by an offset determined by its color. The offset is calculated by dividing the color by the number of rows in the grid to get the vertical offset and taking the modulo of the color by the number of columns in the grid to get the horizontal offset. For example, if the color is 5 and the grid is 3x3, the offset would be (1, 2) because 5 // 3 = 1 and 5 % 3 = 2. The shifted object is then painted onto the output grid with its original color. 
+:: def eeedajdgcbbcedfdbhbbbecccecbagce(I):
+    objs = fgpartition(I)
+    relocated_objs = frozenset()
+    for obj in objs:
+        value = color(obj)
+        offset = (value // 3, value % 3)  # Determine offset based on value
+        relocated_objs = insert(shift(obj, offset), relocated_objs) 
+    O = paint(canvas(mostcolor(I), shape(I)), merge(relocated_objs)) # Paint onto a blank canvas
+    return O
+ 
+41.0, tensor(1.2896), Description: For each unique color in the input grid (excluding the background color), extract the object with that color. Shift the object by an offset determined by its color, where the offset is calculated as (color - 1, color - 1). Paint the shifted object onto a blank canvas with the most common color as the background. This results in each object being shifted diagonally based on its color. 
+:: def didjacgedcfaeieeifjifbjdecbifead(I):
+    O = canvas(mostcolor(I), shape(I))  # Start with a blank canvas
+    for value in palette(I) - {mostcolor(I)}:  # Iterate over unique colors (excluding background)
+        obj = extract(fgpartition(I), lambda x: color(x) == value)  # Extract object with current value
+        offset = (value - 1, value - 1)  # Calculate offset
+        O = underpaint(O, shift(obj, offset))  # Paint the shifted object onto the canvas
+    return O
+ 
+48.0, tensor(1.9879), Description: For each object in the input grid, shift it by an offset determined by its color. The offset is calculated by dividing the color by the number of rows in the grid to get the vertical offset and taking the modulo of the color by the number of columns in the grid to get the horizontal offset. For example, if the color is 5 and the grid is 3x3, the offset would be (1, 2) because 5 // 3 = 1 and 5 % 3 = 2. The shifted object is then painted onto the output grid with its original color. 
+:: def djbaehcbdihfegibigffcgeeedbcdhce(I):
+  objs = sorted(fgpartition(I), key=lambda obj: color(obj)) # sort objects by color
+  O = I
+  for obj in objs:
+      value = color(obj)
+      offset = (value // 3, value % 3)
+      O = paint(O, shift(obj, offset))
+  return O
+ 
+33.666666666666664, tensor(0.5922), Description: Move the top group of colored squares down until they touch the bottom group of colored squares. Move the bottom group of colored squares up until they touch the top group of colored squares. The background should be the most common color in the input grid. 
+:: def cheehjfbhhbbedibadjdgbhbeibgacic(I):
+  objs = order(fgpartition(I), lambda obj: uppermost(obj))
+  obj1 = first(objs)
+  obj2 = other(objs, obj1)
+
+  def move_until_adjacent(obj, direction):
+    while not adjacent(obj, other(fgpartition(I), obj)):
+      if any(0 <= add(loc, direction)[0] < height(I) and 
+             0 <= add(loc, direction)[1] < width(I) and 
+             index(I, add(loc, direction)) == mostcolor(I)
+             for loc in toindices(obj)):
+        obj = shift(obj, direction)
+      else:
+        break
+    return obj
+
+  moved_obj1 = move_until_adjacent(obj1, DOWN)
+  moved_obj2 = move_until_adjacent(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+44.333333333333336, tensor(0.5882), Description: Move the larger group of colored squares towards the smaller group of colored squares until they touch. The background should be the most common color in the input grid. 
+:: def caeafccbhaeaecbfiadfdbgdgfiffbge(I):
+  objs = fgpartition(I)
+  obj1 = argmax(objs, size)
+  obj2 = other(objs, obj1)
+
+  def move_towards(obj, target_obj):
+    direction = position(obj, target_obj)
+    while not adjacent(obj, target_obj):
+      if any(0 <= add(loc, direction)[0] < height(I) and 
+             0 <= add(loc, direction)[1] < width(I) and
+             index(I, add(loc, direction)) == mostcolor(I)
+             for loc in toindices(obj)):
+        obj = shift(obj, direction)
+      else:
+        break
+    return obj
+
+  moved_obj1 = move_towards(obj1, obj2)
+  moved_obj2 = move_towards(obj2, obj1)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+32.666666666666664, tensor(0.5918), Description: Move the top group of colored squares down until they are blocked by another colored square or the edge of the grid. Move the bottom group of colored squares up until they are blocked by another colored square or the edge of the grid. The background should be the most common color in the input grid. 
+:: def ccdaafbafddgegbdiccbbcdhafefiibc(I):
+  objs = fgpartition(I)
+  obj1 = argmax(objs, lambda obj: uppermost(obj))
+  obj2 = other(objs, obj1)
+
+  def move_until_blocked(obj, direction):
+    while True:
+      next_locs = apply(lambda loc: add(loc, direction), toindices(obj))
+      if all(0 <= loc[0] < height(I) and 0 <= loc[1] < width(I) and (index(I, loc) is None or index(I, loc) == mostcolor(I)) for loc in next_locs):
+        obj = shift(obj, direction)
+      else:
+        break
+    return obj
+
+  moved_obj1 = move_until_blocked(obj1, DOWN)
+  moved_obj2 = move_until_blocked(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+33.666666666666664, tensor(0.1329), Description: Change the color of all objects except the smallest and largest objects to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. The largest object should remain its original color. 
+:: def ceajhaedfihbeeidaaibbffadhediebb(I):
+  # 1. Find the smallest and largest objects
+  objs = fgpartition(I)
+  min_size = valmin(objs, size)
+  max_size = valmax(objs, size)
+  smallest_obj = extract(objs, matcher(size, min_size))
+  largest_obj = extract(objs, matcher(size, max_size))
+
+  # 2. Get the colors of the smallest and largest objects
+  new_color = color(smallest_obj)
+
+  # 3. Recolor objects that are not the smallest or largest
+  recolored_objs = recolor(new_color, merge(difference(objs, {smallest_obj, largest_obj})))
+
+  # 4. Paint the recoloured objects and the largest object onto the canvas
+  return paint(paint(canvas(mostcolor(I), shape(I)), largest_obj), recolored_objs)
+ 
+19.333333333333332, tensor(1.1121), Description: Change the color of all objects in the input grid to the color of the smallest object, except for the largest object which remains its original color. The background should remain the most common color in the input grid. 
+:: def acbhggafjdeeeciajebecabjbdffgheb(I):
+    # 1. Get the smallest and largest objects' colors
+    objs = fgpartition(I)
+    smallest_color = color(argmin(objs, size))
+    largest_color = color(argmax(objs, size))
+
+    # 2. Replace all colors except background, smallest, and largest with smallest's color
+    output = replace(I, largest_color, smallest_color)  # Handle potential overlap with largest
+    return output
+ 
+87.66666666666667, tensor(0.7464), Description: Change the color of all objects in the input grid to the color of the smallest object, except for the most common color which remains its original color. 
+:: def ejefchjjfeefegcbijecbccfiddfdjae(I):
+  # 1. Identify the smallest object's index
+  objs = order(fgpartition(I), size)
+  target_index = color(objs[0])
+
+  # 2. Create a mapping of colors to be replaced
+  colors = palette(I)
+  replace_map = {c: target_index for c in colors if c != mostcommon(I) and c != target_index}
+
+  # 3. Apply the replacement map to the grid
+  output = I
+  for key, value in replace_map.items():
+    output = replace(output, key, value)
+  return output
+ 
+22.333333333333332, tensor(1.8191), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is red (color 2), keep it red.
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark blue (color 8), keep it dark blue.
+- All other objects remain their original color. 
+:: def edccdjcfdcgfehcbiiibhfcieadjbbge(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  O = I
+  for obj in objs:
+    color_ = color(obj)
+    new_color = {2: 2, 5: 6, 8: 8}.get(color_, color_)  # Color mapping
+    new_obj = recolor(new_color, obj) 
+    O = paint(cover(O, obj), new_obj)  # Move and replace color
+  return O
+ 
+31.666666666666668, tensor(0.5925), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. The background should be the most common color in the input grid. 
+:: def abjafahbecahehfeicbdcfeeeecgbjfd(I):
+  objs = order(fgpartition(I), lambda obj: uppermost(obj))
+  obj1, obj2 = objs[0], objs[1] 
+
+  def get_collision_offset(obj, direction):
+    offset = (0, 0)
+    for loc in toindices(obj):
+      while 0 <= add(loc, offset)[0] < height(I) and \
+            0 <= add(loc, offset)[1] < width(I) and \
+            index(I, add(loc, offset)) == mostcolor(I):
+        offset = add(offset, direction)
+      return offset
+
+  moved_obj1 = shift(obj1, get_collision_offset(obj1, DOWN))
+  moved_obj2 = shift(obj2, get_collision_offset(obj2, UP))
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+34.666666666666664, tensor(0.0123), Description: Move the light blue object (color 5) up to the same vertical position as the dark blue object (color 8). Move the red object (color 2) up to the same vertical position as the dark blue object (color 8). Move the orange object (color 6) up to the same vertical position as the red object (color 2). Move the light red object (color 1) up to the same vertical position as the dark green object (color 7).  The background should remain the same as the input grid. 
+:: def aedfaddggccbeefhiacfdadhdfhcbidc(I):
+  objs = objects(I, T, F, T)
+  obj_dict = {color(obj): obj for obj in objs}
+  alignment_pairs = [(5, 8), (2, 8), (6, 2), (1, 7)]
+  moved_objs = frozenset(shift(obj_dict[a], (uppermost(obj_dict[b]) - uppermost(obj_dict[a]), 0))
+                         for a, b in alignment_pairs if a in obj_dict and b in obj_dict)
+  return paint(cover(I, merge(objs)), merge(moved_objs))
+ 
+34.666666666666664, tensor(0.5107), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark blue (color 8), keep it dark blue.
+- If the object is light red (color 1), keep it light red.
+- If the object is dark green (color 7), keep it dark green.
+- All other objects remain their original color.
+
+Then, move each object up to the same vertical position as the topmost object of its original color in the input grid. For example, if the object is light blue (color 5) and the topmost light blue object in the input grid is in row 2, then move the light blue object up to row 2 in the output grid. The background should remain the same as the input grid. 
+:: def bcdjjbfjhddbefbeibbbeffcbfbchiig(I):
+  objs = objects(I, True, False, True)
+  O = I
+  for obj in objs:
+    original_color = color(obj)
+    new_color = {5: 6, 8: 8, 1: 1, 7: 7}.get(original_color, original_color)
+    top_index = uppermost(ofcolor(I, original_color))
+    obj_top_index = uppermost(obj)
+    offset = (top_index - obj_top_index, 0)
+    new_obj = recolor(new_color, shift(obj, offset))
+    O = paint(cover(O, obj), new_obj)
+  return O
+ 
+35.666666666666664, tensor(0.5920), Description: Move the top group of colored squares towards the bottom group of colored squares until they touch. Move the bottom group of colored squares towards the top group of colored squares until they touch. The background should be the most common color in the input grid. 
+:: def difhfhfjdbgfecifjeddjefdcjbabeab(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  move1 = gravitate(obj1, obj2)
+  moved_obj1 = shift(obj1, move1)
+
+  move2 = gravitate(obj2, obj1)
+  moved_obj2 = shift(obj2, move2)
+
+  O = paint(paint(canvas(mostcolor(I), shape(I)), moved_obj1), moved_obj2)
+  return O
+ 
+38.0, tensor(0.8306), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is light blue (color 5), change it to red (color 2).
+- If the object is orange (color 6), keep it orange.
+- If the object is dark blue (color 8), keep it dark blue.
+- If the object is light red (color 1), keep it light red.
+- If the object is dark green (color 7), keep it dark green.
+- If the object is yellow (color 4), keep it yellow.
+- All other objects remain their original color.
+
+Then, move each object up to the same vertical position as the topmost object of its original color in the input grid. For example, if the object is light blue (color 5) and the topmost light blue object in the input grid is in row 2, then move the light blue object up to row 2 in the output grid. The background should remain the same as the input grid. 
+:: def ebdeiaifhcfaeacfabcjdhhgbaebcfdd(I):
+  objs = objects(I, True, False, True)
+  O = I
+  for obj in objs:
+    original_color = color(obj)
+    new_color = {5: 2, 6: 6, 8: 8, 1: 1, 7: 7, 4: 4}.get(original_color, original_color)
+    highest_same_color = uppermost(ofcolor(I, original_color))
+    obj_top_index = uppermost(obj)
+    offset = (highest_same_color - obj_top_index, 0)
+    new_obj = recolor(new_color, shift(obj, offset))
+    O = paint(cover(O, obj), new_obj)
+  return O
+ 
+40.0, tensor(0.2010), Description: Move each object in the input grid up to the same vertical position as the topmost object of its color. The background should remain the same as the input grid. 
+:: def ideiaedfaefceeejbiefjdbjedfbfddg(I):
+  O = I
+  for v in palette(I) - {mostcolor(I)}:
+    objs = colorfilter(objects(I, True, False, True), v)
+    if objs:
+      topmost_row = min([uppermost(obj) for obj in objs])
+      for obj in objs:
+        offset = topmost_row - uppermost(obj)
+        O = move(O, obj, (offset, 0))
+  return O
+ 
+34.666666666666664, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def aeaefgbcdjhcefejafhjcdadhdbhebbe(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+  
+  def move_to_collision(obj, target_obj, direction):
+    while any(0 <= add(loc, direction)[0] < height(I) and 
+               0 <= add(loc, direction)[1] < width(I) and
+               index(I, add(loc, direction)) == mostcolor(I)
+               for loc in toindices(obj)):
+      obj = shift(obj, direction)
+    return obj
+
+  moved_obj1 = move_to_collision(obj1, obj2, DOWN)
+  moved_obj2 = move_to_collision(obj2, obj1, UP)
+  
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+ 
+34.666666666666664, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def cfcdeidbiacfeibaafagdghbecggaijb(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def slide_to_limit(obj, direction):
+    collision_points = intersection(backdrop(shift(obj, direction)), 
+                                   asindices(I) - toindices(obj))
+    if collision_points:
+      return shift(obj, multiply(direction, minimum(
+        apply(lambda p: abs(p[0] - center(obj)[0]) 
+              if direction[0] != 0 
+              else abs(p[1] - center(obj)[1]), 
+              collision_points))))
+    return shift(obj, multiply(direction, 10)) # Assuming grid size <= 10
+
+  moved_obj1 = slide_to_limit(obj1, DOWN)
+  moved_obj2 = slide_to_limit(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+ 
+34.666666666666664, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def dcajjfchccaaeaacaeeedhdedhicjjbe(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def move_and_collide(obj, direction, other_obj):
+    while all(0 <= i < height(I) and 0 <= j < width(I) and (i, j) not in toindices(other_obj)
+              for i, j in apply(lambda loc: add(loc, direction), toindices(obj))):
+      obj = shift(obj, direction)
+    return obj
+
+  moved_obj1 = move_and_collide(obj1, DOWN, obj2)
+  moved_obj2 = move_and_collide(obj2, UP, obj1)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+ 
+30.666666666666668, tensor(1.5196), Description: Swap the colors of the top and bottom halves of the grid. The most common color in the grid should remain the background color. 
+:: def gcdhjggajagceedebiciegfejecaidca(I):
+  top_half = tophalf(I)
+  bottom_half = bottomhalf(I)
+  top_color = color(extract(objects(top_half, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  bottom_color = color(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  O = vconcat(replace(top_half, top_color, bottom_color), replace(bottom_half, bottom_color, top_color))
+  return O
+ 
+28.666666666666668, tensor(0.1581), Description: Swap the colors of the topmost and bottommost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def hgcchaefcbhieafhiaceaacbfceaebah(I):
+  objs = objects(I, T, T, T)
+  top_color = color(argmin(sfilter(objs, lambda obj: color(obj) != mostcommon(I)), lambda obj: uppermost(obj)))
+  bottom_color = color(argmax(sfilter(objs, lambda obj: color(obj) != mostcommon(I)), lambda obj: uppermost(obj)))
+  O = paint(paint(I, recolor(bottom_color, toindices(extract(objs, lambda obj: color(obj) == top_color)))), recolor(top_color, toindices(extract(objs, lambda obj: color(obj) == bottom_color))))
+  return O
+ 
+24.0, tensor(0.1424), Description: Change the color of all objects except the smallest and second smallest objects to the color of the second smallest object. Then, paint the entire grid with the most common color in the input grid. The smallest object should remain its original color. 
+:: def iiebeigbgibhecajjebgedjfaachcdei(I):
+  # 1. Partition the input into objects
+  objs = fgpartition(I)
+
+  # 2. Find the two smallest objects
+  smallest_obj = argmin(objs, size)
+  remaining_objs = difference(objs, {smallest_obj})
+  second_smallest_obj = argmin(remaining_objs, size)
+
+  # 3. Get the color of the second smallest object
+  new_color = color(second_smallest_obj)
+
+  # 4. Paint objects with recoloring
+  return paint(canvas(mostcolor(I), shape(I)), 
+               merge({recolor(new_color, obj) for obj in remaining_objs} | {smallest_obj}))
+ 
+30.666666666666668, tensor(0.3651), Description: Change the color of all objects in the input grid to the color of the second smallest object, except for the smallest object which remains its original color. Then, paint the entire grid with the most common color in the input grid. 
+:: def eedcbeebdbigefabiiejdcabggieebji(I):
+  # 1. Identify objects, their sizes, and colors
+  objs = fgpartition(I)
+  sizes = sorted(set(apply(size, objs)))
+
+  # 2. Extract the smallest and second smallest sizes and corresponding objects
+  smallest_size = sizes[0]
+  second_smallest_size = sizes[1]
+  smallest_obj = extract(objs, matcher(size, smallest_size))
+  second_smallest_obj = extract(objs, matcher(size, second_smallest_size))
+
+  # 3. Recolor objects based on size
+  return paint(canvas(mostcolor(I), shape(I)),
+               merge({recolor(color(second_smallest_obj), obj) if size(obj) != smallest_size else obj
+                     for obj in objs}))
+ 
+21.333333333333332, tensor(0.3958), Description: Change the color of all objects in the input grid to the color of the second smallest object, except for the two smallest objects which remain their original colors. Then, paint the entire grid with the most common color in the input grid. 
+:: def fbjbiegbfcfceeadjcejdebbaiebcihc(I):
+  # 1. Identify objects and sort them by size
+  objs = order(totuple(fgpartition(I)), size)
+
+  # 2. Get the color of the second smallest object
+  new_color = color(objs[1])
+
+  # 3. Recolor and paint objects based on index
+  return paint(canvas(mostcolor(I), shape(I)), 
+               merge(objs[:2] + tuple(recolor(new_color, obj) for obj in objs[2:]))) 
+ 
+39.666666666666664, tensor(0.2027), Description: For each unique color in the input grid (excluding the background color), extract the object with that color. Shift the object vertically to the same row as the topmost object of that color in the input grid. Then, shift the object horizontally to the leftmost position of the object itself. Paint the shifted object onto a blank canvas with the most common color as the background. This results in each object being aligned to the top left corner of its corresponding color in the input grid. 
+:: def cffbeeffffahedibbbbfiaeeiefdeaaj(I):
+  O = canvas(mostcolor(I), shape(I)) # Create a blank canvas
+  for c in sorted(palette(I) - {mostcolor(I)}): # Iterate through foreground colors in sorted order
+    if colorcount(I, c) > 0:
+      obj = normalize(extract(objects(I, True, False, True), matcher(color, c))) # Extract and normalize object
+      O = paint(O, shift(obj, (uppermost(ofcolor(I, c)), leftmost(obj)))) # Paint the shifted object
+  return O
+ 
+33.666666666666664, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def fecgabgafhbjedfjaejdigedfbgafdga(I):
+  def obj_movement(obj, direction):
+    for _ in range(height(I)):
+      shifted = shift(obj, direction)
+      if intersection(toindices(shifted), asindices(I) - toindices(obj)):
+        break
+      obj = shifted
+    return obj
+
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+  moved_obj1 = obj_movement(obj1, DOWN)
+  moved_obj2 = obj_movement(obj2, UP)
+  O = paint(canvas(mostcolor(I), shape(I)), recolor(color(obj2), moved_obj1))
+  O = paint(O, recolor(color(obj1), moved_obj2))
+  return O
+ 
+35.0, tensor(0.0136), Description: Move the light blue object (color 5) up to the same vertical position as the dark blue object (color 8). Move the red object (color 2) up to the same vertical position as the orange object (color 6). Move the light red object (color 1) up to the same vertical position as the dark green object (color 7). Move the light red object (color 1) up to the same vertical position as the yellow object (color 4). The background should remain the same as the input grid. 
+:: def dhhajaefadfbefadbhaabcdfdjgdffcd(I):
+  def align_to(obj, target_obj):
+    return shift(obj, (uppermost(target_obj) - uppermost(obj), 0))
+  
+  objs = objects(I, T, F, T)
+  moved_objs = frozenset()
+  for source_color, target_color in [(5, 8), (2, 6), (1, 7), (1, 4)]:
+    source_obj = extract(objs, lambda x: color(x) == source_color) if any(color(x) == source_color for x in objs) else None
+    target_obj = extract(objs, lambda x: color(x) == target_color) if any(color(x) == target_color for x in objs) else None
+    if source_obj and target_obj:
+      moved_objs = insert(align_to(source_obj, target_obj), moved_objs)
+  
+  return paint(cover(I, merge(objs)), merge(moved_objs))
+ 
+30.666666666666668, tensor(0.0136), Description: Move the light blue object (color 5) up to the same vertical position as the dark blue object (color 8). Move the red object (color 2) up to the same vertical position as the orange object (color 6). Move the light red object (color 1) up to the same vertical position as the dark green object (color 7). Move the light red object (color 1) up to the same vertical position as the yellow object (color 4). The background should remain the same as the input grid. 
+:: def dbehiahcaegeejcfjbehciacfaagfdia(I):
+  def move_to_row(obj, target_row):
+    return shift(obj, (target_row - uppermost(obj), 0)) if target_row is not None else obj
+
+  objs = objects(I, T, F, T)
+  target_rows = {target_color: uppermost(extract(objs, lambda x: color(x) == target_color)) 
+                  if any(color(x) == target_color for x in objs) else None 
+                  for _, target_color in [(5, 8), (2, 6), (1, 7), (1, 4)]}
+  moved_objs = frozenset(move_to_row(obj, target_rows.get(color(obj))) for obj in objs)
+  return paint(cover(I, merge(objs)), merge(moved_objs))
+ 
+37.666666666666664, tensor(0.0136), Description: Move the light blue object (color 5) up to the same vertical position as the dark blue object (color 8). Move the red object (color 2) up to the same vertical position as the orange object (color 6). Move the light red object (color 1) up to the same vertical position as the dark green object (color 7). Move the light red object (color 1) up to the same vertical position as the yellow object (color 4). The background should remain the same as the input grid. 
+:: def fgdjfaefbbbheabbiahciggadfadheff(I):
+  def process_object(obj, objs):
+    for source_color, target_color in [(5, 8), (2, 6), (1, 7), (1, 4)]:
+      if color(obj) == source_color:
+        target_obj = next((o for o in objs if color(o) == target_color), None)
+        if target_obj:
+          return shift(obj, (uppermost(target_obj) - uppermost(obj), 0))
+    return obj
+  
+  objs = objects(I, T, F, T)
+  moved_objs = frozenset(process_object(obj, objs) for obj in objs)
+  return paint(cover(I, merge(objs)), merge(moved_objs))
+ 
+33.666666666666664, tensor(1.5196), Description: Swap the colors of the top and bottom halves of the grid. The most common color in the grid should remain the background color. 
+:: def dbdehjchjdccefcdjjidfadbdabegddg(I):
+  top_obj = toobject(sfilter(asindices(tophalf(I)), lambda ij: index(I, ij) != mostcommon(I)), I)
+  bottom_obj = toobject(sfilter(asindices(bottomhalf(I)), lambda ij: index(I, ij) != mostcommon(I)), I)
+  O = paint(paint(cover(I, top_obj), recolor(color(bottom_obj), toindices(top_obj))), 
+              recolor(color(top_obj), toindices(bottom_obj)))
+  return O
+ 
+22.333333333333332, tensor(0.3651), Description: Change the color of all objects in the input grid to the color of the second smallest object, except for the smallest object which remains its original color. Then, paint the entire grid with the most common color in the input grid. 
+:: def dffgaedfbfbfebdiicjbfieffdhfcjff(I):
+  # 1. Identify objects and extract relevant data
+  objs = fgpartition(I)
+  obj_data = tuple((size(obj), color(obj), obj) for obj in objs)
+
+  # 2. Sort the data by object size
+  sorted_obj_data = order(obj_data, lambda x: x[0])
+
+  # 3. Extract the smallest and second smallest object data
+  smallest_size, _, smallest_obj = sorted_obj_data[0]
+  second_smallest_color = sorted_obj_data[1][1]
+
+  # 4. Recolor and merge objects based on size comparison
+  return paint(canvas(mostcolor(I), shape(I)),
+               merge(frozenset({recolor(second_smallest_color, obj) for s, _, obj in sorted_obj_data if s != smallest_size}) | {smallest_obj}))
+ 
+39.0, tensor(0.1968), Description: For each object in the input grid, find the color of the object and the color of the center of the object. Then, move the object to the closest location where the center of the object has the same color as the center of the object in the input grid. For example, if the object is red and the center of the object is blue, then move the object to the closest location where the center of the object is blue. If there are multiple locations with the same color, move the object to the location that is closest to the original location of the object. 
+:: def fedefiibjfebegefajhigfggehaheebf(I):
+  objs = partition(I)
+  O = canvas(0, shape(I))
+  for obj in objs:
+    if len(obj) > 1:
+      target_color = I[centerofmass(obj)[0]][centerofmass(obj)[1]]
+      target_obj = extract(objects(I, univalued=True, diagonal=False, without_bg=False), matcher(color, target_color))
+      offset = subtract(ulcorner(target_obj), ulcorner(obj))
+      O = paint(O, recolor(target_color, shift(obj, offset)))
+  return O 
+ 
+76.33333333333333, tensor(0.1863), Description: For each unique color in the input grid, find the object with that color. Then, for each object in the input grid that has a different color, check if it intersects with the object of the target color. If it does, move the object to the same location as the target object, changing its color to the target color. This results in all objects being moved to the location of the object with the same color, and their colors being changed to the target color. The background should remain black. 
+:: def efgjadfcfdfaefgiahdfijfjbfdefgdi(I):
+  O = canvas(0, shape(I))
+  for target_color in palette(I):
+    target_obj = extract(objects(I, univalued=True, diagonal=False, without_bg=False), matcher(color, target_color))
+    for obj in objects(I, univalued=True, diagonal=False, without_bg=False):
+      if color(obj) != target_color and size(intersection(backdrop(obj), backdrop(target_obj))) > 0:
+        offset = subtract(ulcorner(target_obj), ulcorner(obj))
+        O = paint(O, recolor(target_color, shift(obj, offset)))
+  return O
+ 
+32.333333333333336, tensor(0.1992), Description: For each colored square in the input grid, find the object that contains that square. Then, move that object to the location of the object with the same color as the square. For example, if the square is red and the object with the same color is in the top left corner, then move the object containing the red square to the top left corner. The background should remain black. 
+:: def feaddeibcacgedbcieaaceigdcabifhh(I):
+    O = canvas(0, shape(I))
+    for i in range(len(I)):
+      for j in range(len(I[0])):
+        if I[i][j] != 0:
+          target_color = I[i][j]
+          obj = extract(objects(I, univalued=True, diagonal=False, without_bg=False), lambda obj: (i, j) in toindices(obj))
+          target_obj = extract(objects(I, univalued=True, diagonal=False, without_bg=False), matcher(color, target_color))
+          offset = subtract(ulcorner(target_obj), ulcorner(obj))
+          O = paint(O, recolor(target_color, shift(obj, offset)))
+    return O
+ 
+33.666666666666664, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def jfbjbcbbhjbdecjbjaabdabfgdicdbdj(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def find_collision_point(obj, direction):
+    for i in range(1, max(height(I), width(I))):
+      if intersection(toindices(shift(obj, multiply(direction, i))), difference(asindices(I), toindices(obj))):
+        return subtract(multiply(direction, i), direction)
+    return (0, 0)  
+
+  moved_obj1 = shift(obj1, find_collision_point(obj1, DOWN))
+  moved_obj2 = shift(obj2, find_collision_point(obj2, UP))
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+ 
+31.666666666666668, tensor(0.3651), Description: Change the color of all objects in the input grid to the color of the second smallest object, except for the smallest object which remains its original color. Then, paint the entire grid with the most common color in the input grid. 
+:: def babfjijfdebdececbfeegddggabdjccb(I):
+  # 1. Identify objects, sizes, and colors
+  objs = fgpartition(I)
+  data = ((size(obj), color(obj), obj) for obj in objs)
+
+  # 2. Find the smallest and second smallest objects and their colors
+  sorted_data = order(data, lambda x: x[0])
+  _, smallest_color, _ = sorted_data[0]
+  _, second_smallest_color, _ = sorted_data[1]
+
+  # 3. Create a function to recolor based on color matching
+  recolor_func = lambda obj, c1, c2: recolor(c1, obj) if color(obj) == c2 else obj
+
+  # 4. Apply the recolor function and paint
+  return paint(canvas(mostcolor(I), shape(I)), 
+               mapply(lambda obj: recolor_func(obj, smallest_color, second_smallest_color), objs))
+ 
+34.333333333333336, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def fheidffjhafceagejfaidgchbcjfbbge(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def get_collision_point(obj, direction):
+    for loc in toindices(obj):
+      offset = (0, 0)
+      while 0 <= add(loc, offset)[0] < height(I) and \
+            0 <= add(loc, offset)[1] < width(I) and \
+            index(I, add(loc, offset)) == mostcolor(I):
+        offset = add(offset, direction)
+      return add(loc, offset)
+
+  collision_point1 = get_collision_point(obj1, DOWN)
+  collision_point2 = get_collision_point(obj2, UP)
+  moved_obj1 = shift(obj1, subtract(collision_point1, (uppermost(obj1), 0)))
+  moved_obj2 = shift(obj2, subtract(collision_point2, (uppermost(obj2), 0)))
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+ 
+23.0, tensor(1.7893), Description: Swap the colors of the topmost and bottommost colored objects in the grid, where the topmost object is in the top half of the grid and the bottommost object is in the bottom half of the grid. The most common color in the grid should remain the background color. 
+:: def gcjhfdebbbbdejefbdeejbefbcdeffgc(I):
+  objs = objects(I, T, T, T)
+  top_obj = argmin(sfilter(objs, lambda obj: color(obj) != mostcommon(I) and uppermost(obj) < len(I) // 2), lambda obj: uppermost(obj))
+  bottom_obj = argmax(sfilter(objs, lambda obj: color(obj) != mostcommon(I) and lowermost(obj) >= len(I) // 2), lambda obj: uppermost(obj))
+  return paint(paint(I, recolor(color(bottom_obj), toindices(top_obj))), recolor(color(top_obj), toindices(bottom_obj)))
+ 
+30.666666666666668, tensor(0.2004), Description: For each unique color in the input grid (excluding the background color), extract the object with that color. Shift the object vertically to the same row as the topmost object of that color in the input grid. Then, paint the shifted object onto a blank canvas with the most common color as the background. This results in each object being aligned to the top row of its corresponding color in the input grid. 
+:: def afffccccfejheecfjhhgfebfccfceejg(I):
+  O = canvas(mostcolor(I), shape(I))
+  for v in palette(I) - {mostcolor(I)}:
+    target_row = uppermost(extract(objects(I, True, False, True), matcher(color, v)))
+    obj = extract(objects(I, True, False, True), matcher(color, v))
+    new_obj = recolor(v, shift(obj, (target_row - uppermost(obj), 0)))
+    O = paint(O, new_obj)
+  return O
+ 
+35.666666666666664, tensor(0.5915), Description: Move the top group of colored squares down until they collide with another colored square or the edge of the grid. Move the bottom group of colored squares up until they collide with another colored square or the edge of the grid. Then, swap the colors of the two groups of colored squares. The background should be the most common color in the input grid. 
+:: def bfcadjjbcecaececbagdcdaaabfeeecf(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+  
+  def move_till_collision(obj, direction):
+    grid_boundary = shape(I)
+    while all(0 <= i < grid_boundary[0] and 0 <= j < grid_boundary[1] 
+              for i, j in apply(lambda loc: add(loc, direction), toindices(obj))):
+      obj = shift(obj, direction)
+    return shift(obj, invert(direction))
+
+  moved_obj1 = move_till_collision(obj1, DOWN)
+  moved_obj2 = move_till_collision(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+ 
+29.666666666666668, tensor(0.3377), Description: Swap the colors of the topmost and bottommost colored objects in the grid, where the topmost object is the one with the lowest bottom row, and the bottommost object is the one with the highest top row. If multiple objects share the same top or bottom row, the larger object takes priority. The most common color in the grid should remain the background color. 
+:: def fiebicdhaciceihjaaccdgafddbjhaaf(I):
+  objs = objects(I, T, T, T)
+  top_obj = min(objs, key=lambda obj: (lowermost(obj), -size(obj))) # prioritize top by lowermost row, then by size
+  bottom_obj = max(objs, key=lambda obj: (uppermost(obj), -size(obj))) # prioritize bottom by uppermost row, then by size
+  return paint(paint(cover(I, top_obj), recolor(color(bottom_obj), toindices(top_obj))), recolor(color(top_obj), toindices(bottom_obj))) 
+ 
+25.333333333333332, tensor(1.9893), Description: For each object in the input grid, change its color based on its width. If the object's width is even, add 1 to its original color. If the object's width is odd, keep its original color. The background should remain the same as the input grid. 
+:: def acfahihfeicdeagdbbfeccdfhaechcfb(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  new_objs = set()
+  for obj in objs:
+    color_val = color(obj)
+    new_color = color_val + (lrcorner(obj)[0] - ulcorner(obj)[0]) % 2  # Example logic
+    new_objs.add(recolor(new_color, obj)) 
+  O = paint(I, merge(new_objs))
+  return O
+ 
+35.333333333333336, tensor(0.1957), Description: For each object in the input grid, increase its color by 1. Then, move the object one space to the right if its original color was even, and one space to the left if its original color was odd. The background should remain the same as the input grid. 
+:: def gafeaeaijbbbeeibjjaadahgddcbedgd(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  new_objs = set()
+  for obj in objs:
+    new_color = color(obj) + 1  
+    offset = (1, 0) if color(obj) % 2 == 0 else (-1, 0)  # Example movement logic
+    new_objs.add(shift(recolor(new_color, obj), offset))
+  O = paint(I, merge(new_objs))
+  return O
+ 
+37.333333333333336, tensor(0.1975), Description: Shift the bottom half of the grid one space to the right. The top half of the grid should remain unchanged. The background should remain the same as the input grid. 
+:: def checiajffcceecbhbfjdidehibeaheaa(I):
+  top = tophalf(I)
+  bottom = bottomhalf(I)
+  modified_bottom = shift(asobject(bottom), (1, 0))  # Example modification
+  O = vconcat(top, paint(bottom, modified_bottom))
+  return O 
+ 
+30.666666666666668, tensor(1.7723), Description: For each object in the input grid, if the object's width is greater than its height, increase its color by 1. Otherwise, keep the object unchanged. The background should remain the same as the input grid. 
+:: def igcfcicgifeieeaeaedcfhfdiccbbchb(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  new_objs = set()
+  for obj in objs:
+    if width(obj) > height(obj):  # Example condition
+      new_color = color(obj) + 1
+      new_objs.add(recolor(new_color, obj))
+    else:
+      new_objs.add(obj)  # Keep the object unchanged
+  O = paint(I, merge(new_objs))
+  return O
+ 
+33.333333333333336, tensor(0.0136), Description: Move the light blue object (color 5) up to the same vertical position as the dark blue object (color 8). Move the red object (color 2) up to the same vertical position as the orange object (color 6). Move the light red object (color 1) up to the same vertical position as the dark green object (color 7). Move the light red object (color 1) up to the same vertical position as the yellow object (color 4). The background should remain the same as the input grid. 
+:: def hbceciggjgfeefcebbbffddfeegffdag(I):
+  def move_object(grid, source_color, target_color):
+    source_obj = extract(objects(grid, T, F, T), matcher(color, source_color)) if any(color(x) == source_color for x in objects(grid, T, F, T)) else None
+    target_obj = extract(objects(grid, T, F, T), matcher(color, target_color)) if any(color(x) == target_color for x in objects(grid, T, F, T)) else None
+    if source_obj and target_obj:
+      return paint(cover(grid, source_obj), shift(source_obj, (uppermost(target_obj) - uppermost(source_obj), 0)))
+    return grid
+
+  for color_pair in [(5, 8), (2, 6), (1, 7), (1, 4)]:
+    I = move_object(I, color_pair[0], color_pair[1])
+  return I
+ 
+33.666666666666664, tensor(0.0136), Description: Move the light blue object (color 5) up to the same vertical position as the dark blue object (color 8). Move the red object (color 2) up to the same vertical position as the orange object (color 6). Move the light red object (color 1) up to the same vertical position as the dark green object (color 7). Move the light red object (color 1) up to the same vertical position as the yellow object (color 4). The background should remain the same as the input grid. 
+:: def cfjhacbcfbcdeagfbggaedfiddecfdah(I):
+  def align_and_paint(grid, obj, target_color):
+    target_obj = extract(objects(grid, T, F, T), matcher(color, target_color)) if any(color(x) == target_color for x in objects(grid, T, F, T)) else None
+    if target_obj:
+      return paint(grid, shift(obj, (uppermost(target_obj) - uppermost(obj), 0)))
+    return grid
+
+  objs = objects(I, T, F, T)
+  new_grid = canvas(mostcolor(I), shape(I))
+  for obj in objs:
+    for source_color, target_color in [(5, 8), (2, 6), (1, 7), (1, 4)]:
+      if color(obj) == source_color:
+        new_grid = align_and_paint(new_grid, obj, target_color)
+  return new_grid
+ 
+44.333333333333336, tensor(0.3116), Description: Swap the colors of the top and bottom halves of the grid. The most common color in the grid should remain the background color. Then, swap the colors of the top and bottom halves of the grid again. The most common color in the grid should remain the background color. 
+:: def ddccfacbiddeejegjaaiiiabdbcibeaa(I):
+  m = len(I) // 2
+  top_half = I[:m]
+  bottom_half = I[m:]
+  top_color = color(extract(objects(top_half, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  bottom_color = color(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  return vconcat(paint(paint(top_half, recolor(bottom_color, toindices(extract(objects(top_half, T, T, T), lambda obj: color(obj) == top_color)))), recolor(top_color, toindices(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) == bottom_color)))), paint(paint(bottom_half, recolor(top_color, toindices(extract(objects(bottom_half, T, T, T), lambda obj: color(obj) == bottom_color)))), recolor(bottom_color, toindices(extract(objects(top_half, T, T, T), lambda obj: color(obj) == top_color)))))
+ 
+23.0, tensor(0.3116), Description: Swap the colors of the top and bottom halves of the grid. The most common color in the grid should remain the background color. Then, swap the colors of the top and bottom halves of the grid again. The most common color in the grid should remain the background color. 
+:: def cefaecigbbefeiiaabfeibabbbcebaff(I):
+  m = len(I) // 2
+  t = I[:m]
+  b = I[m:]
+  def f(obj):
+    return color(obj) != mostcommon(I)
+  tc = color(argmin(sfilter(objects(t, T, T, T), f), lambda obj: len(obj)))
+  bc = color(argmin(sfilter(objects(b, T, T, T), f), lambda obj: len(obj)))
+  return vconcat(paint(replace(t, tc, bc), recolor(bc, toindices(extract(objects(t, T, T, T), lambda obj: color(obj) == tc)))), paint(replace(b, bc, tc), recolor(tc, toindices(extract(objects(b, T, T, T), lambda obj: color(obj) == bc))))) 
+ 
+33.666666666666664, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def jabcieieajdceffbbgcaajdfegbcijgf(I):
+  objs = fgpartition(I)
+  objs_sorted = order(objs, size)
+  second_smallest = objs_sorted[1]
+  second_largest = objs_sorted[-2]
+  color_a = color(second_smallest)
+  color_b = color(second_largest)
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color_a, toindices(second_largest))), recolor(color_b, toindices(second_smallest)))
+ 
+22.333333333333332, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def cahefeabjacdeiaajfdaaffiejbibfec(I):
+  objs = fgpartition(I)
+  sizes = apply(size, objs)
+  sorted_sizes = order(sizes, identity)
+  second_smallest_size = sorted_sizes[1]
+  second_largest_size = sorted_sizes[-2]
+  second_smallest = extract(objs, matcher(size, second_smallest_size))
+  second_largest = extract(objs, matcher(size, second_largest_size))
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(second_smallest), toindices(second_largest))), recolor(color(second_largest), toindices(second_smallest)))
+ 
+20.333333333333332, tensor(0.2302), Description: Swap the colors of the smallest and largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def dadabbhchecbejjdifhcfabcaabcjbid(I):
+  objs = fgpartition(I)
+  color_a = color(extract(objs, lambda obj: size(obj) == min(size(o) for o in objs)))
+  color_b = color(extract(objs, lambda obj: size(obj) == valmax(objs, size)))
+  return tuple(tuple(color_a if v == color_b else (color_b if v == color_a else v) for v in row) for row in I)
+ 
+33.333333333333336, tensor(0.2103), Description: Swap the colors of the two objects in the grid. The most common color in the grid should remain the background color. 
+:: def befdegiiecafeebfaecidajiffcecdbc(I):
+  objs = objects(I, False, True, True)
+  first_obj = extract(objs, lambda obj: True)
+  second_obj = extract(objs, lambda obj: obj != first_obj)
+  color_a = color(first_obj)
+  color_b = color(second_obj)
+  return paint(paint(canvas(mostcolor(I), shape(I)), first_obj), recolor(color_b, toindices(second_obj)))
+ 
+32.0, tensor(0.2103), Description: Swap the colors of the two objects in the grid. The most common color in the grid should remain the background color. 
+:: def fhdabbgbaedaeieeidhaefiffbdjcfhj(I):
+  objs = list(fgpartition(I))
+  color_a = color(objs[0])
+  color_b = color(objs[1])
+  return replace(replace(I, color_a, -1), color_b, color_a)
+ 
+31.333333333333332, tensor(1.6910), Description: Change the color of the second object to the color of the first object. The background should remain the most common color in the input grid. 
+:: def iddfbccaaeejedaabdgfaefehbafaffc(I):
+  obj1 = extract(fgpartition(I), lambda x: True)
+  obj2 = extract(difference(fgpartition(I), {obj1}), lambda x: True)
+  return paint(paint(canvas(mostcolor(I), shape(I)), obj1), recolor(color(obj1), toindices(obj2)))
+ 
+22.333333333333332, tensor(0.2057), Description: Swap the colors of the two colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def cfifhbaefdfjejgiagaffeadaegfffdi(I):
+  c1 = color(extract(objects(I, T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  c2 = color(extract(objects(replace(I, c1, mostcommon(I)), T, T, T), lambda obj: color(obj) != mostcommon(I)))
+  return switch(I, c1, c2)
+ 
+43.333333333333336, tensor(0.1258), Description: For each object in the input grid, change its color to the color of the most common color in the grid. Then, paint the entire grid with that color. 
+:: def aeacdebccfdfeihaieffbdgehebjbbfj(I):
+  O = canvas(0, shape(I))
+  objects_sorted = order(objects(I, univalued=True, diagonal=False, without_bg=True), lambda obj: -color(obj))
+  offset = (0, 0)
+  for obj in objects_sorted:
+    O = paint(O, shift(recolor(color(obj), obj), offset))
+    offset = add(offset, (height(obj), 0))
+  return O
+ 
+43.666666666666664, tensor(0.0169), Description: For each unique color in the input grid (excluding the background color), extract the object with that color. Shift the object horizontally to the right by an amount equal to its color. Then, paint the shifted object onto a blank canvas with the most common color as the background. This results in each object being shifted to the right based on its color. 
+:: def idacdidccajeeecbabefdbgjahbbffbd(I):
+  O = canvas(0, shape(I))
+  for value in sorted(palette(I) - {mostcolor(I)}):
+    obj = extract(objects(I, univalued=True, diagonal=False, without_bg=True), matcher(color, value))
+    O = paint(O, shift(recolor(value, obj), (value, 0)))
+  return O
+ 
+41.666666666666664, tensor(1.4423), Description: For each object in the input grid, change its color to the color of the most common color in the grid. Then, shift the object vertically by an amount equal to its index in the sorted list of objects (sorted by color). The background should remain black. 
+:: def cbfddccfaebbejdhiebbaihggcgcdaee(I):
+  O = canvas(0, shape(I))
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for i, obj in enumerate(sorted(objs, key=lambda x: color(x))):
+    O = paint(O, shift(recolor(color(obj), obj), (i * height(obj), 0)))
+  return O
+ 
+45.0, tensor(0.9338), Description: For each object in the input grid, shift it to a new position determined by its color. The new position is calculated by dividing the object's color by the width of the grid to get the row index and taking the modulo of the object's color by the width of the grid to get the column index. For example, if the object's color is 5 and the grid is 3x3, the new position would be (1, 2) because 5 // 3 = 1 and 5 % 3 = 2. The shifted object is then painted onto the output grid with its original color. The background should remain black. 
+:: def jhgedbhhdhefecigjjadabdgihbhbdfc(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    new_position = (color(obj) // width(I), color(obj) % width(I))
+    O = paint(O, shift(recolor(color(obj), obj), new_position))
+  return O
+ 
+36.666666666666664, tensor(0.0246), Description: For each unique color in the input grid (excluding the background color), extract the object with that color. Shift the object vertically to the same row as the topmost object of that color in the input grid. Then, paint the shifted object onto a blank canvas with the most common color as the background. This results in each object being aligned to the top row of its corresponding color in the input grid. 
+:: def eghheeeahgabeifjjjbfaedfaehcadej(I):
+  O = canvas(0, shape(I))
+  for value in palette(I) - {mostcolor(I)}:
+    target_obj = extract(objects(I, univalued=True, diagonal=False, without_bg=True), matcher(color, value))
+    O = paint(O, shift(recolor(value, target_obj), (uppermost(target_obj), 0)))
+  return O
+ 
+30.666666666666668, tensor(0.0924), Description: Swap the second and third most common colors in the grid. The most common color in the grid should remain the background color. 
+:: def bibadcihdcgeeibbihidbfagcdfiddfh(I):
+  # Find the three most common colors
+  c1 = mostcommon(I) 
+  c2 = mostcommon(remove(c1, totuple(I)))
+  c3 = mostcommon(remove(c2, remove(c1, totuple(I))))
+  # Swap the second and third most common colors
+  O = replace(replace(I, c2, -1), c3, c2)
+  O = replace(O, -1, c3)
+  return O
+ 
+31.666666666666668, tensor(0.0986), Description: Swap the colors of the second most common and least common colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def fdedfdcddecjeefjjafccjbfcfidddhe(I):
+  # Get objects excluding the background
+  objs = objects(I, T, T, T)
+  # Find the second and third most common colors
+  c2 = color(argmax(objs, lambda obj: len(obj)))
+  c3 = color(argmin(objs, lambda obj: len(obj)))
+  # Swap colors using recolor and paint
+  O = paint(paint(I, recolor(c3, toindices(extract(objs, lambda obj: color(obj) == c2)))), recolor(c2, toindices(extract(objs, lambda obj: color(obj) == c3))))
+  return O
+ 
+44.333333333333336, tensor(1.9796), Description: Move the light blue object (color 5) one space down and one space to the right. Move the red (color 2) and light red (color 1) objects one space to the right. Move all other objects one space up and one space to the left. The background should remain the same as the input grid. 
+:: def hdgffebcahcfeddgjdfhdhbfeahacfda(I):
+  objs = objects(I, False, False, True)  # Identify all objects
+  O = I
+  for obj in objs:
+    c = color(obj)
+    if c == 5:
+      O = paint(cover(O, obj), shift(recolor(7, obj), (1, 1)))
+    elif c in (2, 1):
+      O = paint(cover(O, obj), shift(obj, (1, 0)))
+    else:
+      O = paint(cover(O, obj), shift(obj, (-1, -1)))
+  return O
+ 
+46.666666666666664, tensor(1.9793), Description: Move the light blue object (color 5) one space down and one space to the right, changing its color to dark green (color 7). Move the red object (color 2) one space to the right. Move all other objects one space up and one space to the left. The background should remain the same as the input grid. 
+:: def jafadeeebgibeabjjdcebafgadcbbfac(I):
+  objs = sorted(objects(I, False, False, True), key=lambda obj: color(obj)) # Sort objects by color
+  O = I
+  for i, obj in enumerate(objs):
+    direction = (1, 1) if i == 0 else ((1, 0) if i == 1 else (-1, -1))  
+    new_color = 7 if i == 0 else color(obj)
+    O = paint(cover(O, obj), shift(recolor(new_color, obj), direction))
+  return O
+ 
+41.333333333333336, tensor(1.9793), Description: Move the light blue object (color 5) one space down and one space to the right, changing its color to dark green (color 7). Move the red object (color 2) one space to the right. Move all other objects one space up and one space to the left. The background should remain the same as the input grid. 
+:: def bbbbebahfefcecididjfcjhbaabeabdc(I):
+  def transform_object(obj):
+    c = color(obj)
+    return shift(recolor(7 if c == 5 else c, obj), (1, 1) if c == 5 else ((1, 0) if c in (2, 1) else (-1, -1)))
+  return paint(I, merge(apply(transform_object, objects(I, False, False, True)))) 
+ 
+31.666666666666668, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def ahdiaeeibhfjedbaadefcefjfdihcaec(I):
+  objs = order(fgpartition(I), size)
+  a, b = objs[1], objs[-2]
+  return paint(paint(canvas(mostcolor(I), shape(I)), b), a) 
+ 
+30.666666666666668, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def cfbgdgdjdbchefbeibdijdfijddeiddc(I):
+  objs = order(fgpartition(I), size)
+  small, large = toindices(objs[1]), toindices(objs[-2])
+  return paint(fill(fill(I, color(objs[1]), large), color(objs[-2]), small), objs[1] | objs[-2])
+ 
+32.666666666666664, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def beaiefieeaacegjgibbeececdacihfbf(I):
+  objs = sorted(fgpartition(I), key=size)
+  c1, c2 = color(objs[1]), color(objs[-2])
+  return paint(paint(replace(I, c1, -1), recolor(c2, ofcolor(I, c1))), recolor(c1, ofcolor(I, c2)))
+ 
+32.666666666666664, tensor(0.9206), Description: Change the color of all objects in the input grid to the color of the largest object, except for the smallest object which remains its original color. Then, paint the entire grid with the most common color in the input grid. 
+:: def gafaeabccjfjeddjbbcdccdbdcdfhgeh(I):
+  objs = fgpartition(I)  # Partition into objects excluding background
+  smallest = min(objs, key=size) # Find the smallest object
+  largest = max(objs, key=size)  # Find the largest object
+  target_color = color(largest)  # Get the color of the largest object
+  return paint(canvas(mostcolor(I), shape(I)), 
+               combine(smallest, recolor(target_color, merge(objs - {smallest, largest})))) # Paint the smallest and recolor others
+ 
+99.0, tensor(1.1680), Description: Change the color of all objects in the input grid to the color of the largest object, except for the smallest object which remains its original color. The background should remain the most common color in the input grid. 
+:: def egfccdcdbjdcedfbbjebdbhecfcccecb(I):
+  objs = fgpartition(I)
+  small_color = color(argmin(objs, size)) # Color of smallest object
+  large_color = color(argmax(objs, size)) # Color of largest object
+  return tuple(tuple(v if v in (small_color, large_color) else large_color for v in row) for row in I) # Recolor based on conditions
+ 
+32.666666666666664, tensor(0.9206), Description: Change the color of all objects in the input grid to the color of the largest object, except for the smallest object which remains its original color. Then, paint the entire grid with the most common color in the input grid. 
+:: def dbcecahhagffebdcafchfffhcbgbccic(I):
+  objs = objects(I, False, True, True)
+  min_obj = extract(objs, lambda obj: size(obj) == valmin(objs, size)) # Smallest object
+  max_obj = extract(objs, lambda obj: size(obj) == valmax(objs, size)) # Largest object
+  return paint(paint(canvas(mostcolor(I), shape(I)), min_obj), recolor(color(max_obj), toindices(merge(objs - {min_obj, max_obj})))) # Recolor and combine objects
+ 
+44.333333333333336, tensor(0.0138), Description: For each object in the input grid, change its color to the color of the square directly below it. If there is no square below it, change its color to black. Then, shift the object vertically to the same row as the topmost object of its original color in the input grid. The background should remain black. 
+:: def cefchcfiebcdeeebbhdbdcecbdjhecja(I):
+  O = canvas(0, shape(I))
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for obj in objs:
+    new_color = index(I, add(ulcorner(obj), DOWN)) if index(I, add(ulcorner(obj), DOWN)) is not None else 0
+    O = paint(O, shift(recolor(new_color, obj), (uppermost(obj), 0)))
+  return O
+ 
+30.666666666666668, tensor(0.0263), Description: For each colored square in the input grid, if the square above it is the background color, move the colored square up one space until it touches another colored square or the top edge of the grid. The background should remain the same as the input grid. 
+:: def bbffhaiedfcfeaafaaedgaeaddahgbdf(I):
+  O = I
+  for j in range(width(I)):
+    for i in range(1, height(I)):
+      if index(I, (i,j)) != mostcolor(I) and index(I, (i - 1, j)) == mostcolor(I):
+        k = i
+        while k > 0 and index(I, (k - 1, j)) == mostcolor(I):
+          O = paint(cover(O, {(index(O,(k,j)),(k,j))}),{(index(O,(k - 1,j)), (k - 1, j))})
+          k -= 1
+  return O
+ 
+31.666666666666668, tensor(1.7323), Description: Change the color of the least common colored object to the color of the object directly above it. Then, change the color of the object directly above it to the original color of the least common colored object. The background should remain the most common color in the input grid. 
+:: def ibhbcdcfbeedecchifceeagabecbdeej(I):
+  least_color = leastcolor(sfilter(I, lambda v: v != mostcommon(I)))
+  least_indices = ofcolor(I, least_color)
+  above_indices = shift(least_indices, (-height(least_indices), 0)) # Calculate the indices of the object above directly.
+  O = paint(paint(I, recolor(index(I, first(above_indices)), least_indices)), recolor(least_color, above_indices)) 
+  return O
+ 
+39.0, tensor(1.6086), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is red (color 2), keep it red.
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark blue (color 8), keep it dark blue.
+- All other objects remain their original color.
+
+Then, move each object one space to the right. The background should remain the same as the input grid. 
+:: def aeafadcbccbbejehijidigaefdccffce(I):
+    O = canvas(0, shape(I))
+    for obj in objects(I, False, False, True):
+        c = color(obj)
+        new_color = {2: 2, 5: 6, 8: 8}.get(c, c)  # Color mapping
+        O = paint(O, shift(recolor(new_color, obj), (1, 0)))  # Shift down
+    return O
+ 
+36.0, tensor(1.1981), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is red (color 2), keep it red.
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark blue (color 8), keep it dark blue.
+- All other objects remain their original color.
+
+Then, move each object one space down. The background should remain the same as the input grid. 
+:: def bfahibadehadefbbicfbabjjebhbcbjh(I):
+    O = I
+    for c in palette(I) - {mostcolor(I)}:  # Iterate colors except background
+        obj = extract(objects(I, False, False, True), lambda obj: color(obj) == c)
+        new_color = {2: 2, 5: 6, 8: 8}.get(c, c)
+        O = paint(cover(O, obj), shift(recolor(new_color, obj), DOWN))
+    return O
+ 
+34.333333333333336, tensor(1.9710), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is light blue (color 5), change it to orange (color 6) and move it one space to the right.
+- If the object is red (color 2), keep it red and move it one space to the right.
+- If the object is dark blue (color 8), keep it dark blue and move it one space to the right.
+- All other objects remain their original color and position. 
+:: def djdegficicafeaeabfdcdadcjddjhebj(I):
+  transform_map = {5: (6, (1, 0)), 2: (2, (1, 0)), 8: (8, (1, 0))}  # Combined mapping
+  O = I
+  for obj in objects(I, False, False, True):
+    new_color, direction = transform_map.get(color(obj), (color(obj), (0, 0)))  # Default to no change
+    O = paint(cover(O, obj), shift(recolor(new_color, obj), direction))
+  return O
+ 
+33.666666666666664, tensor(0.0653), Description: Change the color of the smallest object to the color of the largest object. Then, paint the entire grid with the most common color in the input grid. 
+:: def gecbfhfiafdgechebdbacbcfbiddeceb(I):
+  objs = objects(I, False, True, True)
+  small_obj = argmin(objs, size)  # Smallest object
+  large_color = color(argmax(objs, size))  # Color of largest object
+  return paint(canvas(mostcolor(I), shape(I)), recolor(large_color, toindices(small_obj)))  # Recolor and paint
+ 
+33.666666666666664, tensor(0.0653), Description: Change the color of the smallest object to the color of the largest object. Then, paint the entire grid with the most common color in the input grid. 
+:: def fbfhfiffhiegecchjdcdbhajiaihdefd(I):
+  objs = objects(I, False, True, True)
+  small_size = float('inf')
+  large_color = mostcolor(I)  # Initialize with background color
+  small_obj = None
+  for obj in objs:
+    obj_size = size(obj)
+    if obj_size < small_size:
+      small_size = obj_size
+      small_obj = obj
+    if obj_size > small_size:
+      large_color = color(obj)
+  return paint(canvas(mostcolor(I), shape(I)), recolor(large_color, toindices(small_obj)))  # Recolor and paint
+ 
+44.0, tensor(0.0138), Description: For each object in the input grid, change its color to the color of the square directly below it. If there is no square below it, change its color to black. Then, shift the object horizontally to the leftmost position of the object itself. The background should remain black. 
+:: def eabfbhehedeeefcjbdeabjbbecjbdbbe(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    new_color = index(I, (uppermost(obj) + 1, leftmost(obj))) if uppermost(obj) < len(I) - 1 else 0
+    O = paint(O, shift(recolor(new_color, obj), (0, leftmost(obj))))
+  return O
+ 
+38.0, tensor(1.9724), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is red (color 2), keep it red and move it one space to the right.
+- If the object is light blue (color 5), change it to orange (color 6) and move it one space to the right.
+- If the object is dark blue (color 8), keep it dark blue and move it one space to the right.
+- If the object is light red (color 1), keep it light red and move it one space to the right.
+- If the object is dark green (color 7), keep it dark green and move it one space to the right.
+- All other objects remain their original color and position. 
+:: def cgaahbabaifaeicbiefcichfgbcdjdcf(I):
+  O = canvas(0, shape(I)) # Initialize with an empty canvas
+  for color_val, new_color in [(2, 2), (5, 6), (8, 8), (1, 1), (7, 7)]:
+    for obj in sfilter(objects(I, False, False, True), lambda obj: color(obj) == color_val):
+      O = underpaint(O, shift(recolor(new_color, obj), (1, 0)))
+  return O
+ 
+30.0, tensor(1.9492), Description: Move the light blue object (color 5) one space to the right, changing its color to orange (color 6). The background should remain the same as the input grid. 
+:: def eagchebjebddehhdbacfgcfcdgfhgbac(I):
+  return paint(
+      cover(I, extract(objects(I, F, F, T), lambda obj: color(obj) == 5)),
+      shift(recolor(6, extract(objects(I, F, F, T), lambda obj: color(obj) == 5)), (1, 0))
+  )
+ 
+20.333333333333332, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def edcdahbaaiibebeebaeabhcfaaceafbf(I):
+  objs = fgpartition(I)
+  sizes = sorted(set(apply(size, objs)))
+  a = extract(objs, lambda x: size(x) == sizes[1])
+  b = extract(objs, lambda x: size(x) == sizes[-2])
+  return paint(paint(I, recolor(color(a), toindices(b))), recolor(color(b), toindices(a))) 
+ 
+32.666666666666664, tensor(1.4370), Description: Change the color of the second largest object to the color of the largest object. Then, paint the entire grid with the most common color in the input grid. The largest object should remain its original color. 
+:: def cbfcbaafcfaaecicjdbhediebhegafcg(I):
+  objs = objects(I, False, True, True)
+  sorted_objs = order(objs, size)
+  largest_obj = first(sorted_objs)
+  second_largest_obj = last(remove(largest_obj, sorted_objs))
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(largest_obj), toindices(second_largest_obj))), largest_obj)
+ 
+33.666666666666664, tensor(1.4370), Description: Change the color of the second largest object to the color of the largest object. Then, paint the entire grid with the most common color in the input grid. The largest object should remain its original color. 
+:: def daiafaahicdfeaieagbigdchejajeddj(I):
+  objs = objects(I, False, True, True)
+  largest_obj = argmax(objs, size)
+  remaining_objs = difference(objs, {largest_obj})
+  second_largest_obj = argmax(remaining_objs, size)
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(largest_obj), toindices(second_largest_obj))), largest_obj)
+ 
+30.666666666666668, tensor(0.0330), Description: For each object in the input grid, change its color to the color of the square directly below it. If there is no square below it, keep its original color. The background should remain black. 
+:: def ccicbfdfcaaaebhhijadfaefebfeeaic(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    target_loc = (lowermost(obj), center(obj)[1]) 
+    target_color = index(I, target_loc) 
+    while 0 <= target_loc[0] < len(I) and target_color == 0:
+      target_loc = add(target_loc, DOWN)
+      target_color = index(I, target_loc)
+    new_obj = recolor(target_color if target_color else color(obj), obj)
+    O = paint(O, new_obj)
+  return O
+ 
+39.333333333333336, tensor(0.0189), Description: For each object in the input grid, find the first object above it that is in the same vertical column and has a different color. If such an object exists, move the current object up to the same row as the object above it, changing its color to the color of the object above it. If no such object exists, keep the object unchanged. The background should remain black. 
+:: def dbcjabfheaccefadabaccbgdbcbdfcca(I):
+  O = canvas(0, shape(I))
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  for obj in objs:
+    for other_obj in objs - {obj}:
+      if vmatching(obj, other_obj) and uppermost(other_obj) > lowermost(obj):
+        offset = subtract((uppermost(other_obj), 0), (lowermost(obj) + 1, 0))
+        O = paint(O, shift(recolor(color(other_obj), obj), offset))
+        break
+    else:
+      O = paint(O, obj)
+  return O
+ 
+27.666666666666668, tensor(0.0178), Description: For each object in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def ejdeidjefefgeefhiicdgifaefcbefcd(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    target_i = lowermost(obj) + 1
+    while target_i < len(I) and index(I, (target_i, center(obj)[1])) == 0:
+      target_i += 1
+    if target_i < len(I):
+      O = move(O, obj, (target_i - uppermost(obj), 0))
+      O = paint(O, recolor(index(O, (target_i, center(obj)[1])), obj))
+  return O
+ 
+33.666666666666664, tensor(0.0178), Description: For each object in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def ihcdgfcbbadiefgabbcaddbcdgdhabce(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    for i in range(lowermost(obj) + 1, len(I)):
+      if index(I, (i, center(obj)[1])) != 0:
+        O = paint(O, shift(recolor(index(I, (i, center(obj)[1])), obj), (i - uppermost(obj), 0)))
+        break
+    else:
+      O = paint(O, obj)
+  return O
+ 
+28.333333333333332, tensor(0.0178), Description: For each object in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def egchcdheeifbejiaiigbfcgcffadaabj(I):
+  O = I
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    offset = (0, 0)
+    for i in range(lowermost(obj) + 1, len(I)):
+      if index(I, (i, center(obj)[1])) != 0:
+        offset = (i - uppermost(obj), 0)
+        break
+    O = move(O, obj, offset)
+    if offset != (0, 0):
+      O = paint(O, recolor(index(O, add(center(obj), offset)), obj))
+  return O
+ 
+36.0, tensor(0.6563), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark blue (color 8), keep it dark blue.
+- If the object is light red (color 1), keep it light red.
+- If the object is dark green (color 7), keep it dark green.
+- All other objects remain their original color.
+
+The background should remain the same as the input grid. 
+:: def jaecjjcfbgchebeeihdbcfijedfadedf(I):
+    color_map = {2: 2, 5: 6, 8: 8, 1: 1, 7: 7}
+    return tuple(
+        tuple(color_map.get(I[i-1][j], I[i-1][j]) if i > 0 else v for j, v in enumerate(row))
+        for i, row in enumerate(I)
+    )
+ 
+32.666666666666664, tensor(1.1122), Description: Change the color of the second smallest object to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. The smallest object should remain its original color. 
+:: def eijeafdifhcgeeaaafaibedgeedcfffh(I):
+  objs = objects(I, False, True, True)
+  size_sorted_objs = order(objs, size)
+  smallest_obj = first(size_sorted_objs)
+  second_smallest_obj = size_sorted_objs[1]
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(smallest_obj), toindices(second_smallest_obj))), smallest_obj)
+ 
+30.666666666666668, tensor(1.1122), Description: Change the color of the second smallest object to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. The smallest object should remain its original color. 
+:: def caeibaeahbaceaabjebefddeaacaafdd(I):
+    objs = objects(I, False, True, True)
+    obj_sizes = apply(size, objs)
+    min_size = minimum(obj_sizes)
+    second_min_size = minimum(remove(min_size, obj_sizes))
+    min_obj = extract(objs, lambda obj: size(obj) == min_size)
+    second_min_obj = extract(objs, lambda obj: size(obj) == second_min_size)
+    return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(min_obj), toindices(second_min_obj))), min_obj)
+ 
+32.666666666666664, tensor(1.1122), Description: Change the color of the second smallest object to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. The smallest object should remain its original color. 
+:: def bfcajcidbfefehiajgiddeebdbcdgicf(I):
+  objs = objects(I, False, True, True)
+  smallest_obj = argmin(objs, size)
+  second_smallest_obj = argmin(difference(objs, {smallest_obj}), size) 
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(smallest_obj), toindices(second_smallest_obj))), smallest_obj)
+ 
+33.666666666666664, tensor(0.0178), Description: For each object in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def geaggafeejbdebfhifbfagjbbchbdfcj(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    center_j = centerofmass(obj)[1]
+    for i in range(lowermost(obj) + 1, len(I)):
+      target_color = index(I, (i, center_j))
+      if target_color != 0:
+        O = paint(O, recolor(target_color, obj))
+        break
+    else:
+      O = paint(O, obj)
+  return O
+ 
+36.0, tensor(1.4714), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark blue (color 8), keep it dark blue.
+- If the object is light red (color 1), keep it light red.
+- If the object is dark green (color 7), keep it dark green.
+- All other objects remain their original color.
+
+Then, move each object one space to the right. The background should remain the same as the input grid. 
+:: def idedfbegggjaecajbahbafhfcbeadbjb(I):
+  return paint(I, 
+              merge([shift(recolor({2: 2, 5: 6, 8: 8, 1: 1, 7: 7}.get(color(obj), color(obj)), obj), (1, 0)) 
+                    for obj in objects(I, False, False, True)]))
+ 
+33.666666666666664, tensor(0.0429), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def fjbacaebeefgecacbdefjcffecbaeaea(I):
+  objs = fgpartition(I)
+  size_obj_pairs = apply(lambda obj: (size(obj), obj), objs)
+  sorted_pairs = order(size_obj_pairs, lambda x: x[0])
+  second_smallest = sorted_pairs[1][1]
+  second_largest = sorted_pairs[-2][1]
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(second_smallest), toindices(second_largest))), recolor(color(second_largest), toindices(second_smallest)))
+ 
+30.666666666666668, tensor(1.1122), Description: Change the color of the second smallest object to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. The smallest object should remain its original color. 
+:: def dfdceegdbecfeadiiihiefbebjbcfeic(I):
+  objs = objects(I, False, True, True)  # Extract all objects (excluding background)
+  obj_sizes = apply(size, objs)  # Get sizes of all objects
+  min_size = minimum(obj_sizes)  # Find the size of the smallest object
+  s = sizefilter(objs, min_size)  # Get the smallest object(s)
+  ns = sizefilter(objs, valmin(obj_sizes - {min_size}, identity))  # Get the second smallest object(s)
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(first(s)), toindices(first(ns)))), first(s))  # Swap colors and paint
+ 
+32.666666666666664, tensor(1.1122), Description: Change the color of the second smallest object to the color of the smallest object. Then, paint the entire grid with the most common color in the input grid. The smallest object should remain its original color. 
+:: def bdfddfjajfdfeeffjffhddffjgeacddd(I):
+  objs = objects(I, False, True, True)
+  def find_nth_smallest_obj(n):
+    sizes = sorted(size(obj) for obj in objs)
+    nth_smallest_size = sizes[n-1]
+    return extract(objs, lambda obj: size(obj) == nth_smallest_size)
+  small_obj = find_nth_smallest_obj(1)
+  second_small_obj = find_nth_smallest_obj(2)
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(small_obj), toindices(second_small_obj))), small_obj)
+ 
+33.666666666666664, tensor(0.2193), Description: Swap the colors of the smallest and second smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def abagddjfdfececbbafaihcidcjdadafe(I):
+  objs = objects(I, False, True, True)
+  s = argmin(objs, size)  # Directly find the smallest object
+  ns = argmin(objs - {s}, size)  # Find the second smallest object
+  return paint(canvas(mostcolor(I), shape(I)), recolor(color(s), toindices(ns)) | recolor(color(ns), toindices(s)))  # Swap colors simultaneously
+ 
+97.0, tensor(1.7389), Description: Swap the colors of adjacent colored squares in the same column, moving upwards. The background should remain the most common color in the input grid. 
+:: def abcifjafaibcefaabcbecichehbeaeaf(I):
+  for i in range(1, len(I)):
+    for j in range(len(I[0])):
+      if I[i][j] != mostcommon(I) and I[i - 1][j] != mostcommon(I):
+          I = switch(I, I[i][j], I[i - 1][j])
+  return I
+ 
+22.0, tensor(0.2856), Description: For each colored object in the input grid, find the object that is directly above it and has the largest overlap with the shifted version of the current object. If such an object exists, swap the colors of the two objects. The background should remain the same as the input grid. 
+:: def hhbaafeihfhfeebdafcecjccbgbaaiic(I):
+  objs = objects(I, T, T, T)
+  for obj in objs:
+    target_obj = argmax(objs, lambda x: size(intersection(toindices(x), shift(toindices(obj), (-height(obj), 0)))))
+    if target_obj and size(intersection(toindices(target_obj), shift(toindices(obj), (-height(obj), 0)))) > 0:
+      I = paint(paint(cover(I, obj), recolor(color(target_obj), toindices(obj))), recolor(color(obj), toindices(target_obj)))
+  return I
+ 
+36.0, tensor(1.9724), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is red (color 2), keep it red and move it one space to the right.
+- If the object is light blue (color 5), change it to orange (color 6) and move it one space to the right.
+- If the object is dark blue (color 8), keep it dark blue and move it one space to the right.
+- If the object is light red (color 1), keep it light red and move it one space to the right.
+- If the object is dark green (color 7), keep it dark green and move it one space to the right.
+- All other objects remain their original color and position. 
+:: def ecigfidiadfeeehejcibfeaefhbeabif(I):
+  O = canvas(0, shape(I)) # Initialize with an empty canvas
+  for color_val, new_color in [(2, 2), (5, 6), (8, 8), (1, 1), (7, 7)]:
+    for obj in sfilter(objects(I, False, False, True), lambda obj: color(obj) == color_val):
+      O = paint(paint(O, obj), shift(recolor(new_color, obj), (1, 0)))
+  return O
+ 
+36.0, tensor(1.5052), Description: Change the color of the objects in the input grid based on a specific mapping:
+- If the object is light blue (color 5), change it to orange (color 6).
+- If the object is dark green (color 7), change it to yellow (color 4).
+- All other objects remain their original color.
+
+Then, move each object one space to the right. The background should remain the same as the input grid. 
+:: def jjdcdfedcgcbecgfjafiahjfgfhhecag(I):
+  O = I 
+  for obj in objects(I, False, False, True):
+    c = color(obj)
+    new_color = c
+    if c == 5:
+      new_color = 6
+    elif c == 7: 
+      new_color = 4 
+    O = paint(O, shift(recolor(new_color, obj), (1, 0)))
+  return O
+ 
+29.0, tensor(0.2103), Description: Swap the colors of the two objects in the grid. The most common color in the grid should remain the background color. 
+:: def fhhddebdeidcebffafjecbdeeceagecg(I):
+  objs = objects(I, False, True, True)
+  obj1 = extract(objs, lambda obj: color(obj) != mostcommon(I))
+  obj2 = extract(objs, lambda obj: obj != obj1)
+  color1 = color(obj1)
+  color2 = color(obj2)
+  return replace(replace(replace(I, color1, -1), color2, color1), -1, color2)
+ 
+30.333333333333332, tensor(0.2057), Description: Swap the colors of the two colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def ebdehjceeegaegcaadfafdacfahafged(I):
+  p = palette(I) - {mostcolor(I)}
+  color1 = first(p)
+  color2 = other(p, color1)
+  return replace(replace(replace(I, color1, -1), color2, color1), -1, color2) 
+ 
+22.333333333333332, tensor(0.2316), Description: Swap the colors of the largest and smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def ddbidaeacedbecedajcjfichbebbbjja(I):
+    objs = fgpartition(I)
+    obj1 = argmax(objs, size)
+    obj2 = argmin(objs, size)
+    return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(obj2), toindices(obj1))), recolor(color(obj1), toindices(obj2)))
+ 
+33.666666666666664, tensor(0.2302), Description: Swap the colors of the smallest and largest objects in the grid. The most common color in the grid should remain the background color. 
+:: def bcfabadaebfaehbbaieddhafbjcaejjd(I):
+  objs = sorted(objects(I, False, True, True), key=size)
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(objs[-1]), toindices(objs[0]))), recolor(color(objs[0]), toindices(objs[-1])))
+ 
+32.666666666666664, tensor(0.0555), Description: Swap the colors of the topmost and second topmost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def ghdffbffdfaaedegjgfjaecgbhihibgc(I):
+  objs = objects(I, T, T, T)
+  top_obj = argmin(objs, lambda obj: uppermost(obj))
+  other_objs = remove(top_obj, objs)
+  second_obj = argmin(other_objs, lambda obj: uppermost(obj))
+  I = paint(paint(cover(I, top_obj), recolor(color(second_obj), toindices(top_obj))), recolor(color(top_obj), toindices(second_obj)))
+  return I
+ 
+32.666666666666664, tensor(0.0555), Description: Swap the colors of the topmost and second topmost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def gfbgdcfebfciedbebchfeccgcfefbgjg(I):
+  objs = objects(I, T, T, T)
+  top_two = order(objs, lambda obj: uppermost(obj))[:2]
+  first, second = top_two
+  I = paint(paint(cover(I, first), recolor(color(second), toindices(first))), recolor(color(first), toindices(second)))
+  return I
+ 
+25.666666666666668, tensor(1.9722), Description: Move the red (color 2) and light red (color 1) objects one space down. Change the light blue object (color 5) to orange (color 6). Move the dark blue (color 8) and yellow (color 4) objects one space up. Move the orange object (color 6) one space up. The background should remain the same as the input grid. 
+:: def adbehecdefjcedcajihgabghddechcjh(I):
+  shifted_grid = I
+  for color in palette(I):
+    obj = toobject(ofcolor(I, color), I)
+    if color == 2 or color == 1:
+      shifted_grid = move(shifted_grid, obj, DOWN)
+    elif color == 5:
+      shifted_grid = paint(shifted_grid, recolor(6, obj))
+    elif color == 8 or color == 4:
+      shifted_grid = move(shifted_grid, obj, UP)
+    elif color == 6:
+      shifted_grid = move(shifted_grid, obj, UP)
+  return shifted_grid
+ 
+27.333333333333332, tensor(1.9172), Description: If there are any red squares (color 2), move the red object down one space and change the light blue object (color 5) to orange (color 6). If there are any light red squares (color 1), move the light red object down one space. If there are any dark blue squares (color 8), move the dark blue object up one space. If there are any yellow squares (color 4), move the yellow object up one space. Otherwise, keep the grid unchanged. The background should remain the same as the input grid. 
+:: def bicabfcbadcbejefjgeifdabcbdedafc(I):
+  return branch(
+    colorcount(I, 2) > 0, 
+    paint(move(I, toobject(ofcolor(I, 2), I), DOWN), recolor(6, toobject(ofcolor(I, 5), I))), 
+    branch(
+      colorcount(I, 1) > 0, 
+      move(I, toobject(ofcolor(I, 1), I), DOWN),
+      branch(
+        colorcount(I, 8) > 0,
+        move(I, toobject(ofcolor(I, 8), I), UP),
+        branch(
+          colorcount(I, 4) > 0,
+          move(I, toobject(ofcolor(I, 4), I), UP),
+          I
+        )
+      )
+    )
+  )
+ 
+25.0, tensor(1.9250), Description: Move the red (color 2) and light red (color 1) objects one space down. Change the light blue object (color 5) to orange (color 6). Move the dark blue (color 8) and yellow (color 4) objects one space up. The background should remain the same as the input grid. 
+:: def jdifahhdaedcebhfahgedbfecjgjfaca(I):
+  color_actions = {
+    2: lambda obj: shift(obj, DOWN),
+    5: lambda obj: recolor(6, obj),
+    8: lambda obj: shift(obj, UP),
+    1: lambda obj: shift(obj, DOWN),
+    4: lambda obj: shift(obj, UP)
+  }
+  return paint(canvas(mostcolor(I), shape(I)), 
+               merge({color_actions.get(color(obj), lambda x: x)(obj) 
+                      for obj in objects(I, True, False, True)}))
+ 
+32.666666666666664, tensor(0.2427), Description: Swap the colors of the topmost and second topmost colored objects in the grid, where the topmost object is the one with the lowest bottom row, and the second topmost object is the one with the second lowest bottom row. If multiple objects share the same top or bottom row, the larger object takes priority. The most common color in the grid should remain the background color. 
+:: def bdgeiedbcfbfebibififeafedfhbggca(I):
+  objs = sorted(fgpartition(I), key=lambda obj: (uppermost(obj), -size(obj)))
+  c1, c2 = color(objs[0]), color(objs[1])
+  return paint(paint(I, recolor(c2, toindices(objs[0]))), recolor(c1, toindices(objs[1])))
+ 
+32.666666666666664, tensor(0.3212), Description: Swap the colors of the two topmost objects in the grid, where the topmost object is the one with the lowest bottom row, and the second topmost object is the one with the second lowest bottom row. If multiple objects share the same top or bottom row, the larger object takes priority. The most common color in the grid should remain the background color. 
+:: def gdddbajiabjaeedgigjdfahfdfdjbedb(I):
+  objs = sorted(objects(I, True, True, True), key=lambda x: (uppermost(x), len(x)))
+  a, b = objs[0], objs[1]
+  ca, cb = color(a), color(b)
+  return paint(paint(replace(I, ca, -1), recolor(cb, toindices(a))), recolor(ca, toindices(b)))
+ 
+33.666666666666664, tensor(0.2193), Description: Swap the colors of the smallest and second smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def diaedhfdfgcdeaggjhcaeaeeehiiebci(I):
+  objs = objects(I, False, True, True)
+  objs_sorted = order(objs, size)
+  s = objs_sorted[1]
+  ns = objs_sorted[0]
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(color(ns), toindices(s))), recolor(color(s), toindices(ns)))
+ 
+32.666666666666664, tensor(0.2193), Description: Swap the colors of the smallest and second smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def ahfjjgchecdeebfgajebdaggaifjabaa(I):
+  objs = objects(I, False, True, True)
+  s = argmin(objs, lambda obj: len(obj))
+  ns = argmin(objs - {s}, lambda obj: len(obj))
+  return switch(switch(I, color(s), -1), color(ns), color(s))
+ 
+98.0, tensor(0.1109), Description: Swap the colors of the smallest and largest colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def ddeacacacjgeedahbcefifjdabadgdab(I):
+  color_a = min(palette(I))
+  color_b = max(palette(I))
+  O = paint(paint(I, recolor(color_b, ofcolor(I, color_a))), recolor(color_a, ofcolor(I, color_b)))
+  return O
+ 
+23.333333333333332, tensor(1.9720), Description: Move the red object (color 2) one space down. Change the light blue object (color 5) to orange (color 6). Move the dark blue object (color 8) one space up. All other objects remain their original color and position. The background should be the most common color in the input grid. 
+:: def jdjcibhicbheeibfjfceeihcfeeahfdi(I):
+  def transform_object(obj):
+    return branch(color(obj) == 2, shift(obj, DOWN),
+                 branch(color(obj) == 5, recolor(6, obj),
+                        branch(color(obj) == 8, shift(obj, UP), obj)))
+  return paint(canvas(mostcolor(I), shape(I)), 
+               mapply(transform_object, objects(I, True, False, True)))
+ 
+22.666666666666668, tensor(1.9719), Description: Move the red object (color 2) one space down. Change the light blue object (color 5) to orange (color 6). Move the dark blue object (color 8) one space up. All other objects remain their original color and position. The background should remain the same as the input grid. 
+:: def ebebaafacjefejdcabeejffadiiafcdb(I):
+  return paint(I, 
+               merge([branch(color(obj) == 2, shift(obj, DOWN),
+                            branch(color(obj) == 5, recolor(6, obj),
+                                   branch(color(obj) == 8, shift(obj, UP), obj))) 
+                      for obj in objects(I, True, False, True)]))
+ 
+24.333333333333332, tensor(1.7664), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. Then, move the second smallest object to the bottom right corner of the grid. 
+:: def efjcbffabafiebfbiicjdbhebedeadbf(I):
+  objs = fgpartition(I) 
+  sizes = sorted(set(apply(size, objs)))
+  small_obj = extract(objs, lambda x: size(x) == sizes[1])
+  large_obj = extract(objs, lambda x: size(x) == sizes[-2])
+  swapped_grid = paint(paint(I, recolor(color(small_obj), toindices(large_obj))), recolor(color(large_obj), toindices(small_obj)))
+  moved_obj = shift(small_obj, subtract(lrcorner(I), lrcorner(small_obj)))
+  return paint(swapped_grid, moved_obj)
+ 
+33.666666666666664, tensor(1.7664), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. Then, move the second smallest object to the bottom right corner of the grid. 
+:: def bdgfecdafeeeedifajfdhhgedfggefbf(I):
+  objs = fgpartition(I)
+  objs_by_size = order(objs, lambda obj: size(obj)) 
+  small_obj = objs_by_size[1]
+  large_obj = objs_by_size[-2]
+  I = paint(I, recolor(color(small_obj), toindices(large_obj)))
+  I = paint(I, recolor(color(large_obj), toindices(small_obj)))
+  return paint(I, shift(small_obj, subtract(lrcorner(I), lrcorner(small_obj)))) 
+ 
+33.333333333333336, tensor(1.7664), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. Then, move the second smallest object to the bottom right corner of the grid. 
+:: def dbeagefadeigeecabfeabeacdhgcaadc(I):
+  objs = list(fgpartition(I))
+  objs.sort(key=size)
+  small_obj = objs[1]
+  large_obj = objs[-2]
+  grid = canvas(mostcolor(I), shape(I))
+  for obj in objs:
+    if obj != small_obj and obj != large_obj:
+      grid = paint(grid, obj)
+  grid = paint(grid, recolor(color(small_obj), toindices(large_obj)))
+  grid = paint(grid, recolor(color(large_obj), toindices(small_obj)))
+  return paint(grid, shift(small_obj, subtract(lrcorner(I), lrcorner(small_obj))))
+ 
+26.333333333333332, tensor(1.7664), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. Then, move the second smallest object to the bottom right corner of the grid. 
+:: def abjjebaecbcbeceejcdjbiaibihgaaba(I):
+  objs = fgpartition(I)
+  size_dict = {size(obj): obj for obj in objs}
+  sizes = sorted(size_dict)
+  I = paint(I, recolor(color(size_dict[sizes[1]]), toindices(size_dict[sizes[-2]])))
+  I = paint(I, recolor(color(size_dict[sizes[-2]]), toindices(size_dict[sizes[1]])))
+  return paint(I, shift(size_dict[sizes[1]], subtract(lrcorner(I), lrcorner(size_dict[sizes[1]])))) 
+ 
+33.666666666666664, tensor(0.2193), Description: Swap the colors of the smallest and second smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def abcgebcibaeeeeeeafdcfahefiiebdcc(I):
+  objs = list(fgpartition(I))  # Get objects without background
+  objs.sort(key=len)  # Sort by size
+  small_obj = objs[0]
+  small_color = color(small_obj)
+  nsmall_obj = objs[1]
+  nsmall_color = color(nsmall_obj)
+  return paint(paint(canvas(mostcolor(I), shape(I)), recolor(nsmall_color, toindices(small_obj))), recolor(small_color, toindices(nsmall_obj))) 
+ 
+32.666666666666664, tensor(0.2193), Description: Swap the colors of the smallest and second smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def cbecfbacgcfaegehijbafiicjifbhefh(I):
+  def swap_color(obj1, obj2, grid):
+    return paint(paint(grid, recolor(color(obj2), toindices(obj1))), recolor(color(obj1), toindices(obj2)))
+  
+  objs = sorted(fgpartition(I), key=len)
+  return swap_color(objs[0], objs[1], I) 
+ 
+41.333333333333336, tensor(0.0178), Description: For each object in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def bgajdjechddbefabbdcdfdjefahfdcbi(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    new_color = color(obj)
+    for i in range(lowermost(obj) + 1, height(I)):
+      if index(I, (i, centerofmass(obj)[1])) != 0:
+        new_color = index(I, (i, centerofmass(obj)[1]))
+        break
+    O = paint(O, recolor(new_color, shift(obj, (i - uppermost(obj), 0))))
+  return O
+ 
+44.0, tensor(0.0186), Description: For each colored square in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def iffchaejaaagebgbiabffagejdgceifa(I):
+  O = canvas(0, shape(I))
+  for x in range(width(I)):
+    for y in range(height(I)):
+      if I[y][x] != 0:
+        obj = extract(objects(I, univalued=True, diagonal=False, without_bg=True), lambda obj: contained((y, x), toindices(obj)))
+        new_y = next((i for i in range(y + 1, height(I)) if index(I, (i, x)) != 0), y)
+        O = paint(O, recolor(index(I, (new_y, x)), shift(obj, (new_y - y, 0))))
+  return O
+ 
+44.0, tensor(0.0186), Description: For each colored square in the input grid, move it down to the next row where there is a colored square. If there is no colored square below it, keep the object in its original position. Then, change the color of the object to the color of the square it is now touching. The background should remain black. 
+:: def bijeagdebbgfejaabbgbbigfcabecebh(I):
+  O = I
+  for j in range(width(I)):
+    for i in range(height(I)):
+      if I[i][j] != 0:
+        obj = extract(objects(I, univalued=True, diagonal=False, without_bg=True), lambda obj: contained((i, j), toindices(obj)))
+        new_i = next((k for k in range(i + 1, height(I)) if I[k][j] != 0), i)
+        O = move(cover(O, obj), obj, (new_i - i, 0))
+        if new_i != i:
+          O = paint(O, recolor(I[new_i][j], obj))
+  return O
+ 
+32.666666666666664, tensor(0.0896), Description: Swap the colors of the second smallest and third smallest objects in the grid. The most common color in the grid should remain the background color. 
+:: def dehiiihaaedaebehidiefcfhbdcdfccc(I):
+  objs = list(objects(I, T, T, T)) # Extract objects and convert to a list
+  objs.sort(key=lambda obj: size(obj)) # Sort objects based on their size
+  color_a = color(objs[1]) # Color of the second smallest object
+  color_b = color(objs[2]) # Color of the third smallest object
+  O = paint(paint(I, recolor(color_b, toindices(objs[1]))), recolor(color_a, toindices(objs[2]))) # Swap colors
+  return O
+ 
+48.0, tensor(1.9770), Description: Move the light blue object (color 5) down three spaces if the input grid contains light blue, and change its color to light red (color 1). Move the orange object (color 6) down five spaces. Move the dark blue object (color 8) down one space. Move the dark green object (color 7) down three spaces. Move the yellow object (color 4) down three spaces. The background should remain the same as the input grid. 
+:: def fedbeficdeajeccfibdgbbadgdjbbbhj(I):
+  O = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, True, False, True):
+    O = branch(color(obj) == 5, paint(O, shift(recolor(1, obj), (branch(contained(5, palette(I)), 3, 0), 0))), O)  
+    O = branch(color(obj) == 6, paint(O, shift(obj, (5, 0))), O)  
+    O = branch(color(obj) == 8, paint(O, shift(obj, (1, 0))), O)  
+    O = branch(color(obj) == 7, paint(O, shift(obj, (3, 0))), O)
+    O = branch(color(obj) == 4, paint(O, shift(obj, (3, 0))), O)  
+  return O
+ 
+37.666666666666664, tensor(1.9769), Description: Move the light blue object (color 5) down five spaces if the input grid contains light blue, and change its color to light red (color 1). Move the orange object (color 6) down five spaces. Move the dark green object (color 7) and the yellow object (color 4) down three spaces. Move the dark blue object (color 8) down one space. The background should remain the same as the input grid. 
+:: def hddgdiaabcffejehiebjaebgdfcffdia(I):
+  return paint(canvas(mostcolor(I), shape(I)),
+               merge(apply(lambda obj: 
+                         shift(branch(color(obj) == 5, recolor(1, obj), obj),
+                               ((5 if color(obj) == 6 else 3 if color(obj) == 7 or color(obj) == 4 else 1), 0)),
+                         objects(I, True, False, True)))) 
+ 
+28.666666666666668, tensor(1.7664), Description: Swap the colors of the second smallest and second largest objects in the grid. The most common color in the grid should remain the background color. Then, move the second smallest object to the bottom right corner of the grid. 
+:: def eheecbfaahebeffgbaeagfcfabedcefa(I):
+  objs = fgpartition(I)
+  sizes = apply(size, objs)
+  second_smallest_size = sorted(set(sizes))[1]
+  second_largest_size = sorted(set(sizes))[-2]
+  small_obj = extract(objs, lambda obj: size(obj) == second_smallest_size)
+  large_obj = extract(objs, lambda obj: size(obj) == second_largest_size)
+  I = paint(I, recolor(color(small_obj), toindices(large_obj)))
+  I = paint(I, recolor(color(large_obj), toindices(small_obj)))
+  return paint(I, shift(small_obj, subtract(lrcorner(I), lrcorner(small_obj))))
+ 
+23.666666666666668, tensor(1.7662), Description: Swap the colors of the smallest and largest objects in the grid, where the smallest object is the one with the smallest area and the lowest sum of its row and column indices (prioritizing objects closer to the top left corner). The most common color in the grid should remain the background color. Then, move the smallest object to the bottom right corner of the grid. 
+:: def efffeciebbaeeabgjebgeabfgfbegjje(I):
+  objs = fgpartition(I)
+  small_obj = argmin(objs, lambda obj: (size(obj), -sum(i + j for i, j in toindices(obj))))
+  large_obj = argmax(objs, lambda obj: (size(obj), -sum(i + j for i, j in toindices(obj))))
+  I = paint(I, recolor(color(small_obj), toindices(large_obj)))
+  I = paint(I, recolor(color(large_obj), toindices(small_obj)))
+  return paint(I, shift(small_obj, subtract(lrcorner(I), lrcorner(small_obj))))
+ 
+31.333333333333332, tensor(1.7663), Description: Swap the colors of the second smallest and second largest objects in the grid, where the smallest object is the one with the smallest area and the lowest sum of its row and column indices (prioritizing objects closer to the top left corner). The most common color in the grid should remain the background color. Then, move the second smallest object to the bottom right corner of the grid. 
+:: def dgadfdfchjcdecdjahfaieecbgffhagi(I):
+  objs = sorted(fgpartition(I), key=lambda obj: (size(obj), -sum(i + j for i, j in toindices(obj))))
+  small_obj = objs[1]
+  large_obj = objs[-2]
+  I = paint(fill(I, color(small_obj), toindices(large_obj)), large_obj) 
+  return paint(fill(I, color(large_obj), toindices(small_obj)), shift(small_obj, subtract(lrcorner(I), lrcorner(small_obj))))
+ 
+43.0, tensor(0.0145), Description: For each object in the input grid, change its color to the color of the square directly below it. If there is no square below it, change its color to black. Then, shift the object horizontally to the left by one space. The background should remain black. 
+:: def gdddbfedadfaeigejhdggecafcjebfie(I):
+  O = canvas(0, shape(I))
+  for obj in objects(I, univalued=True, diagonal=False, without_bg=True):
+    new_color = index(I, (uppermost(obj) + 1, leftmost(obj))) if uppermost(obj) < len(I) - 1 else 0
+    O = paint(O, shift(recolor(new_color, obj), (-1, 0)))
+  return O
+ 
+39.666666666666664, tensor(0.0164), Description: For each colored square in the input grid, move it one space to the left and change its color to the color of the square directly below it. If there is no square below it, change its color to black. The background should remain black. 
+:: def ibcddcdagibbefiaajbadigcjhcdccjb(I):
+  O = canvas(0, shape(I))
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val != 0:
+        new_color = I[i+1][j] if i < len(I) - 1 else 0
+        O = paint(O, {(new_color, (i, j-1))}) 
+  return O
+ 
+42.666666666666664, tensor(0.0164), Description: For each colored square in the input grid, move it one space to the left and change its color to the color of the square directly below it. If there is no square below it, change its color to black. The background should remain black. 
+:: def ibdbdggcccbaebgabejcjdcbdedbcbab(I):
+  h, w = shape(I)
+  return tuple(tuple(I[i+1][j] if j > 0 and i < h-1 else 0 for j in range(w)) for i in range(h))
+ 
+33.666666666666664, tensor(0.0250), Description: For each row in the input grid, starting from the second row, take the leftmost colored square and move it one space to the left. Then, change the color of the leftmost square in the next row to the color of the moved square. The background should remain black. 
+:: def dafghgfdaffbefghaacafgbfeafbcbbi(I):
+  O = canvas(0, shape(I))
+  for i in range(len(I) - 1):
+    O = paint(O, shift(recolor(0, toobject(hfrontier((i, 0)), I)), (-1, 0)))
+    O = underpaint(O, shift(recolor(I[i+1][0], toobject(hfrontier((i+1, 0)), I)), (-1, 0)))
+  return O
+ 
+26.0, tensor(0.0467), Description: Swap the colors of the topmost and bottommost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def bccdjgbjecigecejbbdaecdifcbhddec(I):
+  objs = objects(I, T, T, T)
+  bg = mostcommon(I)
+  fg_objs = sfilter(objs, lambda obj: color(obj) != bg)
+  top_obj = argmin(fg_objs, lambda obj: uppermost(obj))
+  bottom_obj = argmax(fg_objs, lambda obj: uppermost(obj))
+  return paint(paint(I, recolor(color(bottom_obj), toindices(top_obj))), recolor(color(top_obj), toindices(bottom_obj)))
+ 
+23.0, tensor(0.0467), Description: Swap the colors of the topmost and bottommost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def ghddeedeeegaeffgiedfbeafgfhfcacc(I):
+  objs = sfilter(objects(I, T, T, T), lambda obj: color(obj) != mostcommon(I))
+  top_color = color(argmin(objs, lambda obj: uppermost(obj)))
+  bottom_color = color(argmax(objs, lambda obj: uppermost(obj)))
+  return switch(I, top_color, bottom_color)
+ 
+91.66666666666667, tensor(0.0467), Description: Swap the colors of the topmost and bottommost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def dhfjcbefjdfeehabadaaecdfehdejdce(I):
+  objs = objects(I, T, T, T)
+  top_idx = uppermost(argmin(objs, lambda obj: uppermost(obj)))
+  bottom_idx = uppermost(argmax(objs, lambda obj: uppermost(obj)))
+  def swap_colors(grid, i1, i2):
+    for j in range(len(grid[0])):
+      if grid[i1][j] != mostcommon(grid) and grid[i2][j] != mostcommon(grid):
+        grid = switch(grid, grid[i1][j], grid[i2][j])
+    return grid
+  return swap_colors(I, top_idx, bottom_idx)
+ 
+51.666666666666664, tensor(0.0467), Description: Swap the colors of the topmost and bottommost colored objects in the grid. The most common color in the grid should remain the background color. 
+:: def hdgedgeffieaeefajcejhdagfgbfahgb(I):
+  def find_swap_colors(grid):
+    bg = mostcommon(grid)
+    top_color, bottom_color = None, None
+    for i, row in enumerate(grid):
+      for v in row:
+        if v != bg:
+          if top_color is None:
+            top_color = v
+          bottom_color = v
+      if top_color is not None:
+        break
+    return top_color, bottom_color
+
+  top_color, bottom_color = find_swap_colors(I)
+  return switch(I, top_color, bottom_color)
+ 
+41.666666666666664, tensor(1.9618), Description: Move the light blue object (color 5) down two spaces and change its color to orange (color 6). Move the dark blue object (color 8) down three spaces. All other objects remain their original color and position. The background should remain the same as the input grid. 
+:: def feeefadcfhabeejbacdebaidicfbbccc(I):
+    return paint(canvas(mostcolor(I), shape(I)),
+               merge(
+                   {branch(color(obj) == 5, shift(recolor(6, obj), (2, 0)),
+                         branch(color(obj) == 8, shift(obj, (3, 0)), obj))
+                    for obj in objects(I, True, False, True)}))
+ 
+1392.3333333333333, tensor(1.7497), Description: Swap the colors of the least common colored objects in the top and bottom halves of the grid. The most common color in the grid should remain the background color. 
+:: def cbfafahibefdegbjicbeecacebahhbeb(I):
+  top_color = leastcolor(crop(I, (0, 0), (len(I) // 2, len(I[0]))))
+  bottom_color = leastcolor(crop(I, (len(I) // 2, 0), (len(I) // 2, len(I[0]))))
+  return paint(paint(I, recolor(bottom_color, ofcolor(I, top_color))), recolor(top_color, ofcolor(I, bottom_color)))
+ 
+1399.6666666666667, tensor(0.0163), Description: Move the light red object (color 1) down by its height. Move the dark green object (color 7) up by its height. The background should remain the same as the input grid. 
+:: def fbebbhcejfheeifaacdfgaaiccgdfffh(I):
+  one_indices = ofcolor(I, 1)
+  seven_indices = ofcolor(I, 7)
+  one_height = height(one_indices)
+  seven_height = height(seven_indices)
+
+  shifted_one_indices = shift(one_indices, (one_height, 0))
+  shifted_seven_indices = shift(seven_indices, (-seven_height, 0))
+
+  O = fill(fill(I, 1, shifted_one_indices), 7, shifted_seven_indices)
+  return O 
+ 
+1400.3333333333333, tensor(0.0157), Description: Move the light red object (color 1) down by its height. Move the dark green object (color 7) down by its height. The background should remain the same as the input grid. 
+:: def dcagbhgdbcbceccbafiagibedggjaadb(I):
+  obj1 = toobject(ofcolor(I, 1), I)
+  obj2 = toobject(ofcolor(I, 7), I)
+  shifted_obj1 = shift(obj1, (height(obj1), 0))
+  shifted_obj2 = shift(obj2, (height(obj2), 0))
+  O = paint(paint(I, shifted_obj1), shifted_obj2)
+  return O
+ 
+1416.6666666666667, tensor(0.0147), Description: Move each object in the input grid down by its height. The background should remain the same as the input grid. 
+:: def ebaifcdgdadaecfbbhgbidgdbgbaaaaj(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  shifted_objs = frozenset(shift(obj, (height(obj), 0)) for obj in objs)
+  O = I
+  for obj in shifted_objs:
+    O = paint(O, obj)
+  return O
+ 
+1399.0, tensor(1.7214), Description: Swap the colors of the most frequent color in the top half of the grid with the most frequent color in the bottom half of the grid. The background color should remain the same. 
+:: def ahbjcjaejdgceafdidecibabfdbbahej(I):
+  th = len(I) // 2 
+  top_color = mostcolor(toobject(frozenset((i,j) for i in range(th) for j in range(len(I[0]))), I)) # Most frequent color in top half.
+  bottom_color = mostcolor(toobject(frozenset((i,j) for i in range(th, len(I)) for j in range(len(I[0]))), I)) # Most frequent color in bottom half.
+  return vconcat(paint(I[:th], recolor(bottom_color, ofcolor(I[:th], top_color))), paint(I[th:], recolor(top_color, ofcolor(I[th:], bottom_color)))) # Swap and concatenate.
+ 

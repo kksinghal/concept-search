@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be summarized as **gravity**:
+
+* **Objects "fall" to the bottom of the grid, maintaining their shape and relative horizontal position.** 
+* **The order of the objects is preserved during the transformation.**
+* **Background cells (0s) fill the space vacated by the falling objects.**
+
+**Example:**
+
+In Input_0, the '2' object and the '8' object both fall to the bottom of the grid. The '2' object, being initially lower than the '8' object, remains below it in the output.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program, each using a different approach to achieve the gravity effect:
+
+**Version 1: Sorting by Lowermost Row**
+
+```python
+def solve_gravity(I):
+  objs = objects(I, T, F, T)
+  sorted_objs = order(objs, lowermost)
+  O = I
+  for obj in sorted_objs:
+    O = paint(cover(O, obj), shift(obj, (lowermost(obj) - uppermost(obj), 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts all objects from the input grid `I`.
+2. **Sort by Lowermost Row:** `order(objs, lowermost)` sorts the objects based on their lowest row index, ensuring objects lower down are processed first.
+3. **Iterate and Move:** The code iterates through the sorted objects. For each object:
+    * `cover(O, obj)` removes the object from the current grid `O`.
+    * `shift(obj, (lowermost(obj) - uppermost(obj), 0))` calculates the downward shift required to bring the object to the bottom and shifts the object.
+    * `paint(..., ...)` paints the shifted object back onto the grid.
+
+**Version 2: Iterating from Bottom to Top**
+
+```python
+def solve_gravity(I):
+  O = I
+  for i in reversed(range(len(I))):
+    for j in range(len(I[0])):
+      if I[i][j] != 0:
+        obj = extract(objects(I, T, F, T), lambda x: (i,j) in toindices(x))
+        O = paint(cover(O, obj), shift(obj, (lowermost(obj) - uppermost(obj), 0)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate from Bottom Up:** The code iterates through rows from bottom to top.
+2. **Find and Move Objects:** For each non-background cell, it extracts the corresponding object and moves it to the bottom using the same `cover`, `shift`, and `paint` logic as Version 1.
+
+**Version 3: Using a Canvas and Painting**
+
+```python
+def solve_gravity(I):
+    objs = objects(I, T, F, T)
+    O = canvas(0, shape(I))
+    for obj in objs:
+        shifted_obj = shift(obj, (len(I) - lowermost(obj), 0))
+        O = paint(O, shifted_obj)
+    return O
+```
+
+**Explanation:**
+
+1. **Create Empty Canvas:** `canvas(0, shape(I))` generates a grid of the same size as the input, filled with the background color (0).
+2. **Shift and Paint:** It iterates through the objects, calculates the necessary downward shift, and paints them onto the canvas.
+
+**Version 4: Exploiting Gravity Logic Directly**
+
+```python
+def solve_gravity(I):
+  h, w = len(I), len(I[0])
+  O = list(list(0 for _ in range(w)) for _ in range(h))
+  for j in range(w):
+    non_zero = [(I[i][j], i) for i in range(h) if I[i][j] != 0]
+    for k, (v, _) in enumerate(reversed(non_zero)):
+      O[h - 1 - k][j] = v
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Create Empty Grid:**  Initializes an empty grid `O` of the same size as input.
+2. **Column-wise Processing:** Iterates through each column of the input.
+3. **Collect and Place Non-Zero:**  Collects non-zero values and their original row indices. Then, places them from the bottom up in the output grid.
+
+**Version 5: Recursive Dropping**
+
+```python
+def drop_objects(grid):
+  changed = F
+  new_grid = list(list(row) for row in grid)
+  for i in reversed(range(1, len(grid))):
+    for j in range(len(grid[0])):
+      if grid[i][j] == 0 and grid[i - 1][j] != 0:
+        new_grid[i][j] = grid[i - 1][j]
+        new_grid[i - 1][j] = 0
+        changed = T
+  return tuple(tuple(row) for row in new_grid), changed
+
+def solve_gravity(I):
+  O = I
+  changed = T
+  while changed:
+    O, changed = drop_objects(O)
+  return O
+```
+
+**Explanation:**
+
+1. **Recursive Function `drop_objects`:**  Checks if any cell can drop down by one step. If yes, it swaps the cell with the empty cell below and marks `changed` as `True`.
+2. **Iterative Dropping:**  Keeps calling `drop_objects` until no more changes are possible, indicating all objects have fallen to their final positions. 
+
+
+These are just a few examples. Many other valid solutions could be created using different combinations and applications of the provided DSL functions.  Each version demonstrates a different approach to solving the problem, highlighting the flexibility and expressiveness of the DSL.

@@ -1,0 +1,180 @@
+## Transformation Analysis:
+
+The transformation identifies the boundary cells of each foreground object in the input grid and sets them to '0', while leaving the interior cells of each object unchanged. 
+
+**Let's break it down:**
+
+1. **Identify Foreground Objects:** The transformation first distinguishes between background and foreground. It considers connected regions of the same digit as a single object.
+2. **Define Boundary Cells:** Boundary cells are those directly adjacent (horizontally or vertically) to a cell with a different value.  
+3. **Set Boundary Cells to '0':** The transformation specifically targets and modifies only the boundary cells, setting them to '0'.
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" using functions from the DSL (`dsl.py`) to achieve the described transformation:
+
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies boundary cells of foreground objects and sets them to 0.
+  
+  - Uses `objects` to get foreground objects.
+  - Employs a nested loop to iterate over objects and their boundary cells.
+  - Utilizes `index` for efficient grid value retrieval. 
+  """
+  O = I # Start with the input grid
+  for obj in objects(I, T, F, T): # For each foreground object
+    for i, j in toindices(obj): # For each cell in the object
+      for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]: # Check adjacent cells
+        ni, nj = i + di, j + dj # Neighbor indices
+        if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and index(I, (ni, nj)) != index(I, (i, j)): # Check within bounds and different value
+          O = fill(O, 0, {(i, j)}) # Set boundary cell to 0
+          break # Move to the next cell after finding a different neighbor
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:**  The program starts by creating a copy of the input grid `I` as `O`.
+2. **Object Iteration:** It iterates over each foreground object identified by the `objects` function (with parameters set for foreground objects only).
+3. **Boundary Cell Identification:** For every cell within an object, it checks its four directly adjacent neighbors (up, down, left, right). If a neighbor has a different value and is within the grid bounds, the current cell is marked as a boundary cell.
+4. **Setting Boundary to '0':** If a cell is identified as a boundary cell, the `fill` function sets its value in the output grid `O` to '0'.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Identifies boundary cells by comparing a cell's value with 
+  the values of its reconstructed neighbors after padding the grid.
+  
+  - Uses padding to simplify boundary checks.
+  - Leverages list comprehensions for concise code.
+  """
+  h, w = len(I), len(I[0])
+  padded_I = [[0] * (w + 2) for _ in range(h + 2)] # Pad with 0s
+  for i in range(h):
+    for j in range(w):
+      padded_I[i + 1][j + 1] = I[i][j]
+
+  O = [[0] * w for _ in range(h)] # Initialize output grid
+  for i in range(h):
+    for j in range(w):
+      neighbors = [padded_I[i + di][j + dj] for di in [0, 1, 2] for dj in [0, 1, 2] if not (di == 1 and dj == 1)]
+      if any(n != I[i][j] for n in neighbors):
+        O[i][j] = 0
+      else:
+        O[i][j] = I[i][j]
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Padding:** The grid is padded with 0s to handle boundary conditions more easily.
+2. **Reconstructed Neighbors:** For each cell, it reconstructs its 8-connected neighborhood from the padded grid.
+3. **Comparison and Assignment:** It compares the cell's value with its reconstructed neighbors. If any neighbor has a different value, the cell is marked as a boundary cell (set to 0 in the output), otherwise, the original value is kept.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Utilizes set operations to efficiently identify boundary cells.
+  
+  - Converts indices to sets for faster comparisons.
+  - Employs `difference` to find boundary indices.
+  """
+  all_indices = asindices(I)
+  boundary_indices = set()
+  for obj in objects(I, T, F, T):
+    object_indices = toindices(obj)
+    inner_indices = set.union(*[dneighbors(i) & object_indices for i in object_indices]) 
+    boundary_indices.update(object_indices.difference(inner_indices))
+  O = fill(I, 0, frozenset(boundary_indices))
+  return O 
+```
+
+**Explanation:**
+
+1. **Index Sets:** Converts object indices and all grid indices to sets for efficient set operations.
+2. **Inner Cell Identification:** For each object, it identifies its inner cells by finding the intersection of each cell's neighbors with the object indices.
+3. **Boundary Cell Calculation:** Subtracts the set of inner indices from the set of all object indices to get the boundary indices. 
+4. **Boundary Filling:** Uses the `fill` function to set all identified boundary cells to '0'.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  """
+  Applies a convolution-like operation to identify boundary cells.
+  
+  - Iterates over the grid with a sliding window.
+  - Checks for value differences within the window.
+  """
+  h, w = len(I), len(I[0])
+  O = [[0] * w for _ in range(h)]
+  for i in range(h):
+    for j in range(w):
+      for di in [-1, 0, 1]:
+        for dj in [-1, 0, 1]:
+          if 0 <= i + di < h and 0 <= j + dj < w and (di != 0 or dj != 0) and I[i][j] != I[i + di][j + dj]:
+            O[i][j] = 0
+            break
+        if O[i][j] == 0:
+          break
+      if O[i][j] != 0:
+        O[i][j] = I[i][j]
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Sliding Window:** Employs a 3x3 sliding window to scan the grid.
+2. **Neighbor Comparison:** For each cell, it compares its value with its 8-connected neighbors within the window. 
+3. **Boundary Marking:** If a value difference is found within the window, the center cell is marked as a boundary cell (set to '0').
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  """
+   Identifies boundary cells using a recursive flood fill approach.
+  
+  - Starts from a background cell and recursively explores connected regions.
+  - Marks cells adjacent to different values as boundaries.
+  """
+  h, w = len(I), len(I[0])
+  visited = set()
+  O = [[I[i][j] for j in range(w)] for i in range(h)]
+
+  def flood_fill(i, j):
+    visited.add((i, j))
+    for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+      ni, nj = i + di, j + dj
+      if 0 <= ni < h and 0 <= nj < w and (ni, nj) not in visited:
+        if I[i][j] != I[ni][nj]:
+          O[i][j] = 0
+        else:
+          flood_fill(ni, nj)
+  
+  for i in range(h):
+    for j in range(w):
+      if (i, j) not in visited:
+        flood_fill(i, j)
+  return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Recursive Flood Fill:** This program uses a recursive flood fill algorithm to explore connected regions of same-valued cells.
+2. **Boundary Detection During Exploration:** During the flood fill, if a neighbor cell has a different value, the current cell is marked as a boundary.
+3. **Output Grid Construction:** The flood fill process modifies the output grid `O` directly, setting boundary cells to '0'. 
+
+
+## Note:
+
+These five versions of "Program_to_be_generated" offer different approaches to solving the boundary identification and marking problem. They demonstrate the flexibility and expressiveness of the DSL and highlight the diverse ways to achieve the same transformation. Each version leverages different functions and logic, making them distinct solutions rather than minor variations.

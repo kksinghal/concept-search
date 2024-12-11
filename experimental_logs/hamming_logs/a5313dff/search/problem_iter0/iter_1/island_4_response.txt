@@ -1,0 +1,105 @@
+## Transformation Analysis:
+
+The transformation identifies the "interior" cells of objects in the grid and recolors them to the value '1'. An interior cell is defined as a cell that is not part of the object's outer boundary (box) and is not directly adjacent to the background.
+
+**Example:**
+
+Consider the following object in a grid:
+
+```
+0 0 0 0 0
+0 2 2 2 0
+0 2 0 2 0
+0 2 2 2 0
+0 0 0 0 0
+```
+
+The interior cells would be:
+
+```
+0 0 0 0 0
+0 0 0 0 0
+0 0 1 0 0
+0 0 0 0 0
+0 0 0 0 0
+```
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  interiors = mfilter(objs, lambda o: size(intersection(delta(o), asindices(trim(crop(I, ulcorner(o), shape(o)))))) == 0)
+  return paint(I, merge(apply(lambda o: recolor(1, o), interiors)))
+```
+
+**Explanation:**
+
+1. **Identify objects:**  `objs = objects(I, T, F, F)` extracts all objects from the input grid `I`.
+2. **Find interior objects:** `interiors = mfilter(objs, ...)` filters the objects, keeping only those where the following condition holds:
+   - `size(intersection(delta(o), asindices(trim(crop(I, ulcorner(o), shape(o)))))) == 0`: This checks if the delta (surrounding cells) of an object, when intersected with the indices of the object itself (excluding its outer layer), results in an empty set. If true, it implies the object has no background cells directly adjacent to its inner cells, making it an "interior" object.
+3. **Recolor and paint:** `return paint(I, merge(apply(lambda o: recolor(1, o), interiors)))` 
+    - `recolor(1, o)` recolors each interior object to have the value '1'.
+    - `merge(...)` combines the recolored objects.
+    - `paint(I, ...)` paints the combined, recolored objects onto the original grid `I`.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  interiors = mfilter(objs, lambda o: all(index(I, n) != mostcolor(I) for n in dneighbors(c) for c in toindices(o)))
+  return paint(I, merge(apply(lambda o: recolor(1, o), interiors)))
+```
+
+**Explanation:**
+
+1. **Identify objects:** Same as Version 1.
+2. **Find interior objects:** `interiors = mfilter(objs, ...)` filters the objects, keeping only those where the following condition holds:
+   - `all(index(I, n) != mostcolor(I) for n in dneighbors(c) for c in toindices(o))`: This checks if all directly neighboring cells of every cell in an object are not the background color. If true, the object is considered an "interior" object.
+3. **Recolor and paint:** Same as Version 1.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    return paint(I, merge(apply(lambda o: branch(size(intersection(delta(o), asindices(trim(crop(I, ulcorner(o), shape(o)))))) == 0, recolor(1, o), o), objects(I, T, F, F))))
+```
+
+**Explanation:**
+
+1. **Identify objects:** `objects(I, T, F, F)` extracts all objects.
+2. **Conditional recoloring:** This version directly uses `apply` on the objects and applies a conditional recoloring:
+    - `branch(size(intersection(delta(o), asindices(trim(crop(I, ulcorner(o), shape(o)))))) == 0, recolor(1, o), o)`: For each object, it checks the same "interior" condition as in Version 1. If true, it recolors the object to '1' using `recolor(1, o)`. If false, it keeps the object unchanged.
+3. **Merge and paint:** Same as Version 1.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  return paint(I, merge(apply(lambda o: branch(all(index(I, n) != mostcolor(I) for n in dneighbors(c) for c in toindices(o)), recolor(1, o), o), objs)))
+```
+
+**Explanation:**
+
+- Similar to Version 3, but uses the "interior" condition from Version 2 within the `branch` function.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    return paint(I, merge(apply(lambda o: recolor(1, branch(size(delta(o)) == size(o) + size(box(o)) - 1 - size(intersection(delta(o), toindices(o))), o, frozenset())), objects(I, T, F, F)))) 
+```
+
+**Explanation:**
+
+- This version uses a slightly different logic to identify the interior cells. It calculates the expected size of the delta if the object had no interior cells and compares it to the actual size of the delta. 
+ - If the sizes match, it means the object has no interior cells and should remain unchanged. 
+ - Otherwise, it's recolored to '1'.
+
+These five versions demonstrate different ways to achieve the desired transformation using various DSL functions and logical combinations, showcasing the flexibility and expressiveness of the DSL.

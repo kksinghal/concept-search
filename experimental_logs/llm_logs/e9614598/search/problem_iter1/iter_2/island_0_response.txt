@@ -1,0 +1,108 @@
+## Transformation Analysis:
+
+The transformation takes the locations of `1`s in the input grid and paints a horizontal line of `3`s centered on each `1` with a length of 3, only if the center cell is within the grid boundaries. 
+
+**Example Breakdown:**
+
+- **Input_0:** The `1`s are located at `(4,1)` and `(4,7)`. A 3-length horizontal line centered at each of these locations results in the output grid.
+- **Input_1:**  The `1`s are located at `(0,3)` and `(8,3)`. Notice that for the `1` at `(0,3)`, the leftmost `3` falls outside the grid boundaries and hence is not painted. 
+
+## Program_to_be_generated:
+
+**Version 1**
+
+```python
+def Program_to_be_generated(I):
+  shifted = shift(recolor(ONE, ofcolor(I, ONE)), (ZERO, ONE)) 
+  cross = lambda loc: {(loc[0], loc[1]-1), loc, (loc[0], loc[1] + 1)}
+  return underfill(I, THREE, mapply(cross, toindices(shifted)))
+```
+
+**Explanation:**
+
+1. **`shifted = shift(recolor(ONE, ofcolor(I, ONE)), (ZERO, ONE))`**: 
+    - `ofcolor(I, ONE)`: Finds the indices of all cells with value `1`.
+    - `recolor(ONE, ...)`: Replaces the value at those indices with `1` (effectively creating an object of `1`s).
+    - `shift(..., (ZERO, ONE))`: Shifts this new object one cell to the right. This is done to center the horizontal line on the original `1`s.
+2. **`cross = lambda loc: {(loc[0], loc[1]-1), loc, (loc[0], loc[1] + 1)}`**: 
+    - Defines an anonymous function `cross` that takes a location (`loc`) and returns a set containing the location itself and its immediate left and right neighbors. This forms the horizontal line.
+3. **`return underfill(I, THREE, mapply(cross, toindices(shifted)))`**:
+    - `toindices(shifted)`: Gets the indices of the shifted object.
+    - `mapply(cross, ...)`: Applies the `cross` function to each index in the shifted object, effectively generating a set of indices representing the horizontal lines.
+    - `underfill(I, THREE, ...)`: Fills the original grid (`I`) with the value `3` at the generated indices, only if the original value at those indices is the background color (ensuring we don't overwrite existing objects).
+
+**Version 2**
+
+```python
+def Program_to_be_generated(I):
+  ones = ofcolor(I, ONE)
+  horizontal_line = lambda loc: {(loc[0], loc[1]-1), (loc[0], loc[1]), (loc[0], loc[1]+1)}
+  return underfill(I, THREE, merge(apply(horizontal_line, ones)))
+```
+
+**Explanation:**
+
+1. **`ones = ofcolor(I, ONE)`**: Identifies the indices of cells containing `1` in the input grid `I`.
+2. **`horizontal_line = lambda loc: {(loc[0], loc[1]-1), (loc[0], loc[1]), (loc[0], loc[1]+1)}`**: Defines an anonymous function `horizontal_line` which, given a location `loc`, returns a set of indices representing a horizontal line of length 3 centered at `loc`.
+3. **`return underfill(I, THREE, merge(apply(horizontal_line, ones)))`**:
+    - `apply(horizontal_line, ones)`: Applies the `horizontal_line` function to each index in `ones`, generating a list of sets, where each set represents a horizontal line.
+    - `merge(...)`: Merges the list of sets into a single set containing all indices for the horizontal lines.
+    - `underfill(I, THREE, ...)`: Fills the input grid `I` with `3`s at the identified indices, only overwriting cells with the background color.
+
+**Version 3**
+
+```python
+def Program_to_be_generated(I):
+  return fill(I, THREE, mapply(lambda loc: {(loc[0], loc[1]-1), loc, (loc[0], loc[1]+1)}, ofcolor(I, ONE)))
+```
+
+**Explanation:**
+
+1. **`ofcolor(I, ONE)`**:  Finds all indices of cells in grid `I` with the value `1`.
+2. **`lambda loc: {(loc[0], loc[1]-1), loc, (loc[0], loc[1]+1)}`**:  Anonymous function takes an index `loc` and returns a set of three indices: the index itself, the index to its left, and the index to its right. This represents a horizontal line of length 3.
+3. **`mapply(..., ofcolor(I, ONE))`**: Applies the anonymous function to each index found in step 1, generating a set of sets, where each inner set represents a horizontal line.
+4. **`fill(I, THREE, ...)`**: Fills the original grid `I` with the value `3` at each index present in the final set of indices, effectively drawing the horizontal lines.
+
+**Version 4**
+
+```python
+def Program_to_be_generated(I):
+  obj = recolor(ONE, ofcolor(I, ONE))
+  return paint(I,  frozenset({(THREE, (i, j-1)), (THREE, (i, j)), (THREE, (i, j+1))} for _, (i, j) in obj))
+```
+
+**Explanation:**
+
+1. **`obj = recolor(ONE, ofcolor(I, ONE))`**:
+   - `ofcolor(I, ONE)`: This function identifies the indices of all cells in the input grid `I` that contain the value `1`.
+   - `recolor(ONE, ...)`: This takes the indices obtained in the previous step and replaces the original values at those indices with `1`. 
+2. **`return paint(I, frozenset({(THREE, (i, j-1)), (THREE, (i, j)), (THREE, (i, j+1))} for _, (i, j) in obj))`**:
+   -  This line iterates over each cell (`i`, `j`) of the `obj` and constructs a set of tuples. Each tuple represents a cell to be painted with value `3`: the cell itself (`i`, `j`), the cell to its left (`i`, `j-1`), and the cell to its right (`i`, `j+1`).
+   -  `paint(I, ...)`:  This function takes the original grid `I` and the constructed set of cells and paints these cells onto the grid with the value `3`.
+
+**Version 5**
+
+```python
+def Program_to_be_generated(I):
+  h = height(I)
+  w = width(I)
+  def line(i, j):
+    return {(THREE, (i, j-1)), (THREE, (i, j)), (THREE, (i, j+1))}
+  return paint(I, frozenset((v, (i, j)) 
+                  for i in range(h) 
+                  for j in range(w) 
+                  for v, (x, y) in line(i, j)
+                  if 0 <= y < w and I[i][j] == ONE)) 
+```
+
+**Explanation:**
+
+1. **`h = height(I)`** and **`w = width(I)`**: Get the height and width of the input grid `I`.
+2. **`def line(i, j): ...`**: Defines a function `line` that takes row `i` and column `j` as input and returns a set of tuples representing a horizontal line of `3`s centered at `(i, j)`.
+3. **`return paint(I, frozenset((v, (i, j)) ...`**:
+    - This line iterates over each cell `(i, j)` of the grid and each cell `(x, y)` of the line generated by `line(i, j)`. 
+    - For each `(x, y)` within the grid boundaries (`0 <= y < w`) and if the current cell in the input grid `I[i][j]` is equal to `1`, it includes the tuple `(v, (i, j))` (where `v` is `THREE`) in the final set.
+    -  This final set, containing the coordinates and values of all the horizontal lines, is then used by the `paint` function to modify the input grid `I` accordingly. 
+
+
+Each version uses different combinations of DSL functions and approaches the problem from a slightly different angle, demonstrating the flexibility of the DSL in expressing this transformation. 

@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation involves identifying the top and bottom objects in the grid (excluding the background '0') and applying distinct coloring patterns to them:
+
+**Input_0 & Output_0:**
+- The top object (4s in the top rows) has its central 2x2 area recolored to '1'.
+- The bottom object (4s in the bottom rows) has its top half recolored to '2'.
+
+**Input_1 & Output_1:**
+- The top object (4s in the top rows) has its central 2x2 area recolored to '2'.
+- The bottom object (4s in the bottom rows) has its top half recolored to '1'.
+
+Essentially, the colors '1' and '2' are swapped for the top and bottom object modifications between the two examples.
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, lambda obj: uppermost(obj) if uppermost(obj) < len(I) // 2 else -1)
+  bottom_obj = argmin(objs, lambda obj: uppermost(obj) if uppermost(obj) >= len(I) // 2 else len(I))
+
+  top_center_i, top_center_j = centerofmass(top_obj)
+  top_patch = frozenset({(top_center_i, top_center_j - 1),
+                         (top_center_i, top_center_j),
+                         (top_center_i + 1, top_center_j - 1),
+                         (top_center_i + 1, top_center_j)})
+
+  bottom_patch = frozenset((i, j) 
+                                for i in range(uppermost(bottom_obj), 
+                                               uppermost(bottom_obj) + height(bottom_obj) // 2) 
+                                for j in range(leftmost(bottom_obj), rightmost(bottom_obj) + 1))
+
+  I = paint(I, recolor(1, top_patch))
+  I = paint(I, recolor(2, bottom_patch))
+  return I 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts foreground objects from the grid.
+2. **Find Top & Bottom:** `argmax` and `argmin` with custom lambda functions identify the top and bottom objects based on their vertical position.
+3. **Define Modification Areas:**
+    - `top_patch`: 2x2 area centered on the top object's center of mass.
+    - `bottom_patch`: Top half of the bottom object.
+4. **Recolor & Paint:** `recolor` changes the color of the patches, and `paint` applies the changes to the grid.
+
+**Program Version 2:** (Using `crop` for bottom patch)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, lambda obj: uppermost(obj) if uppermost(obj) < len(I) // 2 else -1)
+  bottom_obj = argmin(objs, lambda obj: uppermost(obj) if uppermost(obj) >= len(I) // 2 else len(I))
+
+  top_center_i, top_center_j = centerofmass(top_obj)
+  top_patch = frozenset({(top_center_i, top_center_j - 1),
+                         (top_center_i, top_center_j),
+                         (top_center_i + 1, top_center_j - 1),
+                         (top_center_i + 1, top_center_j)})
+  
+  bottom_patch = crop(I, (uppermost(bottom_obj), leftmost(bottom_obj)), 
+                        (height(bottom_obj) // 2, width(bottom_obj)))
+  bottom_patch = asindices(bottom_patch) 
+  
+  I = paint(I, recolor(1, top_patch))
+  I = paint(I, recolor(2, bottom_patch))
+  return I
+```
+
+**Explanation:**
+
+- This version uses `crop` to extract the top half of the bottom object directly from the grid, converting it to indices using `asindices`.
+
+**Program Version 3:** (Using `shift` for top patch)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, lambda obj: uppermost(obj) if uppermost(obj) < len(I) // 2 else -1)
+  bottom_obj = argmin(objs, lambda obj: uppermost(obj) if uppermost(obj) >= len(I) // 2 else len(I))
+
+  top_center_i, top_center_j = centerofmass(top_obj)
+  top_patch = frozenset({(-1, -1), (-1, 0), (0, -1), (0, 0)}) # Predefined 2x2
+  top_patch = shift(top_patch, (top_center_i + 1, top_center_j))
+
+  bottom_patch = frozenset((i, j) 
+                                for i in range(uppermost(bottom_obj), 
+                                               uppermost(bottom_obj) + height(bottom_obj) // 2) 
+                                for j in range(leftmost(bottom_obj), rightmost(bottom_obj) + 1))
+
+  I = paint(I, recolor(1, top_patch))
+  I = paint(I, recolor(2, bottom_patch))
+  return I
+```
+
+**Explanation:**
+
+- This version predefines a 2x2 patch and uses `shift` to position it correctly on the top object's center.
+
+**Program Version 4:** (Conditional coloring based on object index)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+
+  for i, obj in enumerate(objs):
+    if i == 0:
+      center_i, center_j = centerofmass(obj)
+      patch = frozenset({(center_i, center_j - 1),
+                           (center_i, center_j),
+                           (center_i + 1, center_j - 1),
+                           (center_i + 1, center_j)})
+      I = paint(I, recolor(1, patch))
+    else:
+      bottom_patch = frozenset((i, j) 
+                                    for i in range(uppermost(obj), 
+                                                   uppermost(obj) + height(obj) // 2) 
+                                    for j in range(leftmost(obj), rightmost(obj) + 1))
+      I = paint(I, recolor(2, bottom_patch))
+  return I
+```
+
+**Explanation:**
+
+- This version iterates through the objects and applies the coloring logic conditionally based on the object's index (0 for the top, 1 for the bottom).
+
+**Program Version 5:** (Swapping colors based on input)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  top_obj = argmax(objs, lambda obj: uppermost(obj) if uppermost(obj) < len(I) // 2 else -1)
+  bottom_obj = argmin(objs, lambda obj: uppermost(obj) if uppermost(obj) >= len(I) // 2 else len(I))
+
+  top_color = 1 if uppermost(top_obj) < uppermost(bottom_obj) else 2
+  bottom_color = 2 if top_color == 1 else 1
+
+  top_center_i, top_center_j = centerofmass(top_obj)
+  top_patch = frozenset({(top_center_i, top_center_j - 1),
+                         (top_center_i, top_center_j),
+                         (top_center_i + 1, top_center_j - 1),
+                         (top_center_i + 1, top_center_j)})
+
+  bottom_patch = frozenset((i, j)
+                                for i in range(uppermost(bottom_obj),
+                                               uppermost(bottom_obj) + height(bottom_obj) // 2)
+                                for j in range(leftmost(bottom_obj), rightmost(bottom_obj) + 1))
+
+  I = paint(I, recolor(top_color, top_patch))
+  I = paint(I, recolor(bottom_color, bottom_patch))
+  return I
+```
+
+**Explanation:**
+
+- This version dynamically determines the colors to use for the top and bottom objects based on their relative positions in the input grid, handling the color swap between the examples. 

@@ -1,0 +1,126 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be summarized as follows:
+
+**For each object in the grid:**
+
+1. **Identify rows and columns fully occupied by the background color.** 
+2. **Remove these rows and columns from the object.**
+
+This essentially "trims" the objects by removing any background rows or columns touching them.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program achieving the desired transformation:
+
+**Program Version 1**
+
+```python
+def program_v1(grid):
+  bg = mostcolor(grid)
+  h, w = len(grid), len(grid[0])
+  objs = objects(grid, False, False, False)
+  new_grid = canvas(bg, (h, w))
+  for obj in objs:
+    rows = {i for i, j in toindices(obj)}
+    cols = {j for i, j in toindices(obj)}
+    keep_rows = {i for i in rows if any(grid[i][j] != bg for j in range(w))}
+    keep_cols = {j for j in cols if any(grid[i][j] != bg for i in range(h))}
+    new_obj = {(v, (i, j)) for v, (i, j) in obj if i in keep_rows and j in keep_cols}
+    new_grid = paint(new_grid, new_obj)
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Identify background color and grid dimensions:**  This part is straightforward.
+2. **Extract all objects:** Using `objects`, we get all distinct objects in the grid.
+3. **Create a blank canvas:**  We initialize a new grid filled with the background color.
+4. **Iterate through objects:**
+   - **Find rows and columns to keep:** For each object, we identify rows and columns that are not entirely background.
+   - **Construct the trimmed object:** Only cells at the intersection of kept rows and columns are included.
+   - **Paint the trimmed object onto the canvas:** This ensures the correct placement of the transformed object.
+
+**Program Version 2**
+
+```python
+def program_v2(grid):
+  bg = mostcolor(grid)
+  h, w = len(grid), len(grid[0])
+  new_grid = canvas(bg, (h, w))
+  for i, row in enumerate(grid):
+    for j, val in enumerate(row):
+      if val != bg:
+        up, down = any(grid[k][j] != bg for k in range(i)), any(grid[k][j] != bg for k in range(i + 1, h))
+        left, right = any(grid[i][k] != bg for k in range(j)), any(grid[i][k] != bg for k in range(j + 1, w))
+        if (up or down) and (left or right):
+          new_grid = fill(new_grid, val, {(i, j)})
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Initialization:** Similar to version 1.
+2. **Iterate through grid cells:** 
+   - **Check for non-background cells:** If a cell isn't the background:
+     - **Check for adjacent non-background cells:**  We check if there are non-background cells above, below, left, or right of the current cell.
+     - **Fill the cell in the new grid:** If there are adjacent non-background cells in both directions (horizontal and vertical), the cell is part of the trimmed object and is added to the new grid.
+
+**Program Version 3**
+
+```python
+def program_v3(grid):
+  bg = mostcolor(grid)
+  transposed = dmirror(grid)
+  trimmed_rows = tuple(r for r in grid if any(v != bg for v in r))
+  trimmed_cols = tuple(c for c in transposed if any(v != bg for v in c))
+  return dmirror(tuple(trimmed_cols for _ in range(len(trimmed_rows))))
+```
+
+**Explanation:**
+
+1. **Get background color and transpose:** This version leverages the transpose property for column-wise operations.
+2. **Trim rows and columns:**  Iterate through rows and transposed columns, keeping only those containing non-background cells.
+3. **Reconstruct and return:**  Transpose the trimmed columns back and repeat them to match the trimmed row count, effectively reconstructing the trimmed grid.
+
+**Program Version 4**
+
+```python
+def program_v4(grid):
+  bg = mostcolor(grid)
+  h, w = len(grid), len(grid[0])
+  rows_to_keep = {i for i in range(h) if any(grid[i][j] != bg for j in range(w))}
+  cols_to_keep = {j for j in range(w) if any(grid[i][j] != bg for i in range(h))}
+  return tuple(tuple(grid[i][j] if i in rows_to_keep and j in cols_to_keep else bg for j in range(w)) for i in range(h))
+
+```
+
+**Explanation:**
+
+1. **Identify background and dimensions:**  Similar to previous versions.
+2. **Find rows and columns to keep:** Similar to Version 1, we determine which rows and columns contain at least one non-background cell.
+3. **Reconstruct the grid:**  We iterate through all cell indices and include the original cell value only if both its row and column indices are marked for keeping. Otherwise, we fill with the background color.
+
+**Program Version 5**
+```python
+def program_v5(grid):
+    bg = mostcolor(grid)
+    objs = objects(grid, False, False, False)
+    trimmed_objs = frozenset({(v, (i - uppermost(obj), j - leftmost(obj))) 
+                               for v, (i, j) in obj} 
+                              for obj in objs)
+    trimmed_grid = canvas(bg, shape(grid))
+    for obj in trimmed_objs:
+        trimmed_grid = paint(trimmed_grid, obj)
+    return trimmed_grid
+```
+
+**Explanation:**
+
+1. **Get background color and objects:** Similar to previous versions.
+2. **Normalize each object:** For each object, shift it such that its upper-left corner aligns with the origin (0, 0).
+3. **Create a blank canvas:**  Initialize a new grid filled with the background color and having the same dimensions as the input grid.
+4. **Paint the normalized objects onto the canvas:** Iterate over the normalized objects and paint them onto the canvas. This effectively removes the background rows and columns surrounding the objects.
+
+
+Each of these programs utilizes different aspects of the DSL to achieve the same outcome. They demonstrate the flexibility and expressiveness of the DSL for this specific task. 

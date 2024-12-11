@@ -1,0 +1,105 @@
+2.6666666666666665, tensor(0.5315), Description: Shift the colored object one row down, leaving the original location filled with the background color. 
+:: def gaajbjabdbdaefeeageiagcfajehdbdb(I):
+  x1 = ofcolor(I, mostcolor(I))  # Identify background indices
+  x2 = difference(asindices(I), x1)  # Identify object indices
+  x3 = toobject(x2, I)  # Create object from indices and grid values
+  x4 = shift(x3, DOWN)  # Shift the object one row down
+  O = paint(fill(I, ZERO, x2), x4)  # Fill original object location with background and paint shifted object
+  return O
+ 
+12.666666666666666, tensor(0.5339), Description: Shift the top half of the grid one row down, overlaying it onto the bottom half. 
+:: def gcajgaghcjjeebcaaceceeecjbfaiccb(I):
+    x1 = vsplit(I, 2)  # Split the grid horizontally into two halves
+    x2 = shift(asobject(x1[0]), DOWN)  # Shift the top half one row down and convert to object
+    O = paint(x1[1], x2) # Paint the shifted top half onto the bottom half
+    return O
+ 
+3.6666666666666665, tensor(0.7582), Description: Fill the left half of the grid with the color of the first object in the input grid. The middle column is included if the object's width is odd. The rest of the grid is black. 
+:: def jdefefjcjjehedeibhebbdgjabagbgea(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    obj = first(objs)
+    ul = ulcorner(obj)
+    h, w = shape(obj)
+    fill_w = w // 2 + (w % 2)  # Fill left half, including middle column if odd width
+    fill_area = frozenset((i, j) for i in range(ul[0], ul[0] + h) for j in range(ul[1], ul[1] + fill_w))
+    O = fill(canvas(ZERO, shape(I)), TWO, fill_area)
+    return O
+ 
+3.0, tensor(0.7582), Description: Fill the left half of the grid with the color of the first object in the input grid. The middle column is included if the object's width is odd. The rest of the grid is black. 
+:: def eafbggejdddfedfgiffcagecechfcabf(I):
+    obj = list(objects(I, True, False, True))[0]
+    min_i, min_j = ulcorner(obj)
+    max_i, max_j = lrcorner(obj)
+    fill_j = min_j + (max_j - min_j) // 2 + (max_j - min_j) % 2
+    O = canvas(ZERO, shape(I))
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if min_i <= i <= max_i and min_j <= j < fill_j:
+                O = fill(O, TWO, {(i, j)})
+    return O
+ 
+4.0, tensor(1.2607), Description: Shift the object formed by '8's two rows down, replacing the '8's with '2's in the process. The rest of the grid is black. 
+:: def bfccbhfdcafbedijibchbcbbecffjchh(I):
+  obj = toobject(ofcolor(I, EIGHT), I)  # Identify the object formed by '8's
+  offset = (uppermost(obj) * 2, 0)   # Calculate the downward shift based on the object's uppermost row
+  shifted_obj = shift(obj, offset)     # Apply the shift to the object
+  O = paint(canvas(ZERO, shape(I)), shifted_obj)  # Create a blank canvas and paint the shifted object
+  return replace(O, EIGHT, TWO)     # Replace '8's with '2's in the output grid
+ 
+3.3333333333333335, tensor(0.7471), Description: Shift all objects with color '8' two rows down, replacing the '8's with '2's in the process. The rest of the grid is black. 
+:: def aaeffecfagfcehadiddaeceefaijacff(I):
+  def shift_down(obj):
+    return shift(obj, (uppermost(obj) * 2, 0)) if color(obj) == EIGHT else obj
+  return replace(paint(canvas(ZERO, shape(I)), merge(apply(shift_down, objects(I, True, False, False)))), EIGHT, TWO)
+ 
+4.333333333333333, tensor(1.4428), Description: Shift the first object in the input grid down by two rows and change its color to '2'. The rest of the grid is black. 
+:: def gdagdfdfdeceecgajbfdcfchjhaihdag(I):
+  obj = first(objects(I, True, False, False))  # Extract the object
+  color_to_replace = color(obj)  # Get object's color
+  shifted_obj = shift(obj, (2, 0))  # Shift the object down by 2 rows
+  recolored_obj = recolor(2, shifted_obj) # Recolor the shifted object
+  O = paint(canvas(0, shape(I)), recolored_obj)  # Paint on an empty canvas
+  return O 
+ 
+4.0, tensor(0.5177), Description: Shift all '8's in the input grid two rows down, replacing them with '2's. The rest of the grid remains black. 
+:: def adebedaeecdfeibhjihbcaebdcgccajd(I):
+    h, w = len(I), len(I[0])
+    O = list(list(0 for _ in range(w)) for _ in range(h))
+    for i in range(h):
+        for j in range(w):
+            if i >= 2 and I[i-2][j] == 8:  # Check for object and shift
+                O[i][j] = 2
+    return tuple(tuple(row) for row in O)
+ 
+2.6666666666666665, tensor(1.9926), Description: Remove the top two rows of the input grid and replace all '8's in the remaining grid with '2's. The top two rows of the output grid should be black. 
+:: def iffeahaefcdbeadiifaefaddaafgigca(I):
+  top = canvas(0, (2, len(I[0])))  # Create the top part of the output
+  bottom = crop(I, (2, 0), (len(I) - 2, len(I[0]))) # Crop the bottom part of the input
+  bottom = replace(bottom, 8, 2) # Replace '8' with '2' in the cropped part
+  O = vconcat(top, bottom) # Concatenate the top and bottom parts
+  return O
+ 
+4.0, tensor(0.6072), Description: Shift each colored object in the input grid one row down, leaving the original location black. The output grid should have the same colored objects as the input, but shifted down by one row. 
+:: def cjccbgeajhacehdbadhcccbjhjeejdjh(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  shifted_objs = frozenset({shift(obj, (height(obj) - 1, 0)) for obj in objs}) 
+  O = paint(canvas(ZERO, shape(I)), merge(shifted_objs))
+  return O
+ 
+4.666666666666667, tensor(0.6133), Description: For each colored square in the input grid, move it one row down. If the square is already in the bottom row, move it to the top row. The output grid should have the same colored objects as the input, but shifted down by one row. 
+:: def eifdiejjdffaeeeeacbhecbdbajfhded(I):
+  O = canvas(ZERO, shape(I))
+  for i, r in enumerate(I):
+    for j, v in enumerate(r):
+      if v != mostcolor(I):
+        O = paint(O, {(v, (i + max(i, 1) - 1, j))}) 
+  return O
+ 
+0.0, tensor(0.5253), Description: Shift all colored squares in the input grid one row down, leaving the original location black. The output grid should have the same colored objects as the input, but shifted down by one row. 
+:: def cdaecbbjfhbaefhgaaabdbefhdhbdaea(I):
+  x1 = difference(asindices(I), ofcolor(I, ZERO))  # Get indices of non-zero cells
+  x2 = apply(lambda i: add(i, DOWN), x1)  # Shift indices down
+  x3 = canvas(ZERO, shape(I))  # Create an empty canvas
+  O = fill(x3, 2, x2)  # Fill the shifted indices with 2
+  return O
+ 

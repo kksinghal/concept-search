@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation involves shifting specific digits within the grid based on their value:
+
+**Input_0 to Output_0:** All '9's are shifted left by one position, wrapping around the grid's edges.
+**Input_1 to Output_1:** All '6's are shifted down by one position, wrapping around the grid's edges.
+**Input_2 to Output_2:** All '9's are shifted up by one position, wrapping around the grid's edges.
+**Input_3 to Output_3:** All '2's are shifted right by one position, wrapping around the grid's edges.
+
+Essentially, the transformation can be summarized as:
+
+* **Digit 9:** Shift Left
+* **Digit 6:** Shift Down
+* **Digit 2:** Shift Right
+
+## Program to be Generated (5 Versions)
+
+**Version 1:**
+
+```python
+def program_to_be_generated(grid):
+  h, w = len(grid), len(grid[0])
+  for value, direction in [(9, LEFT), (6, DOWN), (2, RIGHT)]:
+    for i, j in ofcolor(grid, value):
+      new_i = (i + direction[0]) % h
+      new_j = (j + direction[1]) % w
+      grid = paint(cover(grid, {(value, (i, j))}), {(value, (new_i, new_j))})
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate through digits and directions:** Loop through each digit-direction pair: (9, LEFT), (6, DOWN), (2, RIGHT).
+2. **Locate digit occurrences:**  For each digit, find all its occurrences in the grid using `ofcolor`.
+3. **Calculate new position:**  Calculate the new position after shifting by applying the direction vector and using modulo (`%`) for wrapping around edges.
+4. **Shift the digit:** Remove the digit from its original position (`cover`) and paint it at the new position (`paint`).
+
+**Version 2:**
+
+```python
+def program_to_be_generated(grid):
+  return chain(
+    rbind(apply, lambda obj: shift(obj, (0, -1)) if color(obj) == 9 else obj),
+    rbind(apply, lambda obj: shift(obj, (1, 0)) if color(obj) == 6 else obj),
+    rbind(apply, lambda obj: shift(obj, (0, 1)) if color(obj) == 2 else obj)
+  )(objects(grid, univalued=True, diagonal=False, without_bg=False))
+```
+
+**Explanation:**
+
+1. **Identify objects:** Identify all objects in the grid using `objects`.
+2. **Shift based on color:** Apply a chain of functions using `chain` where each function checks the object's color and shifts it accordingly using `shift`. 
+3. **Compose the grid:** The final output is the shifted objects combined back into a grid.
+
+**Version 3:**
+
+```python
+def program_to_be_generated(grid):
+  grid = compose(
+      lambda g: g if 9 not in g[0] else hconcat((g[:, -1:],), g[:, :-1]), 
+      grid
+  )
+  grid = compose(
+      lambda g: g if 6 not in g[-1] else vconcat((g[-1:, :],), g[:-1, :]),
+      grid
+  )
+  grid = compose(
+      lambda g: g if 2 not in tuple(g[i][0] for i in range(len(g))) else hconcat((g[:, 1:],), g[:, :1]),
+      grid
+  )
+  return grid
+```
+
+**Explanation:**
+
+1. **Check for digits and shift:**  This version checks if the target digit (9, 6, or 2) exists in specific locations (top row, bottom row, or leftmost column, respectively).
+2. **Apply conditional shifts:**  If the digit is found, it applies the corresponding shift using `hconcat` or `vconcat`.
+
+**Version 4:**
+
+```python
+def program_to_be_generated(grid):
+  for digit, shift_func in [(9, rbind(hconcat, (grid[:, -1:],))), (6, rbind(vconcat, (grid[-1:, :],))), (2, rbind(hconcat, (grid[:, 1:],)))]:
+    if any(digit in row for row in grid if digit == 9) or \
+      (digit == 6 and digit in grid[-1]) or \
+      (digit == 2 and any(digit == cell for cell in grid[0])):
+      grid = shift_func(grid[:, :-1] if digit == 9 else grid[:-1, :] if digit == 6 else grid[:, :1]) 
+  return grid
+```
+
+**Explanation:**
+
+1. **Iterate and check:** Iterate through digit-shift function pairs and check if the digit exists in the relevant areas using `any`.
+2. **Apply shift function:** Apply the pre-defined shift function (`hconcat` or `vconcat`) based on the digit.
+
+**Version 5:**
+
+```python
+def program_to_be_generated(grid):
+  return branch(
+      9 in merge(grid), 
+      hconcat((grid[:, -1:],), grid[:, :-1]), 
+      branch(
+          6 in grid[-1], 
+          vconcat((grid[-1:, :],), grid[:-1, :]), 
+          branch(
+              2 in merge(tuple(grid[i][:1] for i in range(len(grid)))),
+              hconcat((grid[:, 1:],), grid[:, :1]),
+              grid
+          )
+      )
+  )
+```
+
+**Explanation:**
+
+1. **Nested conditions:** This version utilizes nested conditional statements using `branch`.
+2. **Check and shift:** It checks for the presence of 9, 6, and 2 in their respective locations and applies the corresponding shifts. If no shift is needed, it returns the original grid.
+
+These five versions demonstrate diverse approaches to achieve the same transformation using different DSL functions and logic, highlighting the flexibility of the DSL. 

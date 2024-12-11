@@ -1,0 +1,142 @@
+## Transformation Analysis:
+
+The transformation involves recoloring the cells of each object (excluding the background) in the input grid based on their position relative to the object's vertical center line. Cells to the left of the center line are recolored to 8, cells to the right are recolored to 7, and cells on the center line retain their original color.
+
+**Let's illustrate with Input_0:**
+
+* **Object 1:** The top-leftmost '5' object has a vertical center line at column index '9'. All cells of this object with column index less than 9 are recolored to '8', and those with column index greater than 9 are recolored to '7'.
+* **Object 2:** The bottom-leftmost '5' object has a vertical center line at column index '3'. Similar recoloring is applied based on the position relative to this line.
+
+This pattern repeats for other input-output pairs.
+
+
+## Program_to_be_generated:
+
+Here are five distinct code versions using the provided DSL:
+
+**Version 1:**
+
+```python
+def egaidgccdaajefebihccbdefjjcabeag(I):
+  def recolor_cell(v, i, j, center_j):
+    if j < center_j:
+      return 8, (i, j)
+    elif j > center_j:
+      return 7, (i, j)
+    else:
+      return v, (i, j)
+
+  def process_row(row, i, obj_map, center_j_map):
+    new_row = []
+    for j, v in enumerate(row):
+      if (i, j) in obj_map:
+        new_row.append(recolor_cell(v, i, j, center_j_map[(i, j)]))
+      else:
+        new_row.append((v, (i, j)))
+    return tuple(new_row)
+
+  obj_map = {
+      (i, j) for obj in fgpartition(I) for v, (i, j) in obj
+  }
+  center_j_map = {
+      (i, j): centerofmass(obj)[1]
+      for obj in fgpartition(I)
+      for v, (i, j) in obj
+  }
+  O = tuple(process_row(r, i, obj_map, center_j_map) for i, r in enumerate(I))
+  return paint(I, frozenset(merge(O))) 
+```
+
+**Explanation:**
+
+1. **`recolor_cell(v, i, j, center_j)`:**  This helper function takes the cell value (`v`), its coordinates (`i`, `j`), and the object's center column index (`center_j`). It applies the recoloring logic based on the cell's position relative to `center_j`.
+
+2. **`process_row(row, i, obj_map, center_j_map)`:** Processes each row (`row`) of the input grid. It iterates through cell values and, if the cell belongs to an object (checked using `obj_map`), it calls `recolor_cell` to potentially recolor the cell.
+
+3. **`obj_map`:**  A dictionary storing cell coordinates as keys and their corresponding object's vertical center column index as values.
+
+4. **`center_j_map`:** A dictionary storing cell coordinates of object cells.
+
+5. **Main loop:** Iterates through each row and applies `process_row`. The final output grid is constructed by painting the recolored cells onto the original grid.
+
+**Version 2:** (Using `apply` for conciseness)
+
+```python
+def egaidgccdaajefebihccbdefjjcabeag(I):
+  def recolor_obj(obj):
+    center_j = centerofmass(obj)[1]
+    return frozenset((8 if j < center_j else (7 if j > center_j else v), (i, j)) for v, (i, j) in obj)
+
+  recolored_objs = apply(recolor_obj, fgpartition(I))
+  O = paint(cover(I, merge(fgpartition(I))), merge(recolored_objs)) 
+  return O
+```
+
+**Explanation:**
+
+1. **`recolor_obj(obj)`:** This helper function takes an object and directly recolors its cells based on their position relative to the object's center column index, returning a new recolored object.
+
+2. **`apply(recolor_obj, fgpartition(I))`:** Applies `recolor_obj` to each object in the input grid.
+
+3. **`paint(cover(...), ...)`:** First, the original objects are covered (removed) from the grid. Then, the recolored objects are painted onto the grid, resulting in the final output.
+
+**Version 3:** (Using nested loops for clarity)
+
+```python
+def egaidgccdaajefebihccbdefjjcabeag(I):
+  O = I 
+  for obj in fgpartition(I):
+    center_j = centerofmass(obj)[1]
+    for v, (i, j) in obj:
+      if j < center_j:
+        O = paint(O, {(8, (i, j))})
+      elif j > center_j:
+        O = paint(O, {(7, (i, j))})
+  return O
+```
+
+**Explanation:**
+
+1. **Outer loop:** Iterates through each object in the input grid.
+
+2. **Inner loop:** Iterates through each cell in the current object. 
+
+3. **Conditional recoloring:** If the cell's column index is less than the object's center column index, it's recolored to 8. If it's greater, it's recolored to 7. Otherwise, the original color is maintained. The `paint` function directly modifies the grid `O` within the loop.
+
+**Version 4:** (Using list comprehension for conciseness)
+
+```python
+def egaidgccdaajefebihccbdefjjcabeag(I):
+  recolored_cells = [(8 if j < centerofmass(obj)[1] else (7 if j > centerofmass(obj)[1] else v), (i, j)) 
+                     for obj in fgpartition(I) for v, (i, j) in obj]
+  O = paint(cover(I, merge(fgpartition(I))), frozenset(recolored_cells))
+  return O
+```
+
+**Explanation:**
+
+This version utilizes a list comprehension to recolor the cells directly. It iterates through all cells of each object, applying the recoloring logic concisely within the comprehension. 
+
+**Version 5:** (Using `fork` for function composition)
+
+```python
+def egaidgccdaajefebihccbdefjjcabeag(I):
+  def get_recolored_cell(obj):
+    center_j = centerofmass(obj)[1]
+    return lambda v, i, j: (8 if j < center_j else (7 if j > center_j else v), (i, j))
+
+  recolored_objs = apply(lambda obj: frozenset(starmap(get_recolored_cell(obj), obj)), fgpartition(I))
+  O = paint(cover(I, merge(fgpartition(I))), merge(recolored_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **`get_recolored_cell(obj)`:**  Takes an object and returns a lambda function pre-configured with the object's center column index. This lambda function, when called with cell information, applies the recoloring logic.
+
+2. **`apply(..., fgpartition(I))`:** Applies a lambda function to each object in the input grid. This lambda function uses the pre-configured `get_recolored_cell` function to recolor the object's cells.
+
+3. The rest of the logic is similar to previous versions: covering the original objects and painting the recolored ones.
+
+
+These five versions demonstrate different approaches to achieving the same data transformation, highlighting the flexibility of the provided DSL. Each version employs a distinct combination of DSL functions and logic flow.

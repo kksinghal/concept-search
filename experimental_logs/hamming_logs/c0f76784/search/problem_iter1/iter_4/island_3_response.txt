@@ -1,0 +1,124 @@
+## Transformation Analysis:
+
+The transformation focuses on objects (connected areas of the same digit) within the input grid and applies specific changes based on their position relative to the grid's horizontal center line.
+
+**General Pattern:**
+
+1. **Outline:**  A one-cell thick outline (using digit '8') is drawn around each object.
+2. **Lower Marking:** Objects touching or crossing the horizontal center line have their two leftmost bottom cells marked with '7'.
+3. **Upper Marking:** Objects entirely above the center line remain unchanged.
+4. **Center Marking:** Objects crossing the center line have their bottom left corner marked with '6', in addition to the '7' markings.
+
+**Specific Examples:**
+
+* **Input_0:** The large '5' object crosses the center line, so it receives both '6' and '7' markings. The two smaller '5' objects are either fully above or below the line and are marked accordingly.
+* **Input_1:** Similar to Input_0, the large '5' object receives both markings. The smaller '5' object is fully above the line and remains unchanged.
+* **Input_2:** All '5' objects either touch or cross the center line, receiving '7' markings.
+
+## Program_to_be_generated: 
+
+**Version 1:** (Inspired by `Program_A` and `Program_B`'s use of `delta` and conditional `fill`)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    O = fill(O, 8, delta(obj))
+    bottom_left = (lowermost(obj), leftmost(obj))
+    if lowermost(obj) >= len(I) // 2:
+      O = fill(O, 7, {bottom_left, add(bottom_left, RIGHT)})
+    if uppermost(obj) < len(I) // 2 <= lowermost(obj):
+      O = fill(O, 7, {bottom_left, add(bottom_left, RIGHT)})
+      O = fill(O, 6, {bottom_left})
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Output grid `O` starts as a copy of input `I`.
+2. **Object Iteration:**  Iterates through each object in the grid using `objects`.
+3. **Outline:** Uses `delta(obj)` to get the outline of each object and fills it with '8'.
+4. **Bottom Left Identification:** Determines the bottom-left corner of each object.
+5. **Lower Marking:** If the object's lowermost row is on or below the center, it fills the bottom left corner and the cell to its right with '7'.
+6. **Center Marking:** If the object crosses the center, it additionally fills the bottom left corner with '6'.
+
+**Version 2:** (Using `centerofmass` to simplify position checks)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    O = fill(O, 8, delta(obj))
+    center_i, _ = centerofmass(obj)
+    bottom_left = (lowermost(obj), leftmost(obj))
+    if center_i >= len(I) // 2:
+      O = fill(O, 7, {bottom_left, add(bottom_left, RIGHT)})
+    if uppermost(obj) < len(I) // 2:
+      O = fill(O, 6, {bottom_left})
+  return O
+```
+
+**Explanation:**
+
+1. **Center of Mass:** Uses `centerofmass` to determine if an object is mostly above or below the center line.
+2. **Simplified Marking:** The '7' marking is applied based on the center of mass, while the '6' marking still requires checking if the object crosses the line.
+
+**Version 3:** (Leveraging `intersection` to identify crossing objects)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  centerline = {(len(I) // 2, j) for j in range(len(I[0]))}
+  for obj in objects(I, T, T, T):
+    O = fill(O, 8, delta(obj))
+    bottom_left = (lowermost(obj), leftmost(obj))
+    if lowermost(obj) >= len(I) // 2:
+      O = fill(O, 7, {bottom_left, add(bottom_left, RIGHT)})
+    if len(intersection(toindices(obj), centerline)) > 0:
+      O = fill(O, 6, {bottom_left})
+  return O
+```
+
+**Explanation:**
+
+1. **Centerline Definition:** Defines a set of indices representing the horizontal center line.
+2. **Intersection Check:**  Uses `intersection` to directly check if an object's indices intersect with the centerline, determining if it crosses the line.
+
+**Version 4:** (Combining `map` and conditional logic for concise marking)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    O = fill(O, 8, delta(obj))
+    O = fill(O, 7, { (lowermost(obj), leftmost(obj) + i) for i in range(2) if lowermost(obj) >= len(I) // 2 })
+    O = fill(O, 6, {(lowermost(obj), leftmost(obj)) } if uppermost(obj) < len(I) // 2 <= lowermost(obj) else set())
+  return O
+```
+
+**Explanation:**
+
+1. **Concise Marking:** Utilizes `map` and conditional logic within the `fill` function calls to apply the '6' and '7' markings more concisely.
+
+**Version 5:** (Pre-calculating markings based on object positions)
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, T, T):
+    O = fill(O, 8, delta(obj))
+    markings = set()
+    bottom_left = (lowermost(obj), leftmost(obj))
+    if lowermost(obj) >= len(I) // 2:
+      markings.update({bottom_left, add(bottom_left, RIGHT)})
+    if uppermost(obj) < len(I) // 2:
+      markings.add(bottom_left)
+    O = fill(O, 7 if lowermost(obj) >= len(I) // 2 else 6, markings)
+  return O
+```
+
+**Explanation:**
+
+1. **Pre-calculation:**  Determines the markings ('6' or '7') and their locations beforehand, then applies them in a single `fill` call.
+
+These versions demonstrate different approaches to achieving the same transformation, showcasing the flexibility and expressiveness of the provided DSL. Each version leverages different function combinations and logic flow, offering diverse solutions to the problem.

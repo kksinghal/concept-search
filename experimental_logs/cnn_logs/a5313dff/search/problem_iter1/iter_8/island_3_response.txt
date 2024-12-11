@@ -1,0 +1,133 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves identifying objects (connected regions of the same digit, excluding the background color) and then filling in the direct neighbors of each object with the value '1'. This effectively outlines the objects within the grid.
+
+**Input 0:**
+
+- Identifies the '2' object.
+- Fills in the direct neighbors of the '2' object with '1'.
+
+**Input 1:**
+
+- Identifies multiple '2' objects.
+- Fills in the direct neighbors of each '2' object with '1'.
+
+**Input 2:**
+
+- Identifies multiple '2' objects.
+- Fills in the direct neighbors of each '2' object with '1'.
+
+## Program to be Generated:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  return underfill(I, ONE, mapply(dneighbors, apply(toindices, objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`**:  Identifies all objects in the grid (`I`) that are connected by non-diagonal neighbors (`F`) and excludes the background color (`T`).
+2. **`apply(toindices, ...)`**: Converts each object from a set of (value, location) pairs to a set of just locations (indices).
+3. **`mapply(dneighbors, ...)`**: For each location in each object, it finds the directly adjacent neighbors. This generates a nested structure of neighbor indices.
+4. **`merge(...)`**: Merges the nested structure of neighbor indices into a single set.
+5. **`underfill(I, ONE, ...)`**:  Fills in the identified neighbor indices with the value '1' only if the original cell was the background color. 
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  def fill_dneighbors(grid, obj):
+    return underfill(grid, ONE, mfilter(lambda loc: 0 <= loc[0] < len(grid) and 0 <= loc[1] < len(grid[0]), mapply(dneighbors, toindices(obj))))
+  return apply(rbind(fill_dneighbors, I), objects(I, T, F, T))
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`**: Identifies objects in the grid, same as in Version 1.
+2. **`rbind(fill_dneighbors, I)`**:  Creates a partially applied function with the grid (`I`) fixed as the first argument to `fill_dneighbors`.
+3. **`apply(..., objects(I, T, F, T))`**: Applies the partially applied function to each identified object.
+4. **`fill_dneighbors(grid, obj)`**: 
+    - **`toindices(obj)`**: Extracts indices from the object.
+    - **`mapply(dneighbors, ...)`**: Finds direct neighbors of each index in the object.
+    - **`mfilter(lambda loc: ..., ...)`**: Filters out neighbor indices that are outside the grid boundaries.
+    - **`underfill(grid, ONE, ...)`**:  Fills the valid neighbor indices with '1' only if they were originally the background color.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  def outline_object(grid, obj):
+    return paint(grid, recolor(ONE, mapply(lambda loc: sfilter(dneighbors(loc), lambda x: 0 <= x[0] < len(grid) and 0 <= x[1] < len(grid[0])), toindices(obj))))
+  return last(apply(rbind(outline_object, I), objects(I, T, F, T)))
+```
+
+**Explanation:**
+
+This version focuses on outlining each object individually and then painting the outline onto the grid.
+
+1. **`objects(I, T, F, T)`**:  Identifies objects in the grid.
+2. **`rbind(outline_object, I)`**: Partially applies the grid (`I`) to `outline_object`.
+3. **`apply(..., objects(I, T, F, T))`**: Applies the partially applied function to each object.
+4. **`outline_object(grid, obj)`**:
+    - **`toindices(obj)`**: Extracts indices from the object.
+    - **`mapply(...)`**: Applies a lambda function to each index:
+        - **`dneighbors(loc)`**: Gets direct neighbors of the current index.
+        - **`sfilter(...)`**: Filters out neighbors outside grid boundaries.
+    - **`recolor(ONE, ...)`**: Colors the filtered neighbor indices with '1'.
+    - **`paint(grid, ...)`**:  Paints the outlined object onto the grid.
+5. **`last(...)`**:  Returns the last grid in the sequence (which has all outlines painted).
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  outline = mfilter(lambda loc: any((i, j) in toindices(obj) for obj in objs for i, j in dneighbors(loc)), asindices(I))
+  return underfill(I, ONE, outline)
+```
+
+**Explanation:**
+
+This version identifies the outline indices directly without iterating through individual objects.
+
+1. **`objects(I, T, F, T)`**:  Identifies all objects in the grid.
+2. **`asindices(I)`**: Gets the indices of all cells in the grid.
+3. **`mfilter(lambda loc: ..., ...)`**: Filters the grid indices to keep only those that are direct neighbors of any object.
+4. **`underfill(I, ONE, outline)`**: Fills the identified outline indices with '1', preserving the original object colors.
+
+**Program Version 5:** 
+
+```python
+def Program_to_be_generated(I):
+  def is_neighbor_of_object(grid, loc, obj):
+    return any((i, j) in toindices(obj) for i, j in dneighbors(loc) if 0 <= i < len(grid) and 0 <= j < len(grid[0]))
+  
+  def outline_grid(grid):
+    objs = objects(grid, T, F, T)
+    return underfill(
+        grid, 
+        ONE, 
+        frozenset(
+          loc for loc in asindices(grid) 
+          if any(is_neighbor_of_object(grid, loc, obj) for obj in objs)
+        )
+    )
+  
+  return outline_grid(I)
+```
+
+**Explanation:**
+
+This version uses helper functions to improve readability and modularity.
+
+1. **`is_neighbor_of_object(grid, loc, obj)`**: This helper function checks if a given location is a direct neighbor of a specific object in the grid. It ensures that the neighbors are within the grid boundaries.
+2. **`outline_grid(grid)`**:  This helper function outlines all objects within the input grid:
+   - It identifies objects using  `objects(grid, T, F, T)`.
+   - It iterates through all cell locations in the grid using `asindices(grid)`.
+   - For each location, it checks if it's a neighbor of any object using `is_neighbor_of_object`. If it is, the location is marked for outlining.
+   - Finally, it uses `underfill` to fill the identified neighbor locations with '1', preserving the original object colors.
+3.  The main function simply calls `outline_grid(I)` with the input grid `I` and returns the outlined grid.
+
+Each of these programs leverages different combinations of DSL functions to achieve the same visual transformation, showcasing the flexibility and expressiveness of the provided DSL. 

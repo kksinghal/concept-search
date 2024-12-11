@@ -1,0 +1,159 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids involves the following steps:
+
+1. **Identify Non-Background Objects:** The transformation focuses on the digits that are not the background color (0 in this case). These digits represent objects on the grid.
+2. **Move Objects Downwards:** Each object is moved downwards until it reaches either another object or the bottom of the grid. 
+3. **Clear Above Objects:** The area above each moved object is cleared, effectively erasing the original position of the object.
+
+**Example:**
+
+Let's consider Input_0 and Output_0. The digit '3' in the first row is considered an object. It's moved down until it reaches the other '3' digit. The original position of the '3' is then cleared. Similarly, the '2' digit moves down until it hits the '3' and the '7' digits move down until they hit the bottom of the grid.
+
+## Code Improvement:
+
+Due to the unavailability of the two reference programs, I'll provide five distinct program versions based on the transformation analysis and utilizing common DSL patterns.
+
+**Program Version 1:**
+
+**Code:**
+
+```python
+def solve_d364b489(I):
+  objs = objects(I, True, False, True)  # Get non-background objects
+  moved_objs = set()
+  for obj in objs:
+    down_shifted = obj  
+    while not any(v != 0 for v in (index(I, (i + 1, j)) for v, (i, j) in down_shifted if 0 <= i + 1 < len(I))):
+      down_shifted = shift(down_shifted, DOWN)
+    moved_objs.add(down_shifted)
+  O = I
+  for obj in objs:
+    O = cover(O, obj)  
+  for obj in moved_objs:
+    O = paint(O, obj) 
+  return O
+```
+
+**Explanation:**
+
+1.  **`objs = objects(I, True, False, True)`:** Identifies non-background objects in the grid.
+2.  **Loop for Moving Objects:** Iterates through each object in `objs`.
+    *   **`down_shifted = obj`:** Creates a copy of the object to be moved.
+    *   **`while` loop:** Keeps shifting the object down as long as the cell below is empty (value 0).
+    *   **`moved_objs.add(down_shifted)`:** Adds the moved object to the `moved_objs` set.
+3.  **`O = I`:** Initializes the output grid `O` with the input grid `I`.
+4.  **Loop for Clearing Original Positions:** Iterates through the original objects and covers their positions in the output grid `O` using the background color.
+5.  **Loop for Painting Moved Objects:** Iterates through the moved objects and paints them onto the output grid `O`.
+
+**Program Version 2:**
+
+**Code:**
+
+```python
+def solve_d364b489(I):
+  O = canvas(0, shape(I))  # Initialize output grid with background
+  for j in range(width(I)):
+    column = [(i, j) for i in range(height(I))]
+    for i, loc in enumerate(column):
+      if index(I, loc) != 0:  # Found a non-background cell
+        new_i = next((k for k in range(i + 1, height(I)) if index(I, (k, j)) != 0), height(I) - 1) # Find the lowest empty cell below
+        O = paint(O, {(index(I, loc), (new_i, j))}) # Paint the cell at the new location
+  return O
+```
+
+**Explanation:**
+
+1. **`O = canvas(0, shape(I))`:** Initializes the output grid `O` with the same shape as the input grid `I`, filled with the background color (0).
+2. **Iterate through Columns:** Loops through each column of the input grid.
+3. **Iterate through Cells in Column:** Loops through each cell in the current column.
+4. **`if index(I, loc) != 0`:** Checks if the current cell contains a non-background value.
+5. **`new_i = ...`:** Finds the row index (`new_i`) of the lowest empty cell below the current cell in the same column.
+6. **`O = paint(...)`:**  Paints the non-background value from the input grid onto the output grid at the new location (`new_i`, `j`).
+
+**Program Version 3:**
+
+```python
+def solve_d364b489(I):
+  h, w = shape(I)
+  O = I
+  for j in range(w):
+    for i in range(h - 1, -1, -1): # Iterate from bottom to top
+      if index(I, (i, j)) != 0: # Non-background cell
+        k = next((l for l in range(i + 1, h) if index(I, (l, j)) != 0), h) # Find next non-background cell below
+        O = paint(cover(O, {(index(I, (i, j)), (i, j))}), {(index(I, (i, j)), (k - 1, j))}) # Move the cell down
+  return O
+```
+
+**Explanation:**
+
+1. **`h, w = shape(I)`:** Gets the height and width of the input grid.
+2. **`O = I`:** Initializes the output grid with the input grid.
+3. **Iterate through Columns and Cells (Bottom-Up):**  Loops through each column and then iterates through the cells in each column from bottom to top.
+4. **`if index(I, (i, j)) != 0`:**  If a non-background cell is found:
+   - **`k = ...`:** Find the row index (`k`) of the next non-background cell below the current cell. 
+   - **`O = ...`:** Cover the current cell and paint it at the new location (`k-1`, `j`), effectively moving it down.
+
+**Program Version 4:**
+
+```python
+def solve_d364b489(I):
+    h, w = len(I), len(I[0])
+    O = [[0 for _ in range(w)] for _ in range(h)] # Initialize empty output grid
+    for j in range(w):
+        next_i = h - 1
+        for i in range(h - 1, -1, -1):
+            if I[i][j] != 0:
+                O[next_i][j] = I[i][j]
+                next_i -= 1
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **`h, w = len(I), len(I[0])`:** Get the height and width of the input grid.
+2. **`O = [[0 for _ in range(w)] for _ in range(h)]`:** Initialize an empty output grid `O` filled with zeros (background color).
+3. **Iterate through Columns:** Loops through each column of the input grid.
+4. **`next_i = h - 1`:** For each column, initialize a `next_i` variable to the bottom row index.
+5. **Iterate through Cells in Column (Bottom-Up):** Loops through the cells in the current column from bottom to top.
+6. **`if I[i][j] != 0`:** If a non-background cell is encountered:
+    - **`O[next_i][j] = I[i][j]`:** Copy the value from the input grid to the output grid at the `next_i` row.
+    - **`next_i -= 1`:** Decrement `next_i` to prepare for the next non-background cell.
+
+**Program Version 5:**
+
+```python
+def solve_d364b489(I):
+  objs = objects(I, True, False, True)
+  new_objs = set()
+  for obj in objs:
+    min_i, max_i = uppermost(obj), lowermost(obj)
+    collision = False
+    for i in range(min_i + 1, len(I)):
+      if any((i, j) in toindices(obj) for v, (i, j) in shift(obj, (i - min_i, 0))):
+        collision = True
+        break
+    new_objs.add(shift(obj, (i - min_i - (0 if collision else 1), 0)))
+  O = I
+  for obj in objs:
+    O = cover(O, obj)
+  for obj in new_objs:
+    O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(...)`:** Extract non-background objects from the input grid.
+2. **Iterate through Objects:** Loops through each extracted object.
+3. **`min_i, max_i = ...`:** Get the uppermost and lowermost row indices of the object.
+4. **`collision = False`:** Initialize a flag to track collisions during the downward movement.
+5. **Check for Collisions:**  Iterate downwards from the object's current position and check if a shifted version of the object would collide with any of its cells.
+6. **Shift Object:**
+    - If a collision is detected, shift the object to the position just before the collision.
+    - If no collision, shift the object to the bottom of the grid.
+7. **Update Output Grid:**
+    - Clear the original positions of the objects in the output grid.
+    - Paint the shifted objects onto the output grid.
+
+These code versions provide different approaches to achieve the gravity-like effect in the output.  Remember that these solutions are based on my understanding of the transformation and common DSL patterns. Without the reference programs, there might be more efficient or elegant solutions. 

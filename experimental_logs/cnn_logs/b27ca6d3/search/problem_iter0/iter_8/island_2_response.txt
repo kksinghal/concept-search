@@ -1,0 +1,133 @@
+## Transformation Analysis:
+
+The transformation involves identifying non-zero objects and extending them horizontally by one cell to the left and right, but only if the adjacent cell is empty (contains a 0). The original object's color is used for the extension.
+
+**Input_0 Example:**
+
+- The '2' objects in the 3rd and 4th rows are extended to the left and right with '3's. 
+- The single '2' in the 5th row is extended on both sides.
+- The '2' objects in the 12th row are extended similarly. 
+
+**Input_1 Example:**
+
+- The '2 2' object in the first row is extended to the left and right.
+- The lone '2's in the 2nd, 5th, 6th, and 15th rows are extended.
+- Notice that the extension doesn't "jump over" existing non-zero cells.
+
+## Program Versions:
+
+Here are five distinct versions of the `Program_to_be_generated`:
+
+**Program Version 1:** (Inspired by Program_A's loop structure and Program_B's conditional filling)
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(0, shape(I)) 
+  for i in range(len(I)):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] != 0:
+        if I[i][j - 1] == 0:
+          O = fill(O, I[i][j], {(i, j - 1)})
+        if I[i][j + 1] == 0:
+          O = fill(O, I[i][j], {(i, j + 1)})
+  return cellwise(O, I, 0) 
+```
+
+**Explanation:**
+
+1. **Initialize Output:** `O = canvas(0, shape(I))` creates an empty grid of the same size as the input.
+2. **Iterate through Input:** The nested loops go through each cell of the input grid.
+3. **Check for Non-Zero:**  If a cell is not 0 (meaning it's part of an object), we proceed.
+4. **Extend Left and Right:** We check if the left and right neighbors are 0. If so, we fill the corresponding cells in the output grid `O` with the current cell's color using `fill`.
+5. **Combine with Original:**  Finally, `cellwise(O, I, 0)` combines the extended objects in `O` with the original input `I`, using 0 as the fallback value for empty cells.
+
+**Program Version 2:** (Using `objects` function and set comprehension for a more functional approach)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  extended_objs = frozenset({(color(obj), (i, j - 1)) for v, (i, j) in obj if j > 0 and I[i][j - 1] == 0} | 
+                             {(color(obj), (i, j + 1)) for v, (i, j) in obj if j < len(I[0]) - 1 and I[i][j + 1] == 0} | 
+                             obj for obj in objs)
+  return paint(canvas(0, shape(I)), merge(extended_objs))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** `objs = objects(I, True, False, True)` identifies all distinct objects in the input grid.
+2. **Extend Objects:** The `extended_objs` set is created using set comprehension:
+   - It iterates over each object `obj` in `objs`.
+   - For each cell `(v, (i, j))` in an object, it checks if it can be extended to the left (`j > 0 and I[i][j - 1] == 0`) or right (`j < len(I[0]) - 1 and I[i][j + 1] == 0`). If so, it adds the extended cell to the set.
+   - The original object `obj` is also added to `extended_objs`.
+3. **Paint to Canvas:**  `paint(canvas(0, shape(I)), merge(extended_objs))` creates an empty canvas and paints the extended objects onto it.
+
+**Program Version 3:** (Utilizing `shift` for a more concise object manipulation)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  extended_objs = frozenset(obj | 
+                            (sfilter(shift(obj, (0, -1)), lambda c: index(I, c[1]) == 0)) | 
+                            (sfilter(shift(obj, (0, 1)), lambda c: index(I, c[1]) == 0))
+                            for obj in objs)
+  return paint(canvas(0, shape(I)), merge(extended_objs))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Same as Version 2.
+2. **Extend Objects:**
+   - For each object, it uses `shift(obj, (0, -1))` and `shift(obj, (0, 1))` to create shifted copies one cell to the left and right.
+   - `sfilter` is used to keep only the shifted cells that fall within the grid boundaries and have a value of 0 in the original input.
+   - The original object is combined with the filtered shifted copies using set union (`|`).
+3. **Paint to Canvas:**  Same as Version 2.
+
+**Program Version 4:** (Focusing on horizontal lines and extending them)
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  extended_objs = frozenset()
+  for obj in objs:
+    if hline(obj):
+      left_extension =  {(color(obj), (i, j - 1)) for v, (i, j) in obj if j > 0 and I[i][j - 1] == 0}
+      right_extension = {(color(obj), (i, j + 1)) for v, (i, j) in obj if j < len(I[0]) - 1 and I[i][j + 1] == 0}
+      extended_objs = extended_objs | frozenset(obj | left_extension | right_extension)
+    else:
+      extended_objs = extended_objs | frozenset(obj)
+  return paint(canvas(0, shape(I)), merge(extended_objs))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Same as Version 2.
+2. **Extend Horizontal Lines:** 
+    - It checks if an object `obj` is a horizontal line using `hline(obj)`. 
+    - If it is, it extends the line to the left and right, similar to Version 2, but only if the adjacent cells are empty.
+    - If the object is not a horizontal line, it's added to `extended_objs` without modification.
+3. **Paint to Canvas:**  Same as Version 2. 
+
+**Program Version 5:** (Using `hconcat` and `cellwise` for a different approach)
+
+```python
+def Program_to_be_generated(I):
+  shifted_left = hconcat(((0,),) * len(I), I)[:, :-1]
+  shifted_right = hconcat(I, ((0,),) * len(I))[:, 1:]
+  left_extension = cellwise(shifted_left, I, 0)
+  right_extension = cellwise(shifted_right, I, 0)
+  combined_extension = cellwise(left_extension, right_extension, 3) 
+  return cellwise(combined_extension, I, 0) 
+```
+
+**Explanation:**
+
+1. **Shift Input:** 
+   - `shifted_left` adds a column of zeros to the left of the input and then removes the rightmost column, effectively shifting the input one cell to the left. 
+   - `shifted_right` does the same but shifts the input to the right.
+2. **Identify Extension Areas:**
+   - `left_extension` uses `cellwise` to compare the original input with the left-shifted input. If both cells have the same non-zero value, it indicates an area for leftward extension.
+   - `right_extension` does the same for the rightward extension.
+3. **Combine Extensions:** `combined_extension` merges the `left_extension` and `right_extension` grids, using a value of '3' for overlapping areas.
+4. **Overlay on Original:**  Finally, `cellwise` combines the `combined_extension` with the original input, prioritizing the extensions while keeping the original objects intact.
+
+These five programs demonstrate different approaches to achieve the same transformation. Each version leverages unique combinations of DSL functions, offering diverse and creative solutions. 

@@ -1,0 +1,115 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit excluding the background color) and extending them upwards and to the right by one cell with the value '1', but only if the new cell would be placed on a background cell.
+
+**Input_0:**
+
+* The '2' object is extended upwards and to the right with '1's.
+* The '6' object remains unchanged as there are no background cells directly above or to its right.
+
+**Input_1:**
+
+* The '2' objects are extended similarly to the '2' object in Input_0.
+* The '3' and '8' objects are not extended as they are surrounded by other digits or the edge of the grid.
+
+**Input_2:**
+
+* The '2' object is extended similarly to previous examples.
+
+## Program_to_be_generated:
+
+### Version 1 (Inspired by Program_A's border detection and Program_B's background checking):
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  extension = set()
+  for obj in objs:
+    for i, j in toindices(obj):
+      for di, dj in [(-1, 0), (0, 1)]:  # Check up and right
+        ni, nj = i + di, j + dj
+        if 0 <= ni < height(I) and 0 <= nj < width(I) and index(I, (ni, nj)) == bg:
+          extension.add((ni, nj))
+  return fill(I, 1, frozenset(extension))
+```
+
+**Explanation:**
+
+1. **Get background color and objects:** Identify the background color (`bg`) and the non-background objects (`objs`).
+2. **Iterate and extend:** For each cell in each object, check the cell above and to its right. If that cell is within the grid bounds and contains the background color, add it to the `extension` set.
+3. **Fill extension:** Fill the cells in the `extension` set with the value '1'.
+
+### Version 2 (Using `dneighbors` for adjacent cell checking):
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, True, False, True)
+  extension = set()
+  for obj in objs:
+    for cell in toindices(obj):
+      for neighbor in dneighbors(cell):
+        if neighbor[0] <= cell[0] and neighbor[1] >= cell[1] and index(I, neighbor) == bg:
+          extension.add(neighbor)
+  return fill(I, 1, frozenset(extension))
+```
+
+**Explanation:**
+
+1. **Similar to Version 1:** Identify background color and non-background objects.
+2. **Use `dneighbors`:**  Instead of manually checking up and right, use `dneighbors` to get adjacent cells and filter for the desired directions.
+3. **Fill extension:** Same as Version 1.
+
+### Version 3 (Combining `shift` and `intersection`):
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, True, False, True)
+  shifted_objs = (shift(o, RIGHT) | shift(o, UP) for o in objs)
+  extension = mpapply(lambda o: toindices(o) & ofcolor(I, bg), shifted_objs)
+  return fill(I, 1, extension)
+```
+
+**Explanation:**
+
+1. **Shift objects:** Create shifted versions of each object, one shifted right and one shifted up.
+2. **Intersection with background:** Find the intersection between the shifted objects' indices and the indices of background cells.
+3. **Fill extension:** Same as Version 1.
+
+### Version 4 (Leveraging `mapply` for concise expression):
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, True, False, True)
+  return fill(I, 1, mapply(lambda o: toindices(shift(o, RIGHT) | shift(o, UP)) & ofcolor(I, bg), objs))
+```
+
+**Explanation:**
+
+ This version combines steps from Version 3 into a single `mapply` call for a more concise solution. The logic remains the same: shift objects, find intersections with background cells, and fill those cells.
+
+### Version 5 (Using `delta` and filtering directions):
+
+```python
+def Program_to_be_generated(I):
+  bg = mostcolor(I)
+  objs = objects(I, True, False, True)
+  extension = set()
+  for obj in objs:
+    for cell in delta(obj):
+      if cell in (toindices(shift(obj, RIGHT)) | toindices(shift(obj, UP))) and index(I, cell) == bg:
+        extension.add(cell)
+  return fill(I, 1, frozenset(extension))
+```
+
+**Explanation:**
+
+1. **Use `delta`:** For each object, get the `delta` (cells in the bounding box but not part of the object).
+2. **Check for valid extensions:** For each cell in the `delta`, check if it's part of the object shifted right or up and if it contains the background color.
+3. **Fill extension:** Same as Version 1.
+
+
+These five versions demonstrate different approaches to achieve the desired transformation, each leveraging different DSL functions and logic. 

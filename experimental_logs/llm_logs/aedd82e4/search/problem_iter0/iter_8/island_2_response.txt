@@ -1,0 +1,146 @@
+## Transformation Analysis:
+
+The transformation consistently targets the bottom-most object that touches either the left or bottom border of the grid.  The transformation then changes the color of the leftmost cell of this object to a '1'. 
+
+**Here's a breakdown by input-output pair:**
+
+* **Input_0:** The bottom left '2' is the target, and it's changed to a '1'.
+* **Input_1:**  The bottom-most '2' object (spanning rows 3 and 4) is the target, and its leftmost cell is changed to a '1'.
+* **Input_2:** The bottom left '2' object is targeted again, and its leftmost cell becomes '1'.
+* **Input_3:** The bottom-most object touching the border is the '2' in the bottom row. Its leftmost cell is transformed.
+
+## Program Versions & Explanations:
+
+Here are five distinct programs using the DSL to achieve this transformation:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)  # Get all objects (excluding background)
+  def is_bottom_or_left_touching(obj):
+    return any(i == len(I) - 1 for i, j in toindices(obj)) or any(j == 0 for i, j in toindices(obj))
+  target_obj = extract(objs, is_bottom_or_left_touching)  # Find the target object
+  target_cell = (lowermost(target_obj), leftmost(target_obj))  # Get the bottom-left cell of the target object
+  O = fill(I, 1, {target_cell})  # Fill the target cell with '1'
+  return O
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, T)`:**  Identifies all distinct objects in the grid, excluding the background.
+2. **`is_bottom_or_left_touching(obj)`:** This custom function checks if an object touches the bottom or left border of the grid.
+3. **`extract(objs, is_bottom_or_left_touching)`:**  Finds the first (and presumably only) object that satisfies the border-touching condition.
+4. **`(lowermost(target_obj), leftmost(target_obj))`:** Gets the coordinates of the bottom-left cell of the target object.
+5. **`fill(I, 1, {target_cell})`:** Fills the identified target cell with the value '1'. 
+
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  bottom_row = I[-1] # Extract the bottom row
+  leftmost_non_bg = next((j for j, v in enumerate(bottom_row) if v != mostcolor(I)), None)
+  if leftmost_non_bg is not None:
+    O = fill(I, 1, {(len(I) - 1, leftmost_non_bg)})
+  else:
+    left_column = [row[0] for row in I]
+    bottommost_non_bg = next((len(I) - 1 - i for i, v in enumerate(left_column[::-1]) if v != mostcolor(I)), None)
+    if bottommost_non_bg is not None:
+        O = fill(I, 1, {(bottommost_non_bg, 0)})
+    else:
+        O = I
+  return O
+```
+
+**Explanation:**
+
+1. **`bottom_row = I[-1]`:** Extracts the bottom row of the grid.
+2. **`leftmost_non_bg = next((j for j, v in enumerate(bottom_row) if v != mostcolor(I)), None)`:**  Finds the index of the leftmost cell in the bottom row that isn't the background color. If none is found, it sets `leftmost_non_bg` to `None`.
+3. **`if leftmost_non_bg is not None:`:** If a non-background cell was found in the bottom row:
+   - **`O = fill(I, 1, {(len(I) - 1, leftmost_non_bg)})`:** Fill that cell with '1'.
+4. **`else:`:** If no non-background cell was found in the bottom row:
+   - **`left_column = [row[0] for row in I]`:** Extracts the leftmost column.
+   - **`bottommost_non_bg = next((len(I) - 1 - i for i, v in enumerate(left_column[::-1]) if v != mostcolor(I)), None)`:** Finds the index of the bottommost non-background cell in the leftmost column. 
+   - **`if bottommost_non_bg is not None:`:** If such a cell is found:
+     - **`O = fill(I, 1, {(bottommost_non_bg, 0)})`:** Fill that cell with '1'.
+   - **`else:`:** If no such cell is found, keep the grid as is:
+     - **`O = I`**
+5. **`return O`:** Return the modified grid.
+
+**Program Version 3** 
+
+```python
+def Program_to_be_generated(I):
+    h, w = len(I), len(I[0])
+    for i in range(h - 1, -1, -1):  # Iterate rows from bottom to top
+        for j in range(w):
+            if I[i][j] != mostcolor(I) and (i == h - 1 or j == 0):  # Check for non-background and on bottom or left edge
+                O = fill(I, 1, {(i, j)})
+                return O  # Exit after filling
+    return I  # Return original grid if no fill occurs
+```
+
+**Explanation:**
+
+1. **`h, w = len(I), len(I[0])`:**  Get the height and width of the grid.
+2. **`for i in range(h - 1, -1, -1):`:**  Iterate through rows from bottom to top.
+3. **`for j in range(w):`:** Iterate through columns of each row.
+4. **`if I[i][j] != mostcolor(I) and (i == h - 1 or j == 0):`:** This is the core condition:
+   -  `I[i][j] != mostcolor(I)`: Checks if the current cell is NOT the background color.
+   -  `(i == h - 1 or j == 0)`: Checks if the current cell is in the bottom row (`i == h - 1`) OR in the leftmost column (`j == 0`).
+5. **`O = fill(I, 1, {(i, j)})`:** If the conditions are met, fill the current cell with '1'.
+6. **`return O`:** Immediately return the modified grid after filling a cell (ensuring only one cell is changed). 
+7. **`return I`:** If no cell is filled during the loops, return the original grid.
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  def is_target(obj):
+    return any((i == len(I) - 1 or j == 0) and (i, j) in toindices(obj) for i, j in toindices(obj))
+  target_obj = extract(objs, is_target)
+  target_cell = next(((i, j) for i, j in toindices(target_obj) if j == leftmost(target_obj)), (0,0))
+  O = fill(I, 1, {target_cell})
+  return O 
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Extracts all objects from the input grid, excluding the background.
+2. **`is_target(obj) -> bool:`:**  Defines a function to check if an object is the target object.
+    -  It iterates through the indices of an object.
+    -  For each index, it checks if it's on the bottom row (`i == len(I) - 1`) or the leftmost column (`j == 0`).
+    -  If any index satisfies this condition, the object is considered the target.
+3. **`target_obj = extract(objs, is_target)`:** Finds the target object using the `extract` function.
+4. **`target_cell = next(((i, j) for i, j in toindices(target_obj) if j == leftmost(target_obj)), (0,0))`:**  Finds the leftmost cell within the target object.
+5. **`O = fill(I, 1, {target_cell})`:**  Fills the identified target cell with a '1'.
+6. **`return O`:**  Returns the modified grid.
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  h = len(I)
+  combined_border = [(h - 1, j) for j in range(len(I[0]))] + [(i, 0) for i in range(h)] # Combine bottom and left border indices
+  for i, j in combined_border:
+    if I[i][j] != mostcolor(I):
+      O = fill(I, 1, {(i, j)})
+      return O
+  return I
+```
+
+**Explanation:**
+
+1. **`h = len(I)`:** Get the height of the grid.
+2. **`combined_border = [(h - 1, j) for j in range(len(I[0]))] + [(i, 0) for i in range(h)]`:** Creates a list called `combined_border` that stores the indices of cells on the bottom border and the left border of the grid. 
+3. **`for i, j in combined_border:`:** Iterates through each cell index in `combined_border`.
+4. **`if I[i][j] != mostcolor(I):`:** Checks if the color of the current cell is different from the background color.
+5. **`O = fill(I, 1, {(i, j)})`:** If the color is not the background color, fill that cell with '1'.
+6. **`return O`:** Immediately return the modified grid after filling a cell.
+7. **`return I`:** If no cell is filled during the loop, return the original grid.
+
+## Output Format Notes
+
+The code blocks above are ready for easy copy-pasting. Each program version provides a unique way to achieve the desired transformation within the constraints of the provided DSL. 

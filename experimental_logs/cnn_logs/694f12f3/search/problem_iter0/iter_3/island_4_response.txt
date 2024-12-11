@@ -1,0 +1,148 @@
+## Transformation Analysis:
+
+The transformation seems to identify objects (clusters of the same digit different from the background) and recolors a portion within each object.  Let's analyze each input-output pair:
+
+**Input_0 to Output_0:**
+
+* The top 4-object has a 2x2 square of 1s centered within it.
+* The bottom 4-object has a 2x4 rectangle of 2s filling its bottom half. 
+
+**Input_1 to Output_1:**
+
+* The top 4-object has a 2x3 rectangle of 2s filling its middle three rows. 
+* The bottom 4-object has a 2x2 square of 1s centered at its bottom.
+
+**Observations:**
+
+* The recoloring targets the central vertical axis of each object.
+* The first object detected gets a different treatment (color 1, smaller shape) than subsequent objects (color 2, larger shape).
+* The shape of the recolored area depends on the object's dimensions.
+
+## Program Versions:
+
+Here are five distinct program versions implementing the transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for i, obj in enumerate(objs):
+    h, w = shape(obj)
+    mid_col = leftmost(obj) + w // 2
+    start_row = uppermost(obj) + (h - (h // 2)) // 2 
+    if i == 0:
+      O = fill(O, 1, frozenset((row, mid_col) for row in range(start_row, start_row + 2)))
+      O = fill(O, 1, frozenset((row, mid_col - 1) for row in range(start_row, start_row + 2)))
+    else:
+      O = fill(O, 2, frozenset((row, col) for row in range(start_row, start_row + h // 2) 
+                                        for col in range(mid_col - 1, mid_col + 2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identifies objects in the grid using `objects(I, T, F, T)`.
+2. **Iterate and Recolor:** Iterates through each object, calculating its center column (`mid_col`) and a `start_row` adjusted for different recoloring heights. 
+3. **First Object:**  The first object gets a 2x2 square of 1s drawn centered at (`start_row`, `mid_col`).
+4. **Subsequent Objects:** Other objects get a rectangle of 2s starting at `start_row` and extending downwards for half the object's height, covering three columns centered at `mid_col`.
+
+**Program Version 2:**
+
+```python
+def program_v2(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for i, obj in enumerate(objs):
+    ul = ulcorner(obj)
+    h, w = shape(obj)
+    if i == 0:
+      O = fill(O, 1, frozenset(((ul[0] + h // 2, ul[1] + w // 2), (ul[0] + h // 2, ul[1] + w // 2 + 1),
+                               (ul[0] + h // 2 + 1, ul[1] + w // 2), (ul[0] + h // 2 + 1, ul[1] + w // 2 + 1))))
+    else:
+      O = fill(O, 2, frozenset((ul[0] + k, ul[1] + l) for k in range(h // 2, h) 
+                                                     for l in range(max(0, w // 2 - 1), min(w, w // 2 + 2))))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection and Initialization:** Similar to Version 1.
+2. **Upper-Left Corner:** Calculates the upper-left corner (`ul`) of each object.
+3. **Conditional Recoloring:**
+   - **First Object:**  A 2x2 square of 1s is drawn, centered within the object using the `ul` coordinates.
+   - **Other Objects:** A rectangle of 2s is drawn, spanning from the middle row (`h//2`) to the bottom row and covering three columns centered at the object's middle.
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for i, obj in enumerate(objs):
+    if i == 0:
+      O = paint(O, recolor(1, shift(crop(obj, (height(obj) // 2 - 1, width(obj) // 2 - 1), (2, 2)), ulcorner(obj))))
+    else:
+      O = paint(O, recolor(2, shift(crop(obj, (height(obj) // 2, max(0, width(obj) // 2 - 1)), 
+                                               (height(obj) // 2, min(width(obj), 3))), ulcorner(obj))))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** Same as previous versions.
+2. **Conditional Painting:**
+    - **First Object:** A 2x2 subgrid is `crop`ped from the center of the object, `recolor`ed to 1, `shift`ed back to its original position, and then `paint`ed onto the output grid `O`.
+    - **Other Objects:**  A subgrid is `crop`ped, starting from the middle row and covering three columns centered horizontally. It is then `recolor`ed to 2, `shift`ed, and `paint`ed onto `O`.
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for i, obj in enumerate(objs):
+    c = center(obj)
+    h, w = shape(obj)
+    if i == 0:
+      O = fill(O, 1, frozenset({(c[0], c[1] - 1), (c[0], c[1]), (c[0] + 1, c[1] - 1), (c[0] + 1, c[1])}))
+    else:
+      O = fill(O, 2, frozenset((c[0] + k, c[1] + l) for k in range( -(h // 2), 0)
+                                                  for l in range(-1, 2)))
+  return O
+```
+
+**Explanation:**
+
+1. **Object and Center Identification:** Identifies objects and calculates their center coordinates `c`.
+2. **Conditional Filling:**
+    - **First Object:** A 2x2 square of 1s is filled centered at the object's center `c`.
+    - **Other Objects:** A rectangle of 2s is filled, extending upwards from the center for half the object's height and covering three columns centered horizontally.
+
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for i, obj in enumerate(objs):
+    if i == 0:
+      O = paint(O, recolor(1, normalize(crop(obj, subtract(center(obj), (1, 1)), (2, 2))))) 
+    else:
+      O = paint(O, recolor(2, normalize(crop(obj, (height(obj) // 2, max(0, width(obj) // 2 - 1)), 
+                                                    (height(obj) // 2, min(width(obj), 3))))))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection:**  Similar to previous versions.
+2. **Normalized Cropping and Recoloring:**
+   - **First Object:** A 2x2 area centered at the object's center is `crop`ped, `normalize`d (shifting its upper-left corner to the origin), `recolor`ed to 1, and then `paint`ed onto `O`. 
+   - **Other Objects:** A subgrid from the middle row downwards, covering three central columns, is `crop`ped, `normalize`d, `recolor`ed to 2, and `paint`ed.
+
+**Note:** These programs assume a background color different from 1 and 2. You can easily modify them to handle specific background values.
+
+Each version offers a distinct way of achieving the desired transformation, showcasing the flexibility of the DSL and providing multiple solutions to the problem. 

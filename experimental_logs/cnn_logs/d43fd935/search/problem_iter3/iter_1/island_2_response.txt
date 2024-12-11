@@ -1,0 +1,214 @@
+## Transformation Analysis:
+
+The transformation aims to gravitate objects towards each other based on color, but instead of moving the entire object, it moves individual cells towards the closest object of a different color. The movement is always horizontal or vertical, and cells stop moving when they encounter an obstacle (another cell) or the grid border. 
+
+**Here's a breakdown for each input-output pair:**
+
+* **Input_0 -> Output_0:** The single '1' cells gravitate towards the topmost '6' object. The '1's in the bottom left corner move up until they hit the '3' object. The rightmost '1' object moves left until it reaches the edge of the grid. Similarly, the '6' cells gravitate towards the '1' objects. 
+* **Input_1 -> Output_1:** The '7' and '8' cells gravitate towards each other. Note how the bottom right '7' gets "stuck" as it tries to move up towards the '8' but is blocked by the grid edge.
+* **Input_2 -> Output_2:** The '1' and '3' cells gravitate towards each other. Notice how the '1's move down towards the '3's, demonstrating that the movement isn't biased towards a specific direction.
+
+## Code Generation:
+
+Here are five distinct versions of "Program_to_be_generated" using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = objects(I, True, False, True)
+    obj = extract(obj, lambda o: color(o) == color)
+    for cell in obj:
+      closest_cell = None
+      closest_dist = float('inf')
+      for i in range(len(I)):
+        for j in range(len(I[0])):
+          if index(I, (i, j)) != color(cell) and any(manhattan({(i, j)}, {(k, l)}) == 1 for k, l in toindices(obj)):
+            dist = manhattan({(i, j)}, {cell[1]})
+            if dist < closest_dist:
+              closest_dist = dist
+              closest_cell = (i, j)
+      if closest_cell is not None:
+        # Determine the direction to gravitate
+        if hmatching({cell[1]}, {closest_cell}):
+          direction = (0, -1) if cell[1][1] > closest_cell[1] else (0, 1)
+        else:
+          direction = (-1, 0) if cell[1][0] > closest_cell[0] else (1, 0)
+        # Move cell in the gravity direction until it hits something
+        while not bordering({cell[1]}, I):
+          next_pos = shift({cell[1]}, direction)
+          if len(intersection(toindices(next_pos), toindices(objects(I, True, False, True)))) == 0:
+            I = paint(cover(I, {cell}), {(color(cell), first(toindices(next_pos)))})
+            cell = (color(cell), first(toindices(next_pos)))
+          else:
+            break
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through Colors:** Loops through each unique color in the grid, excluding the background color.
+2. **Find Closest Cell:** For each cell of the current color, find the closest cell of a different color.
+3. **Determine Gravity Direction:** Calculate the direction to move the current cell towards the closest cell.
+4. **Move Cell:** Move the cell one step at a time in the calculated direction until it hits an obstacle or the grid boundary.
+5. **Update Grid:** Update the grid after each cell movement.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  for _ in range(max(height(I), width(I))): # Iterate enough times for potential movements
+    for i in range(len(I)):
+      for j in range(len(I[0])):
+        if index(I, (i, j)) != mostcommon(I):
+          # Find closest neighbor of a different color
+          closest_neighbor = None
+          closest_dist = float('inf')
+          for ni, nj in dneighbors((i, j)):
+            if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and index(I, (ni, nj)) != index(I, (i, j)):
+              dist = abs(ni - i) + abs(nj - j)
+              if dist < closest_dist:
+                closest_dist = dist
+                closest_neighbor = (ni, nj)
+          if closest_neighbor is not None:
+            # Move towards the neighbor if empty
+            di, dj = sign((closest_neighbor[0] - i, closest_neighbor[1] - j))
+            if 0 <= i + di < len(I) and 0 <= j + dj < len(I[0]) and index(I, (i + di, j + dj)) == mostcommon(I):
+              I = paint(cover(I, {(index(I, (i, j)), (i, j))}), {(index(I, (i, j)), (i + di, j + dj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate Multiple Times:** Iterates multiple times to ensure all possible cell movements are accounted for.
+2. **Iterate through Cells:**  Loops through each cell in the grid.
+3. **Find Closest Neighbor:** Finds the closest neighboring cell (horizontally or vertically) of a different color.
+4. **Move if Empty:** If the cell in the direction of the closest neighbor is empty (background color), move the current cell there.
+5. **Update Grid:** Update the grid after each cell movement.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  for color in palette(I) - {mostcommon(I)}:
+    obj = objects(I, True, False, True)
+    obj = extract(obj, lambda o: color(o) == color)
+    for cell in obj:
+      closest_cell = None
+      closest_dist = float('inf')
+      for other_obj in objects(I, True, False, True):
+        if color(other_obj) != color(cell):
+          dist = manhattan({cell[1]}, other_obj)
+          if dist < closest_dist:
+            closest_dist = dist
+            closest_cell = other_obj
+      if closest_cell is not None:
+        # Find the closest cell within the closest object
+        closest_cell_in_obj = min(closest_cell, key=lambda c: manhattan(c[1], cell[1]))
+        # Determine the direction to gravitate
+        if hmatching({cell[1]}, {closest_cell_in_obj[1]}):
+          direction = (0, -1) if cell[1][1] > closest_cell_in_obj[1][1] else (0, 1)
+        else:
+          direction = (-1, 0) if cell[1][0] > closest_cell_in_obj[1][0] else (1, 0)
+        # Move cell in the gravity direction until it hits something
+        while not bordering({cell[1]}, I):
+          next_pos = shift({cell[1]}, direction)
+          if len(intersection(toindices(next_pos), toindices(objects(I, True, False, True)))) == 0:
+            I = paint(cover(I, {cell}), {(color(cell), first(toindices(next_pos)))})
+            cell = (color(cell), first(toindices(next_pos)))
+          else:
+            break
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through Colors:** Loops through each unique color in the grid, excluding the background color.
+2. **Find Closest Object:** For each cell of the current color, find the closest object of a different color.
+3. **Find Closest Cell within Object:** Within the closest object, find the cell closest to the current cell.
+4. **Determine Gravity Direction:** Calculate the direction to move the current cell towards the closest cell.
+5. **Move Cell:** Move the cell one step at a time in the calculated direction until it hits an obstacle or the grid boundary.
+6. **Update Grid:** Update the grid after each cell movement.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  new_grid = canvas(mostcommon(I), shape(I))  # Create an empty grid
+  for color in palette(I) - {mostcommon(I)}:
+    obj = objects(I, True, False, True)
+    obj = extract(obj, lambda o: color(o) == color)
+    for cell in obj:
+      closest_cell = None
+      closest_dist = float('inf')
+      for i in range(len(I)):
+        for j in range(len(I[0])):
+          if index(I, (i, j)) != color(cell) and any(manhattan({(i, j)}, {(k, l)}) == 1 for k, l in toindices(obj)):
+            dist = manhattan({(i, j)}, {cell[1]})
+            if dist < closest_dist:
+              closest_dist = dist
+              closest_cell = (i, j)
+      if closest_cell is not None:
+        # Determine the direction to gravitate
+        if hmatching({cell[1]}, {closest_cell}):
+          direction = (0, -1) if cell[1][1] > closest_cell[1] else (0, 1)
+        else:
+          direction = (-1, 0) if cell[1][0] > closest_cell[0] else (1, 0)
+        # Move cell in the gravity direction until it hits something
+        while not bordering({cell[1]}, I):
+          next_pos = shift({cell[1]}, direction)
+          if len(intersection(toindices(next_pos), toindices(objects(new_grid, True, False, True)))) == 0:
+            new_grid = paint(new_grid, {(color(cell), first(toindices(next_pos)))})
+            cell = (color(cell), first(toindices(next_pos)))
+          else:
+            break
+  return new_grid
+```
+
+**Explanation:**
+
+1. **Create Empty Grid:** Creates a new grid filled with the background color.
+2. **Iterate through Colors:** Loops through each unique color in the input grid, excluding the background color.
+3. **Find Closest Cell:** For each cell of the current color, find the closest cell of a different color in the input grid.
+4. **Determine Gravity Direction:** Calculate the direction to move the current cell towards the closest cell.
+5. **Move Cell:** Move the cell one step at a time in the calculated direction on the new grid until it hits an obstacle (a cell on the new grid) or the grid boundary.
+6. **Update New Grid:** Update the new grid after each cell movement.
+7. **Return New Grid:** Finally, return the newly generated grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  for i in range(len(I)):
+    for j in range(len(I[0])):
+      current_color = index(I, (i, j))
+      if current_color != mostcommon(I):
+        closest_neighbor = None
+        closest_dist = float('inf')
+        for ni, nj in neighbors((i, j)):
+          if 0 <= ni < len(I) and 0 <= nj < len(I[0]) and index(I, (ni, nj)) != current_color:
+            dist = max(abs(ni - i), abs(nj - j)) # Chebyshev distance
+            if dist < closest_dist:
+              closest_dist = dist
+              closest_neighbor = (ni, nj)
+        if closest_neighbor is not None:
+          # Move towards the neighbor if empty, prioritizing straight lines
+          di, dj = sign((closest_neighbor[0] - i, closest_neighbor[1] - j))
+          if  (di == 0 or dj == 0) and 0 <= i + di < len(I) and 0 <= j + dj < len(I[0]) and index(I, (i + di, j + dj)) == mostcommon(I):
+            I = paint(cover(I, {(current_color, (i, j))}), {(current_color, (i + di, j + dj))})
+          elif 0 <= i + di < len(I) and 0 <= j + dj < len(I[0]) and index(I, (i + di, j + dj)) == mostcommon(I):
+            I = paint(cover(I, {(current_color, (i, j))}), {(current_color, (i + di, j + dj))})
+  return I
+```
+
+**Explanation:**
+
+1. **Iterate through Cells:** Loops through each cell in the grid.
+2. **Find Closest Neighbor (Chebyshev Distance):**  Finds the closest neighboring cell (including diagonals) using Chebyshev distance, promoting movement in straight lines.
+3. **Prioritize Straight Movement:** If possible, move horizontally or vertically towards the closest neighbor if the cell in that direction is empty.
+4. **Diagonal Movement:** If a straight line movement isn't possible, move diagonally towards the closest neighbor if that cell is empty.
+5. **Update Grid:** Update the grid after each cell movement.
+
+These five versions utilize different approaches and DSL functions to achieve the same transformation. You can test and compare their performance on various inputs. 

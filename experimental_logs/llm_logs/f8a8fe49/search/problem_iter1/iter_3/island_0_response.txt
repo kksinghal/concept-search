@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation involves moving the object composed of the digit '5' to a new position within the grid. The new position is determined by the object composed of the digit '2'.
+
+* **Vertical Movement:** The '5' object is moved vertically so that its top edge aligns with the row two rows above the top edge of the '2' object.
+* **Horizontal Movement:** The '5' object is moved horizontally so that its left edge aligns with the column two columns to the right of the right edge of the '2' object. 
+
+## Program to be Generated:
+
+**Program Version 1:** (Inspired by Program_A's use of `paint` and `cover`, and Program_B's calculation of a target row)
+
+```python
+def program_v1(I):
+  obj_5 = first(colorfilter(objects(I, T, F, T), 5))
+  obj_2 = first(colorfilter(objects(I, T, F, T), 2))
+  target_row = uppermost(obj_2) - 2 
+  offset = (target_row - uppermost(obj_5), rightmost(obj_2) - leftmost(obj_5) + 2)
+  O = paint(cover(I, obj_5), shift(obj_5, offset))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  The code first identifies the objects composed of '5' (`obj_5`) and '2' (`obj_2`) using `colorfilter` and `objects`.
+2. **Calculate Target Row:** It calculates the `target_row` where the top of the '5' object should be placed, which is two rows above the '2' object.
+3. **Calculate Offset:** It then determines the `offset` needed to move `obj_5` to its new location. 
+4. **Move Object:**  Finally, it uses `cover` to remove the original '5' object, then `paint`s a shifted version of the '5' object (`shift(obj_5, offset)`) onto the grid at the calculated offset.
+
+**Program Version 2:** (Using `crop` and `vconcat` for a more structured approach)
+
+```python
+def program_v2(I):
+  obj_5 = first(colorfilter(objects(I, T, F, T), 5))
+  obj_2 = first(colorfilter(objects(I, T, F, T), 2))
+  target_row = uppermost(obj_2) - 2
+  upper_part = crop(I, (0, 0), (target_row, len(I[0])))  # Part above the moved '5'
+  moved_5 = shift(crop(I, (uppermost(obj_5), 0), shape(obj_5)), 
+                  (target_row - uppermost(obj_5), rightmost(obj_2) - leftmost(obj_5) + 2))
+  lower_part = crop(I, (target_row + height(obj_5), 0), 
+                   (len(I) - target_row - height(obj_5), len(I[0]))) # Part below moved '5'
+  O = vconcat(upper_part, vconcat(moved_5, lower_part))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Similar to version 1, it identifies the '5' and '2' objects.
+2. **Calculate Target Row:** It calculates the row where the moved '5' object should start.
+3. **Split and Move:** 
+   -  The grid is divided into three parts: `upper_part` (above the moved '5'), `moved_5` (the '5' object shifted to its new location), and `lower_part` (below the moved '5').
+   -  The `moved_5` part is created by cropping the '5' object and shifting it to the correct position.
+4. **Combine Parts:** The three parts are then concatenated vertically using `vconcat` to assemble the final output grid.
+
+**Program Version 3:** (Similar to version 2 but uses a slightly different approach to calculate offsets)
+
+```python
+def program_v3(I):
+  obj_5 = first(colorfilter(objects(I, T, F, T), 5))
+  obj_2 = first(colorfilter(objects(I, T, F, T), 2))
+  v_offset = uppermost(obj_2) - uppermost(obj_5) - 2 
+  h_offset = rightmost(obj_2) - leftmost(obj_5) + 2
+  moved_5 = shift(crop(I, (uppermost(obj_5), 0), shape(obj_5)), (v_offset, h_offset))
+  O = vconcat(
+      vconcat(
+          crop(I, (0, 0), (uppermost(obj_5) + v_offset, len(I[0]))),
+          moved_5
+      ),
+      crop(I, (uppermost(obj_5) + v_offset + height(obj_5), 0), 
+           (len(I) - uppermost(obj_5) - v_offset - height(obj_5), len(I[0])))
+  )
+  return O
+```
+
+**Explanation:**
+
+This version is very similar to version 2 but calculates the vertical and horizontal offsets separately for clarity.
+
+**Program Version 4:** (Uses a loop to move the '5' object one row at a time)
+
+```python
+def program_v4(I):
+  obj_5 = first(colorfilter(objects(I, T, F, T), 5))
+  obj_2 = first(colorfilter(objects(I, T, F, T), 2))
+  target_row = uppermost(obj_2) - 2
+  O = I 
+  for i in range(abs(target_row - uppermost(obj_5))):
+      direction = (1, 0) if target_row > uppermost(obj_5) else (-1, 0)
+      O = paint(cover(O, obj_5), shift(obj_5, direction)) 
+      obj_5 = shift(obj_5, direction)
+  O = paint(cover(O, obj_5), shift(obj_5, (0, rightmost(obj_2) - leftmost(obj_5) + 2)))
+  return O
+```
+
+**Explanation:**
+
+- **Identify Objects & Target:** Same as previous versions.
+- **Iterative Vertical Movement:** It uses a loop to move the '5' object one row at a time towards the `target_row`. The direction of movement depends on whether the target is above or below the current position.
+- **Horizontal Movement:** After the loop, it performs the horizontal shift in a single step. 
+
+**Program Version 5:** (Utilizes `gravitate` function to determine the movement vector)
+
+```python
+def program_v5(I):
+  obj_5 = first(colorfilter(objects(I, T, F, T), 5))
+  obj_2 = first(colorfilter(objects(I, T, F, T), 2))
+  target_point = (uppermost(obj_2) - 2, rightmost(obj_2) + 2)  # Target top-right corner of '5'
+  v_offset, h_offset = gravitate(toindices(obj_5), {target_point}) # 'gravitate' finds the move vector
+  moved_5 = shift(obj_5, (v_offset, h_offset))
+  O = paint(cover(I, obj_5), moved_5)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  Identify the '5' and '2' objects.
+2. **Define Target:** Define the target location as the top-right corner of where the '5' object should be placed.
+3. **Calculate Offset with `gravitate`:**  The `gravitate` function is used to determine the vertical and horizontal offsets needed to move the '5' object's indices to be adjacent to the target point.
+4. **Move and Paint:** Finally, the code covers the original '5' object and paints a shifted version at the calculated offset. 
+
+These five program versions demonstrate different ways to achieve the desired transformation in the provided DSL. Each version offers a different perspective on how to approach the problem and utilizes various DSL functions effectively. 

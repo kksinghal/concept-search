@@ -1,0 +1,132 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects of a specific color (target color = 2) and drawing a border around them using a different color (border color = 3).  The border should only be drawn where the object touches a cell that is not of the target color.
+
+**Example:**
+
+Let's say we have a target object '2' like this:
+
+```
+0 0 2 0
+0 2 2 0
+0 0 2 0
+```
+
+The output would have a border around this object:
+
+```
+0 0 3 0
+0 3 2 3
+0 0 3 0
+```
+
+**Key Observations:**
+
+* The border is always one cell thick.
+* The border doesn't extend inside the object.
+* Diagonal cells are considered when determining the border.
+
+
+## Program_to_be_generated: 
+
+**Version 1:**
+
+```python
+def generate_border(I):
+  objs = objects(I, univalued=True, diagonal=True, without_bg=True)
+  target_objs = sfilter(objs, lambda obj: color(obj) == 2)
+  border_indices = set()
+  for obj in target_objs:
+    for cell in toindices(obj):
+      neighbors_indices = dneighbors(cell) | ineighbors(cell)
+      for neighbor in neighbors_indices:
+        if neighbor not in toindices(obj) and index(I, neighbor) != 2:
+          border_indices.add(cell)
+          break
+  O = fill(I, 3, frozenset(border_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify target objects:**  Get all objects in the grid and filter for those with the target color (2).
+2. **Iterate through cells:**  For each cell in each target object:
+    - Get its neighboring cells (including diagonals).
+    - If any neighbor is not part of the object and isn't the target color, add the current cell to the border indices set.
+3. **Draw the border:**  Fill the grid with the border color (3) at the identified border indices.
+
+**Version 2:**
+
+```python
+def generate_border(I):
+  objs = objects(I, univalued=True, diagonal=True, without_bg=True)
+  target_objs = sfilter(objs, lambda obj: color(obj) == 2)
+  border_indices = mpapply(lambda obj, cell: cell if any(n not in toindices(obj) and index(I, n) != 2 for n in dneighbors(cell) | ineighbors(cell)) else None, target_objs, toindices(target_objs))
+  O = fill(I, 3, border_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify target objects:**  Same as Version 1.
+2. **Find border cells:** Use `mpapply` to efficiently iterate through target objects and their cells, identifying border cells based on neighboring cells.
+3. **Draw the border:** Same as Version 1.
+
+**Version 3:**
+
+```python
+def generate_border(I):
+  target_color = 2
+  border_color = 3
+  h, w = len(I), len(I[0])
+  border_indices = set()
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] == target_color:
+        for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+          ni, nj = i + di, j + dj
+          if 0 <= ni < h and 0 <= nj < w and I[ni][nj] != target_color:
+            border_indices.add((i, j))
+            break
+  O = fill(I, border_color, frozenset(border_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through cells:** Loop through each cell in the grid.
+2. **Check neighbors:** For each cell with the target color, check its eight neighbors (including diagonals) for a different color.
+3. **Mark border:** If a neighbor with a different color is found, mark the current cell as a border cell.
+4. **Fill border:** Fill the identified border cells with the border color.
+
+**Version 4:**
+
+```python
+def generate_border(I):
+  border_cells = mfilter(objects(I, univalued=True, diagonal=True, without_bg=True), lambda obj: color(obj) == 2 and any(index(I, n) != 2 for cell in toindices(obj) for n in dneighbors(cell) | ineighbors(cell)))
+  O = fill(I, 3, mfilter(border_cells, toindices))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify target objects and border cells:**  Use `mfilter` to directly filter for target objects that have at least one neighboring cell with a different color, effectively finding border cells in one step. 
+2. **Extract border indices:** Use another `mfilter` to extract the indices of the border cells from the filtered objects.
+3. **Draw the border:** Fill the grid with the border color at the extracted border indices.
+
+**Version 5:**
+
+```python
+def generate_border(I):
+  target_indices = ofcolor(I, 2)
+  border_indices = sfilter(target_indices, lambda loc: any(n not in target_indices for n in dneighbors(loc) | ineighbors(loc)))
+  return fill(I, 3, border_indices) 
+```
+
+**Explanation:**
+
+1. **Get target indices:**  Find all indices of the target color (2) using `ofcolor`.
+2. **Filter for border indices:** Use `sfilter` to keep only those target indices that have at least one neighboring cell not belonging to the target indices, effectively identifying border cells. 
+3. **Draw the border:** Fill the grid with the border color (3) at the identified border indices. 
+
+These are just a few examples of how the "generate_border" function can be implemented using the provided DSL. Each version uses a slightly different approach, showcasing the flexibility of the DSL and allowing for diverse solutions.

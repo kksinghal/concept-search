@@ -1,0 +1,172 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects composed of specific values within the input grid and then "gravitating" these objects towards the center of the grid. The gravitation process appears to prioritize vertical movement, followed by horizontal movement if vertical alignment is already achieved. Once an object can no longer move closer to the center, it remains in that position.
+
+**Example Breakdown:**
+
+- **Input 0:** The objects with value '3' move upwards until they encounter the object with value '2'. The objects with value '7' similarly move upwards, stopping just above the row containing the '2'.
+- **Input 1:** The objects with value '7' move upwards, encountering no obstacles. The objects with values '3' and '2' gravitate towards each other horizontally.
+- **Input 2:** The object with value '1' is already at the center and remains unchanged.  The objects with values '3' gravitate upwards, while the objects with value '7' gravitate downwards. The object with value '2' moves left to align with the central column.
+
+## Program_to_be_generated:
+
+Here are five distinct program versions achieving the described transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  target_values = {3, 7} 
+  target_objs = sfilter(objs, lambda obj: color(obj) in target_values)
+  center_i, center_j = center(asindices(I))
+  moved_objs = set()
+  for obj in target_objs:
+    # Prioritize vertical movement
+    obj_center_i, obj_center_j = center(obj)
+    direction = (sign(center_i - obj_center_i), 0)  
+    while any((index(I, add(loc, direction)) == 0) for loc in toindices(obj)):
+      obj = shift(obj, direction)
+
+    # Horizontal movement if vertically aligned
+    if obj_center_j != center_j:
+      direction = (0, sign(center_j - obj_center_j))
+      while any((index(I, add(loc, direction)) == 0) for loc in toindices(obj)):
+        obj = shift(obj, direction)
+    moved_objs.add(obj)
+
+  O = paint(canvas(0, shape(I)), merge(moved_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Similar to Program A, this version identifies objects with specific values (3 and 7).
+2. **Prioritize Vertical Movement:** It calculates the direction towards the grid's center and iteratively shifts the object in that direction until it encounters an obstacle (a non-zero cell).
+3. **Conditional Horizontal Movement:** If the object is vertically aligned with the center but not horizontally, it repeats the shifting process horizontally.
+4. **Paint Moved Objects:** Finally, it paints the moved objects onto a blank canvas.
+
+**Program Version 2 (Using `gravitate`):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  center_obj = toobject(frozenset({center(asindices(I))}), I)
+  moved_objs = set()
+  for obj in objs:
+    if color(obj) in {3, 7}:
+      direction = gravitate(obj, center_obj)
+      obj = shift(obj, direction)
+    moved_objs.add(obj)
+  O = paint(canvas(0, shape(I)), merge(moved_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects and Center:**  Identify all objects and create a temporary object representing the grid's center.
+2. **Gravitate Target Objects:** Use the `gravitate` function to calculate the necessary shift for target objects (values 3 and 7) towards the center.
+3. **Shift Objects:**  Shift the target objects based on the calculated gravitation.
+4. **Paint Moved Objects:** Paint all objects, including shifted and non-target objects, onto a blank canvas.
+
+ **Program Version 3 (Using Recursion):**
+
+```python
+def move_towards_center(obj, grid, center_loc):
+    current_loc = center(obj)
+    if current_loc == center_loc:
+      return obj
+    
+    # Calculate vertical and horizontal distances
+    di = sign(center_loc[0] - current_loc[0])
+    dj = sign(center_loc[1] - current_loc[1])
+
+    # Prioritize vertical movement
+    if di != 0:
+        new_loc = (current_loc[0] + di, current_loc[1])
+        if index(grid, new_loc) == 0:
+            return move_towards_center(shift(obj, (di, 0)), grid, center_loc)
+    
+    # Move horizontally if not possible vertically
+    if dj != 0:
+        new_loc = (current_loc[0], current_loc[1] + dj)
+        if index(grid, new_loc) == 0:
+            return move_towards_center(shift(obj, (0, dj)), grid, center_loc)
+
+    return obj 
+
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  center_loc = center(asindices(I))
+  moved_objs = frozenset({
+      move_towards_center(obj, I, center_loc) if color(obj) in {3, 7} else obj
+      for obj in objs
+  })
+  O = paint(canvas(0, shape(I)), moved_objs)
+  return O
+```
+
+**Explanation:**
+
+1. **`move_towards_center` Function:** This recursive function takes an object, the grid, and the center location as input. It calculates the direction towards the center and attempts to move the object one step at a time, prioritizing vertical movement. If an obstacle is encountered, the recursion stops.
+2. **Apply to Target Objects:** The main function iterates through objects, applying the `move_towards_center` function only to objects with values 3 and 7.
+3. **Paint Moved Objects:** Finally, it paints the moved objects onto a blank canvas. 
+
+
+ **Program Version 4 (Compact Version using `any`):**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)
+  ci, cj = center(asindices(I))
+  O = paint(canvas(0, shape(I)),
+      frozenset({
+          shift(obj, (
+              (lambda obj_ci: sign(ci - obj_ci) if any(index(I, (i + sign(ci - obj_ci), j)) == 0 for i, j in toindices(obj)) else 0)(center(obj)[0]),
+              (lambda obj_cj: sign(cj - obj_cj) if any(index(I, (i, j + sign(cj - obj_cj))) == 0 for i, j in toindices(obj)) else 0)(center(obj)[1])
+          )) if color(obj) in {3, 7} else obj
+          for obj in objs
+      }))
+  return O
+```
+
+**Explanation:**
+
+This version combines multiple steps into a more compact form using lambda functions and the `any` function to check for valid movements. The logic remains similar to previous versions: identify target objects, calculate and apply vertical and horizontal shifts towards the center.
+
+
+ **Program Version 5 (Simplified Logic):**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, F)
+    ci, cj = center(asindices(I))
+    moved_objs = set()
+    for obj in objs:
+        if color(obj) not in {3, 7}:
+            moved_objs.add(obj)
+            continue
+        
+        oi, oj = center(obj)
+        new_i, new_j = oi, oj
+
+        # Move vertically as close as possible
+        while 0 <= new_i + sign(ci - oi) < len(I) and index(I, (new_i + sign(ci - oi), new_j)) == 0:
+            new_i += sign(ci - oi)
+
+        # Move horizontally if not already aligned
+        if new_j != cj:
+            while 0 <= new_j + sign(cj - oj) < len(I[0]) and index(I, (new_i, new_j + sign(cj - oj))) == 0:
+                new_j += sign(cj - oj)
+        
+        moved_objs.add(shift(obj, (new_i - oi, new_j - oj)))
+
+    O = paint(canvas(0, shape(I)), merge(moved_objs))
+    return O
+```
+
+**Explanation:**
+
+This version simplifies the logic by directly calculating the new positions for target objects while iterating through them. It checks for valid movements within the grid boundaries and moves the object as close to the center as possible in each direction. This version prioritizes readability and ease of understanding.
+
+These five program versions demonstrate different approaches to achieve the same transformation, leveraging various DSL functions and programming techniques like recursion and lambda expressions.

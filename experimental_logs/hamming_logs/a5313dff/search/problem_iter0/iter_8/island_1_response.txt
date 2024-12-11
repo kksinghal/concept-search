@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation appears to fill the background cells (most common color) within each object with the value '1', but only if they are completely surrounded by the object's color. 
+
+**Example Breakdown:**
+
+* **Input_0:** The '0' cells enclosed by the '2' object are filled with '1'.
+* **Input_1:**  Only the '0' cells fully enclosed within the '2' object are changed to '1'.  The '0's touching the boundary remain unchanged.
+* **Input_2:** Similar to the other examples, only fully enclosed background cells within each object are changed to '1'.
+
+
+## Program_to_be_generated:
+
+Here are five distinct code versions to achieve this transformation:
+
+
+**Version 1: Using `inbox` and `neighbors`**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):  # Extract each object
+    for i, j in inbox(obj):          # Iterate over cells within the object's inner boundary
+      if index(I, (i, j)) == mostcolor(I) and all(index(I, n) == color(obj) for n in neighbors((i, j))):
+        # Check if the cell is background and all its neighbors are the object's color
+        O = fill(O, 1, {(i, j)})     # Fill the cell with 1
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Iterate through each object in the grid.
+2. **Inner Boundary:** Use `inbox(obj)` to focus on cells inside the object's boundary, excluding the outer layer.
+3. **Neighbor Check:** For each cell in the inbox, check if it's a background cell (`mostcolor(I)`) and if all its neighboring cells (`neighbors((i, j))`) have the object's color (`color(obj)`).
+4. **Fill:** If the conditions are met, fill the cell with '1'.
+
+**Version 2: Using `delta` and `neighbors`**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    for i, j in delta(obj):           # Iterate over cells within the object's bounding box but not part of the object
+      if index(I, (i, j)) == mostcolor(I) and all(index(I, n) == color(obj) for n in neighbors((i, j))):
+        # Check if the cell is background and all its neighbors are the object's color
+        O = fill(O, 1, {(i, j)})     # Fill the cell with 1
+  return O
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Similar to Version 1.
+2. **Bounding Box Difference:**  Use `delta(obj)` to get indices within the object's bounding box but not part of the object itself.
+3. **Neighbor Check and Fill:** Same as Version 1.
+
+**Version 3: Using nested `objects`**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    inner_objs = objects(crop(I, ulcorner(obj), shape(obj)), T, F, T) # Find objects within the bounding box of the current object
+    for inner_obj in inner_objs:
+      if color(inner_obj) == mostcolor(I) and size(inner_obj) > 1: 
+      # Check if the inner object is background and has more than one cell
+        O = fill(O, 1, toindices(inner_obj)) # Fill the entire inner object with 1
+  return O
+```
+
+**Explanation:**
+
+1. **Outer Object Iteration:**  Iterate through all objects in the grid.
+2. **Inner Object Detection:** Find objects within the bounding box of each outer object using `objects` again.
+3. **Background Check:** Check if the inner object is the background color and has more than one cell to ensure it's an enclosed area.
+4. **Fill:** Fill the entire inner object with '1' if it meets the criteria.
+
+**Version 4: Using `toindices` and set operations**
+
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    object_indices = toindices(obj)
+    background_indices = toindices(recolor(mostcolor(I), obj)) # Get indices of background cells within the object
+    fill_indices = background_indices - outbox(background_indices) # Remove indices touching the outer boundary 
+    O = fill(O, 1, fill_indices)    # Fill the remaining indices with 1
+  return O
+```
+
+**Explanation:** 
+
+1. **Object and Background Indices:** Get the indices of the object and the background cells within the object.
+2. **Boundary Removal:** Subtract the `outbox` of the background indices from themselves. This effectively removes any background indices that touch the object's outer boundary.
+3. **Fill:** Fill the remaining background indices with '1'. 
+
+**Version 5: Using recursion**
+
+```python
+def fill_recursive(grid, start, target_color, fill_color):
+  """Recursively fills connected cells of target_color with fill_color."""
+  i, j = start
+  h, w = len(grid), len(grid[0])
+  if 0 <= i < h and 0 <= j < w and grid[i][j] == target_color:
+    grid = fill(grid, fill_color, {(i, j)})
+    for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+      grid = fill_recursive(grid, (i + di, j + dj), target_color, fill_color)
+  return grid
+
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    for i, j in inbox(obj):
+      if index(I, (i, j)) == mostcolor(I):
+        O = fill_recursive(O, (i, j), mostcolor(I), 1)  # Recursively fill background cells
+  return O
+```
+
+**Explanation:**
+
+1. **Recursive Function:** `fill_recursive` takes a grid, starting point, target color, and fill color. It fills the starting cell and then recursively calls itself on neighboring cells with the same color.
+2. **Main Logic:** Similar to Version 1, it iterates through objects and their inboxes. If it finds a background cell, it calls `fill_recursive` to fill connected background cells.
+
+These are just five examples, and there are many other possible solutions using the provided DSL. The key is to combine the functions creatively to achieve the desired transformation logic. 

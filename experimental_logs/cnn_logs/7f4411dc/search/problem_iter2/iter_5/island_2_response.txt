@@ -1,0 +1,131 @@
+## Transformation Analysis:
+
+The transformation removes the bottom row of pixels from any object that is more than 1 pixel tall.
+
+**Input_0:** The bottom row of the top 7x7 square and bottom 3x3 square are removed.
+
+**Input_1:** The bottom row of both 4x4 squares are removed.
+
+**Input_2:** The bottom row of the 5x4 rectangle is removed.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)  # Extract objects, excluding background
+  filtered_objs = sfilter(objs, lambda obj: height(obj) > 1)  # Filter for objects taller than 1 pixel
+  bottom_rows = mapply(lambda obj: shift(toindices(sizefilter(objects(crop(canvas(1, shape(obj)), (1, 0), (height(obj)-1, width(obj))), T, F, F), 1)), ulcorner(obj)), filtered_objs)  # Find the bottom row of each filtered object
+  return cover(I, merge(bottom_rows))  # Remove the bottom rows from the original image
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  We start by extracting all objects from the input grid, excluding the background, using `objects(I, T, F, T)`.
+2. **Filter Tall Objects:** We use `sfilter` to keep only objects whose height is greater than 1 pixel.
+3. **Identify Bottom Rows:** For each tall object, we:
+    - Create a canvas the same size as the object (`canvas(1, shape(obj))`).
+    - Crop the canvas to keep only the rows above the bottom row (`crop(..., (1, 0), (height(obj)-1, width(obj)))`).
+    - Extract the indices of the remaining cells, representing the bottom row (`objects(..., T, F, F)`).
+    - Shift these indices back to their original position in the object (`shift(..., ulcorner(obj))`).
+4. **Remove Bottom Rows:**  Finally, we merge all the bottom row indices and use `cover` to remove them from the original image. 
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda obj:  # Create canvas and paint modified objects
+                                                        branch(height(obj) > 1,
+                                                                recolor(color(obj), toindices(crop(subgrid(obj, I), (0,0), (height(obj)-1, width(obj))))),  # Recolor cropped subgrid if height > 1
+                                                                obj),  # Otherwise keep object unchanged
+                                                        objects(I, T, F, T)))) # Iterate over objects
+```
+
+**Explanation:**
+
+1. **Extract Objects:** We extract all objects from the image using `objects(I, T, F, T)`.
+2. **Process Each Object:** For each object:
+   - **Check Height:** We use `branch` to conditionally apply different logic based on object height.
+   - **Tall Objects:** If `height(obj) > 1`:
+     - **Crop Subgrid:** Extract a subgrid representing the object without its bottom row using `crop(subgrid(obj, I), (0,0), (height(obj)-1, width(obj)))`.
+     - **Recolor:** Recolor the cropped subgrid with the object's color using `recolor`.
+   - **Short Objects:** If `height(obj) <= 1`, the object is kept unchanged.
+3. **Paint to Canvas:** The modified objects are then merged and painted onto a blank canvas of the same size as the input image. 
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  objs = objects(I, T, F, T)
+  return paint(canvas(mostcolor(I), shape(I)), 
+               merge(apply(lambda obj: 
+                           frozenset((c, (i,j)) for c, (i,j) in obj if i != lowermost(obj)),  # Remove cells at the bottom row
+                           sfilter(objs, lambda obj: height(obj) > 1)))) # Keep only objects taller than 1 pixel
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Similar to previous versions, we first extract all objects from the image.
+2. **Filter Tall Objects:** Keep only objects that are taller than one pixel.
+3. **Remove Bottom Row:**  For each tall object:
+    - Iterate over its cells and keep only those whose row index (`i`) is not equal to the index of the object's lowermost row (`lowermost(obj)`). 
+4. **Paint to Canvas:** The modified objects are merged and painted onto a blank canvas.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  return paint(canvas(mostcolor(I), shape(I)), 
+               merge(apply(lambda obj: 
+                           branch(height(obj) > 1,  # If the object is taller than one pixel
+                                 difference(obj, recolor(color(obj), {(lowermost(obj), j) for j in range(width(obj))})),  # Remove the bottom row
+                                  obj),  # Otherwise, keep the object as is
+                           objects(I, T, F, T))))  # Iterate over all objects in the image
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extract all objects from the input image.
+2. **Process Objects:** For each object:
+   - **Check Height:** Determine if the object's height is greater than 1.
+   - **Tall Objects:** If `height(obj) > 1`:
+     - **Construct Bottom Row:** Create a set representing the bottom row of the object using `{(lowermost(obj), j) for j in range(width(obj))}`.
+     - **Remove Bottom Row:** Use `difference` to remove the constructed bottom row from the object.
+   - **Short Objects:** If `height(obj) <= 1`, keep the object unchanged.
+3. **Paint Modified Objects:**  The modified objects are then merged and painted onto a blank canvas to generate the output image. 
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+    return paint(canvas(mostcolor(I), shape(I)), 
+               merge(apply(lambda obj: 
+                              branch(height(obj) > 1, # Check for object height
+                                     toobject(crop(backdrop(toindices(obj)), (0, 0), (height(obj)-1, width(obj))), I),  # Construct object without bottom row
+                                     obj),  # Keep the object as is if height <= 1
+                             objects(I, T, F, T)))) # Process all objects in the image
+```
+
+**Explanation:**
+
+1. **Extract Objects:**  Get all objects from the input image.
+2. **Process Objects:**  For each object:
+   - **Check Height:** If the object's height is greater than 1:
+     - **Calculate Bounding Box:** Determine the bounding box of the object using `backdrop`.
+     - **Crop Bounding Box:**  Crop the bounding box to remove the bottom row of indices.
+     - **Reconstruct Object:** Use `toobject` to reconstruct the object from the cropped bounding box, effectively removing the bottom row of pixels.
+   - **Short Objects:** If the object's height is not greater than 1, keep the object as is.
+3. **Paint to Canvas:** Merge all modified objects and paint them onto a new canvas to produce the final output image. 
+
+Each version of the program achieves the desired outcome, but with different strategies for identifying and removing the bottom row of taller objects. They showcase different ways to manipulate and combine functions from the provided DSL. 

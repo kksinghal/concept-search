@@ -1,0 +1,160 @@
+## Transformation Analysis:
+
+The transformation applied to all input grids can be described as follows:
+
+**For each object with the least occurring color in the grid:**
+
+1. **Horizontal Connections:** Connect all object parts that share the same row (same 'y' coordinate).
+2. **Vertical Connections:** Connect all object parts that share the same column (same 'x' coordinate).
+3. **Fill Connections:** Fill the connected components with the least occurring color.
+
+
+## Program Version 1:
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+  
+  h_connections = mpapply(lambda obj1, obj2:
+                         connect((uppermost(obj1), leftmost(obj1)), (uppermost(obj2), rightmost(obj2))) 
+                         if (uppermost(obj1) == uppermost(obj2)) and (obj1 != obj2) else frozenset(), 
+                         target_objs, target_objs)
+  
+  v_connections = mpapply(lambda obj1, obj2:
+                         connect((uppermost(obj1), leftmost(obj1)), (lowermost(obj2), leftmost(obj2))) 
+                         if (leftmost(obj1) == leftmost(obj2)) and (obj1 != obj2) else frozenset(),
+                         target_objs, target_objs)
+  
+  O = underfill(I, target_color, merge([h_connections, v_connections]))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** The code first identifies the least common color and then extracts all objects with that color.
+2. **Horizontal Connections:**  For each pair of target objects, it checks if they are on the same row. If they are, it draws a connecting line between their leftmost and rightmost points.
+3. **Vertical Connections:** Similar to horizontal connections, it connects pairs of objects on the same column from top to bottom.
+4. **Merge and Fill:** The horizontal and vertical connections are merged, and then `underfill` is used to fill these connections with the target color on the original grid.
+
+## Program Version 2:
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+
+  connected_indices = frozenset()
+  for obj1 in target_objs:
+    for obj2 in target_objs:
+      if obj1 != obj2:
+        if uppermost(obj1) == uppermost(obj2):
+          connected_indices |= connect((uppermost(obj1), leftmost(obj1)), (uppermost(obj2), rightmost(obj2)))
+        if leftmost(obj1) == leftmost(obj2):
+          connected_indices |= connect((uppermost(obj1), leftmost(obj1)), (lowermost(obj2), leftmost(obj2)))
+
+  O = underfill(I, target_color, connected_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as Version 1.
+2. **Iterative Connections:** Instead of using `mpapply`, this version uses nested loops to iterate through pairs of target objects.
+3. **Conditional Connection and Merge:** Similar to Version 1, it conditionally connects objects based on row and column alignment and directly merges the connection lines into a single set (`connected_indices`).
+4. **Fill Connections:** Finally, it uses `underfill` to fill the connected components.
+
+## Program Version 3:
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+  
+  filled_indices = set()
+  for obj1 in target_objs:
+    for obj2 in target_objs:
+      if obj1 != obj2:
+        if uppermost(obj1) == uppermost(obj2):
+          for j in range(min(leftmost(obj1), leftmost(obj2)), max(rightmost(obj1), rightmost(obj2)) + 1):
+            filled_indices.add((uppermost(obj1), j))
+        if leftmost(obj1) == leftmost(obj2):
+          for i in range(min(uppermost(obj1), uppermost(obj2)), max(lowermost(obj1), lowermost(obj2)) + 1):
+            filled_indices.add((i, leftmost(obj1)))
+
+  O = underfill(I, target_color, frozenset(filled_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as Version 1 and 2.
+2. **Direct Index Filling:** This version avoids using the `connect` function. Instead, it directly calculates and adds the indices that need to be filled based on the bounding box of horizontally and vertically aligned objects.
+3. **Fill Connections:** It utilizes `underfill` to fill the identified indices with the target color. 
+
+## Program Version 4:
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+
+  filled_grid = canvas(0, shape(I))
+  for obj1 in target_objs:
+    for obj2 in target_objs:
+      if obj1 != obj2:
+        if uppermost(obj1) == uppermost(obj2):
+          filled_grid = fill(filled_grid, 1, connect((uppermost(obj1), leftmost(obj1)), (uppermost(obj2), rightmost(obj2))))
+        if leftmost(obj1) == leftmost(obj2):
+          filled_grid = fill(filled_grid, 1, connect((uppermost(obj1), leftmost(obj1)), (lowermost(obj2), leftmost(obj2))))
+  
+  O = I
+  for i, row in enumerate(filled_grid):
+    for j, val in enumerate(row):
+      if val == 1:
+        O = fill(O, target_color, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as previous versions.
+2. **Auxiliary Grid:** This version uses an auxiliary grid (`filled_grid`) initialized with zeros and the same size as the input grid.
+3. **Marking Connections:** It iterates through object pairs and marks the connecting lines with "1" on the `filled_grid`.
+4. **Transferring to Original Grid:** Finally, it iterates through the `filled_grid` and fills the corresponding cells on the original grid with the `target_color` wherever a "1" is found.
+
+## Program Version 5:
+
+```python
+def Program_to_be_generated(I):
+  target_color = leastcolor(I)
+  objs = objects(I, False, False, False)
+  target_objs = colorfilter(objs, target_color)
+
+  rows_to_fill = set()
+  cols_to_fill = set()
+  for obj1 in target_objs:
+    for obj2 in target_objs:
+      if obj1 != obj2:
+        if uppermost(obj1) == uppermost(obj2):
+          rows_to_fill.add(uppermost(obj1))
+        if leftmost(obj1) == leftmost(obj2):
+          cols_to_fill.add(leftmost(obj1))
+
+  O = I
+  for i in range(height(I)):
+    for j in range(width(I)):
+      if i in rows_to_fill or j in cols_to_fill:
+        O = fill(O, target_color, {(i, j)})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Objects:** Same as previous versions.
+2. **Identifying Rows and Columns:** Instead of connecting objects directly, this version identifies the rows and columns that need to be filled. 
+3. **Iterative Filling:** It iterates through all cells in the grid and fills a cell with the `target_color` if its row or column index is present in the `rows_to_fill` or `cols_to_fill` sets.

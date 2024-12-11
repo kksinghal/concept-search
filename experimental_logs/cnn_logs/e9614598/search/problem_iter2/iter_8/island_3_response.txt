@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+The transformation focuses on identifying the bottom boundary of each object (excluding the background) and extending it horizontally by one cell on each side. This extended boundary is then filled with the color '3'. 
+
+Let's analyze each input-output pair:
+
+**Input_0 & Output_0:**
+
+* The objects are "2", "1 6", and "8". 
+* The bottom boundary of "2" is extended to include (4,1) and (4,7).
+* The bottom boundary of "1 6" is extended to include (5,1) and (5,7).
+* The bottom boundary of "8" is extended to include (6,1) and (6,7).
+
+**Input_1 & Output_1:**
+
+* The objects are "7 1 6", "8", "2", and another "7 1 6", "8".
+* Similar to Input_0, the bottom boundary of each object is extended horizontally by one cell on each side and filled with '3'. 
+
+
+## Code Generation:
+
+Here are five distinct versions of the program "Program_to_be_generated" using the DSL provided:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)  # Partition the grid into foreground objects
+  extended_boundaries = mapply(
+      lambda obj: recolor(
+          3, 
+          frozenset(
+              (i + 1, j + dj) 
+              for i, j in toindices(obj) 
+              if i + 1 == lowermost(obj) + 1 
+              for dj in range(-1, 2)
+          )
+      ), 
+      objs
+  )  # Extend and recolor the bottom boundaries
+  return paint(I, extended_boundaries)  # Paint the boundaries onto the grid
+```
+
+**Explanation:**
+
+1. **`fgpartition(I)`:**  Divides the input grid (`I`) into separate objects, excluding the background.
+2. **`mapply(...)`:** Applies a function to each object obtained in the previous step.
+3. **`lambda obj: ...`:** Defines an anonymous function that operates on each object.
+4. **`recolor(3, ...)`:**  Changes the color of a set of indices to '3'.
+5. **`frozenset(...)`:** Generates a frozenset (immutable set) of indices representing the extended bottom boundary of each object.
+6. **`(i + 1, j + dj) ...`:** Calculates the indices for the extended boundary, including one cell to the left (`dj = -1`), the original boundary cell (`dj = 0`), and one cell to the right (`dj = 1`).
+7. **`paint(I, extended_boundaries)`:**  Draws the extended and recolored boundaries onto the original grid.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+  bottom_lines = mapply(
+      lambda obj: recolor(
+          3,
+          combine(
+              {(lowermost(obj) + 1, leftmost(obj) - 1)}, 
+              combine(
+                  {(lowermost(obj) + 1, j) for i, j in toindices(obj) if i + 1 == lowermost(obj) + 1},
+                  {(lowermost(obj) + 1, rightmost(obj) + 1)}
+              )
+          )
+      ),
+      objs
+  )
+  return paint(I, bottom_lines)
+```
+
+**Explanation:**
+
+1. This version explicitly identifies the leftmost, rightmost, and bottom boundary points of each object.
+2. It constructs the extended boundary using `combine` operations to add the left and right extensions to the original bottom boundary.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+  shifted_down = mapply(lambda obj: shift(obj, (1, 0)), objs)  # Shift each object down
+  intersections = mapply(
+      lambda obj: intersection(toindices(obj), backdrop(shift(obj, (-1, 0)))), 
+      shifted_down
+  )  # Find intersections with shifted backdrop
+  extended_lines = mapply(
+      lambda indices: combine(
+          indices, 
+          combine(
+              {(i, j - 1) for i, j in indices}, 
+              {(i, j + 1) for i, j in indices}
+          )
+      ), 
+      intersections
+  )  # Extend the lines horizontally
+  return paint(I, recolor(3, extended_lines))  # Recolor and paint
+```
+
+**Explanation:**
+
+1. This approach shifts each object down by one unit.
+2. It then calculates the intersection between the shifted object and the backdrop of the original object, effectively identifying the bottom boundary.
+3. Finally, it extends these boundary lines horizontally.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)
+  bottom_cells = mfilter(
+      lambda cell: any(
+          cell[1] == (i + 1, j) and i + 1 == lowermost(obj) + 1 
+          for i, j in toindices(obj)
+      ),
+      asobject(I)
+  ) # Identify bottom boundary cells directly
+  extended_bottom = mapply(
+      lambda cell: {(cell[1][0], cell[1][1] + dj) for dj in range(-1, 2)}, 
+      bottom_cells
+  ) # Extend each bottom cell horizontally
+  return paint(I, recolor(3, extended_bottom))  # Recolor and paint
+```
+
+**Explanation:** 
+
+1. This version iterates through all cells in the grid (`asobject(I)`) and identifies cells belonging to the bottom boundary of each object.
+2. It then extends each bottom boundary cell horizontally.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  changed = canvas(0, shape(I))
+  for obj in fgpartition(I):
+    for i, j in toindices(obj):
+      if i + 1 == lowermost(obj) + 1:
+        for dj in range(-1, 2):
+          changed = fill(changed, 3, {(i + 1, j + dj)})
+  return paint(I, asobject(changed))
+```
+
+**Explanation:**
+
+1. This version initializes a blank canvas (`changed`) and iterates through each object and its boundary cells.
+2. It directly modifies the canvas by filling the extended boundary cells with '3'.
+3. Finally, it paints the changes onto the original grid.
+
+
+These five program versions showcase different approaches to achieve the same transformation, demonstrating the flexibility and diversity of the DSL. Each version utilizes distinct logic and function combinations to achieve the desired output. 

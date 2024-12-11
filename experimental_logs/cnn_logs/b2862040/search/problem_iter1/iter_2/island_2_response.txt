@@ -1,0 +1,133 @@
+## Transformation Analysis:
+
+The transformation involves identifying the largest connected component of '1's in the grid (excluding the background '9's), and then recoloring all the '1's in that component to '8's, except for the parts that are directly connected to the grid border.
+
+**Here's a breakdown:**
+
+1. **Identify the main object:**  The largest connected component of '1's is considered the main object.
+2. **Find border connections:**  Identify all '1's within the main object that are directly adjacent (not diagonal) to a border cell (a cell touching the edge of the grid).
+3. **Isolate recoloring area:**  Select all '1's within the main object that are NOT part of the border connections.
+4. **Recolor:**  Change the selected '1's to '8's.
+
+
+## Program_to_be_generated: 
+
+### Version 1: Using `difference` for exclusion
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)  # Extract objects
+  main_obj = argmax(objs, size)  # Find the largest object
+  border_cells = sfilter(asindices(I), lambda loc: bordering({loc}, I))  # Get border cell indices
+  connected_to_border = mfilter(toindices(main_obj), lambda loc: any(n in border_cells for n in dneighbors(loc))) # Connected cells
+  recolor_area = difference(toindices(main_obj), connected_to_border)  # Exclude connected parts 
+  O = fill(I, 8, recolor_area)  # Recolor 
+  return O
+```
+
+**Explanation:**
+
+1. **`objects`, `argmax`, `sfilter`, `bordering`, `asindices`** are used to find the largest object and border cells as in previous examples.
+2. **`mfilter`** finds cells within the main object that have a direct neighbor on the border.
+3. **`difference`**  subtracts the connected cells from the main object's indices, leaving only the inner parts. 
+4. **`fill`** recolors the isolated area to '8'.
+
+### Version 2: Iterative Expansion from Border
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  main_obj = argmax(objs, size)
+  border_cells = sfilter(asindices(I), lambda loc: bordering({loc}, I)) 
+  connected_to_border = set(border_cells) 
+  prev_size = 0
+  while len(connected_to_border) > prev_size: # Expand until no new cells are added
+    prev_size = len(connected_to_border)
+    connected_to_border |= mfilter(connected_to_border, lambda loc:  any(n in toindices(main_obj) for n in dneighbors(loc)))
+  recolor_area = difference(toindices(main_obj), connected_to_border)
+  O = fill(I, 8, recolor_area)
+  return O
+```
+
+**Explanation:**
+
+1.  **Initialization:** Similar to Version 1, we find the main object and border cells.
+2. **Iterative Expansion:** We start with `connected_to_border` as the border cells and iteratively expand it. In each iteration, we find neighbors of cells in `connected_to_border` that are part of the main object and add them to the set. This continues until no new cells are added.
+3. **Recoloring:** Similar to Version 1, we recolor the remaining part of the main object.
+
+### Version 3: Using `connected` for path finding
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  main_obj = argmax(objs, size)
+  border_points = set(extract(obj, lambda c: True) for obj in objects(I, True, False, True) if bordering(toindices(obj), I))
+  connected_to_border = set()
+  for start in toindices(main_obj):
+    for end in border_points:
+        path = connect(start, (end[1][0], end[1][1]))
+        if len(intersection(path, toindices(main_obj))) == len(path): # Check if the path is fully within the main object
+          connected_to_border.add(start)
+          break
+  recolor_area = difference(toindices(main_obj), connected_to_border)
+  O = fill(I, 8, recolor_area)
+  return O
+```
+
+**Explanation:**
+
+1. **`border_points`:** Instead of border cells, we find all points that are part of objects touching the border.
+2. **Path Finding:** For each cell in the main object, we check if there's a straight path (using `connect`) to any border point, and the path is fully contained within the main object. If yes, this cell is connected to the border.
+3. **Recoloring:** Similar to previous versions.
+
+### Version 4: Recursive Flood Fill 
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  main_obj = argmax(objs, size)
+  connected_to_border = set()
+
+  def flood_fill(loc):
+    if loc in connected_to_border or loc not in toindices(main_obj): 
+      return
+    connected_to_border.add(loc)
+    for n in dneighbors(loc):
+      flood_fill(n)
+
+  for cell in sfilter(asindices(I), lambda loc: bordering({loc}, I)):
+    flood_fill(cell)
+  
+  recolor_area = difference(toindices(main_obj), connected_to_border)
+  O = fill(I, 8, recolor_area)
+  return O
+```
+
+**Explanation:**
+
+1. **`flood_fill` function:** This recursive function takes a cell location. If the cell is not already marked as connected and belongs to the main object, it marks it as connected and recursively calls itself for all its direct neighbors.
+2. **Initiating Flood Fill:**  We initiate the `flood_fill` from each border cell. This effectively marks all cells connected to the border. 
+3. **Recoloring:** Same as before.
+
+
+### Version 5: Using image transformations
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  main_obj = argmax(objs, size)
+  temp_grid = fill(I, 0, asindices(I))  # Create a temporary grid filled with '0's
+  temp_grid = paint(temp_grid, main_obj) # Paint the main object onto the temporary grid
+  connected_to_border = toindices(objects(temp_grid, True, False, False)) # Find all connected components, including background
+  recolor_area = difference(toindices(main_obj), connected_to_border)
+  O = fill(I, 8, recolor_area)
+  return O
+```
+
+**Explanation:**
+
+1. **Temporary Grid:** Creates a temporary grid filled with a different background value ('0').
+2. **Paint and Extract:** Paints only the main object onto the temporary grid. By extracting objects again, but this time *including* the background, we get all connected components in the original grid that touched the border, as they'll now form separate objects in the temporary grid.
+3. **Recoloring:** Similar to previous versions.
+
+These are five distinct ways to implement the "Program_to_be_generated" using the provided DSL. Each approach utilizes different functions and logic while achieving the same desired outcome. 

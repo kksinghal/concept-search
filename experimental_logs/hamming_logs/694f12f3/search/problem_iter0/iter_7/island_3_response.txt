@@ -1,0 +1,188 @@
+## Transformation Analysis:
+
+**Input_0 to Output_0:**
+
+1. **Identify Objects:** The input grid contains two objects (excluding the background): one in the top-left and one in the bottom-right. 
+2. **Split and Recolor:** The bottom-right object is split horizontally into two halves. The top half is recolored to '2', and the bottom half remains '4'. The top-left object remains unchanged.
+3. **Inner Square Fill:** A 2x2 square at the center of the top-left object is filled with '1'.
+
+**Input_1 to Output_1:**
+
+This transformation follows the same logic as the first, with the following differences:
+
+1. **Object Selection:** This time, the top-left object is split and recolored.
+2. **Color Assignment:** The top half of the split object is recolored to '2', and the bottom half remains '4'.
+3. **Inner Square Fill:** The inner 2x2 square is filled in the bottom-right object (the one that wasn't split). 
+
+
+## Program Versions:
+
+Here are five distinct program versions using the provided DSL:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify objects and order by uppermost row
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+  
+  # Determine split object based on relative vertical position
+  split_obj = obj2 if uppermost(obj1) < uppermost(obj2) else obj1
+  other_obj = obj1 if uppermost(obj1) < uppermost(obj2) else obj2
+
+  # Calculate split point
+  h = height(split_obj) // 2
+  
+  # Generate top and bottom halves
+  top_half = recolor(2 if split_obj == obj2 else 1, frozenset((v, (i,j)) for v, (i,j) in toobject(toindices(split_obj), I) if i < h))
+  bottom_half = recolor(1 if split_obj == obj2 else 2, frozenset((v, (i,j)) for v, (i,j) in toobject(toindices(split_obj), I) if i >= h))
+
+  # Create output canvas
+  O = canvas(0, shape(I))
+  
+  # Paint objects onto canvas
+  O = paint(paint(paint(O, top_half), bottom_half), other_obj)
+
+  # Fill inner square of the other object
+  inner_corner = add(ulcorner(other_obj), (1, 1))
+  inner_square = frozenset((inner_corner[0] + i, inner_corner[1] + j) for i in range(2) for j in range(2))
+  O = underfill(O, 1, inner_square)
+  
+  return O
+```
+
+**Explanation:**
+
+This version directly splits the target object into top and bottom halves by filtering cells based on their row index. It then recolors the halves dynamically based on the relative object positions before painting them onto the canvas.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify objects, obj1 is always the upper one
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+
+  # Determine the object to split and recolor based on position
+  if uppermost(obj1) < uppermost(obj2):
+    top_half = recolor(2, toindices(crop(toobject(toindices(obj2), I), (0, 0), (height(obj2)//2, width(obj2)))))
+    bottom_half = recolor(1, toindices(crop(toobject(toindices(obj2), I), (height(obj2)//2, 0), (height(obj2)//2, width(obj2)))))
+    O = paint(paint(paint(canvas(0, shape(I)), top_half), bottom_half), obj1)
+  else:
+    top_half = recolor(1, toindices(crop(toobject(toindices(obj1), I), (0, 0), (height(obj1)//2, width(obj1)))))
+    bottom_half = recolor(2, toindices(crop(toobject(toindices(obj1), I), (height(obj1)//2, 0), (height(obj1)//2, width(obj1)))))
+    O = paint(paint(paint(canvas(0, shape(I)), top_half), bottom_half), obj2)
+
+  # Fill the inner 2x2 square of the other object
+  inner_obj = obj2 if uppermost(obj1) < uppermost(obj2) else obj1
+  inner_corner = add(ulcorner(inner_obj), (1, 1))
+  inner_square = frozenset((inner_corner[0] + i, inner_corner[1] + j) for i in range(2) for j in range(2))
+  O = underfill(O, 1, inner_square)
+  return O
+```
+
+**Explanation:**
+
+This version uses conditional branching to handle the two different splitting scenarios based on the objects' relative positions. It employs `crop` to extract the halves and then recolors them before painting.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify objects based on color, assuming only two colors
+  obj1 = first(objects(I, T, F, T))
+  obj2 = other(objects(I, T, F, T), obj1)
+
+  # Determine the target object based on vertical position
+  target_obj = obj1 if uppermost(obj1) < uppermost(obj2) else obj2
+
+  # Split the target object into top and bottom halves
+  h = height(target_obj) // 2
+  top_half = recolor(2 if target_obj == obj1 else 1, frozenset((v, (i,j)) for v, (i,j) in target_obj if i < h))
+  bottom_half = recolor(1 if target_obj == obj1 else 2, frozenset((v, (i,j)) for v, (i,j) in target_obj if i >= h))
+
+  # Paint the recolored halves and the other object onto a blank canvas
+  O = canvas(0, shape(I))
+  O = paint(paint(paint(O, top_half), bottom_half), obj2 if target_obj == obj1 else obj1)
+
+  # Fill the inner 2x2 square of the other object
+  inner_obj = obj2 if target_obj == obj1 else obj1
+  inner_corner = add(ulcorner(inner_obj), (1, 1))
+  inner_square = frozenset((inner_corner[0] + i, inner_corner[1] + j) for i in range(2) for j in range(2))
+  O = underfill(O, 1, inner_square)
+  return O
+```
+
+**Explanation:**
+
+This version identifies objects based on color instead of relying on ordering. It simplifies object selection and uses a more concise approach for splitting and recoloring by filtering object cells directly.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify objects and order them vertically
+  obj1, obj2 = order(objects(I, F, F, T), lambda obj: centerofmass(obj)[0])
+
+  # Determine split object based on vertical order
+  split_obj = obj1 if centerofmass(obj1)[0] < centerofmass(obj2)[0] else obj2
+
+  # Split object into top and bottom halves
+  h = height(split_obj) // 2
+  top_half = recolor(2 if split_obj == obj1 else 1, toindices(crop(toobject(toindices(split_obj), I), (0, 0), (h, width(split_obj)))))
+  bottom_half = recolor(1 if split_obj == obj1 else 2, toindices(crop(toobject(toindices(split_obj), I), (h, 0), (h, width(split_obj)))))
+  
+  # Create output canvas
+  O = canvas(0, shape(I))
+  
+  # Paint objects onto canvas
+  O = paint(O, top_half)
+  O = paint(O, bottom_half)
+  O = paint(O, obj2 if split_obj == obj1 else obj1)
+
+  # Fill inner square of the non-split object
+  other_obj = obj2 if split_obj == obj1 else obj1
+  inner_corner = add(ulcorner(other_obj), (1, 1))
+  inner_square = frozenset((inner_corner[0] + i, inner_corner[1] + j) for i in range(2) for j in range(2))
+  O = paint(O, recolor(1, toobject(inner_square, I)))
+  
+  return O
+```
+
+**Explanation:**
+
+This version utilizes `centerofmass` for object ordering and determining the split object. It provides a cleaner approach to object selection and recoloring based on the split object's identity.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  # Identify objects
+  obj1, obj2 = order(objects(I, F, F, T), uppermost)
+  
+  # Calculate the vertical midpoint of the grid
+  midpoint = height(I) // 2
+  
+  # Split objects based on midpoint and recolor
+  top_half = recolor(2, frozenset((v, (i,j)) for v, (i,j) in obj1 if i < midpoint) | frozenset((v, (i,j)) for v, (i,j) in obj2 if i < midpoint))
+  bottom_half = recolor(1, frozenset((v, (i,j)) for v, (i,j) in obj1 if i >= midpoint) | frozenset((v, (i,j)) for v, (i,j) in obj2 if i >= midpoint))
+  
+  # Create output canvas
+  O = canvas(0, shape(I))
+  
+  # Paint the recolored halves onto the canvas
+  O = paint(paint(O, top_half), bottom_half)
+  
+  # Identify the object not split and fill its inner square
+  unsplit_obj = obj1 if uppermost(obj1) > midpoint else obj2
+  inner_corner = add(ulcorner(unsplit_obj), (1, 1))
+  inner_square = frozenset((inner_corner[0] + i, inner_corner[1] + j) for i in range(2) for j in range(2))
+  O = underfill(O, 1, inner_square)
+  
+  return O
+```
+
+**Explanation:**
+
+This version takes a different approach by first splitting the entire grid based on the vertical midpoint. It then recolors the top and bottom halves before identifying the object that wasn't split for the inner square fill.
+
+These five programs demonstrate distinct approaches and logic to achieve the desired transformations, showcasing the flexibility and expressiveness of the provided DSL. Each version provides a unique solution with varying levels of complexity and readability. 

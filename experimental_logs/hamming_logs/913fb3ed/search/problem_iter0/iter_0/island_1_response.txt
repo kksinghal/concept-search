@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit) and drawing a specific shape around them. The shape is a rectangle with a one-cell wide border, where the border cells are filled with specific digits:
+
+* **Top & Side Borders:** Digit '6'
+* **Bottom Border:**  Digit '1'
+* **Corners:** Digits depend on position:
+    * **Top Left:** '4'
+    * **Top Right:** '4' 
+    * **Bottom Left:** '1'
+    * **Bottom Right:** '1'
+
+**Input 0:** A '3' object, an '8' object, and a '2' object are present. The transformation draws the described shape around each object.
+
+**Input 1:**  A '3' object is present. The transformation draws the shape around it.
+
+**Input 2:** A '3' object and a '2' object are present. The transformation draws the shape around each object.
+
+**Input 3:** An '8' object is present. The transformation draws the shape around it.
+
+## Program to be Generated:
+
+**Version 1:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)  
+  O = I 
+  for obj in objs:
+    ul = ulcorner(obj)
+    lr = lrcorner(obj)
+    O = fill(O, SIX, connect((ul[0]-1, ul[1]-1), (ul[0]-1, lr[1]+1)))  
+    O = fill(O, SIX, connect((lr[0]+1, ul[1]-1), (lr[0]+1, lr[1]+1)))
+    O = fill(O, SIX, connect((ul[0]-1, ul[1]-1), (lr[0]+1, ul[1]-1)))
+    O = fill(O, ONE, connect((ul[0]-1, lr[1]+1), (lr[0]+1, lr[1]+1)))
+    O = fill(O, FOUR, (ul[0]-1, ul[1]-1))
+    O = fill(O, FOUR, (ul[0]-1, lr[1]+1))
+    O = fill(O, ONE, (lr[0]+1, ul[1]-1))
+    O = fill(O, ONE, (lr[0]+1, lr[1]+1))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  `objs = objects(I, T, F, T)` finds all connected objects.
+2. **Iterate and Draw:** For each object:
+   - Find upper-left (`ul`) and lower-right (`lr`) corners.
+   - Draw the top, bottom, left, and right borders using `fill` and `connect` to create lines.
+   - Fill in the corners with the correct digits using `fill`.
+
+**Version 2:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    O = fill(O, SIX, box(shift(obj, (-1, -1))))
+    O = fill(O, ONE, box(shift(obj, (1, 1))))
+    O = underfill(O, FOUR, shift(ulcorner(obj), (-1, -1))) 
+    O = underfill(O, FOUR, shift(urcorner(obj), (-1, 1)))
+    O = underfill(O, ONE, shift(llcorner(obj), (1, -1)))
+    O = underfill(O, ONE, shift(lrcorner(obj), (1, 1)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objs = objects(I, T, F, T)` finds connected objects.
+2. **Iterate and Draw:** For each object:
+   - Draw the outer '6' box and inner '1' box using `fill` and `box` with appropriate shifts.
+   - Use `underfill` to place corner digits, ensuring they only fill '0' (background) cells. 
+
+**Version 3:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  border = lambda o: box(o) | box(shift(o, (-1,-1))) | box(shift(o, (1,1)))
+  corners = lambda o: {(ulcorner(o)[0]-1, ulcorner(o)[1]-1), (urcorner(o)[0]-1, urcorner(o)[1]+1),
+                        (llcorner(o)[0]+1, llcorner(o)[1]-1), (lrcorner(o)[0]+1, lrcorner(o)[1]+1)}
+  O = I
+  for obj in objs:
+    O = fill(O, SIX, border(obj))
+    O = underfill(O, ONE, border(obj))
+    for i, j in corners(obj):
+      if (i, j) == (ulcorner(obj)[0]-1, ulcorner(o)[1]-1) or (i, j) == (urcorner(obj)[0]-1, urcorner(obj)[1]+1):
+        O = underfill(O, FOUR, (i, j))
+      else:
+        O = underfill(O, ONE, (i, j))
+  return O
+```
+
+**Explanation:**
+
+1. **Helper Functions:** 
+   - `border(o)`: Calculates indices for the combined '6' and '1' borders.
+   - `corners(o)`:  Provides a set of corner indices.
+2. **Identify Objects:** `objs = objects(I, T, F, T)` finds connected objects.
+3. **Iterate and Draw:**
+   - Draw borders using `fill` and the `border` function.
+   - Iterate over `corners(obj)` and use `underfill` to place corner digits conditionally.
+
+**Version 4:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    for di in range(-1, 2):
+      for dj in range(-1, 2):
+        if abs(di) != abs(dj): 
+          O = fill(O, SIX, box(shift(obj, (di, dj))))
+    O = underfill(O, FOUR, shift(ulcorner(obj), (-1, -1)))
+    O = underfill(O, FOUR, shift(urcorner(obj), (-1, 1)))
+    O = underfill(O, ONE, shift(llcorner(obj), (1, -1)))
+    O = underfill(O, ONE, shift(lrcorner(obj), (1, 1)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objs = objects(I, T, F, T)` finds connected objects.
+2. **Iterate and Draw:**
+    - Draw the '6' border by iterating over offsets (-1, 0, 1) and excluding diagonal offsets (`abs(di) != abs(dj)`).
+    - Use `underfill` to strategically place the corner digits as in previous versions. 
+
+**Version 5:**
+
+```python
+def solve(I):
+  objs = objects(I, T, F, T)
+  draw_border = lambda O, obj, val: fill(O, val, box(shift(obj, (-1, -1))))
+  O = I
+  for obj in objs:
+    O = draw_border(O, obj, SIX)  
+    O = draw_border(O, shift(obj,(1,1)), ONE)  
+    O = underfill(O, FOUR, shift(ulcorner(obj), (-1, -1)))
+    O = underfill(O, FOUR, shift(urcorner(obj), (-1, 1)))
+    O = underfill(O, ONE, shift(llcorner(obj), (1, -1)))
+    O = underfill(O, ONE, shift(lrcorner(obj), (1, 1)))
+  return O
+```
+
+**Explanation:**
+
+1. **Helper Function:** `draw_border` takes the grid, object, and border digit as input, simplifying border drawing.
+2. **Identify Objects:**  `objs = objects(I, T, F, T)` finds connected objects.
+3. **Iterate and Draw:**
+   - Uses the `draw_border` function to draw the '6' and '1' borders.
+   - Places corner digits using `underfill` strategically. 

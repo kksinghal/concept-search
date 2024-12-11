@@ -1,0 +1,140 @@
+## Transformation Analysis:
+
+The transformation involves the following steps:
+
+1. **Identify the target object:** The target object is the object containing the least frequent color in the input grid, excluding the background color (most frequent).
+2. **Expand the target object:** The target object expands horizontally by one cell on both sides. If the expanded area overlaps with another object, it takes over that cell.
+3. **Recolor the expanded object:** The expanded object is then recolored to a new color (represented by the digit '8').
+
+**Let's illustrate with an example (Input_0):**
+
+**Input_0:**
+```
+9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9
+9 1 1 1 9 9 9 1 9 9
+9 1 9 1 9 9 9 1 9 9
+9 1 9 1 9 9 1 1 1 1
+9 1 1 1 9 9 9 1 9 9
+9 9 9 9 9 9 9 1 9 9
+9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9
+```
+
+**Output_0:**
+```
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 8 8 8 9 9 9 1 9 9 9
+9 8 9 8 9 9 9 1 9 9 9
+9 8 9 8 9 9 1 1 1 1 9
+9 8 8 8 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+```
+
+Here, the least frequent color is '1'. The object formed by '1's expands horizontally, replacing some '9's in the process. Finally, the expanded object is recolored to '8'.
+
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+    target_color = leastcolor(I) 
+    target_object =  objects(I, univalued=True, diagonal=False, without_bg=True)
+    target_object = extract(target_object, lambda obj: color(obj) == target_color)
+    expanded_indices = mapply(lambda loc: {(loc[0], loc[1] - 1), (loc[0], loc[1] + 1)}, toindices(target_object))
+    expanded_object = toobject(combine(toindices(target_object), expanded_indices), I)
+    O = paint(cover(I, target_object), recolor(EIGHT, expanded_object))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify target object:** `leastcolor(I)` finds the target color. `objects` finds all objects, and `extract` picks the one with the target color.
+2. **Expand object:** `mapply` applies `{(loc[0], loc[1] - 1), (loc[0], loc[1] + 1)}` to each cell index of the target object, creating an expanded set of indices.
+3. **Recolor and paint:** `toobject` creates an object from the expanded indices, `cover` removes the original object, `recolor` changes the color to '8', and `paint` draws the final object.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+    target_color = leastcolor(I)
+    target_indices = ofcolor(I, target_color)
+    expanded_indices = mapply(dneighbors, target_indices) - target_indices
+    expanded_object = recolor(EIGHT, toobject(expanded_indices, I))
+    O = underpaint(I, expanded_object)
+    return O
+```
+
+**Explanation:**
+
+1. **Identify target cells:** `ofcolor(I, target_color)` directly finds the indices of the target color cells.
+2. **Expand indices:** `mapply(dneighbors, ...)` finds direct neighbors of each target cell, and the difference with `target_indices` gives only the expanded cells.
+3. **Recolor and underpaint:** Similar to version 1, but `underpaint` is used to only paint on background cells.
+
+**Program Version 3 (using `hconcat`):**
+
+```python
+def solve(I):
+  target_color = leastcolor(I)
+  obj = objects(I, True, False, True)
+  obj = extract(obj, lambda o: color(o) == target_color)
+  left_border = {(i, leftmost(obj) - 1) for i in range(uppermost(obj), lowermost(obj) + 1)}
+  right_border = {(i, rightmost(obj) + 1) for i in range(uppermost(obj), lowermost(obj) + 1)}
+  expanded_obj = combine(combine(toindices(obj), left_border), right_border)
+  O = paint(cover(I, obj), recolor(EIGHT, toobject(expanded_obj, I)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify & Expand:** Similar to previous versions, but explicitly calculates left and right border indices to expand the object.
+2. **Combine and Paint:** Combines original, left, and right indices, then paints similar to previous versions.
+
+**Program Version 4 (using loops):**
+
+```python
+def solve(I):
+    target_color = leastcolor(I)
+    h, w = len(I), len(I[0])
+    O = list(list(row) for row in I)
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] == target_color:
+                if j > 0:
+                    O[i][j - 1] = EIGHT
+                if j < w - 1:
+                    O[i][j + 1] = EIGHT
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Iterate and modify:** Directly iterates through the grid, and for each target color cell, modifies its left and right neighbors in the output grid `O`.
+2. **Simpler but less flexible:** This version is simpler but might be less adaptable to variations in the transformation.
+
+
+**Program Version 5 (using list comprehensions):**
+
+```python
+def solve(I):
+    target_color = leastcolor(I)
+    h, w = len(I), len(I[0])
+    O = [
+        [(EIGHT if (j > 0 and I[i][j - 1] == target_color) or (j < w - 1 and I[i][j + 1] == target_color) else v) for j, v in enumerate(row)]
+        for i, row in enumerate(I)
+    ]
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **Concise list comprehension:** Uses nested list comprehensions to achieve the same iteration and modification as Version 4 but in a more concise way.
+
+
+These are five distinct program versions to achieve the desired transformation. Each uses a different combination of DSL functions or logic, demonstrating diverse solutions within the provided DSL. 

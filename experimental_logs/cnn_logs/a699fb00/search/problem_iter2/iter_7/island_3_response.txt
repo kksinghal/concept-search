@@ -1,0 +1,157 @@
+## Transformation Analysis:
+
+The transformation seems to involve the following steps:
+
+1. **Identify objects:** The code needs to find connected regions of the same digit, excluding the background color (most frequent color).
+2. **Target objects containing '5':** Only objects that have at least one cell with the value '5' should be modified.
+3. **Recolor neighboring '1's:** Within the targeted objects, any cell with the value '1' that is directly adjacent (not diagonally) to a cell with the value '5' should be recolored to '2'.
+4. **Remove the '5's:**  After recoloring, all cells with the value '5' should be removed (replaced with the background color). 
+
+Let's illustrate with Input_0:
+
+- **Input_0:**
+```
+1 0 1 5 1
+0 0 1 0 1
+0 0 1 0 1
+0 1 1 1 1
+0 0 1 0 1 
+```
+
+- **After step 2 (identifying and targeting):** We have one object containing '5'.
+```
+1 0 1 **5** 1
+0 0 1 0 1
+0 0 1 0 1
+0 1 1 1 1
+0 0 1 0 1 
+```
+- **After step 3 (recoloring '1's):**
+```
+1 **2** 1 **5** 1
+0 0 0 0 0
+0 0 0 0 0
+0 1 **2** 1 1
+0 0 0 0 0 
+```
+- **After step 4 (removing '5's):**
+```
+1 2 1 0 0 
+0 0 0 0 0
+0 0 0 0 0
+0 1 2 1 0
+0 0 0 0 0 
+```
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program that achieve the desired transformation:
+
+**Program Version 1:**
+
+```python
+def program_v1(I):
+  O = canvas(ZERO, shape(I)) 
+  for obj in objects(I, T, F, F):
+    if contained(FIVE, palette(obj)):
+      five_neighbors = mapply(dneighbors, ofcolor(I, FIVE))
+      recolor_indices = intersection(five_neighbors, ofcolor(I, ONE))
+      obj = recolor(TWO, intersection(toindices(obj), recolor_indices))
+      obj = frozenset((v, loc) for v, loc in obj if v != FIVE)
+      O = paint(O, obj)
+    else:
+      O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization:** Creates an empty canvas (`O`) of the same shape as the input (`I`).
+2. **Iterate over objects:** Loops through each object in the input grid.
+3. **Target objects with '5':**  If an object contains the color '5', proceed with the recoloring.
+4. **Find neighbors of '5's:**  Finds all direct neighbors of cells with the value '5' and stores them in `five_neighbors`.
+5. **Identify '1's to recolor:** Finds the intersection of `five_neighbors` (neighbors of '5') and the indices of cells with the value '1' (`ofcolor(I, ONE)`) and stores the result in `recolor_indices`.
+6. **Recolor and remove '5's:**  Recolors the cells at `recolor_indices` to '2'. Removes all cells with the value '5' from the object.
+7. **Paint to output:**  Paints the modified object onto the canvas `O`.
+8. **Handle other objects:** If the object does not contain '5', it is painted directly to the canvas without modification.
+9. **Return output:**  Returns the transformed canvas.
+
+
+**Program Version 2:**
+
+```python 
+def program_v2(I):
+  five_indices = ofcolor(I, FIVE)
+  recolor_indices = mfilter(five_indices, lambda loc: any(index(I, n) == ONE for n in dneighbors(loc)))
+  return paint(fill(I, ZERO, five_indices), recolor(TWO, recolor_indices))
+```
+
+**Explanation:**
+
+1. **Find '5's:** Get the indices of all cells with the value '5' (`five_indices`).
+2. **Identify '1's to recolor:**  For each '5', check if any of its direct neighbors have the value '1'. Store the indices of these neighboring '1's in `recolor_indices`.
+3. **Fill '5's with zero:** Fill all cells with the value '5' with zeros.
+4. **Recolor '1's:** Recolor the cells at the indices in `recolor_indices` to '2'.
+5. **Return:** Return the modified grid.
+
+
+**Program Version 3:**
+
+```python
+def program_v3(I):
+    O = I
+    for i in range(len(I)):
+        for j in range(len(I[0])):
+            if I[i][j] == FIVE:
+                for x, y in dneighbors((i, j)):
+                    if 0 <= x < len(I) and 0 <= y < len(I[0]) and I[x][y] == ONE:
+                        O = fill(O, TWO, {(x, y)})
+                O = fill(O, ZERO, {(i, j)})
+    return O
+```
+
+**Explanation:**
+
+1. **Iterate through the grid:** Loop through each cell in the input grid.
+2. **Find '5's:**  If a cell has the value '5', proceed.
+3. **Check direct neighbors:** For each direct neighbor of the '5', check if it's a '1'. 
+4. **Recolor '1's:**  If a neighbor is a '1', recolor it to '2' in the output grid `O`.
+5. **Remove '5':** Replace the '5' with a '0'.
+6. **Return output:** Return the modified grid `O`.
+
+
+**Program Version 4:**
+
+```python
+def program_v4(I):
+  fives = asobject(I) & recolor(ONE, ofcolor(I, FIVE))
+  ones_near_fives = mapply(dneighbors, toindices(fives)) & ofcolor(I, ONE)
+  return paint(fill(I, ZERO, ofcolor(I, FIVE)), recolor(TWO, ones_near_fives)) 
+```
+
+**Explanation:**
+
+1. **Locate '5's:** Identify the locations of all '5's in the input grid.
+2. **Find neighboring '1's:** Determine the indices of all '1's that are directly adjacent to the '5's.
+3. **Replace '5's with '0's:**  Fill in all cells containing '5' with '0's.
+4. **Recolor neighboring '1's:** Change the color of the identified neighboring '1's to '2'.
+5. **Return the result:** Output the modified grid.
+
+
+**Program Version 5:**
+
+```python
+def program_v5(I):
+  def recolor_condition(loc):
+    return index(I, loc) == ONE and any(index(I, n) == FIVE for n in dneighbors(loc))
+  return paint(fill(I, ZERO, ofcolor(I, FIVE)), recolor(TWO, sfilter(asindices(I), recolor_condition)))
+```
+
+**Explanation:**
+
+1. **Define recoloring condition:**  Define a function `recolor_condition` that checks if a cell is '1' and has a neighboring '5'.
+2. **Find '5's and replace:**  Locate all '5's in the grid and replace them with '0's.
+3. **Apply recoloring:**  Apply the `recolor_condition` to each cell in the grid and recolor the matching cells to '2'.
+4. **Return:** Return the modified grid. 
+
+Each program version utilizes a different combination of DSL functions to achieve the same outcome, showcasing the flexibility and diversity of the DSL.

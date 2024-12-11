@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation involves identifying the largest connected object in the input grid and then recoloring specific internal cells of this object while leaving the outer layer intact. 
+
+**Input 0:**
+
+* The largest object is the '5' shape.
+* An internal rectangle of '5's is replaced with '2's. The rectangle leaves a one-cell border of '5's around it.
+
+**Input 1:**
+
+* The largest object is again the '5' shape.
+* This time, two internal lines of '5's are replaced with '2's. One line is horizontal, the other vertical. Both leave a one-cell border of '5's.
+
+
+## Program Version 1
+
+**Code:**
+
+```python
+def solve(I):
+    obj = argmax(objects(I, T, F, T), size)  # Find the largest object
+    inner =  inbox(obj) # Find indices one cell inside the object's bounding box
+    recolored = recolor(TWO, toobject(inner, I)) # Recolor the inner part
+    O = paint(I, recolored) # Paint the recolored object onto the original grid
+    return O 
+```
+
+**Explanation:**
+
+1. **Find the largest object:** `argmax(objects(I, T, F, T), size)` identifies all connected objects (`objects(I, T, F, T)`), then selects the largest one based on its size (`argmax(..., size)`).
+2. **Find inner indices:** `inbox(obj)` determines the indices that form a box one cell inside the object's bounding box.
+3. **Recolor the inner part:** `recolor(TWO, toobject(inner, I))` recolors the cells at the `inner` indices to the value '2'. `toobject` converts the indices back to an object format.
+4. **Paint onto the grid:** `paint(I, recolored)` overlays the recolored object onto the original grid, replacing the original colors in those positions.
+
+
+## Program Version 2
+
+**Code:**
+
+```python
+def solve(I):
+    obj = argmax(objects(I, T, F, T), size) # Find the largest object
+    border = box(obj)  # Find indices outlining the object
+    inner = difference(backdrop(obj), border) # Find the indices inside but not on the border
+    recolored = recolor(TWO, toobject(inner, I)) # Recolor the inner part
+    O = paint(I, recolored) # Paint the recolored object onto the original grid
+    return O
+```
+
+**Explanation:**
+
+1. **Find the largest object:** Same as Version 1.
+2. **Find border indices:**  `box(obj)` finds the indices that outline the object's bounding box.
+3. **Find inner indices:** `difference(backdrop(obj), border)` calculates the difference between the indices within the object's bounding box (`backdrop(obj)`) and the border indices, effectively giving us the indices inside the object but not on its border.
+4. **Recolor and paint:** Same as steps 3 and 4 in Version 1.
+
+
+## Program Version 3
+
+**Code:**
+
+```python
+def solve(I):
+    obj = argmax(objects(I, T, F, T), size) # Find the largest object
+    shifted_in = shift(obj, (-1, -1)) # Shift the object one cell up and left
+    shifted_out = shift(obj, (1, 1))  # Shift the object one cell down and right
+    inner = intersection(toindices(shifted_in), toindices(shifted_out)) # Inner indices are the common ones
+    recolored = recolor(TWO, toobject(inner, I)) # Recolor the inner part
+    O = paint(I, recolored) # Paint the recolored object onto the original grid
+    return O
+```
+
+**Explanation:**
+
+1. **Find the largest object:** Same as Version 1.
+2. **Shift to get inner area:** The object is shifted one cell up and left (`shifted_in`) and one cell down and right (`shifted_out`). The overlapping area of these shifted objects represents the inner part that needs recoloring.
+3. **Find inner indices:** `intersection(toindices(shifted_in), toindices(shifted_out))` finds the common indices between the shifted objects, giving us the inner indices.
+4. **Recolor and paint:** Same as steps 3 and 4 in Version 1.
+
+
+## Program Version 4
+
+**Code:**
+
+```python
+def solve(I):
+    obj = argmax(objects(I, T, F, T), size) # Find the largest object
+    inner =  delta(inbox(obj)) # Find indices one cell inside the object's bounding box
+    recolored = underfill(I, TWO, inner) # Recolor the inner part only if it's background
+    O = paint(recolored, obj) # Paint the object back onto the recolored grid
+    return O 
+```
+
+**Explanation:**
+
+1. **Find the largest object:** Same as Version 1.
+2. **Find inner indices:** Similar to Version 2, but uses `delta(inbox(obj))` to directly get the indices inside the bounding box but not part of the object itself. 
+3. **Recolor conditionally:** `underfill(I, TWO, inner)` fills the `inner` indices with '2' only if the original cell at that index has the background color (the most common color). This ensures that only the object's interior is recolored.
+4. **Paint the object back:** `paint(recolored, obj)` overlays the original object back onto the recolored grid. This step is needed because `underfill` doesn't change the object itself.
+
+## Program Version 5
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, T, F, T) # Find all objects
+    obj = argmax(objs, size) # Find the largest object
+    other_objs = difference(objs, {obj}) # Objects other than largest
+    O =  fill(I, TWO, mfilter(other_objs, backdrop))
+    O = paint(O, obj) # Paint the object back onto the recolored grid
+    return O
+```
+
+**Explanation:**
+
+1. **Find the largest object:** Same as Version 1.
+2. **Find all other objects:** We first find all objects (`objects(I, T, F, T)`) and then remove the largest one (`difference(objs, {obj})`) to get a set of all other objects in the image.
+3. **Recolor everything but the largest object:**  We use `mfilter` to find backdrops of all objects other than the largest object, and fill them with color '2'.
+4. **Paint the largest object back:** Same as step 4 in Version 4.
+
+These five versions demonstrate different ways to achieve the desired transformation using various DSL functions and logic. Each approach has its own strengths and weaknesses in terms of readability, efficiency, and adaptability to potential variations in the transformation. 

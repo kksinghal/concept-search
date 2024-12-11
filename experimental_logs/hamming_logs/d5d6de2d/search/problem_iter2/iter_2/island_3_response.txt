@@ -1,0 +1,156 @@
+## Transformation Analysis:
+
+The transformation takes a 2x2 input grid and generates an output grid based on the following rules:
+
+**Rule 1: Object Scaling and Positioning**
+
+- If the input grid contains an object (a group of connected non-zero cells), the output grid is a 10x10 grid or a 15x15 grid depending on the input.
+- A 3x3 square is drawn on the output grid, centered at a position determined by the object's location in the input grid.
+  - The center of the square is offset from the object's center of mass, scaled by a factor of 5.
+  - In the 15 x 15 grid case, there is an additional horizontal shift determined by whether the column index of the object's center of mass is odd or even.
+
+**Rule 2: Vertical Lines**
+
+- If the input grid has no objects (all cells are 0), two vertical lines are drawn on the output grid.
+- The lines are 2 cells high and 1 cell wide, located at specific positions on the output grid.
+  - In the 10 x 10 grid case, the lines are at columns 5 and 8.
+  - In the 15 x 15 grid case, the lines start at column 5 and 8 and span the entire height of the grid.
+
+## Program_to_be_generated:
+
+**Version 1: Using Center of Mass and Conditional Scaling**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  if objs:
+    O = canvas(0, multiply(shape(I), (FIVE, FIVE))) if len(objs[0]) == 1 else canvas(0, multiply(shape(I), (FIVE, THREE)))
+    obj = first(objs)
+    i, j = centerofmass(obj)
+    offset = (i * FIVE + TWO, (j * FIVE + TWO) + FIVE * (j % 2) * (len(O) // FIVE - 1))
+    O = fill(O, 3, backdrop(crop(O, offset, (THREE, THREE))))
+  else:
+    O = canvas(0, (TEN, TEN))
+    O = fill(O, 3, connect((TWO, FIVE), (THREE, FIVE)))
+    O = fill(O, 3, connect((TWO, EIGHT), (THREE, EIGHT)))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection:** Identify objects in the input grid.
+2. **Canvas Creation:** Create a 10x10 or 15x15 canvas based on whether the object size is 1 or not.
+3. **Object Center and Offset:** Calculate the object's center of mass and scale it for positioning.
+4. **Square Drawing:** Draw a 3x3 square filled with '3' at the calculated offset.
+5. **Vertical Lines:** If no objects, draw two vertical lines on a 10x10 canvas.
+
+**Version 2: Utilizing Object Indices for Positioning**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  if objs:
+    obj = first(objs)
+    i, j = ulcorner(obj)
+    O = canvas(0, multiply(shape(I), (FIVE, FIVE))) if len(objs[0]) == 1 else canvas(0, (THREE * FIVE, THREE * FIVE))
+    O = fill(O, 3, backdrop(crop(O, (i * FIVE, j * FIVE + FIVE * (j % 2) * 2), (THREE, THREE))))
+  else:
+    O = canvas(0, (TEN, TEN))
+    O = fill(O, 3, backdrop(crop(O, (TWO, FIVE), (TWO, ONE))))
+    O = fill(O, 3, backdrop(crop(O, (TWO, EIGHT), (TWO, ONE))))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Detection:** Find objects in the input.
+2. **Corner Calculation:** Get the upper-left corner of the object.
+3. **Canvas and Square:** Create the output canvas and draw the 3x3 square based on corner coordinates.
+4. **Vertical Lines (No Objects):** Draw lines on a 10x10 canvas if no objects exist.
+
+**Version 3: Leveraging 'vfrontier' for Line Drawing**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  if objs:
+    O = canvas(0, multiply(shape(I), (FIVE, FIVE))) if len(objs[0]) == 1 else canvas(0, multiply(shape(I), (FIVE, THREE)))
+    obj = first(objs)
+    i, j = centerofmass(obj)
+    O = fill(O, 3, backdrop(crop(O, (i * FIVE + TWO, (j * FIVE + TWO) + FIVE * (j % 2) * (len(O) // FIVE - 1)), (THREE, THREE))))
+  else:
+    O = canvas(0, (TEN, TEN))
+    O = fill(O, 3, vfrontier((TWO, FIVE)))
+    O = fill(O, 3, vfrontier((TWO, EIGHT)))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Handling:** Similar to previous versions, handles objects by drawing a square.
+2. **Line Drawing with 'vfrontier':** Uses 'vfrontier' to directly draw the vertical lines when no objects are present.
+
+**Version 4: Combining 'hconcat' and 'vconcat' for Canvas Construction**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  if objs:
+    obj = first(objs)
+    O = canvas(0, multiply(shape(I), (FIVE, FIVE))) if len(objs[0]) == 1 else canvas(0, multiply(shape(I), (FIVE, THREE)))
+    i, j = centerofmass(obj)
+    square = canvas(3, (THREE, THREE))
+    offset_i = i * FIVE + TWO
+    offset_j = (j * FIVE + TWO) + FIVE * (j % 2) * (len(O) // FIVE - 1)
+    empty_row = canvas(0, (ONE, len(O[0])))
+    empty_col = canvas(0, (len(O), ONE))
+    O = vconcat(vconcat(hconcat(hconcat(canvas(0, (offset_i, offset_j)), square), canvas(0, (len(O) - offset_i - THREE, offset_j))), square), canvas(0, (len(O) - offset_i - THREE, len(O[0]) - offset_j - THREE)))
+  else:
+    O = canvas(0, (TEN, TEN))
+    line1 = vconcat(canvas(0, (TWO, FIVE)), vconcat(canvas(3, (TWO, ONE)), canvas(0, (TWO, FOUR))))
+    line2 = vconcat(canvas(0, (TWO, EIGHT)), vconcat(canvas(3, (TWO, ONE)), canvas(0, (TWO, ONE))))
+    O = hconcat(hconcat(line1, canvas(0, (TEN, ONE))), line2)
+  return O
+```
+
+**Explanation:**
+
+1. **Conditional Canvas:** Creates the base canvas based on object presence.
+2. **Square and Offsets:** Calculates offsets and prepares a 3x3 square.
+3. **Canvas Construction:** Uses 'hconcat' and 'vconcat' to build the output canvas by placing the square at calculated offsets.
+4. **Line Drawing with Concatenation:** If no objects, constructs lines using 'hconcat' and 'vconcat'.
+
+**Version 5: Implementing a 'draw_element' Helper Function**
+
+```python
+def draw_element(canvas, element, offset, value):
+  """Helper function to draw an element on the canvas."""
+  for i, j in toindices(element):
+    canvas = fill(canvas, value, backdrop(crop(canvas, add(offset, (i, j)), (ONE, ONE))))
+  return canvas
+
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  if objs:
+    obj = first(objs)
+    O = canvas(0, multiply(shape(I), (FIVE, FIVE))) if len(objs[0]) == 1 else canvas(0, multiply(shape(I), (FIVE, THREE)))
+    i, j = centerofmass(obj)
+    square = backdrop(crop(canvas(0, (THREE, THREE)), (ZERO, ZERO), (THREE, THREE)))
+    offset = (i * FIVE + TWO, (j * FIVE + TWO) + FIVE * (j % 2) * (len(O) // FIVE - 1))
+    O = draw_element(O, square, offset, 3)
+  else:
+    O = canvas(0, (TEN, TEN))
+    line = backdrop(crop(canvas(0, (TWO, ONE)), (ZERO, ZERO), (TWO, ONE)))
+    O = draw_element(O, line, (TWO, FIVE), 3)
+    O = draw_element(O, line, (TWO, EIGHT), 3)
+  return O
+```
+
+**Explanation:**
+
+1. **Helper Function 'draw_element':** Introduces a helper function to draw elements (square or line) at a given offset.
+2. **Object Handling:** Similar to previous versions, handles objects by drawing a square.
+3. **Line Drawing with 'draw_element':**  Uses 'draw_element' to draw lines when no objects exist.
+4. **Improved Code Structure:** Improves code readability and reusability by abstracting element drawing logic. 
+
+These versions provide distinct approaches and logical variations to achieve the desired transformation while adhering to the DSL constraints. Each version prioritizes different aspects like code readability, conciseness, and function utilization. 

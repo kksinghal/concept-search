@@ -1,0 +1,155 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects of a specific color (5 in this case) and moving them to different locations on the grid. The movement pattern depends on the shape of the object:
+
+* **Single-cell objects:** These objects are moved to the left and bottom edge of the bounding box of the original object.
+* **Multi-cell objects:** The leftmost column of these objects is treated separately and moved downwards. The rest of the object is shifted one position to the left.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 5
+  obj = first(colorfilter(objects(I, T, F, F), target_color))
+  if len(obj) == 1: 
+    O = paint(
+      cover(I, obj),
+      recolor(target_color, {(ulcorner(obj)[0], 0), (lrcorner(obj)[0], 0)})
+    )
+  else:
+    left_col = toindices(crop(I, ulcorner(obj), (height(obj), 1)))
+    rest_of_obj = toindices(crop(I, (ulcorner(obj)[0], ulcorner(obj)[1] + 1), (height(obj), width(obj) - 1)))
+    O = paint(
+      paint(
+        cover(I, obj),
+        recolor(target_color, shift(left_col, (height(obj) - 1, 0)))
+      ),
+      recolor(target_color, shift(rest_of_obj, (0, -1)))
+    )
+  return O
+```
+
+**Explanation:**
+
+1. **Identify target object:** The code identifies the object with color '5'.
+2. **Handle single-cell objects:** If the object has only one cell, it paints two cells with the target color at the top and bottom of the object's original column.
+3. **Handle multi-cell objects:** 
+    * Extract the leftmost column and the rest of the object.
+    * Paint the leftmost column at the bottom of the object's original column.
+    * Shift the remaining part of the object one position to the left.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 5
+  obj = first(colorfilter(objects(I, T, F, F), target_color))
+  O = cover(I, obj)
+  if len(obj) == 1:
+    O = paint(O, recolor(target_color, {(ulcorner(obj)[0], leftmost(obj)), (lrcorner(obj)[0], leftmost(obj))}))
+  else:
+    for i, j in toindices(obj):
+      if j == leftmost(obj):
+        O = paint(O, {(target_color, (lowermost(obj), j))})
+      else:
+        O = paint(O, {(target_color, (i, j-1))})
+  return O
+```
+
+**Explanation:**
+
+1. **Identify target object and clear its space:**  Identifies the object and clears its original location.
+2. **Handle single-cell objects:**  Paints two cells at the top and bottom of the object's original column.
+3. **Handle multi-cell objects:** 
+    * Iterates through the object's cells.
+    * If the cell belongs to the leftmost column, paint it at the bottom of that column.
+    * Otherwise, shift the cell one position to the left.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 5
+  obj = first(colorfilter(objects(I, T, F, F), target_color))
+  left_col = toindices(crop(I, ulcorner(obj), (height(obj), 1)))
+  rest_of_obj = difference(toindices(obj), left_col)
+  O = paint(
+    cover(I, obj),
+    recolor(target_color, branch(len(obj) == 1, 
+                                  {(ulcorner(obj)[0], 0), (lrcorner(obj)[0], 0)},
+                                  shift(left_col, (height(obj) - 1, 0))))
+  )
+  return paint(O, recolor(target_color, branch(len(obj) == 1, {}, shift(rest_of_obj, (0, -1))))) 
+```
+
+**Explanation:**
+
+1. **Identify target object and separate left column:**  Identifies the object and separates its leftmost column.
+2. **Handle both cases using branching:** Utilizes the `branch` function to handle single and multi-cell objects within the same `paint` calls.
+3. **Paint left column and rest of the object:** Based on the object's size, it paints either the top and bottom cells of the column or the shifted left column and the remaining object shifted to the left. 
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 5
+  obj = first(colorfilter(objects(I, T, F, F), target_color))
+  O = I
+  for i, j in toindices(obj):
+    O = cover(O, {(i, j)})
+    if len(obj) == 1:
+      O = paint(O, {(target_color, (ulcorner(obj)[0], j)), (target_color, (lrcorner(obj)[0], j))})
+    else:
+      if j == leftmost(obj):
+        O = paint(O, {(target_color, (lowermost(obj), j))})
+      else:
+        O = paint(O, {(target_color, (i, j-1))})
+  return O 
+```
+
+**Explanation:**
+
+1. **Iterative approach:** This version iterates through each cell of the target object.
+2. **Clear and paint each cell:** For each cell, it clears its original location and paints it at the new location based on the transformation rules.
+3. **Handles single and multi-cell objects within the loop:**  The logic for both cases is embedded within the loop, simplifying the code structure.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  target_color = 5
+  obj = first(colorfilter(objects(I, T, F, F), target_color))
+  if len(obj) == 1:
+    return paint(
+      cover(I, obj),
+      recolor(target_color, {(ulcorner(obj)[0], 0), (lrcorner(obj)[0], 0)})
+    )
+  else:
+    return paint(
+        paint(
+          cover(I, obj),
+          recolor(target_color, shift(toindices(crop(I, ulcorner(obj), (height(obj), 1))), (height(obj) - 1, 0)))
+        ),
+        recolor(target_color, shift(toindices(crop(I, (ulcorner(obj)[0], ulcorner(obj)[1] + 1), (height(obj), width(obj) - 1))), (0, -1)))
+      ) 
+```
+
+**Explanation:**
+
+1. **Direct return for different cases:** This version directly returns the transformed grid based on the object's size.
+2. **Separate logic for single and multi-cell objects:** It maintains separate code blocks for handling single and multi-cell objects, making the code more readable.
+3. **Combines paint and shift for conciseness:** It combines `paint`, `cover`, and `shift` calls to achieve the transformation in a more concise manner. 
+
+These versions demonstrate different approaches to solving the given transformation problem using the provided DSL. Each version offers a unique combination of functions and logic, showcasing the flexibility of the DSL and providing diverse solutions to the same problem. 

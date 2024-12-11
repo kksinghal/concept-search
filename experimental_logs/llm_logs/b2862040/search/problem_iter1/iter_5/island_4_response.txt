@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation involves identifying cells in the input grid that are directly adjacent to a cell of a different value (excluding diagonal adjacency). These identified cells retain their original value and are considered part of an object's boundary. All other cells, whether they are part of an object or background, are replaced with the value '9'.
+
+**Here's a breakdown for each input-output pair:**
+
+- **Input_0 to Output_0:**  The "1" cells form a single object. The output identifies the boundary of this object by changing the values of cells adjacent to a "9" to "8", while keeping the internal "1"s unchanged.
+- **Input_1 to Output_1:** Similar to the previous example, the boundary of each object formed by connected "1" cells is identified and marked with "8".  
+- **Input_2 to Output_2:**  The logic applies to multiple disconnected objects formed by "1" cells, effectively outlining them with "8"s.
+- **Input_3 to Output_3:** The pattern continues, demonstrating the transformation's effectiveness across varying object shapes and configurations.
+
+## Code Generation:
+
+### Program Version 1: Using `objects` and `adjacent` functions
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+  output = canvas(9, shape(I))
+  for obj in objs:
+    for cell in obj:
+      if any(adjacent(initset(cell), other_obj) for other_obj in objs - {obj}):
+        output = paint(output, {(8, cell[1])})
+      else:
+        output = paint(output, {(cell[0], cell[1])})
+  return output
+```
+
+**Explanation:**
+1. **Identify Objects:**  `objects(I, univalued=True, diagonal=False, without_bg=False)` detects all connected components ("objects") in the grid `I`.
+2. **Initialize Canvas:** `canvas(9, shape(I))` creates an empty grid filled with "9"s, having the same dimensions as the input.
+3. **Iterate and Paint:** The program iterates over each object and each cell within the object.
+4. **Check Adjacency:**  For every cell, `adjacent(initset(cell), other_obj)` checks if it's directly adjacent to any cell belonging to a different object. 
+5. **Paint Boundary:** If adjacent to a different object, the cell is painted with "8" on the output grid, signifying a boundary. Otherwise, the original cell value is retained.
+
+### Program Version 2: Using nested loops and `dneighbors`
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  output = [[9 for _ in range(w)] for _ in range(h)]
+  for i in range(h):
+    for j in range(w):
+      if I[i][j] != 9:
+        for ni, nj in dneighbors((i, j)):
+          if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == 9:
+            output[i][j] = 8
+            break
+        else:
+          output[i][j] = I[i][j]
+  return tuple(tuple(row) for row in output)
+```
+
+**Explanation:**
+1. **Initialize Output:** Create an output grid with the same size as the input, filled with "9"s.
+2. **Iterate Through Cells:**  Use nested loops to go through each cell in the input grid.
+3. **Check for Non-Background:**  If a cell's value is not "9" (not background), proceed to check its neighbors.
+4. **Check Direct Neighbors:** Use `dneighbors` to get directly adjacent neighbors.
+5. **Boundary Detection:** If a neighbor is within the grid bounds and has the value "9" (background), mark the current cell as a boundary ("8") and break the inner loop.
+6. **Retain Original Value:** If no background neighbor is found, retain the cell's original value in the output.
+
+### Program Version 3:  Leveraging `apply` and lambda function
+
+```python
+def Program_to_be_generated(I):
+  return apply(
+    lambda row: tuple(
+      apply(
+        lambda cell: 8 if any(index(I, add(cell[1], d)) == 9 and 0 <= add(cell[1], d)[0] < len(I) and 0 <= add(cell[1], d)[1] < len(I[0]) 
+                      for d in {(-1, 0), (1, 0), (0, -1), (0, 1)}) and cell[0] != 9
+                      else cell[0], 
+        zip(row, range(len(row)))
+      )
+    ),
+    zip(I, range(len(I)))
+  )
+```
+
+**Explanation:**
+1. **Apply on Rows:** The code uses `apply` to process each row of the input grid `I`. 
+2. **Apply on Cells:** Within each row, another `apply` is used to process individual cells. 
+3. **Lambda for Boundary Check:** A lambda function is used within the inner `apply` to check if a cell is on the boundary.
+    - `index(I, add(cell[1], d)) == 9`: This part checks if a neighbor in any of the four directions (up, down, left, right) is "9". 
+    -  `0 <= add(cell[1], d)[0] < len(I) and 0 <= add(cell[1], d)[1] < len(I[0])`:  This ensures the neighbor index is within the grid bounds.
+    - `cell[0] != 9`:  This checks if the current cell itself is not background.
+4. **Conditional Value:** If the conditions for a boundary cell are met, the lambda function returns "8"; otherwise, it returns the original cell value (`cell[0]`).
+
+### Program Version 4: Using `crop` and `dneighbors`
+
+```python
+def Program_to_be_generated(I):
+    output = canvas(9, shape(I))
+    for i in range(1, len(I) - 1):
+        for j in range(1, len(I[0]) - 1):
+            if I[i][j] != 9:
+                sub = crop(I, (i-1, j-1), (3, 3))
+                if any(v == 9 for r in sub for v in r):
+                    output = paint(output, {(8, (i, j))})
+                else:
+                    output = paint(output, {(I[i][j], (i, j))})
+    return output
+```
+
+**Explanation:**
+1. **Initialize Canvas:** Create an output grid filled with "9"s, having the same dimensions as the input.
+2. **Iterate Through Cells (Excluding Border):**  Use nested loops to go through each cell in the input grid, excluding border cells.
+3. **Extract Subgrid:** For each cell, `crop(I, (i-1, j-1), (3, 3))` extracts a 3x3 subgrid centered around the current cell. 
+4. **Check for Background in Subgrid:** `any(v == 9 for r in sub for v in r)` checks if there's any background ("9") cell within the subgrid.
+5. **Paint Boundary or Retain:** If a background cell is found in the subgrid, paint the current cell on the output grid with "8". Otherwise, retain the original cell value.
+
+### Program Version 5:  Combining `papply` and `dneighbors`
+
+```python
+def Program_to_be_generated(I):
+  h, w = len(I), len(I[0])
+  return tuple(
+    tuple(
+      papply(
+        lambda v, loc: 8 if v != 9 and any(0 <= ni < h and 0 <= nj < w and I[ni][nj] == 9 for ni, nj in dneighbors(loc))
+                      else v,
+        r,
+        [(i, j) for j in range(w)]
+      )
+    ) 
+    for i, r in enumerate(I)
+  )
+```
+
+**Explanation:**
+1. **Iterate and Pair:** The code iterates over each row (`r`) and uses `enumerate` to get the row index (`i`).  Within each row, it pairs cell values (`v`) with their locations (`(i, j)`).
+2. **Apply on Pairs:** `papply` applies a lambda function to each (value, location) pair.
+3. **Lambda for Boundary Check:** The lambda function checks if a cell is a boundary:
+    - `v != 9`:  The cell itself should not be background.
+    - `any(0 <= ni < h and 0 <= nj < w and I[ni][nj] == 9 for ni, nj in dneighbors(loc))`: This part checks if any directly adjacent neighbor is within the grid bounds and has the value "9".
+4. **Conditional Value:**  The lambda function returns "8" for a boundary cell and the original value (`v`) otherwise. 
+5. **Construct Output:** The result of `papply` for each row is converted back into tuples to reconstruct the output grid. 

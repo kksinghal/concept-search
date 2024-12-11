@@ -1,0 +1,153 @@
+## Transformation Analysis:
+
+The transformation can be broken down into two steps:
+
+**1. Outlining:** Each object (a connected group of non-zero digits) is outlined with the digit '6'. The outline extends one cell outwards in all directions.
+
+**2. Conditional Filling:** The area beneath each object is filled based on its original color:
+    - If the object's original color was '8', the area is filled with '4'.
+    - If the object's original color was anything other than '8', the area is filled with '1'.
+
+## Program Version 1:
+
+```python
+def Program_to_be_generated(I):
+  def process_object(obj):
+    O = paint(I, recolor(6, outbox(obj))) # Outline the object with '6'
+    fill_color = 4 if color(obj) == 8 else 1 # Determine fill color
+    fill_area = product(interval(lowermost(obj) + 1, lowermost(obj) + 2, 1), 
+                       interval(leftmost(obj) - 1, rightmost(obj) + 2, 1)) # Area below object
+    return underfill(O, fill_color, fill_area) # Fill the area
+
+  return last(apply(process_object, objects(I, T, F, T))) # Apply to all objects
+```
+
+**Explanation:**
+
+1. **`process_object(obj)` function:**
+   - Outlines a given object `obj` on the input grid `I` using `outbox` and `recolor` with '6'.
+   - Determines the `fill_color` based on the object's original color using a conditional statement.
+   - Defines the `fill_area` below the object using `product`, `interval`, `lowermost`, `leftmost`, and `rightmost`.
+   - Fills the `fill_area` with the determined `fill_color` using `underfill`.
+2. **Main program:**
+   - Identifies all objects in the input grid `I` using `objects(I, T, F, T)`.
+   - Applies the `process_object` function to each object using `apply`.
+   - Since `apply` returns a tuple of grids (one for each processed object), the `last` function is used to select the final transformed grid.
+
+## Program Version 2:
+
+```python
+def Program_to_be_generated(I):
+  outlined = paint(I, recolor(6, mapply(outbox, objects(I, T, F, T)))) # Outline all objects
+  filled_8 = underfill(
+    outlined, 
+    4, 
+    mapply(lambda obj: product(interval(lowermost(obj) + 1, lowermost(obj) + 2, 1),
+                                  interval(leftmost(obj) - 1, rightmost(obj) + 2, 1)), 
+                 colorfilter(objects(I, T, F, T), 8))
+  ) # Fill under '8' objects with '4'
+  return underfill(
+    filled_8, 
+    1, 
+    mapply(lambda obj: product(interval(lowermost(obj) + 1, lowermost(obj) + 2, 1),
+                                  interval(leftmost(obj) - 1, rightmost(obj) + 2, 1)),
+                 difference(objects(I, T, F, T), colorfilter(objects(I, T, F, T), 8)))
+  ) # Fill under other objects with '1'
+```
+
+**Explanation:**
+
+1. **Outlining:**
+   - Identifies all objects using `objects(I, T, F, T)`.
+   - Outlines all objects with '6' using `mapply`, `outbox`, `recolor`, and `paint`.
+2. **Filling:**
+   - Fills the area below objects originally colored '8' with '4' using `underfill`, `mapply`, `product`, `interval`, `lowermost`, `leftmost`, `rightmost`, and `colorfilter`.
+   - Fills the area below the remaining objects with '1' using the same functions but filtering out objects originally colored '8' using `difference`.
+
+## Program Version 3:
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  return paint(
+    paint(I, recolor(6, merge(apply(outbox, objs)))), # Outline all objects
+    recolor(4, merge(apply(lambda obj: product(interval(lowermost(obj) + 1, lowermost(obj) + 2, 1),
+                                        interval(leftmost(obj) - 1, rightmost(obj) + 2, 1)),
+                     colorfilter(objs, 8)))) # Fill under '8' objects
+  ) | paint(
+    I,
+    recolor(1, merge(apply(lambda obj: product(interval(lowermost(obj) + 1, lowermost(obj) + 2, 1),
+                                      interval(leftmost(obj) - 1, rightmost(obj) + 2, 1)),
+                    difference(objs, colorfilter(objs, 8))))) # Fill under other objects
+  )
+```
+
+**Explanation:**
+
+1. **Object Identification:**  Identifies all objects using `objects` and stores them in `objs`.
+2. **Outlining:** Outlines all objects with '6' using `merge`, `apply`, `outbox`, `recolor`, and `paint`.
+3. **Conditional Filling:** 
+    - Uses two separate `paint` operations, one for each fill color:
+        - The first `paint` fills areas under objects with original color '8' using '4'.
+        - The second `paint` fills areas under other objects using '1'.
+    - Both `paint` operations utilize `merge`, `apply`, `product`, `interval`, `lowermost`, `leftmost`, `rightmost`, `colorfilter`, and `difference` to identify and fill the correct areas.
+
+## Program Version 4:
+
+```python
+def Program_to_be_generated(I):
+    def outline_and_fill(O, obj):
+        O = paint(O, recolor(6, outbox(obj))) # Outline with 6
+        fill_color = 4 if color(obj) == 8 else 1 # Conditional fill
+        fill_area = frozenset((i, j) for i in range(lowermost(obj) + 1, lowermost(obj) + 2)
+                              for j in range(leftmost(obj) - 1, rightmost(obj) + 2))
+        return underfill(O, fill_color, fill_area)
+
+    return last(rapply(lambda O: apply(rbind(outline_and_fill, O), objects(I, T, F, T)), [I] * len(objects(I, T, F, T))))
+```
+
+**Explanation:**
+
+This version utilizes a combination of `rapply`, `rbind`, and nested `apply` functions to achieve the transformation. 
+
+1.  **`outline_and_fill(O, obj)` function:** Similar to previous versions, it outlines the object with '6' and fills the area below based on the original color. The `fill_area` is now defined using nested list comprehension for better readability.
+2.  **Nested Application:**
+    - `objects(I, T, F, T)`:  First, it identifies all objects in the input grid.
+    - `[I] * len(objects(I, T, F, T))`: Creates a list containing the input grid repeated as many times as there are objects. This allows for processing each object on a separate copy of the input grid.
+    -  `rapply`: This function applies a series of functions to a value. In this case, it applies the lambda function to each copy of the input grid in the previously created list.
+    -  `lambda O: apply(rbind(outline_and_fill, O), objects(I, T, F, T))`: This lambda function takes a copy of the input grid (`O`) as input and then applies the `outline_and_fill` function to each object in the grid using `rbind` to bind `O` as the first argument to `outline_and_fill`.
+    - `last`: Finally, it selects the last grid from the resulting list, which represents the fully transformed grid.
+
+## Program Version 5:
+
+```python
+def Program_to_be_generated(I):
+  def process_row(row, obj):
+    start = leftmost(obj) - 1
+    end = rightmost(obj) + 2
+    if lowermost(obj) + 1 == len(I):
+      return row
+    return row[:start] + tuple(1 if row[i] == 0 and color(obj) != 8 else 4 if row[i] == 0 and color(obj) == 8 else 6 for i in range(start, end)) + row[end:]
+  
+  result = I
+  for obj in objects(I, T, F, T):
+    result = paint(result, recolor(6, outbox(obj)))
+    result = tuple(process_row(row, obj) if i == lowermost(obj) + 1 else row for i, row in enumerate(result))
+  return result
+```
+
+**Explanation:**
+
+1. **`process_row(row, obj)`:**
+   - This function takes a row from the grid and an object as input.
+   - It calculates the start and end indices for filling based on the object's position.
+   - If the fill area is beyond the grid's boundary, it returns the original row.
+   - It uses list slicing and a list comprehension to modify the row, filling the area below the object with '1', '4', or '6' based on the object's color and the cell's original value.
+
+2. **Main program:**
+   - It iterates through each object in the grid.
+   - For each object:
+     - It outlines the object with '6' using `paint` and `recolor`.
+     - It applies the `process_row` function to each row in the grid using a list comprehension, modifying only the row immediately below the object.
+
+This version utilizes a row-by-row processing approach, offering a different perspective on achieving the desired transformation. 

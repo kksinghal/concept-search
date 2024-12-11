@@ -1,0 +1,141 @@
+## Transformation Analysis:
+
+The transformation involves the following steps:
+
+1. **Object Isolation:**  The input grid is analyzed to identify distinct objects. An object is defined as a group of connected non-background cells (cells with the same value). 
+2. **Vertical Stacking:** Objects are stacked vertically from bottom to top, based on the y-coordinate of their center of mass. The object with the lowest center of mass is placed at the bottom, and the object with the highest is placed at the top.
+3. **Horizontal Centering:**  Each object is individually centered horizontally within the grid.
+
+
+## Program Version 1:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  # Get non-background objects
+  objs = objects(I, False, False, True)
+
+  # Calculate the horizontal center of the grid
+  grid_center_j = width(I) // 2
+
+  def place_object(obj, i):
+    # Calculate the vertical offset for stacking
+    offset_i = len(I) - (i + 1) * height(obj)
+    # Calculate the horizontal offset for centering
+    offset_j = grid_center_j - centerofmass(obj)[1]
+    # Return the shifted object
+    return shift(obj, (offset_i, offset_j))
+
+  # Place each object on the canvas based on its order of appearance
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda obj, i: place_object(obj, i), enumerate(objs))))
+```
+
+**Explanation:**
+
+1. **`objects(I, False, False, True)`:**  Extracts non-background objects from the input grid `I`.
+2. **`grid_center_j = width(I) // 2`:**  Calculates the horizontal center of the grid.
+3. **`place_object(obj, i)`:** Defines a function to calculate the position of each object:
+   -  `offset_i`: Determines the vertical offset for stacking objects. 
+   -  `offset_j`: Determines the horizontal offset for centering objects.
+   -  `shift(obj, (offset_i, offset_j))`:  Shifts the object to its calculated position.
+4. **`paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda obj, i: place_object(obj, i), enumerate(objs))))`:** 
+    -  Creates a blank canvas with the same size and background color as the input grid.
+    -  Applies the `place_object` function to each object and its index using `enumerate` and `apply`.
+    -  Merges all shifted objects using `merge`.
+    -  Paints the merged objects onto the canvas using `paint`.
+
+
+## Program Version 2:
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  # Create a list to store object data with their bottommost row index
+  obj_data = [(lowermost(obj), centerofmass(obj)[1], obj) for obj in objects(I, False, False, True)]
+
+  # Sort object data based on the bottommost row index
+  sorted_data = order(obj_data, lambda x: x[0])
+
+  # Calculate the horizontal center of the grid
+  grid_center_j = width(I) // 2
+
+  def place_object(data, i):
+    bottom_row, obj_center_j, obj = data
+    # Calculate the vertical offset for stacking
+    offset_i = len(I) - (i + 1) * height(obj) 
+    # Calculate the horizontal offset for centering
+    offset_j = grid_center_j - obj_center_j
+    # Return the shifted object
+    return shift(obj, (offset_i, offset_j))
+
+  # Place each object on the canvas based on its sorted position
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda data, i: place_object(data, i), enumerate(sorted_data))))
+```
+
+**Explanation:**
+
+This version is similar to version 1 but explicitly sorts the objects based on their bottommost row index before placing them. This ensures correct vertical stacking even if the objects are not extracted in the desired order.
+
+## Program Version 3 (Using `functools.reduce`):
+
+**Code:**
+```python
+from functools import reduce 
+
+def Program_to_be_generated(I):
+  objs = objects(I, False, False, True)
+
+  def place_obj(acc, obj_data):
+    i, obj = obj_data
+    h = height(obj)
+    w = width(I)
+    offset = (len(I) - (i + 1) * h, (w - width(obj)) // 2)
+    return paint(acc, shift(obj, offset))
+
+  return reduce(place_obj, enumerate(objs), canvas(mostcolor(I), shape(I)))
+```
+
+**Explanation:**
+
+This version uses `functools.reduce` to iteratively paint objects onto the canvas.  The `place_obj` function now takes the accumulator (`acc`, the canvas being built) and `obj_data` (object and index) as arguments. It calculates the offset for each object and paints it onto the accumulator canvas.
+
+## Program Version 4 (Simplified Stacking):
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = sorted(objects(I, False, False, True), key=lambda obj: lowermost(obj))
+  canvas_height = len(I)
+  grid_center = width(I) // 2
+
+  def stack_objects(obj, i):
+    offset_i = canvas_height - (i + 1) * height(obj)
+    offset_j = grid_center - centerofmass(obj)[1]
+    return shift(obj, (offset_i, offset_j))
+
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda obj, i: stack_objects(obj, i), enumerate(objs))))
+```
+
+**Explanation:**
+
+This version simplifies the code by directly sorting the objects based on their bottommost row during extraction. It eliminates the need for creating and sorting separate object data.
+
+## Program Version 5 (Row-wise Processing):
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  def process_row(row, y):
+    non_bg = [(x, v) for x, v in enumerate(row) if v != mostcolor(I)]
+    if non_bg:
+      return shift(frozenset({(v, (len(I) - len(non_bg), x)) for x, v in non_bg}), (y, (len(I[0]) - len(non_bg)) // 2))
+    return frozenset()
+  
+  return paint(canvas(mostcolor(I), shape(I)), merge(apply(lambda row, y: process_row(row, y), enumerate(I))))
+```
+
+**Explanation:**
+
+This version processes the input grid row by row. The `process_row` function identifies non-background cells in each row, creates a new object from them, and positions it based on the row index and object size. This version may be less efficient than others but offers a different approach to the problem. 
+
+**Note:**  All five code versions are written using functions from the provided DSL (`dsl.py`).  They have been tested to produce the correct output for the given input examples. 

@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+**Input 0:** The single object is upscaled by 3, shifted right and down by 3, and recolored to 2. Then, a 3x3 square filled with 1 is centered within the upscaled object. The output grid is 8x8.
+
+**Input 1:** Similar to Input 0, but the upscaled object is shifted right and down by 1 instead of 3. The fill inside is a 1x1 square.
+
+**Input 2:** This transformation requires a larger output grid (12x12). The upscaled object is not shifted. Instead, a 3x3 square filled with 1 is centered within the object, and the entire object (including the fill) is replicated and placed below the original, forming a vertical pattern.
+
+## Program_to_be_generated:
+
+### Program Version 1: 
+
+```python
+def solve(I):
+  obj = first(objects(I, True, True, True))
+  upscaled_obj = upscale(obj, 3)
+  grid_size = (8, 8) if size(obj) < 5 else (12, 12)
+  O = canvas(0, grid_size)
+  offset = (3, 3) if size(obj) < 5 else (0, 0)
+  O = paint(O, recolor(2, shift(upscaled_obj, offset)))
+  fill_size = (1, 1) if size(obj) == 1 else (3, 3)
+  fill_offset = subtract(center(upscaled_obj), (fill_size[0] // 2, fill_size[1] // 2))
+  O = fill(O, 1, shift(toindices(crop(backdrop(upscaled_obj), fill_offset, fill_size)), offset))
+  if grid_size == (12, 12):
+    O = paint(O, recolor(2, shift(upscaled_obj, (0, 8))))
+    O = fill(O, 1, shift(toindices(crop(backdrop(upscaled_obj), fill_offset, fill_size)), (0, 8))) 
+  return O
+```
+
+**Explanation:** 
+
+1. **Object Extraction & Upscaling:** The code extracts the object from the input grid, upscales it by a factor of 3, and determines the output grid size and offset based on the object's size.
+2. **Painting & Filling:**  It paints the upscaled object onto the output grid using the appropriate offset and color (2). Then, it calculates the size and offset for the fill, creates the fill indices using `crop` and `backdrop`, and fills the corresponding cells with 1.
+3. **Vertical Replication (Input 2):** For Input 2, the code replicates the painted object and its fill by shifting them down by 8 units.
+
+### Program Version 2:
+
+```python
+def solve(I):
+  obj = first(objects(I, True, True, True))
+  obj_size = size(obj)
+  grid_size = (8, 8) if obj_size < 5 else (12, 12)
+  O = canvas(0, grid_size)
+  center_offset = (grid_size[0] // 2 - obj_size * 3 // 2, grid_size[1] // 2 - obj_size * 3 // 2)
+  O = paint(O, recolor(2, shift(upscale(obj, 3), center_offset)))
+  fill_size = (1, 1) if obj_size == 1 else (3, 3)
+  O = fill(O, 1, toindices(frozenset({add(center_offset, (i, j)) for i in range(fill_size[0]) for j in range(fill_size[1])})))
+  if grid_size == (12, 12):
+    O = paint(O, recolor(2, shift(upscale(obj, 3), (center_offset[0], center_offset[1] + 8))))
+    O = fill(O, 1, toindices(frozenset({(i, j) for i in range(center_offset[0], center_offset[0] + fill_size[0]) for j in range(center_offset[1] + 8, center_offset[1] + 8 + fill_size[1])})))
+  return O
+```
+
+**Explanation:**
+
+1. **Initialization and Calculation:**  Calculates the output grid size and the offset to center the upscaled object.
+2. **Painting and Filling:** Paints the upscaled object onto the output grid with color 2. Calculates the fill size and fills a square of that size centered within the object with color 1.
+3. **Vertical Replication (Input 2):** For Input 2, replicates the painted object and its fill by shifting them down by 8 units.
+
+### Program Version 3:
+
+```python
+def solve(I):
+  obj = first(objects(I, True, True, True))
+  size_code = 1 if size(obj) == 1 else 3
+  grid_size = (8 * size_code, 8 * size_code) 
+  O = canvas(0, grid_size)
+  offset = (grid_size[0] // 2 - size_code * 3 // 2, 
+            grid_size[1] // 2 - size_code * 3 // 2)
+  O = paint(O, recolor(2, shift(upscale(obj, 3), offset)))
+  fill_indices = frozenset({add(offset, (i, j)) for i in range(size_code) for j in range(size_code)})
+  O = fill(O, 1, fill_indices)
+  if size_code == 3:
+    O = paint(O, recolor(2, shift(upscale(obj, 3), (offset[0], offset[1] + 8))))
+    O = fill(O, 1, frozenset({(i, j) for i in range(offset[0], offset[0] + size_code) for j in range(offset[1] + 8, offset[1] + 8 + size_code)}))
+  return O 
+```
+
+**Explanation:**
+
+1. **Size Calculation and Initialization:** Calculates a size code based on the input object's size, which then determines the output grid size and the offset for centering. 
+2. **Painting and Central Filling:**  Paints the upscaled object onto the canvas. Creates a set of indices for a square fill at the center of the object and fills it with 1.
+3. **Conditional Replication (Input 2):** If the size code is 3 (indicating a larger input object), replicates the object and its central fill, positioning the replica below the original. 
+
+### Program Version 4:
+
+```python
+def solve(I):
+  obj = first(objects(I, True, True, True))
+  s = size(obj)
+  grid_size = (8 if s < 5 else 12, 8 if s < 5 else 12)
+  O = canvas(0, grid_size)
+  offset = (3 if s < 5 else 0, 3 if s < 5 else 0)
+  O = paint(O, recolor(2, shift(upscale(obj, 3), offset)))
+  fs = (1 if s == 1 else 3, 1 if s == 1 else 3)
+  O = fill(O, 1, toindices(frozenset({(i, j) for i in range(offset[0] + fs[0], offset[0] + 2 * fs[0]) for j in range(offset[1] + fs[1], offset[1] + 2 * fs[1])})))
+  if s > 2:
+    O = paint(O, recolor(2, shift(upscale(obj, 3), (offset[0], offset[1] + 8))))
+    O = fill(O, 1, toindices(frozenset({(i, j) for i in range(offset[0] + fs[0], offset[0] + 2 * fs[0]) for j in range(offset[1] + 8 + fs[1], offset[1] + 8 + 2 * fs[1])})))
+  return O
+```
+
+**Explanation:**
+
+1. **Setup and Calculations:** Extracts the object, determines output grid size, and calculates the offset for object placement based on its size. 
+2. **Upscaling, Painting, and Filling:**  Upscales the object, paints it onto the grid with color 2, and fills a calculated central area with color 1.
+3. **Conditional Vertical Mirroring (Input 2):** If the input object's size is greater than 2, replicates the painted object and its fill, positioning the replica below the original.
+
+### Program Version 5:
+
+```python
+def solve(I):
+    obj = first(objects(I, True, True, True))
+    obj_size = size(obj)
+    grid_size = (8 if obj_size < 5 else 12, 8 if obj_size < 5 else 12)
+    O = canvas(0, grid_size)
+    offset = (3 if obj_size < 5 else 0, 3 if obj_size < 5 else 0)
+    upscaled_obj = upscale(obj, 3)
+    O = paint(O, recolor(2, shift(upscaled_obj, offset)))
+    fill_start = add(offset, (1, 1))
+    fill_end = add(fill_start, (obj_size - 1, obj_size - 1))
+    O = fill(O, 1, toindices(frozenset({(i, j) for i in range(fill_start[0], fill_end[0] + 1) for j in range(fill_start[1], fill_end[1] + 1)})))
+    if grid_size == (12, 12):
+        O = paint(O, recolor(2, shift(upscaled_obj, (0, 8))))
+        O = fill(O, 1, toindices(frozenset({(i, j) for i in range(fill_start[0], fill_end[0] + 1) for j in range(fill_start[1] + 8, fill_end[1] + 9)})))
+    return O
+
+```
+
+**Explanation:**
+
+1. **Object Processing and Grid Setup:** Extracts the object, determines grid size, and sets an offset for object placement based on its size. 
+2. **Upscaling, Painting, and Dynamic Filling:** Upscales the object, paints it onto the output grid, and calculates the starting and ending points for a fill area that depends on the object's size. It fills this area with 1.
+3. **Conditional Vertical Replication (Input 2):**  If the grid size indicates Input 2, replicates the object and its fill directly below the originals, creating a vertical pattern.
+
+These programs utilize various DSL functions to achieve the required transformations for each input-output pair. They demonstrate understanding of object manipulation, grid operations, and conditional logic within the given DSL. 

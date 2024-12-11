@@ -1,0 +1,134 @@
+## Transformation Analysis:
+
+The transformation aims to identify the dominant non-background object in the input grid and place two '4' markers symmetrically at the bottom of the grid, flanking the object's horizontal center. 
+
+**Specifics:**
+
+* **Dominant Object:**  The object with the largest area (most cells) that isn't the background color (assumed to be '0').
+* **Horizontal Center:** The average of the column indices of the dominant object's cells.
+* **Marker Placement:**  Two '4's are placed on the bottom row of the grid. They are positioned symmetrically around the object's horizontal center, leaving a single empty cell in between if the object's width is even, otherwise directly flanking the center.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)
+  obj = argmax(objs, size) if objs else {(0, 0)}
+  com = centerofmass(obj)
+  w = width(I)
+  offset = 1 if even(width(obj)) else 0
+  return fill(I, 4, {(height(I)-1, com[1]-1-offset), (height(I)-1, com[1]+offset)})
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, F, T)` extracts objects from the input grid `I`, considering connected cells with the same color (T), ignoring diagonal connections (F), and excluding the background (T).
+2. **Find Dominant Object:**  `argmax(objs, size)` selects the object with the largest size (area), defaulting to a dummy object at (0, 0) if no objects are found.
+3. **Calculate Center:** `centerofmass(obj)` computes the average row and column indices of the dominant object. 
+4. **Determine Offset:** `offset` is set to 1 if the object's width is even, otherwise 0. This controls the spacing of the '4' markers.
+5. **Place Markers:** `fill(I, 4, {(height(I)-1, com[1]-1-offset), (height(I)-1, com[1]+offset)})` places two '4's at the bottom row (`height(I)-1`), flanking the calculated center (`com[1]`) with the determined `offset`.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  obj = argmax(objects(I, T, F, T), lambda obj: len(obj)) if any(v != 0 for r in I for v in r) else {(0, 0)}
+  j = centerofmass(obj)[1]
+  return fill(fill(I, 4, {(height(I) - 1, j - 1 - (width(obj) % 2))}), 4, {(height(I) - 1, j + (width(obj) % 2))})
+```
+
+**Explanation:**
+
+1. **Find Dominant Object (Same as V1):**  Identifies the largest non-background object.
+2. **Get Center Column:** Extracts the column index `j` of the object's center of mass.
+3. **Place Markers:**  Uses two nested `fill` calls to place '4's. 
+    - The first `fill` places a '4' at the bottom row, offset to the left of the center column by 1 if the object's width is even, otherwise at the center column.
+    - The second `fill` places another '4' symmetrically to the right of the center column.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+    obj = max(objects(I, T, F, T), key=len, default={(0, 0)})
+    center_j = centerofmass(obj)[1]
+    bottom_row = height(I) - 1
+    offset = 1 if even(width(obj)) else 0
+    left_marker = (bottom_row, center_j - offset - 1)
+    right_marker = (bottom_row, center_j + offset)
+    return fill(fill(I, 4, {left_marker}), 4, {right_marker}) 
+```
+
+**Explanation:**
+
+This version emphasizes clarity and readability by breaking down the steps into individual variable assignments:
+
+1. **Find Dominant Object:**  Similar to previous versions, identifies the largest non-background object, defaulting to a dummy object at (0, 0).
+2. **Calculate Center Column:** Extracts the column index `center_j` of the object's center of mass.
+3. **Determine Bottom Row:**  Calculates the index of the bottom row `bottom_row`.
+4. **Calculate Offset:**  Determines the `offset` for marker placement based on object width parity.
+5. **Calculate Marker Positions:**  Explicitly calculates the indices `left_marker` and `right_marker` for the '4' markers.
+6. **Place Markers:**  Uses nested `fill` calls to place markers at the calculated positions. 
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)
+  if objs:
+    target = max(objs, key=len)
+    midpoint = centerofmass(target)[1]
+    offset = 1 if even(width(target)) else 0
+    marker_left = (height(I)-1, midpoint - 1 - offset)
+    marker_right = (height(I)-1, midpoint + offset)
+    return fill(fill(I, 4, {marker_left}), 4, {marker_right})
+  else:
+    return fill(I, 4, {(height(I)-1, 0)}) 
+```
+
+**Explanation:**
+
+This version improves upon error handling and clarity:
+
+1. **Find Objects:**  Identifies all non-background objects.
+2. **Handle Empty Object Case:** Explicitly checks if any objects were found. If no objects exist, it places a single '4' at the bottom left corner and returns.
+3. **Find Dominant Object & Calculate Positions:** If objects exist, it proceeds to find the largest object (`target`), calculate its midpoint, determine the offset, and calculate marker positions (`marker_left`, `marker_right`) similar to previous versions.
+4. **Place Markers:**  Places '4' markers at the calculated positions using nested `fill` calls.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(I):
+  objs = [obj for obj in objects(I, T, F, T)]
+  if objs:
+    obj = max(objs, key=lambda x: len(x))
+    j = center(toindices(obj))[1]
+  else:
+    j = 0
+  offset = 1 if even(width(I)) else 0
+  return fill(fill(I, 4, {(height(I)-1, j-1-offset)}), 4, {(height(I)-1, j+offset)})
+```
+
+**Explanation:**
+
+This version focuses on conciseness and leverages list comprehensions:
+
+1. **Find Objects:** Uses a list comprehension to directly create a list `objs` of non-background objects.
+2. **Handle Empty Object Case:**  Similar to V4, it checks for the presence of objects. If no objects are found, it sets the center column index `j` to 0. 
+3. **Find Dominant Object & Calculate Center:** If objects exist, it finds the largest object and calculates its center column index `j`.
+4. **Determine Offset:** Calculates the `offset` based on the grid's width instead of the object's width.
+5. **Place Markers:** Places '4' markers at the bottom row, flanking the calculated center `j` with the determined `offset`. 

@@ -1,0 +1,169 @@
+## Transformation Analysis:
+
+The transformation focuses on extending objects composed of the digit '8' in the input grid:
+
+* **Horizontal Extension:** If an '8' object has another '8' object directly below it, extend the top object horizontally to connect with the bottom object.
+* **Vertical Extension:** If an '8' object has another '8' object directly to its right, extend the left object vertically to connect with the right object. 
+
+Let's break it down for each input-output pair:
+
+**Input_0 -> Output_0:**
+* The top-left '8' object extends right to connect with the bottom-left '8' object.
+* The top-right '8' object extends left to connect with the bottom-right '8' object.
+
+**Input_1 -> Output_1:**
+* The '8' object in the rightmost column extends upwards to connect with the '8' object above it.
+
+**Input_2 -> Output_2:**
+* The top '8' object extends right to connect with the other '8' objects in its row.
+* The bottom left '8' object extends upwards to connect with the other '8' objects in its column.
+
+
+## Program Versions:
+
+Here are five distinct program versions using the DSL provided:
+
+**Program Version 1**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) # Identify all '8' objects
+  h_extended = frozenset()
+  for obj1 in objs:
+    for obj2 in objs:
+      if uppermost(obj1) + 1 == uppermost(obj2) and hmatching(obj1, obj2): # Check for objects directly above/below
+        h_extended = insert(combine(toindices(obj1), connect(leftmost(obj1), leftmost(obj2))), h_extended) # Extend horizontally
+  v_extended = frozenset()
+  for obj1 in objs:
+    for obj2 in objs:
+      if leftmost(obj1) + 1 == leftmost(obj2) and vmatching(obj1, obj2): # Check for objects directly left/right
+        v_extended = insert(combine(toindices(obj1), connect(uppermost(obj1), uppermost(obj2))), v_extended) # Extend vertically
+  O = fill(I, EIGHT, merge((h_extended, v_extended)))  
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Find all objects formed by the digit '8' using `objects` with `univalued=T` (only '8's), `diagonal=F` (no diagonal connections), and `without_bg=T` (exclude background).
+2. **Horizontal Extension:**
+   - Iterate through object pairs.
+   - Use `uppermost`, `hmatching` to find objects directly above/below.
+   - If found, use `connect` and `combine` to create a horizontal line connecting them.
+   - Store extended indices in `h_extended`.
+3. **Vertical Extension:**
+   - Similar logic to horizontal extension, using `leftmost`, `vmatching` to find objects directly left/right.
+   - Use `connect`, `combine` to create a vertical connecting line.
+   - Store extended indices in `v_extended`.
+4. **Fill Grid:**
+   - Merge `h_extended`, `v_extended` to get all extended indices.
+   - Fill these indices with the value '8' on the original grid using `fill`.
+
+
+**Program Version 2**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  extended_indices = frozenset()
+  for obj in objs:
+    down_neighbor = extract(objs, lambda o: uppermost(o) == uppermost(obj) + 1 and hmatching(o, obj), default=frozenset()) # Find the object directly below
+    if down_neighbor:
+      extended_indices = combine(extended_indices, connect(leftmost(obj), leftmost(down_neighbor))) # Extend horizontally
+    right_neighbor = extract(objs, lambda o: leftmost(o) == leftmost(obj) + 1 and vmatching(o, obj), default=frozenset()) # Find the object directly to the right
+    if right_neighbor:
+      extended_indices = combine(extended_indices, connect(uppermost(obj), uppermost(right_neighbor))) # Extend vertically
+  O = fill(I, EIGHT, extended_indices)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Iterate and Extend:** 
+   - Iterate through each '8' object.
+   - Use `extract` with a lambda function to efficiently find the object directly below (if it exists) based on the `uppermost` and `hmatching` conditions.
+   - If a below neighbor is found, use `connect` to get indices for a horizontal line connecting their leftmost points and combine these indices with `extended_indices`.
+   - Repeat the same logic but using `leftmost` and `vmatching` to find the right neighbor and connect vertically if found.
+3. **Fill Grid:** Fill the `extended_indices` with '8' on the original grid.
+
+
+**Program Version 3**
+
+```python
+def Program_to_be_generated(I):
+  changed = T
+  while changed:
+    changed = F
+    objs = objects(I, T, F, T)
+    for obj1 in objs:
+      for obj2 in objs:
+        if uppermost(obj1) + 1 == uppermost(obj2) and hmatching(obj1, obj2) and not hline(combine(obj1, obj2)): # Check if already a horizontal line
+          I = fill(I, EIGHT, connect(leftmost(obj1), leftmost(obj2))) # Directly fill the grid
+          changed = T 
+        if leftmost(obj1) + 1 == leftmost(obj2) and vmatching(obj1, obj2) and not vline(combine(obj1, obj2)): # Check if already a vertical line
+          I = fill(I, EIGHT, connect(uppermost(obj1), uppermost(obj2)))
+          changed = T
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Iterative Approach:** This version iteratively updates the grid until no more extensions are possible.
+2. **Loop and Extend:**
+   - Use a `while` loop with a `changed` flag to control iterations.
+   - In each iteration, find all '8' objects.
+   - Iterate through object pairs, checking for directly adjacent objects (above/below or left/right) using `uppermost`, `leftmost`, `hmatching`, `vmatching`.
+   - If an extension is possible AND the combined object isn't already a straight line (`hline` or `vline`), directly fill the grid with '8' along the connecting line using `connect`.
+   - Set `changed` to `T` to indicate a change in the grid.
+3. **Return Modified Grid:** The loop continues until no more extensions are possible, at which point the modified grid is returned.
+
+
+**Program Version 4**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T)
+  h_connections = mpapply(lambda o1, o2: connect(leftmost(o1), leftmost(o2)) if uppermost(o1) + 1 == uppermost(o2) and hmatching(o1, o2) else frozenset(), objs, objs)
+  v_connections = mpapply(lambda o1, o2: connect(uppermost(o1), uppermost(o2)) if leftmost(o1) + 1 == leftmost(o2) and vmatching(o1, o2) else frozenset(), objs, objs)
+  O = fill(I, EIGHT, merge((h_connections, v_connections)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Same as Version 1.
+2. **Find Connections:**
+   - Use `mpapply` to efficiently find potential horizontal connections between objects. The lambda function within `mpapply` checks for adjacent objects in the same way as previous versions, returning the connecting line indices using `connect` if a connection is found, and an empty `frozenset` otherwise.
+   - Do the same for vertical connections using `leftmost` and `vmatching`.
+3. **Fill Grid:** Merge the horizontal and vertical connection indices and fill them with '8' on the original grid.
+
+
+**Program Version 5**
+
+```python
+def Program_to_be_generated(I):
+  extended = frozenset()
+  for i in range(len(I)-1):
+    for j in range(len(I[0])):
+      if I[i][j] == EIGHT and I[i+1][j] == EIGHT:
+        extended = combine(extended, connect((i, j), (i+1, j)))
+  for i in range(len(I)):
+    for j in range(len(I[0])-1):
+      if I[i][j] == EIGHT and I[i][j+1] == EIGHT:
+        extended = combine(extended, connect((i, j), (i, j+1)))
+  O = fill(I, EIGHT, extended)
+  return O
+```
+
+**Explanation:**
+
+1. **Direct Iteration:** This version iterates directly through the grid cells.
+2. **Check and Extend:**
+   - Use nested loops to go through each cell.
+   - Check if the current cell and its neighbor below contain '8'. If so, add the connecting line indices to the `extended` set.
+   - Repeat for the right neighbor.
+3. **Fill Grid:** Fill the `extended` indices with '8' on the original grid.
+
+
+These five versions offer diverse approaches to achieve the same grid transformation, showcasing different function combinations and logical flows possible within the provided DSL.

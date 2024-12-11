@@ -1,0 +1,169 @@
+## Transformation Analysis:
+
+The transformation appears to be moving all non-background objects to the bottom of the grid, while maintaining their relative horizontal positions. 
+
+* **Input 0:** The "2" object is shifted down to the bottom rows, maintaining its shape and relative position. The "8" object is also shifted down to be directly above the "2" object.
+* **Input 1:** Similar to Input 0, both the "2" and "8" objects are moved to the bottom rows, preserving their shapes and relative horizontal positions.
+* **Input 2:** The "8" object is shifted down to the second row from the top. The "2" object is moved down to the bottom rows, positioned below the "8" object and maintaining its original shape.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+    x1 = objects(I, T, F, T)  # Extract all non-background objects
+    x2 = rbind(lowermost, I) # Function to get lowermost row of an object with respect to input grid
+    x3 = order(x1, x2)       # Sort objects by their lowermost row
+    x4 = canvas(0, shape(I)) # Create empty canvas of same size as input
+    x5 = (0, 0)              # Initialize offset 
+    for obj in x3:
+        x6 = shift(obj, x5)  # Shift object by current offset
+        x4 = paint(x4, x6)    # Paint shifted object onto canvas
+        x7 = height(obj)       # Get object height
+        x5 = (x5[0] + x7, x5[1]) # Update offset for the next object 
+    O = x4                    # Assign filled canvas to output
+    return O 
+```
+
+**Explanation:**
+
+1.  `objects(I, T, F, T)` extracts all non-background objects from the input grid.
+2.  `rbind(lowermost, I)` creates a function that determines the lowermost row of an object with respect to the input grid.
+3.  `order(x1, x2)` sorts the objects based on their lowermost row.
+4.  `canvas(0, shape(I))` generates an empty canvas with the same dimensions as the input grid.
+5.  The program iterates through the sorted objects:
+    *   `shift(obj, x5)` shifts each object down using an accumulating offset (`x5`).
+    *   `paint(x4, x6)` paints the shifted object onto the canvas.
+    *   `x5 = (x5[0] + x7, x5[1])` updates the offset by adding the height of the current object to ensure the next object is placed below it.
+6.  Finally, the canvas with all objects shifted down is returned as the output.
+
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  x1 = objects(I, T, F, T) # Extract all non-background objects
+  x2 = lambda obj: (height(I)-height(obj), 0) # Function to get the offset for an object
+  x3 = apply(x2, x1)       # Get offsets for all objects
+  x4 = pair(x1, x3)         # Pair objects with their corresponding offsets
+  x5 = lambda obj, off: paint(canvas(0, shape(I)), shift(obj, off)) # Function to paint a shifted object on empty canvas
+  O = merge(apply(x5, x4))  # Apply painting function to all object-offset pairs and merge the results 
+  return O
+```
+
+**Explanation:**
+
+1.  `objects(I, T, F, T)` extracts all non-background objects from the input grid.
+2.  `lambda obj: (height(I)-height(obj), 0)` defines a function that calculates the vertical offset for each object, ensuring it is positioned at the bottom.
+3.  `apply(x2, x1)` applies the offset calculation to all the extracted objects.
+4.  `pair(x1, x3)` combines each object with its corresponding offset.
+5.  `lambda obj, off: paint(canvas(0, shape(I)), shift(obj, off))` creates a function to paint a shifted object onto an empty canvas of the input's size.
+6.  `merge(apply(x5, x4))` applies the painting function to all object-offset pairs and merges the painted objects onto a single canvas, which is returned as the output.
+
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+    x1 = objects(I, T, F, T)  # Extract all non-background objects
+    x2 = rbind(lowermost, I) # Function to get lowermost row of an object with respect to input grid
+    x3 = sorted(x1, key=x2)  # Sort objects by their lowermost row
+    x4 = canvas(0, shape(I)) # Create empty canvas of same size as input
+    x5 = 0                   # Initialize vertical offset 
+    for obj in x3:
+        x6 = shift(obj, (x5, 0)) # Shift object down by current offset
+        x4 = underpaint(x4, x6)  # Paint shifted object onto canvas only where there is background
+        x5 += height(obj)          # Update offset for the next object 
+    O = x4                    # Assign filled canvas to output
+    return O 
+```
+
+**Explanation:**
+
+1.  `objects(I, T, F, T)` extracts all non-background objects from the input grid.
+2.  `rbind(lowermost, I)` creates a function that determines the lowermost row of an object with respect to the input grid.
+3.  `sorted(x1, key=x2)` sorts the objects based on their lowermost row.
+4.  `canvas(0, shape(I))` generates an empty canvas with the same dimensions as the input grid.
+5.  The program iterates through the sorted objects:
+    *   `shift(obj, (x5, 0))` shifts each object down using an accumulating vertical offset (`x5`).
+    *   `underpaint(x4, x6)` paints the shifted object onto the canvas only where there is background to prevent overlapping.
+    *   `x5 += height(obj)` updates the offset by adding the height of the current object to ensure the next object is placed below it.
+6.  Finally, the canvas with all objects shifted down is returned as the output.
+
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+    x1 = mostcolor(I)        # Identify background color
+    x2 = objects(I, T, F, F) # Extract all objects, including background
+    x3 = lambda obj: lowermost(obj) if color(obj) != x1 else -1 # Define function to get lowermost row for non-background objects, otherwise -1
+    x4 = order(x2, x3)       # Sort objects based on their lowermost row (non-background objects will be at the end)
+    x5 = canvas(x1, shape(I))# Create a canvas filled with background color
+    x6 = (0, 0)              # Initialize offset 
+    for obj in x4:
+        if color(obj) != x1: # If object is not background
+            x7 = shift(obj, x6) # Shift object by current offset
+            x5 = paint(x5, x7)   # Paint shifted object onto canvas
+            x8 = height(obj)      # Get object height
+            x6 = (x6[0] + x8, x6[1]) # Update offset for the next non-background object
+    O = x5                    # Assign filled canvas to output
+    return O
+```
+
+**Explanation:**
+
+1.  `mostcolor(I)` determines the background color of the input grid.
+2.  `objects(I, T, F, F)` extracts all objects, including the background object.
+3.  `lambda obj: lowermost(obj) if color(obj) != x1 else -1` defines a function that gets the lowermost row of non-background objects and assigns -1 to the background object, ensuring it is sorted to the beginning.
+4.  `order(x2, x3)` sorts all objects based on the function defined in step 3.
+5.  `canvas(x1, shape(I))` creates a canvas filled with the background color and the same size as the input.
+6.  The program iterates through the sorted objects:
+    *   If an object is not the background object:
+        *   `shift(obj, x6)` shifts the object using an accumulating offset (`x6`).
+        *   `paint(x5, x7)` paints the shifted object onto the canvas.
+        *   `x6 = (x6[0] + x8, x6[1])` updates the offset by adding the height of the object to ensure the next non-background object is placed below it.
+7.  Finally, the canvas with all non-background objects shifted down is returned as the output.
+
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  x1 = objects(I, T, F, T) # Extract all non-background objects
+  x2 = shape(I)             # Get input grid dimensions
+  x3 = lambda obj: (x2[0]-lowermost(obj)-1, 0) # Function to get the offset to bottom for each object
+  x4 = apply(x3, x1)       # Apply offset calculation to all objects
+  x5 = pair(x1, x4)         # Pair objects with their bottom offsets
+  x6 = lambda obj, off: shift(obj, off) # Function to shift an object by its offset
+  x7 = apply(x6, x5)       # Apply shifting to all object-offset pairs
+  x8 = canvas(0, x2)        # Create an empty canvas with the input grid's dimensions
+  O = paint(x8, merge(x7))  # Paint all shifted objects onto the canvas and assign it to the output
+  return O
+```
+
+**Explanation:**
+
+1.  `objects(I, T, F, T)` extracts all non-background objects from the input grid.
+2.  `shape(I)` retrieves the dimensions (height and width) of the input grid.
+3.  `lambda obj: (x2[0]-lowermost(obj)-1, 0)` defines a function to calculate the vertical offset required to move each object to the bottom of the grid, considering the input grid's height.
+4.  `apply(x3, x1)` applies the offset calculation to each extracted object.
+5.  `pair(x1, x4)` creates pairs of objects and their respective offsets.
+6.  `lambda obj, off: shift(obj, off)` defines a function to shift an object using a given offset.
+7.  `apply(x6, x5)` applies the shifting function to each object-offset pair.
+8.  `canvas(0, x2)` generates an empty canvas with the same dimensions as the input grid.
+9.  `paint(x8, merge(x7))` paints all the shifted objects onto the empty canvas. This final canvas, with objects positioned at the bottom, is returned as the output.

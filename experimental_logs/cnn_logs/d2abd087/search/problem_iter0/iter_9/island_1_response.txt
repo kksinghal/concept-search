@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation aims to identify objects within the grid and apply distinct color mappings based on their properties:
+
+**Rule 1: Border Objects:** Objects directly touching the grid's edge are colored '1'.
+
+**Rule 2: Large Objects:** Objects with more than one cell are colored '2'. 
+
+**Rule 3: Background:** All other cells retain their original value, presumably representing the background.
+
+Let's illustrate with an example using Input_0:
+
+```
+Input_0:             Output_0: (Border: 1, Large: 2)
+0 0 0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0 0 0
+0 0 5 5 5 0 0 0 0 0   0 0 2 2 2 0 0 0 0 0
+0 0 5 5 5 0 0 0 0 0   0 0 2 2 2 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 5 5 0 0   0 0 0 0 0 0 2 2 0 0
+0 0 0 0 0 5 5 5 0 0   0 0 0 0 0 2 2 2 0 0
+0 5 5 0 0 0 5 0 0 0   0 1 1 0 0 0 2 0 0 0
+0 5 5 5 0 0 0 0 0 0   0 1 1 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0 0 0
+```
+
+## Program Versions:
+
+**Program Version 1: Object-Centric Approach**
+
+```python
+def Program_to_be_generated(I):
+  border_objs = mfilter(objects(I, T, F, T), lambda obj: bordering(obj, I))
+  large_objs = mfilter(objects(I, T, F, T), lambda obj: size(obj) > 1)
+  O = paint(canvas(ZERO, shape(I)), recolor(ONE, merge(border_objs)))
+  O = paint(O, recolor(TWO, merge(large_objs)))
+  return O
+```
+
+**Explanation:**
+
+1.  **Identify Objects:** `objects(I, T, F, T)` extracts all connected objects from the input grid `I`.
+2.  **Filter by Properties:** 
+    *   `border_objs`:  Filters for objects touching the grid border using `bordering(obj, I)`.
+    *   `large_objs`: Filters for objects with more than one cell using `size(obj) > 1`.
+3.  **Create Canvas:** `canvas(ZERO, shape(I))` generates a blank grid of the same size as `I` filled with zeros.
+4.  **Paint Objects:**
+    *   `paint(..., recolor(ONE, merge(border_objs)))`: Colors all border objects '1'.
+    *   `paint(..., recolor(TWO, merge(large_objs)))`: Colors all large objects '2'.
+
+**Program Version 2: Index-Based Approach**
+
+```python
+def Program_to_be_generated(I):
+  border_indices = mfilter(asindices(I), lambda idx: bordering(initset(idx), I))
+  large_objs = mfilter(objects(I, T, F, T), lambda obj: size(obj) > 1)
+  O = fill(canvas(ZERO, shape(I)), ONE, border_indices) 
+  O = paint(O, recolor(TWO, merge(large_objs)))
+  return O
+```
+
+**Explanation:**
+
+1.  **Identify Border Indices:** 
+    *   `asindices(I)`:  Gets all cell indices of the grid.
+    *   `border_indices`: Filters for indices that are on the border using `bordering` on a single-element set created with `initset(idx)`.
+2.  **Identify Large Objects:** Same as in Version 1.
+3.  **Fill Border Cells:** `fill(canvas(...), ONE, border_indices)`:  Fills border cells with '1' on a blank canvas.
+4.  **Paint Large Objects:** Same as in Version 1.
+
+**Program Version 3: Two-Pass Coloring**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(ZERO, shape(I))
+  for obj in objects(I, T, F, T):
+    if bordering(obj, I):
+      O = paint(O, recolor(ONE, obj))
+    if size(obj) > 1:
+      O = paint(O, recolor(TWO, obj))
+  return O
+```
+
+**Explanation:**
+
+1.  **Initialize Canvas:** Create a blank canvas filled with zeros.
+2.  **Iterate over Objects:**  Loop through each object extracted from the grid.
+3.  **Conditional Coloring:** For each object, color it '1' if it's a border object and '2' if it's a large object. The order ensures large objects painted last overwrite any border coloring.
+
+**Program Version 4: Leveraging `cellwise` Function**
+
+```python
+def Program_to_be_generated(I):
+  border_grid = paint(canvas(ZERO, shape(I)), recolor(ONE, mfilter(objects(I, T, F, T), lambda obj: bordering(obj, I))))
+  large_grid = paint(canvas(ZERO, shape(I)), recolor(TWO, mfilter(objects(I, T, F, T), lambda obj: size(obj) > 1)))
+  return cellwise(border_grid, large_grid, ZERO) 
+```
+
+**Explanation:**
+
+1.  **Create Separate Grids:** 
+    *   `border_grid`:  A grid with '1' only at border object locations.
+    *   `large_grid`: A grid with '2' only at large object locations.
+2.  **Combine with `cellwise`:** `cellwise(border_grid, large_grid, ZERO)` prioritizes values from `border_grid`, then `large_grid`, and finally defaults to `ZERO` for the background.
+
+**Program Version 5: Utilizing `underpaint`**
+
+```python
+def Program_to_be_generated(I):
+  O = canvas(ZERO, shape(I))
+  O = underpaint(O, recolor(ONE, mfilter(objects(I, T, F, T), lambda obj: bordering(obj, I))))
+  O = underpaint(O, recolor(TWO, mfilter(objects(I, T, F, T), lambda obj: size(obj) > 1)))
+  return O
+```
+
+**Explanation:**
+
+1.  **Initialize Canvas:** Same as before.
+2.  **Underpaint Objects:**
+    *   `underpaint(..., recolor(ONE, ...))`:  Paints border objects '1', only on the initially zero-valued cells (effectively the background).
+    *   `underpaint(..., recolor(TWO, ...))`:  Paints large objects '2', again only on the remaining background cells.
+     
+These versions showcase different strategies for achieving the same transformation, offering varying levels of code conciseness and efficiency. 

@@ -1,0 +1,158 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected regions of the same digit excluding the background) and extending them to the right. The extension differs based on object size:
+
+* **Small Objects (size <= 2):** A single-cell "tail" of digit '8' is added to the rightmost cell of the object.
+* **Large Objects (size > 2):** A two-cell wide "tail" of digit '8' is added to the right of the object, spanning the object's height. 
+
+Let's illustrate with Input_0:
+
+**Input_0:**
+
+```
+9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9
+9 1 1 1 9 9 9 1 9 9
+9 1 9 1 9 9 9 1 9 9
+9 1 9 1 9 9 1 1 1 1
+9 1 1 1 9 9 9 1 9 9
+9 9 9 9 9 9 9 1 9 9
+9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 
+```
+
+**Output_0:**
+
+```
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 8 8 8 9 9 9 1 9 9 9
+9 8 9 8 9 9 9 1 9 9 9
+9 8 9 8 9 9 1 1 1 1 9
+9 8 8 8 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 1 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+9 9 9 9 9 9 9 9 9 9 9
+```
+
+The single '1' cells and the '1 1 1 1' object are considered small, receiving a one-cell '8' tail. The '1 1 1' object is considered large, receiving a two-cell '8' tail spanning its height.
+
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = fgpartition(I)
+    extended_objs = set()
+    for obj in objs:
+        if len(obj) <= 2:
+            right_edge_loc = (uppermost(obj), rightmost(obj))
+            extension = {(8, (right_edge_loc[0], right_edge_loc[1] + 1))}
+        else:
+            extension = {(8, (i, rightmost(obj) + j)) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(1, 3)}
+        extended_objs.add(obj | extension)
+    O = paint(canvas(bg, (height(I), width(I) + 2)), merge(extended_objs))
+    return O 
+```
+
+**Explanation:**
+
+1. **Identify Background & Objects:**  Find the background color (`bg`) and extract foreground objects (`objs`) using `fgpartition`.
+2. **Iterate & Extend:** For each object:
+    * If the object is small (`len(obj) <= 2`), calculate the location of the right edge and create a single-cell extension with digit '8'.
+    * If the object is large, create a two-cell wide extension spanning its height.
+3. **Paint on Canvas:** Create a new canvas with the background color and dimensions to accommodate the extensions. Paint the extended objects onto this canvas.
+
+**Program Version 2:**
+
+```python
+def program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = fgpartition(I)
+    extended_objs = mapply(lambda obj: obj | ((lambda edge: {(8, (edge[0], edge[1] + 1))})(urcorner(obj)) if len(obj) <= 2 
+                             else {(8, (i, rightmost(obj) + j)) for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(1, 3)}), objs)
+    O = paint(canvas(bg, (height(I), width(I) + 2)), extended_objs)
+    return O
+```
+
+**Explanation:**
+
+This version uses a more functional approach:
+
+1. **Background and Objects:**  Same as Version 1.
+2. **`mapply` for Extension:**  Uses `mapply` to apply a lambda function to each object in `objs`. This lambda function calculates the extension based on the object's size and merges it with the original object.
+3. **Painting:** Same as Version 1.
+
+**Program Version 3:**
+
+```python
+def program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = fgpartition(I)
+    small_objs = sfilter(objs, lambda obj: len(obj) <= 2)
+    large_objs = sfilter(objs, lambda obj: len(obj) > 2)
+    extended_small_objs = mapply(lambda obj: obj | {(8, (uppermost(obj), rightmost(obj) + 1))}, small_objs)
+    extended_large_objs = mapply(lambda obj: obj | {(8, (i, rightmost(obj) + j)) 
+                             for i in range(uppermost(obj), lowermost(obj) + 1) for j in range(1, 3)}, large_objs)
+    O = paint(canvas(bg, (height(I), width(I) + 2)), extended_small_objs | extended_large_objs)
+    return O
+```
+
+**Explanation:**
+
+This version separates the logic for small and large objects:
+
+1. **Filtering:**  Filters `objs` into `small_objs` and `large_objs` based on size.
+2. **Separate Extensions:** Applies the appropriate extension logic to `small_objs` and `large_objs` separately.
+3. **Combine and Paint:** Combines the extended objects and paints them on the canvas.
+
+**Program Version 4:**
+
+```python
+def program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = fgpartition(I)
+    O = canvas(bg, (height(I), width(I) + 2))
+    for obj in objs:
+        O = paint(O, obj)
+        if len(obj) <= 2:
+            O = paint(O, {(8, (uppermost(obj), rightmost(obj) + 1))})
+        else:
+            for i in range(uppermost(obj), lowermost(obj) + 1):
+                for j in range(1, 3):
+                    O = paint(O, {(8, (i, rightmost(obj) + j))})
+    return O
+```
+
+**Explanation:**
+
+This version iteratively paints the objects and their extensions directly onto the canvas:
+
+1. **Canvas Initialization:** Creates the canvas with the appropriate dimensions.
+2. **Iterate and Paint:** For each object, paint it on the canvas. Then, depending on its size, paint the corresponding extension.
+
+**Program Version 5:**
+
+```python
+def program_to_be_generated(I):
+    bg = mostcolor(I)
+    objs = fgpartition(I)
+    O = canvas(bg, (height(I), width(I) + 2))
+    for obj in objs:
+        O = paint(O, obj | {(8, (i, j)) for i in range(uppermost(obj), lowermost(obj) + 1)
+                        for j in range(rightmost(obj) + 1, rightmost(obj) + (2 if len(obj) > 2 else 2))})
+    return O
+```
+
+**Explanation:**
+
+This version aims for conciseness by embedding the extension logic directly within the paint operation:
+
+1. **Canvas Initialization:** Same as Version 4.
+2. **Iterate and Paint with Extension:** For each object, paint both the object and its extension in a single `paint` operation using a conditional expression within the range of the extension loop.
+
+These five versions showcase different approaches and function combinations to achieve the same transformation, demonstrating the flexibility of the DSL. You can choose the version that you find most readable and efficient. 

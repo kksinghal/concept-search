@@ -1,0 +1,151 @@
+## Transformation Analysis:
+
+The transformation aims to remove single-cell objects that are not the background color and shift all remaining objects to the left, effectively removing any vertical gaps. 
+
+**Input 0:** Single-cell '7's are removed. The remaining '7' objects are shifted left to eliminate the gaps.
+
+**Input 1:**  Single-cell '6's are removed.  The larger '6' objects are shifted left to eliminate the gaps.
+
+**Input 2:**  The single '5' at the top right is removed. The remaining '5' object is shifted left. 
+
+
+## Code Generation:
+
+Here are five distinct program versions for achieving the desired transformation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  # 1. Identify single-cell non-background objects
+  x1 = objects(I, univalued=True, diagonal=False, without_bg=False)
+  x2 = sfilter(x1, lambda obj: size(obj) == 1 and color(obj) != mostcommon(I))
+
+  # 2. Determine the leftmost occupied column
+  occupied_columns = mfilter(x1, lambda obj: {j for i, j in toindices(obj)})
+  leftmost_column = minimum(occupied_columns)
+
+  # 3. Shift remaining objects left
+  shifted_objs = frozenset(shift(obj, (0, -leftmost_column)) for obj in x1 if obj not in x2)
+
+  # 4. Paint shifted objects onto a blank canvas
+  O = paint(canvas(mostcommon(I), shape(I)), merge(shifted_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify single-cell objects:**  We identify all objects and filter for those that have a size of 1 and a color different from the background.
+2. **Determine leftmost column:** We find the minimum column index occupied by any object. This tells us how far to shift the objects.
+3. **Shift remaining objects:** We shift all objects except the single-cell objects to the left by the calculated offset.
+4. **Paint shifted objects:** Finally, we paint the shifted objects onto a canvas filled with the background color.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  # 1. Find the leftmost non-background column
+  for j in range(width(I)):
+    if any(I[i][j] != mostcommon(I) for i in range(height(I))):
+      leftmost_column = j
+      break
+  else:  # No non-background columns found
+    return I
+
+  # 2. Crop the grid from the leftmost column
+  O = crop(I, (0, leftmost_column), (height(I), width(I) - leftmost_column))
+  return O 
+```
+
+**Explanation:**
+
+1. **Find leftmost non-background column:** We iterate through each column and check if it contains any non-background cells. 
+2. **Crop the grid:** We crop the grid, starting from the leftmost non-background column, effectively removing the empty columns on the left.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  # 1. Identify all objects
+  objs = objects(I, univalued=True, diagonal=False, without_bg=False)
+
+  # 2. Filter out single-cell non-background objects
+  filtered_objs = sfilter(objs, lambda obj: not (size(obj) == 1 and color(obj) != mostcommon(I)))
+
+  # 3. Find minimum column index for each remaining object
+  min_cols = apply(lambda obj: minimum({j for i, j in toindices(obj)}), filtered_objs)
+
+  # 4. Sort objects based on their minimum column index
+  sorted_objs = order(filtered_objs, lambda obj: minimum({j for i, j in toindices(obj)}))
+
+  # 5.  Paint objects onto a blank canvas, shifting based on minimum column
+  canvas_width = sum(width(obj) for obj in sorted_objs)
+  O = canvas(mostcommon(I), (height(I), canvas_width))
+  current_column = 0
+  for obj in sorted_objs:
+    O = paint(O, shift(obj, (0, current_column - minimum({j for i, j in toindices(obj)}))))
+    current_column += width(obj)
+  return O 
+```
+
+**Explanation:**
+
+1. **Identify and filter objects:** Similar to version 1, we identify and filter the objects.
+2. **Find minimum column:** We determine the minimum column index for each remaining object.
+3. **Sort objects:** Objects are sorted based on their minimum column index.
+4. **Paint objects sequentially:** We paint the sorted objects onto the canvas, shifting each object to the left based on its minimum column index, eliminating the gaps.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  # 1. Create a list to store the shifted columns
+  shifted_grid = []
+
+  # 2. Iterate through the columns 
+  for j in range(width(I)):
+    # 3. Check if the column is empty (all background color)
+    if any(I[i][j] != mostcommon(I) for i in range(height(I))):
+      # 4. If not empty, append the column to the shifted grid
+      shifted_grid.append([I[i][j] for i in range(height(I))])
+
+  # 5. Convert the shifted columns back to a tuple (grid)
+  O = tuple(tuple(row) for row in shifted_grid)
+  return O
+```
+
+**Explanation:**
+
+1. **Create shifted grid list:**  Initialize an empty list to store shifted columns.
+2. **Iterate through columns:** Go through each column of the input grid.
+3. **Check for empty columns:** Determine if the column is entirely filled with the background color.
+4. **Append non-empty columns:** Add the column to the `shifted_grid` if it contains at least one non-background cell.
+5. **Convert to tuple:** Transform the `shifted_grid` back into a tuple to represent the output grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  # 1. Transpose the grid
+  transposed = dmirror(I) 
+
+  # 2. Apply Program_B on the transposed grid
+  x1 = objects(transposed, univalued=True, diagonal=False, without_bg=False)
+  x2 = sfilter(x1, lambda obj: (size(obj) == 1 and index(transposed, first(toindices(obj))) != mostcommon(transposed)) or (vline(obj) and len(obj) < height(transposed)))
+  x3 = merge(apply(toindices, x2))
+  x4 = shape(transposed)
+  x5 = crop(transposed, (0, 0), (x4[0], x4[1] - 1))
+  intermediate = fill(x5, mostcommon(transposed), x3) 
+
+  # 3. Transpose the result back 
+  O = dmirror(intermediate)
+  return O
+```
+
+**Explanation:**
+
+1. **Transpose:**  We transpose the grid, effectively swapping rows and columns.
+2. **Apply Program_B:** We apply Program_B on the transposed grid. Program_B removes single-cell non-background objects and shifts remaining objects in one direction (originally designed for horizontal shifting).
+3. **Transpose Back:**  We transpose the result back to obtain the final output grid where single-cell non-background objects are removed and remaining objects are shifted left.
+
+These five program versions demonstrate distinct approaches to solving the given transformation problem, utilizing different combinations of functions from the provided DSL.

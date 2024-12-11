@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation involves identifying cells with the value '1' and painting a 3x3 square centered at those cells with the value '3'. The painting should not overwrite existing non-zero values in the grid.
+
+**Input_0 to Output_0:**
+
+* Two '1' cells are identified in the input.
+* 3x3 squares centered at these '1' cells are painted with '3's.
+* The existing '1's are preserved.
+
+**Input_1 to Output_1:**
+
+* Two '1' cells are identified.
+* 3x3 squares are painted centered at these cells, again preserving the existing '1's.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program:
+
+**Version 1:** (Inspired by Program_B, uses 'underpaint')
+
+```python
+def program_v1(I):
+  """
+  Identifies '1' cells and underpaints squares using relative shifts.
+  """
+  one_cells = ofcolor(I, ONE)
+  squares = mapply(lambda ij: frozenset({(THREE, (ij[0]-1+di, ij[1]-1+dj)) for di in range(3) for dj in range(3)}), one_cells)
+  O = underpaint(I, merge(squares))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify '1' cells:** `one_cells = ofcolor(I, ONE)` finds all cells with value '1'.
+2. **Generate squares:** `squares = mapply(...)` creates a set of objects, each representing a 3x3 square centered at each '1' cell and filled with '3'.
+3. **Underpaint squares:** `O = underpaint(I, merge(squares))` paints all '3's from the generated squares onto the input grid *only* where the input grid has the background color ('0').
+
+**Version 2:** (Inspired by Program_A, uses 'cellwise' and a mask)
+
+```python
+def program_v2(I):
+  """
+  Creates a mask of squares and combines it with the input.
+  """
+  one_cells = ofcolor(I, ONE)
+  squares_indices = mapply(lambda ij: frozenset(add(ij, (di, dj)) for di in range(-1, 2) for dj in range(-1, 2)), one_cells)
+  mask = paint(canvas(ZERO, shape(I)), recolor(THREE, squares_indices))
+  O = cellwise(I, mask, I)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify '1' cells:** `one_cells = ofcolor(I, ONE)` identifies cells with the value '1'.
+2. **Generate square indices:** `squares_indices = mapply(...)` generates a set of indices representing the 3x3 squares centered around the '1' cells.
+3. **Create a mask:** `mask = paint(...)` creates a new grid (mask) of the same size as the input, filled with '0's, and paints the squares using '3' at the calculated indices.
+4. **Combine with `cellwise`:** `O = cellwise(I, mask, I)` combines the input grid and the mask. For each cell, if the mask has a value other than '0', it takes that value; otherwise, it keeps the original input value.
+
+**Version 3:** (Direct approach, iterates and paints)
+
+```python
+def program_v3(I):
+  """
+  Iterates through '1' cells and directly paints squares onto the grid.
+  """
+  O = I
+  h, w = len(I), len(I[0])
+  for i, row in enumerate(I):
+    for j, val in enumerate(row):
+      if val == ONE:
+        for di in range(-1, 2):
+          for dj in range(-1, 2):
+            ni, nj = i + di, j + dj
+            if 0 <= ni < h and 0 <= nj < w and O[ni][nj] == ZERO:
+              O = paint(O, {(THREE, (ni, nj))})
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate and paint:** This version directly iterates through the input grid. For each '1' cell, it iterates through its 3x3 neighborhood and paints '3's onto the output grid (`O`) if the corresponding cell in the output is '0'.
+
+**Version 4:** (Uses `underfill` with bounding boxes)
+
+```python
+def program_v4(I):
+  """
+  Calculates bounding boxes for squares and uses underfill.
+  """
+  one_cells = ofcolor(I, ONE)
+  bounding_boxes = mapply(lambda ij: backdrop(frozenset(add(ij, (di, dj)) for di in range(-1, 2) for dj in range(-1, 2))), one_cells)
+  O = underfill(I, THREE, merge(bounding_boxes))
+  return O
+```
+
+**Explanation:**
+
+1. **Find '1' cells:** `one_cells = ofcolor(I, ONE)` identifies cells with the value '1'.
+2. **Calculate bounding boxes:**  `bounding_boxes = mapply(...)` determines the bounding box (a rectangle encompassing all cells) for each 3x3 square centered around the '1' cells.
+3. **Underfill bounding boxes:** `O = underfill(...)` fills the bounding boxes with '3's, but only where the input grid currently has '0's.
+
+**Version 5:** (Leveraging existing `shifted_ones` logic from Program_B)
+
+```python
+def program_v5(I):
+  """
+  Modifies existing shifted_ones logic to conditionally paint squares.
+  """
+  shifted_ones = mapply(lambda ij: frozenset({(THREE, (i, j)) for i in range(ij[0]-1, ij[0]+2) for j in range(ij[1]-1, ij[1]+2) if index(I, (i, j)) == ZERO}), ofcolor(I, ONE))
+  O = paint(I, shifted_ones)
+  return O
+```
+
+**Explanation:**
+
+1. **Modify `shifted_ones`:** This version adapts the logic from `shifted_ones` in Program_B. Instead of directly painting a 3x3 square, it checks if the current cell in the iteration has the value '0' in the input grid (`index(I, (i, j)) == ZERO`) before adding it to the set of cells to be painted.
+2. **Paint conditionally:** `O = paint(I, shifted_ones)` then paints the filtered set of cells onto the input grid.
+
+Each of these versions provides a different approach to achieving the desired transformation while ensuring that existing non-zero values in the grid are not overwritten. 

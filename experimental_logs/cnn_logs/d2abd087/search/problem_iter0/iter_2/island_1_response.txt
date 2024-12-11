@@ -1,0 +1,115 @@
+## Transformation Analysis:
+
+The transformation aims to differentiate between objects connected to the grid border and those that are not. 
+
+* **Border Objects:** Objects with at least one cell touching the edge of the grid are recolored to "1".
+* **Non-Border Objects:** Objects entirely enclosed within the grid, without touching the border, are recolored to "2". 
+
+**Let's analyze each input-output pair:**
+
+* **Input_0:** The single 5-object is split into two parts: one touching the bottom edge (recolored to "1") and another fully inside (recolored to "2").
+* **Input_1:**  Similar to Input_0, the 5-object is split, with the border-touching part becoming "1" and the enclosed part becoming "2". The isolated "5" on the right edge remains unchanged.
+* **Input_2:**  Again, the large 5-object is split based on border contact. The isolated "5" at the bottom remains unchanged as it's not part of any multi-cell object.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program using the DSL:
+
+**Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)  # Extract all objects 
+  border_objs = mfilter(objs, lambda obj: bordering(obj, I)) # Identify border objects
+  non_border_objs = difference(objs, border_objs) # Identify non-border objects
+  O = paint(paint(I, recolor(ONE, merge(border_objs))), recolor(TWO, merge(non_border_objs))) # Recolor
+  return O
+```
+
+**Explanation:**
+
+1. **`objects(I, T, F, F)`:**  Identifies all connected objects in the input grid `I`.
+2. **`border_objs = mfilter(objs, lambda obj: bordering(obj, I))`:** Filters objects, keeping only those touching the grid border using `bordering`.
+3. **`non_border_objs = difference(objs, border_objs)`:**  Finds the difference between all objects and border objects, resulting in non-border objects.
+4. **`O = paint(paint(I, recolor(ONE, merge(border_objs))), recolor(TWO, merge(non_border_objs)))`:** 
+    - `recolor(ONE, merge(border_objs))` : Recolors all border objects to "1".
+    - `recolor(TWO, merge(non_border_objs))`: Recolors all non-border objects to "2".
+    - These recolored objects are then painted back onto the original grid `I` to generate the output `O`.
+
+**Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  border_cells = mfilter(asobject(I), lambda cell: bordering(initset(cell[1]), I)) # Identify border cells
+  O = paint(I, recolor(ONE, border_cells))  # Recolor border cells to 1
+  objs = objects(O, T, F, F) # Find remaining objects
+  O = paint(O, recolor(TWO, merge(objs))) # Recolor remaining objects to 2
+  return O
+```
+
+**Explanation:**
+
+1. **`border_cells = mfilter(asobject(I), lambda cell: bordering(initset(cell[1]), I))`:**  Identifies individual cells on the grid border.
+2. **`O = paint(I, recolor(ONE, border_cells))`:** Recolors identified border cells to "1".
+3. **`objs = objects(O, T, F, F)`:**  Identifies remaining connected objects in the partially transformed grid `O` (which now has "1" for border cells).
+4. **`O = paint(O, recolor(TWO, merge(objs)))`:** Recolors all remaining objects to "2", effectively targeting the non-border objects.
+
+**Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    O = canvas(TWO, shape(I)) # Create a canvas filled with '2'
+    border_cells = mfilter(asobject(I), lambda cell: bordering(initset(cell[1]), I))  # Identify border cells
+    O = paint(O, recolor(ONE, border_cells)) # Paint border cells as '1' on the canvas
+    return O 
+```
+
+**Explanation:**
+
+1. **`O = canvas(TWO, shape(I))`:** Creates a new grid `O` of the same size as input `I`, filled with "2". This ensures all non-border areas will be "2".
+2. **`border_cells = mfilter(asobject(I), lambda cell: bordering(initset(cell[1]), I))`:**  Similar to Version 2, it identifies border cells in the input. 
+3. **`O = paint(O, recolor(ONE, border_cells))`:**  Recolors only the border cells on the newly created canvas `O` to "1", achieving the final output.
+
+**Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  O = replace(I, ZERO, TWO)  # Replace all '0' with '2'
+  border_cells = mfilter(asobject(I), lambda cell: bordering(initset(cell[1]), I)) # Identify border cells
+  O = paint(O, recolor(ONE, border_cells)) # Paint border cells as '1'
+  return O
+```
+
+**Explanation:**
+
+1. **`O = replace(I, ZERO, TWO)`:** Creates a copy of the input `I`, replacing all occurrences of "0" with "2". This sets the base for non-border areas.
+2. **`border_cells = mfilter(asobject(I), lambda cell: bordering(initset(cell[1]), I))`:**  Identifies border cells in the original input.
+3. **`O = paint(O, recolor(ONE, border_cells))`:** Recolors the identified border cells on the modified grid `O` to "1".
+
+**Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, F)  # Extract all objects 
+  is_border_obj = lambda obj: any(bordering(initset(cell[1]), I) for cell in obj)
+  border_obj_indices = mfilter(objs, lambda obj: is_border_obj(obj)) # Find indices of border objects
+  O = I # copy input grid
+  for idx in border_obj_indices:
+    O = paint(O, recolor(ONE, idx)) # Recolor border objects to 1
+  non_border_objs = objects(O, T, F, F) 
+  O = paint(O, recolor(TWO, merge(non_border_objs))) # Recolor remaining objects to 2
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, F)`:** Identifies all connected objects in the input grid.
+2. **`is_border_obj = lambda obj: any(bordering(initset(cell[1]), I) for cell in obj)`:** Defines a lambda function to check if an object touches the border.
+3. **`border_obj_indices = mfilter(objs, lambda obj: is_border_obj(obj))`:** Filters objects, keeping only those identified as border objects.
+4. **Loop through `border_obj_indices`:** Iterates through the indices of border objects.
+5. **`O = paint(O, recolor(ONE, idx))`:** For each border object, it recolors its cells to "1" on the grid `O`.
+6. **`non_border_objs = objects(O, T, F, F)`:** After processing border objects, it identifies the remaining connected objects.
+7. **`O = paint(O, recolor(TWO, merge(non_border_objs)))`:**  Recolors all remaining objects to "2", effectively targeting the non-border objects.
+
+
+These five versions demonstrate different approaches to achieve the same transformation using various DSL functions and logic. 

@@ -1,0 +1,112 @@
+## Transformation Analysis:
+
+The transformation appears to follow these rules:
+
+* **Top Two Rows:** All occurrences of the digit '3' in the top two rows of the input grid are replaced with the digit '8'.
+* **Remaining Rows:**  Squares formed by the digit '3' in the remaining rows are identified. All cells within these squares (including those that are not '3') are replaced with the digit '8'.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(I):
+  top_rows = tuple(tuple(8 if v == 3 else v for v in r) for r in I[:2])
+  bottom_grid = tuple(tuple(v for v in r) for r in I[2:])
+  square_indices = mfilter(objects(fill(bottom_grid, 0, asindices(bottom_grid)), True, False, False), square)
+  return vconcat(top_rows, paint(bottom_grid, recolor(8, square_indices))) 
+```
+
+**Explanation:**
+
+1. **Split & Transform Top:** Extract the top two rows (`top_rows`) and replace '3' with '8'.
+2. **Isolate Bottom:** Extract the remaining rows as `bottom_grid`.
+3. **Identify Squares:** In `bottom_grid`, temporarily fill all cells with '0' and find objects (connected regions) with `objects`. Filter these objects to keep only squares using `square`.
+4. **Recolor & Combine:** Recolor the identified square indices to '8' using `recolor`. Finally, combine the modified `top_rows` and the `bottom_grid` with the recolored squares using `vconcat`. 
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(I):
+  modified_grid = tuple(tuple(8 if i < 2 and v == 3 else v for v in r) for i, r in enumerate(I))
+  bottom_squares = mfilter(objects(fill(modified_grid, 0, asindices(I[2:])), True, False, False), square)
+  return fill(modified_grid, 8, toindices(bottom_squares))
+```
+
+**Explanation:**
+
+1. **Initial Replacement:**  Replace '3' with '8' in the top two rows directly within a copy of the input grid (`modified_grid`).
+2. **Find Bottom Squares:** Focus on the bottom portion of `modified_grid`. Temporarily fill it with '0' and find square objects using `objects` and `square`.
+3. **Fill & Return:** Fill the cells corresponding to the identified square objects in `modified_grid` with '8' using `fill` and return the result.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(I):
+  return vconcat(
+    tuple(tuple(8 if v == 3 else v for v in r) for r in I[:2]),
+    tuple(
+        tuple(
+            8 if any(square(obj) and (i, j) in toindices(obj) for obj in objects(fill(I[2:], 0, asindices(I[2:])), True, False, False)) else v 
+            for j, v in enumerate(r)
+        ) for i, r in enumerate(I[2:])
+    )
+  )
+```
+
+**Explanation:**
+
+1. **Top Row Transformation:** The top two rows are handled separately, replacing '3' with '8' as before.
+2. **Bottom Row Iteration:**  Iterate through each cell in the remaining rows. 
+3. **Square Check:**  For every cell, check if it's part of a square formed by '3' in the bottom section of the grid. This is done by temporarily filling the bottom section with '0', finding objects, and checking for membership and squareness.
+4. **Conditional Fill:** If the cell is part of a bottom square, replace it with '8'; otherwise, keep its original value.
+5. **Concatenate:** Combine the transformed top rows and bottom rows using `vconcat`.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(I):
+  top = tuple(tuple(8 if c == 3 else c for c in r) for r in I[:2])
+  bottom = I[2:]
+  squares = mfilter(objects(fill(bottom, 0, asindices(bottom)), True, False, False), square)
+  transformed_bottom = tuple(
+      tuple(8 if any((i, j) in toindices(s) for s in squares) else v for j, v in enumerate(row))
+      for i, row in enumerate(bottom)
+  )
+  return vconcat(top, transformed_bottom) 
+```
+
+**Explanation:**
+
+This version maintains a clear separation between processing the top rows, identifying squares in the bottom section, and applying the final transformation. It leverages list comprehensions for concise code.
+
+## Program Version 5:
+
+**Code:**
+```python
+def program_v5(I):
+  return tuple(
+      tuple(
+          8 if (i_row < 2 and v == 3) or (i_row >= 2 and any(square(obj) and (i_row-2, j) in toindices(obj) for obj in objects(fill(I[2:], 0, asindices(I[2:])), True, False, False))) else v
+          for j, v in enumerate(row)
+      )
+      for i_row, row in enumerate(I)
+  )
+```
+
+**Explanation:**
+
+1. **Unified Iteration:** This version iterates through each cell of the entire grid in one go.
+2. **Conditional Logic:**  It uses a single conditional statement to determine the output value for each cell:
+    * If the cell is in the top two rows and its value is '3', replace it with '8'.
+    * If the cell is in the remaining rows, check if it belongs to a square object formed by '3' in the bottom section (similar to previous versions). If so, replace it with '8'.
+    * Otherwise, keep the original cell value.
+
+
+These five versions demonstrate different approaches to achieve the same transformation, showcasing the flexibility and expressiveness of the provided DSL. 

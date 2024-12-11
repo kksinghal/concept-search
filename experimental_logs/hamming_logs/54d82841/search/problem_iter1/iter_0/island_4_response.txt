@@ -1,0 +1,139 @@
+## Transformation Analysis:
+
+The transformation seems to identify the bottom-most row of each distinct non-background object in the input grid and places a new object with value '4' at the leftmost and rightmost positions of that row. Let's break it down for each example:
+
+**Input_0 to Output_0:**
+
+* Two '6' objects are present. 
+* For the top '6' object, the bottom row is identified, and '4's are placed at the extreme ends of that row.
+* Similarly, for the bottom '6' object, '4's are placed on the extreme ends of its bottom row.
+
+**Input_1 to Output_1:**
+
+* One '3' object is present.
+* '4's are placed on the extreme ends of the bottom row of that object. 
+
+**Input_2 to Output_2:**
+
+* Two objects: '8' and '6' are present.
+* '4's are placed on the extreme ends of the bottom rows of both objects independently.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program leveraging the DSL functions:
+
+**Program Version 1**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  output_indices = set()
+  for obj in objs:
+    bottom_row = max(i for i, j in toindices(obj))
+    leftmost_col = min(j for i, j in toindices(obj) if i == bottom_row)
+    rightmost_col = max(j for i, j in toindices(obj) if i == bottom_row)
+    output_indices.add((bottom_row, leftmost_col))
+    output_indices.add((bottom_row, rightmost_col))
+  O = fill(I, 4, frozenset(output_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`**: Identifies all non-background objects in the input grid `I`.
+2. **`for obj in objs`**: Iterates through each identified object.
+3. **`bottom_row = max(i for i, j in toindices(obj))`**: Finds the index of the bottom-most row of the current object.
+4. **`leftmost_col`** and **`rightmost_col`**:  Find the column indices of the leftmost and rightmost cells in the `bottom_row` of the object.
+5. **`output_indices.add(...)`**: Adds the locations for placing the '4's to the `output_indices` set.
+6. **`O = fill(I, 4, frozenset(output_indices))`**: Fills the input grid `I` with '4' at the identified `output_indices` to generate the output grid `O`.
+
+**Program Version 2**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  new_objs = set()
+  for obj in objs:
+    bottom_row_obj = sfilter(obj, lambda cell: cell[1][0] == lowermost(obj))
+    leftmost_cell = argmin(bottom_row_obj, lambda cell: cell[1][1])
+    rightmost_cell = argmax(bottom_row_obj, lambda cell: cell[1][1])
+    new_objs.add(frozenset({(4, leftmost_cell[1]), (4, rightmost_cell[1])}))
+  O = paint(I, merge(new_objs))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`**: Same as Version 1.
+2. **`for obj in objs`**: Same as Version 1.
+3. **`bottom_row_obj = sfilter(...)`**: Filters out cells from the object to keep only those on the bottom row. 
+4. **`leftmost_cell`** and **`rightmost_cell`**: Find the leftmost and rightmost cells within the `bottom_row_obj`.
+5. **`new_objs.add(...)`**: Creates new objects consisting of only the '4's placed at the identified leftmost and rightmost positions and adds them to the `new_objs` set.
+6. **`O = paint(I, merge(new_objs))`**: Paints the new '4' objects onto the original grid `I` to generate the output grid `O`.
+
+**Program Version 3**
+
+```python
+def solve(I):
+  O = I
+  for v in palette(I) - {mostcolor(I)}:
+    obj = toindices(sfilter(asobject(I), lambda c: c[0] == v))
+    bottom_row = max(i for i, j in obj)
+    left_j = min(j for i, j in obj if i == bottom_row)
+    right_j = max(j for i, j in obj if i == bottom_row)
+    O = fill(O, 4, frozenset({(bottom_row, left_j), (bottom_row, right_j)}))
+  return O
+```
+
+**Explanation:**
+
+1. **`O = I`**: Initializes the output grid `O` as a copy of input grid `I`.
+2. **`for v in palette(I) - {mostcolor(I)}`**: Iterates through each unique color (value) in the grid except the background color.
+3. **`obj = toindices(...)`**: Extracts the indices of all cells with the current color `v`, forming the object. 
+4. **`bottom_row`**, **`left_j`**, **`right_j`**: Similar to previous versions, find the bottom row, leftmost column, and rightmost column of the current object.
+5. **`O = fill(...)`**: Fills the output grid `O` with '4' at the identified locations.
+
+**Program Version 4**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  output_grid = canvas(mostcolor(I), shape(I)) 
+  for obj in objs:
+    bottom_indices = sfilter(toindices(obj), lambda loc: loc[0] == lowermost(obj))
+    left_j = leftmost(bottom_indices)
+    right_j = rightmost(bottom_indices)
+    output_grid = paint(output_grid, {(4, (lowermost(obj), left_j)), (4, (lowermost(obj), right_j))})
+  return output_grid
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`**: Same as previous versions.
+2. **`output_grid = canvas(...)`**: Creates an empty canvas (filled with background color) of the same size as the input grid to store the output.
+3. **`for obj in objs`**: Same as previous versions.
+4. **`bottom_indices = sfilter(...)`**: Extracts indices of cells on the bottom row of the current object. 
+5. **`left_j`**, **`right_j`**: Similar to before, identifies leftmost and rightmost column indices on the bottom row.
+6. **`output_grid = paint(...)`**:  Paints the '4' values onto the `output_grid` at the designated positions.
+
+**Program Version 5**
+
+```python
+def solve(I):
+    def place_fours(obj):
+        bottom_i = lowermost(obj)
+        left_j = min(j for i, j in toindices(obj) if i == bottom_i)
+        right_j = max(j for i, j in toindices(obj) if i == bottom_i)
+        return {(4, (bottom_i, left_j)), (4, (bottom_i, right_j))}
+    
+    new_objects = mapply(place_fours, fgpartition(I))
+    return paint(I, new_objects)
+```
+
+**Explanation:**
+
+1. **`place_fours(obj)`**: Defines a helper function that takes an object as input, calculates the positions for the '4' values on its bottom row, and returns these positions as a set.
+2. **`new_objects = mapply(place_fours, fgpartition(I))`**:  Applies the `place_fours` function to each non-background object in the input grid and merges the results into `new_objects`.
+3. **`return paint(I, new_objects)`**:  Paints the '4' values at the calculated positions onto the input grid to generate the output. 
+
+These five versions offer distinct ways to achieve the transformation. Each version utilizes different combinations of DSL functions, showcasing the flexibility and power of the provided DSL. 

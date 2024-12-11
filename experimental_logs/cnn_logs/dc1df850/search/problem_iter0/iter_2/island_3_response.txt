@@ -1,0 +1,152 @@
+## Transformation Analysis:
+
+The transformation involves identifying target objects (digit '2') and expanding them by one cell in all directions. The expansion only happens if the surrounding cell contains the background value (digit '0').
+
+**Input_0 to Output_0:**
+
+- The target object (digit '2') at (0,0) expands right, down, and diagonally down-right, filling the surrounding '0' cells with '1'. 
+
+**Input_1 to Output_1:**
+
+- The target object at (0,7) expands left and down, filling the surrounding '0' cells with '1'.
+- The target object at (6,2) expands up, left, and diagonally up-left, filling the surrounding '0' cells with '1'.
+
+**Input_2 to Output_2:**
+
+- The target object at (1,1) expands in all directions, filling the surrounding '0' cells with '1'.
+
+## Code Improvement:
+
+**Program_to_be_generated (Version 1):**
+
+```python
+def expand_target(I):
+  target_value = 2
+  bg_value = 0
+  new_value = 1
+
+  target_indices = ofcolor(I, target_value)
+  expansion_indices = set()
+  for i, j in target_indices:
+    for di, dj in {(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)}:
+      new_i, new_j = i + di, j + dj
+      if 0 <= new_i < len(I) and 0 <= new_j < len(I[0]) and I[new_i][new_j] == bg_value:
+        expansion_indices.add((new_i, new_j))
+  return fill(I, new_value, frozenset(expansion_indices))
+```
+
+**Explanation:**
+
+1. **Identify target indices:** `ofcolor(I, target_value)` finds all indices of the target value ('2').
+2. **Find expansion indices:**
+   - Iterate over each `target_index`.
+   - Check all 8 neighboring cells using nested loops and relative offsets (`di`, `dj`).
+   - If a neighbor is within the grid bounds and contains the background value ('0'), add its index to `expansion_indices`.
+3. **Fill expansion indices:** Use `fill(I, new_value, expansion_indices)` to replace the values at `expansion_indices` with the `new_value` ('1').
+
+**Program_to_be_generated (Version 2):**
+
+```python
+def expand_target(I):
+  target_value = 2
+  bg_value = 0
+  new_value = 1
+
+  expansion_indices = mfilter(
+      mapply(lambda loc: neighbors(loc) & asindices(I), ofcolor(I, target_value)),
+      lambda loc: index(I, loc) == bg_value
+  )
+  return fill(I, new_value, expansion_indices)
+```
+
+**Explanation:**
+
+1. **Find potential expansion indices:**
+   - `ofcolor(I, target_value)` gets indices of target cells.
+   - `mapply` applies `neighbors(loc) & asindices(I)` to each target index:
+     - `neighbors(loc)` gets all 8 neighboring indices.
+     - `& asindices(I)` ensures only valid indices within the grid are kept.
+2. **Filter for background cells:**
+   - `mfilter` filters the potential expansion indices, keeping only those where `index(I, loc)` equals the background value (`bg_value`).
+3. **Fill expansion indices:** Use `fill(I, new_value, expansion_indices)` to replace the background values at the filtered indices with `new_value` ('1').
+
+
+**Program_to_be_generated (Version 3):**
+
+```python
+def expand_target(I):
+    return paint(I, merge(apply(lambda x: recolor(1, sfilter(neighbors(x[1]), lambda y: index(I,y)==0)), asobject(I))))
+```
+
+**Explanation:**
+
+1. **Convert grid to object:** `asobject(I)` converts the grid `I` into an object representation.
+2. **Process each cell:** `apply` applies a lambda function to each cell (value, index) in the object.
+3. **Expand target cells:** For each cell:
+    -  `sfilter(neighbors(x[1]), lambda y: index(I,y)==0)` finds neighbor indices with background value 0.
+    -  `recolor(1, ...)` recolors these neighbors to 1.
+4. **Merge and paint:** `merge(...)` combines all expanded cells into a single object. `paint(I, ...)` paints this object onto the original grid `I`, resulting in the desired expansion.
+
+
+**Program_to_be_generated (Version 4):**
+
+```python
+def expand_target(I):
+  return cellwise(
+      I,
+      downscale(
+          upscale(
+              fill(
+                  upscale(I, 2),
+                  1,
+                  mapply(lambda x: {(x[0]*2+1, x[1]*2), (x[0]*2, x[1]*2+1), (x[0]*2+1, x[1]*2+2), (x[0]*2+2, x[1]*2+1)},
+                        ofcolor(I, 2)
+                  )
+              ),
+              2
+          ),
+          2
+      ),
+      I
+  )
+
+```
+
+**Explanation:**
+
+This program utilizes upscaling and downscaling to achieve the desired expansion effect.
+
+1. **Upscale and fill:**
+    - `upscale(I, 2)` doubles the size of the grid.
+    - `ofcolor(I, 2)` identifies target cell indices in the original grid.
+    - `mapply(...)` calculates the indices of surrounding cells after upscaling and fills them with '1'.
+2. **Downscale and merge:**
+    - `upscale(..., 2)` upscales the filled grid again.
+    - `downscale(..., 2)` downscales the result back to the original size, merging the '1' values with any existing values.
+3. **Cellwise comparison:**
+    - `cellwise(...)` compares the downscaled grid with the original grid, keeping the original values unless the downscaled grid has a '1' at that position.
+
+This approach effectively expands the target cells by one unit in all directions.
+
+**Program_to_be_generated (Version 5):**
+
+```python
+def expand_target(I):
+    target_indices = ofcolor(I, 2)
+    expansion_area = mfilter(
+        mapply(dneighbors, target_indices),
+        lambda loc: 0 <= loc[0] < len(I) and 0 <= loc[1] < len(I[0])
+    )
+    filtered_expansion_area = sfilter(expansion_area, lambda loc: index(I, loc) == 0)
+    return fill(I, 1, filtered_expansion_area)
+```
+
+**Explanation:**
+
+1. **Identify target indices:** `ofcolor(I, 2)` finds all indices of the target value ('2').
+2. **Define the potential expansion area:**
+   - `mapply(dneighbors, target_indices)` finds the direct neighbors of each target cell.
+   - `mfilter(...)` filters these neighbors, keeping only those within the grid bounds.
+3. **Filter for valid expansion cells:**
+   - `sfilter(...)` further filters the `expansion_area`, keeping only those with the background value ('0').
+4. **Fill expansion cells:** `fill(I, 1, filtered_expansion_area)` changes the values at the valid expansion indices to '1'.

@@ -1,0 +1,173 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids removes the isolated single-cell objects while retaining the larger connected objects. 
+
+**Input_0:** All isolated '7's are removed, leaving only the connected '7' shape intact.
+
+**Input_1:** All isolated '6's are removed, leaving only the connected '6' shapes intact.
+
+**Input_2:**  The isolated '5's at the edges are removed, leaving only the connected '5' shape intact.
+
+## Program_to_be_generated:
+
+Here are five distinct versions of the program to achieve this transformation:
+
+**Version 1:** (Using `objects`, `sizefilter`, and `paint`)
+
+```python
+def solve(I):
+  """
+  This version identifies all objects, filters for objects larger than one cell,
+  and then paints those objects onto a blank canvas of the original size.
+  """
+  objs = objects(I, False, False, False)
+  filtered_objs = sizefilter(objs, 1)
+  canvas_size = shape(I)
+  blank_canvas = canvas(mostcommon(I), canvas_size)
+  for obj in filtered_objs:
+    blank_canvas = paint(blank_canvas, obj)
+  return blank_canvas
+```
+**Explanation:**
+1. **`objs = objects(I, False, False, False)`:**  Identifies all connected components (objects) in the input grid `I`, considering objects with different values as separate.
+2. **`filtered_objs = sizefilter(objs, 1)`:** Filters the objects, keeping only those with a size greater than 1 (connected components).
+3. **`canvas_size = shape(I)`:**  Gets the dimensions (height and width) of the input grid.
+4. **`blank_canvas = canvas(mostcommon(I), canvas_size)`:** Creates a blank grid with the same dimensions as the input, filled with the most common color in the input.
+5. **`for obj in filtered_objs: ...`:** Iterates through each filtered object (connected component).
+6. **`blank_canvas = paint(blank_canvas, obj)`:** Paints the current object onto the blank canvas, effectively reconstructing the grid with only the connected components.
+
+**Version 2:** (Using `partition`, `sizefilter`, and `merge`)
+
+```python
+def solve(I):
+  """
+  This version partitions the grid into objects based on color, filters the 
+  partitions by size, and then merges the remaining partitions to recreate
+  the grid.
+  """
+  partitions = partition(I)
+  filtered_partitions = set(filter(lambda x: len(x) > 1, partitions))
+  merged_grid = tuple(tuple(v for v, _ in sorted(merge(filtered_partitions), key=lambda x: x[1])) for i in range(height(I)) for j in range(width(I)))
+  return merged_grid
+```
+**Explanation:**
+1. **`partitions = partition(I)`:** Divides the input grid `I` into sets of cells where each set represents a connected component of the same color.
+2. **`filtered_partitions = set(filter(lambda x: len(x) > 1, partitions))`:**  Filters out any partitions containing only one cell, effectively removing isolated single-cell objects.
+3. **`merged_grid = ...`:** This line reconstructs the grid from the filtered partitions. It iterates over the expected dimensions of the output grid, extracting the color values from the filtered partitions based on their sorted indices.
+
+**Version 3:** (Using nested loops and `neighbors`)
+
+```python
+def solve(I):
+    """
+    This version iterates through each cell and its neighbors to 
+    determine if it's part of a larger connected component. If not,
+    it is replaced with the background color.
+    """
+    h, w = len(I), len(I[0])
+    O = list(list(row) for row in I)
+    bg = mostcommon(I)
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] != bg:
+                connected = False
+                for ni, nj in neighbors((i, j)):
+                    if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == I[i][j]:
+                        connected = True
+                        break
+                if not connected:
+                    O[i][j] = bg
+    return tuple(tuple(row) for row in O) 
+```
+
+**Explanation:**
+1. **`h, w = len(I), len(I[0])`:** Get the height and width of the input grid `I`.
+2. **`O = list(list(row) for row in I)`:** Create a copy of the input grid as a list of lists for modification.
+3. **`bg = mostcommon(I)`:** Determine the background color, which is assumed to be the most frequent color in the grid.
+4. **`for i in range(h): ... for j in range(w): ...`:**  Iterate over each cell in the grid.
+5. **`if I[i][j] != bg: ...`:**  If the current cell is not the background color, check if it's connected to a neighboring cell of the same color.
+6. **`for ni, nj in neighbors((i, j)): ...`:** Iterate over the neighboring cells of the current cell.
+7. **`if 0 <= ni < h and 0 <= nj < w and I[ni][nj] == I[i][j]: ...`:** If a neighboring cell is within the grid boundaries and has the same color as the current cell, mark the current cell as connected.
+8. **`if not connected: ... O[i][j] = bg`:**  If the current cell is not connected to any neighboring cell of the same color, change its color to the background color in the output grid `O`. 
+9. **`return tuple(tuple(row) for row in O)`:**  Return the modified grid as a tuple of tuples. 
+
+**Version 4:** (Using recursion and `dneighbors`)
+
+```python
+def solve(I):
+    """
+    This version uses a recursive helper function to explore connected 
+    components. It marks visited cells and removes isolated ones.
+    """
+    h, w = len(I), len(I[0])
+    visited = set()
+    bg = mostcommon(I)
+    
+    def explore(i, j, color):
+      """ Recursively explore connected cells of the same color. """
+      if (i, j) in visited or not (0 <= i < h and 0 <= j < w) or I[i][j] != color:
+          return 
+      visited.add((i, j))
+      for ni, nj in dneighbors((i, j)):
+          explore(ni, nj, color)
+
+    for i in range(h):
+        for j in range(w):
+            if (i, j) not in visited:
+                explore(i, j, I[i][j])
+                if len(visited) == 1:
+                  I = fill(I, bg, {(i,j)})
+                visited = set() 
+    return I
+```
+
+**Explanation:**
+1. **`h, w = len(I), len(I[0])`:** Get the height and width of the input grid `I`.
+2. **`visited = set()`:** Initialize a set to keep track of visited cells during the exploration.
+3. **`bg = mostcommon(I)`:** Determine the background color.
+4. **`def explore(i, j, color): ...`:** Define a recursive function to explore connected components. 
+    * It checks if the current cell is valid and of the target color. If yes, it marks the cell as visited and recursively explores its neighbors (using `dneighbors` for direct adjacency).
+5. **`for i in range(h): ... for j in range(w): ...`:** Iterate over each cell in the grid.
+6. **`if (i, j) not in visited: ...`:**  If a cell hasn't been visited yet, start exploring from that cell.
+7. **`explore(i, j, I[i][j])`:** Initiate the recursive exploration from the current cell with its color.
+8. **`if len(visited) == 1: ... I = fill(I, bg, {(i,j)}) ...`:**  After exploring a component, if only one cell was visited, it means it's an isolated cell. Replace this cell with the background color.
+9. **`visited = set()`:** Reset the visited set before exploring the next potential connected component.
+10. **`return I`:**  Return the modified input grid.
+
+**Version 5:** (Using convolution-like approach)
+
+```python
+def solve(I):
+    """
+    This version uses a convolution-like approach to count neighboring cells
+    of the same color and removes cells with no same-colored neighbors.
+    """
+    h, w = len(I), len(I[0])
+    O = list(list(row) for row in I)
+    bg = mostcommon(I)
+    for i in range(h):
+        for j in range(w):
+            if I[i][j] != bg:
+                count = 0
+                for ni in range(max(0, i-1), min(h, i+2)):
+                    for nj in range(max(0, j-1), min(w, j+2)):
+                        if (ni, nj) != (i, j) and I[ni][nj] == I[i][j]:
+                            count += 1
+                if count == 0:
+                    O[i][j] = bg
+    return tuple(tuple(row) for row in O)
+```
+
+**Explanation:**
+
+1. **`h, w = len(I), len(I[0])`:**  Get the height and width of the input grid `I`.
+2. **`O = list(list(row) for row in I)`:**  Create a copy of the input grid as a list of lists for modification.
+3. **`bg = mostcommon(I)`:**  Determine the background color.
+4. **`for i in range(h): ... for j in range(w): ...`:**  Iterate over each cell in the grid.
+5. **`if I[i][j] != bg: ...`:** If the current cell is not the background color, proceed to count its same-colored neighbors.
+6. **`count = 0 ... for ni in range(max(0, i-1), min(h, i+2)): ... for nj in range(max(0, j-1), min(w, j+2)): ...`:** This section iterates through the 3x3 neighborhood surrounding the current cell (including the cell itself). 
+7. **`if (ni, nj) != (i, j) and I[ni][nj] == I[i][j]: ... count += 1`:**  If a neighboring cell is within the grid, is not the current cell itself, and has the same color as the current cell, increment the `count`.
+8. **`if count == 0: ...  O[i][j] = bg`:**  After checking all neighbors, if the `count` is still 0, it means the current cell has no neighboring cell of the same color, so it's an isolated cell. Replace its color with the background color in the output grid `O`.
+9. **`return tuple(tuple(row) for row in O)`:** Return the modified grid. 
+
+These five versions demonstrate distinct approaches to achieving the same transformation, utilizing different DSL functions and logic. Each version provides a unique perspective on solving the problem and showcases the flexibility of the DSL. 

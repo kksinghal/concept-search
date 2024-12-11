@@ -1,0 +1,154 @@
+## Transformation Analysis:
+
+The transformation aims to identify specific patterns in the input grid and replace them with a cross-shaped pattern centered around the original pattern's location. The cross is formed using the digit '3'. Let's break down the transformation for each input-output pair:
+
+**Input_0 to Output_0:**
+
+- **Identified pattern:** Two horizontally adjacent '1' digits surrounded by '0's. 
+- **Transformation:** The adjacent '1's are replaced by the central '3' of the cross pattern. Three additional '3's are added: one above, one below, and one to the right of the central '3'.
+
+**Input_1 to Output_1:**
+
+- **Identified pattern:**  Same as Input_0: Two horizontally adjacent '1' digits surrounded by '0's.
+- **Transformation:** Same as Input_0: The adjacent '1's are replaced with a cross of '3's.
+
+
+## Program Versions:
+
+Here are five distinct versions of the program "Program_to_be_generated" in the provided DSL, each with an explanation:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+  # Find the indices of all '1's in the grid
+  ones_indices = ofcolor(I, ONE)
+  
+  # Identify pairs of horizontally adjacent '1's
+  adjacent_ones = frozenset(
+    (i, j) for i, j in ones_indices 
+    if (i, j + 1) in ones_indices and I[i][j] == I[i][j + 1]
+  )
+  
+  # Create the cross pattern indices
+  cross_indices = mapply(lambda ij: frozenset({ij, (ij[0] - 1, ij[1]), (ij[0] + 1, ij[1]), (ij[0], ij[1] + 1)}), adjacent_ones)
+  
+  # Fill the cross pattern with '3's
+  O = fill(I, THREE, merge(cross_indices)) 
+  return O
+```
+
+**Explanation:**
+
+1. **Find '1' indices:** `ofcolor(I, ONE)` identifies all grid cells containing the digit '1'.
+2. **Identify adjacent '1's:**  The code iterates through the '1' indices, checking if a horizontally adjacent cell also contains a '1'.
+3. **Create cross pattern:** For each pair of adjacent '1's, it generates the indices of a cross pattern centered on the rightmost '1'.
+4. **Fill with '3's:** The `fill` function replaces the values at the cross pattern indices with the digit '3'.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  # Generate all possible 2x2 subgrids 
+  subgrids = frozenset(crop(I, (i, j), (2, 2)) for i in range(len(I) - 1) for j in range(len(I[0]) - 1))
+  
+  # Check if subgrid matches the pattern [0, 1, 0, 1] (horizontally adjacent '1's)
+  pattern = lambda g: g[0] == (0, 1) and g[1] == (0, 1) 
+  
+  # Find top-left corner indices of matching subgrids
+  cross_starts = frozenset((i, j) for i in range(len(I) - 1) for j in range(len(I[0]) - 1) if pattern(crop(I, (i, j), (2, 2))))
+  
+  # Generate cross pattern indices for each matching subgrid
+  cross_indices = mapply(lambda ij: frozenset({(ij[0], ij[1] + 1), (ij[0] - 1, ij[1] + 1), (ij[0] + 1, ij[1] + 1), (ij[0], ij[1] + 2)}), cross_starts)
+  
+  # Fill the pattern with '3's
+  O = fill(I, THREE, merge(cross_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Generate subgrids:** The code creates all possible 2x2 subgrids from the input grid.
+2. **Match pattern:** A lambda function checks if a subgrid matches the pattern of horizontally adjacent '1's.
+3. **Find pattern indices:** The code iterates through the subgrids and identifies the top-left corner indices of matching subgrids.
+4. **Generate cross pattern:**  For each matching subgrid, it generates the indices for the cross pattern.
+5. **Fill with '3's:**  Similar to Version 1, the `fill` function is used to replace the values at the cross pattern indices with '3'.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+  # Find all objects in the grid
+  objs = objects(I, T, F, T)
+  
+  # Filter for objects with two cells and color '1' 
+  target_objs = sizefilter(colorfilter(objs, ONE), TWO)
+  
+  # Check if object's cells are horizontally adjacent 
+  is_horizontal = lambda obj: width(obj) == 2 and height(obj) == 1
+  
+  # Get the indices of the rightmost cell of horizontally adjacent objects
+  cross_centers = mapply(lambda obj: (uppermost(obj), rightmost(obj)), sfilter(target_objs, is_horizontal))
+  
+  # Generate and apply the cross pattern
+  cross_indices = mapply(lambda ij: frozenset({ij, (ij[0] - 1, ij[1]), (ij[0] + 1, ij[1]), (ij[0], ij[1] + 1)}), cross_centers)
+  O = fill(I, THREE, merge(cross_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Find objects:** `objects(I, T, F, T)` extracts all objects from the grid.
+2. **Filter objects:** The code filters the objects to find those with two cells and color '1'.
+3. **Check horizontal adjacency:** `is_horizontal` checks if the object's cells are horizontally adjacent.
+4. **Get rightmost cell indices:**  For horizontally adjacent objects, the code extracts the indices of the rightmost cell.
+5. **Generate and apply cross pattern:** Similar to previous versions, it generates the cross pattern indices and uses `fill` to apply it.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+  shifted_right = shift(asobject(I), (0, 1))
+  shifted_right_grid = paint(canvas(ZERO, shape(I)), shifted_right)
+  
+  # Find overlapping '1's by comparing with the shifted grid 
+  overlap_indices = ofcolor(cellwise(I, shifted_right_grid, lambda a, b: ONE if a == b and a == ONE else ZERO), ONE)
+  
+  # Generate and apply the cross pattern
+  cross_indices = mapply(lambda ij: frozenset({(ij[0], ij[1] - 1), (ij[0] - 1, ij[1]), (ij[0] + 1, ij[1]), (ij[0], ij[1])}), overlap_indices) 
+  O = fill(I, THREE, merge(cross_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Shift grid:** The code creates a copy of the input grid shifted one cell to the right.
+2. **Find overlaps:**  It compares the original and shifted grids, marking cells with overlapping '1's.
+3. **Generate and apply cross pattern:**  Using the overlap indices, it generates the cross pattern indices, shifting one step left to center the pattern correctly, and applies the '3's using `fill`. 
+
+**Program Version 5:**
+
+```python
+def solve(I):
+    # Directly iterate and check for the pattern
+    h, w = len(I), len(I[0])
+    cross_indices = set()
+    for i in range(h):
+        for j in range(w - 1):
+            if I[i][j] == ONE and I[i][j+1] == ONE:
+                cross_indices.update({(i, j+1), (i-1, j+1), (i+1, j+1), (i, j+2)})
+
+    # Fill the identified indices with '3'
+    O = fill(I, THREE, frozenset(ij for ij in cross_indices if 0 <= ij[0] < h and 0 <= ij[1] < w))
+    return O
+```
+
+**Explanation:**
+
+1. **Direct Iteration:** Iterates over the grid, checking for consecutive '1's horizontally.
+2. **Pattern Found:** If a pattern is found, it adds the indices for the cross pattern to the `cross_indices` set.
+3. **Boundary Check:** Before filling, it filters out any indices that fall outside the grid boundaries.
+4. **Fill with '3's:** The `fill` function then replaces the values at the valid `cross_indices` with '3'.
+
+
+This provides five distinct approaches to solving the given transformation task within the DSL constraints. Each version offers a different perspective on how to identify the target pattern and apply the desired changes.

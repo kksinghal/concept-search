@@ -1,0 +1,178 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects (connected components of the same digit) and extending them in a specific direction until they hit another object or the edge of the grid.  The direction of extension appears to be determined by the relative position of the last digit in the topmost row and the last digit in the leftmost column of the input grid.
+
+**Input 0:** The last digit in the top row is '0' and the last digit in the leftmost column is '0'.  All objects except the background (0) are extended horizontally to the right.
+
+**Input 1:** The last digit in the top row is '0' and the last digit in the leftmost column is '7'. Objects extend horizontally towards the last digit of the leftmost column ('7' in this case). 
+
+**Input 2:** The last digit in the top row is '0' and the last in the leftmost column is '0'. Objects are extended vertically downwards.
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def solve_generated(I):
+  last_top_row = last(I[0])
+  last_left_col = last(dmirror(I)[0])
+
+  direction = (
+    0 if last_top_row == last_left_col else (1 if index(I, (0, width(I)-1)) < index(I,(height(I)-1, 0)) else -1), 
+    1 if last_top_row != last_left_col else (1 if index(I, (0, width(I)-1)) > index(I,(height(I)-1, 0)) else -1)
+  )
+
+  objs = fgpartition(I)
+  O = I
+  for obj in objs:
+    for _ in range(42):
+      obj = shift(obj, direction)
+      O = underpaint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1.  **Determine Extension Direction:** 
+    *  `last_top_row` and `last_left_col` store the last digits of the top row and leftmost column respectively.
+    *  `direction` is a tuple representing the direction of extension.  It's (0,1) for rightward, (1,0) for downward, etc. The logic implements the observed pattern from the transformation analysis. 
+2. **Iterate and Extend:**
+    *  `objs` stores the objects in the grid using `fgpartition`.
+    *  For each object:
+        *  It's repeatedly shifted in the `direction` using `shift`.
+        *  The shifted object is painted onto a copy of the input grid (`O`) using `underpaint`, which only paints on background cells. This process repeats 42 times to ensure complete extension. 
+
+**Program Version 2:**
+
+```python
+def solve_generated(I):
+  target_color = index(I, (height(I)-1, 0)) if index(I, (0, width(I)-1)) == 0 else index(I, (0, width(I)-1))
+  
+  objs = fgpartition(I)
+  O = I
+  for obj in objs:
+    if color(obj) == target_color:
+      continue
+    for _ in range(42):
+      expansion_candidates = mapply(neighbors, toindices(obj))
+      obj =  frozenset((index(I, loc), loc) for loc in expansion_candidates if index(I, loc) == color(obj) or index(I, loc) == 0)
+      O = paint(O, obj)
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Target Color:**
+    * `target_color` is assigned the value of the last digit in the leftmost column if the last digit in the top row is 0, otherwise it's assigned the value of the last digit in the top row. This determines the color of the object that other objects will extend towards.
+
+2. **Iterate and Expand:**
+    * `objs` stores the objects in the grid using `fgpartition`.
+    * For each object:
+        * If the object's color matches `target_color`, it's skipped.
+        *  For the remaining objects:
+           * `expansion_candidates` is populated with the neighboring indices of each cell in the object using `mapply` and `neighbors`.
+           * The object is then updated to include cells from `expansion_candidates` that either share the object's color or are background cells (value 0). 
+           * This expanded object is then painted onto the grid (`O`) using `paint`. 
+
+**Program Version 3:**
+
+```python
+def solve_generated(I):
+  h_direction = 1 if index(I, (0, width(I)-1)) < index(I,(height(I)-1, 0)) else -1
+  v_direction = 1 if index(I, (0, width(I)-1)) > index(I,(height(I)-1, 0)) else -1
+
+  objs = fgpartition(I)
+  O = I
+  for obj in objs:
+    if hmatching(obj,  {(0, width(I)-1)}):
+      for _ in range(42):
+        obj = shift(obj, (0, h_direction))
+        O = underpaint(O, obj)
+    elif vmatching(obj,  {(height(I)-1, 0)}):
+      for _ in range(42):
+        obj = shift(obj, (v_direction, 0))
+        O = underpaint(O, obj) 
+  return O
+```
+
+**Explanation:**
+
+1. **Determine Horizontal and Vertical Directions:**
+   *  `h_direction` and `v_direction` determine the horizontal and vertical movement directions based on the last digits in the top row and leftmost column.
+
+2. **Iterate and Extend:**
+   * `objs` stores the objects in the grid using `fgpartition`.
+   * For each object:
+      * `hmatching` and `vmatching` check if the object shares a row or column with the last cells of the top row and the leftmost column, respectively.
+      * Based on these conditions, the object is extended either horizontally using `h_direction` or vertically using `v_direction` and painted onto the grid (`O`) using `underpaint`.
+
+**Program Version 4:**
+
+```python
+def solve_generated(I):
+    last_top_row = last(I[0])
+    last_left_col = last(dmirror(I)[0])
+  
+    h_direction = 1 if last_top_row < last_left_col else -1
+    v_direction = 1 if last_top_row > last_left_col else -1
+
+    objs = fgpartition(I)
+    O = I
+    for obj in objs:
+        if last_top_row != last_left_col:
+            start_j = leftmost(obj)
+            end_j = rightmost(obj)
+            for j in range(start_j, end_j + h_direction, h_direction):
+                for i in range(uppermost(obj), height(I)):
+                    if index(I, (i, j)) == 0:
+                        O = paint(O, {(color(obj), (i, j))})
+        else:
+            start_i = uppermost(obj)
+            end_i = lowermost(obj)
+            for i in range(start_i, end_i + v_direction, v_direction):
+                for j in range(leftmost(obj), width(I)):
+                    if index(I, (i, j)) == 0:
+                        O = paint(O, {(color(obj), (i, j))}) 
+    return O
+```
+
+**Explanation:**
+
+1. **Determine Directions and Target:**
+   * Similar to previous versions, `h_direction` and `v_direction` are determined.
+
+2. **Iterate and Extend:**
+   * The program iterates through each object and, based on whether the last digits in the top row and leftmost column are the same, decides whether to extend horizontally or vertically. 
+   * For horizontal extension, it iterates through columns within the object's bounds and moves downwards, painting background cells with the object's color. 
+   * Vertical extension follows a similar logic, iterating through rows and moving rightwards.
+
+**Program Version 5:**
+
+```python
+def solve_generated(I):
+    target_index = (0, width(I) - 1) if index(I, (0, width(I)-1)) != 0 else (height(I) - 1, 0)
+
+    objs = fgpartition(I)
+    O = I
+    for obj in objs:
+        for cell in toindices(obj):
+            ray = shoot(cell, position(cell, target_index))
+            for loc in ray:
+                if index(O, loc) == 0:
+                    O = paint(O, {(color(obj), loc)})
+                else:
+                    break
+    return O
+```
+
+**Explanation:**
+
+1. **Determine Target Index:**
+   * `target_index` is set to the index of the last cell in either the top row or the leftmost column, based on which one contains a non-zero digit.
+
+2. **Iterate, Shoot, and Paint:**
+   * The program iterates through each object and each cell within the object. 
+   * For each cell, it calculates the direction (`position`) from the cell to the `target_index` and uses this direction to "shoot" a ray (`shoot`) from the cell. 
+   * The ray extends until it encounters a non-background cell, painting background cells along the way with the object's color.
+
+These five program versions offer a diverse set of approaches to achieve the desired transformation using the provided DSL functions. Each version utilizes different combinations of functions and logic, providing distinct solutions to the problem. 

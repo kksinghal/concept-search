@@ -1,0 +1,178 @@
+## Transformation Analysis:
+
+The transformation in all three examples involves extending a line from the closest background cell to each foreground object in the grid.  The line extends horizontally, either left or right, from the background cell to the object. The line's color matches the object's color.
+
+**Input_0:** 
+* The `1` at the top extends right to connect with the other `1`.
+* The `3` objects extend right to connect with the rightmost `1`.
+* The `6` objects extend left to connect with the leftmost `6`.
+
+**Input_1:**
+* The top-right `8` object extends left.
+* The bottom-left `7` object extends right.
+* All other objects extend right or left to connect to the horizontally closest object of the same color.
+
+**Input_2:**
+* All `1` objects extend right to connect.
+* No other changes occur as the `3` objects are already connected to a background cell.
+
+## Program_to_be_generated:
+
+Here are five distinct code versions for the Program_to_be_generated:
+
+### Program Version 1:
+
+**Code:**
+
+```python
+def program_version_1(I):
+  for obj in fgpartition(I):  # Iterate over non-background objects
+    obj_indices = toindices(obj)
+    obj_center = centerofmass(obj)
+    bg_indices = ofcolor(I, mostcommon(I))
+    left_bg = min(
+        (j for i, j in bg_indices if j < leftmost(obj_indices)), # Find leftmost background
+        key=lambda j: abs(j - obj_center[1]), default=None
+    )
+    right_bg = min(
+        (j for i, j in bg_indices if j > rightmost(obj_indices)),  # Find rightmost background
+        key=lambda j: abs(j - obj_center[1]), default=None
+    )
+    if left_bg is not None and right_bg is not None: # Choose closest side for connection
+      closest_bg = (obj_center[0], left_bg) if abs(left_bg - obj_center[1]) < abs(right_bg - obj_center[1]) else (obj_center[0], right_bg)
+    elif left_bg is not None:
+      closest_bg = (obj_center[0], left_bg)
+    elif right_bg is not None:
+      closest_bg = (obj_center[0], right_bg)
+    else:
+      continue
+    I = underfill(I, color(obj), connect(closest_bg, (obj_center[0], rightmost(obj_indices))))
+    I = underfill(I, color(obj), connect(closest_bg, (obj_center[0], leftmost(obj_indices))))
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Objects:** The code iterates through each non-background object in the input grid using `fgpartition(I)`.
+2. **Find Closest Background:** For each object, it finds the closest background cell in the same row by calculating the horizontal distance between the object's center of mass (`centerofmass(obj)`) and each background cell (`bg_indices`). It then chooses the closest background cell to the left or right of the object.
+3. **Draw Connecting Lines:** The `connect` function is used to draw lines from the closest background cell to the leftmost and rightmost points of the object. The `underfill` function ensures that only background cells are colored. 
+
+### Program Version 2:
+
+**Code:**
+
+```python
+def program_version_2(I):
+  for obj in fgpartition(I):
+    obj_row = uppermost(obj) # Identify object's row
+    bg_cols = {j for i, j in ofcolor(I, mostcommon(I)) if i == obj_row}  # Background column indices in the same row
+    obj_cols = {j for i, j in toindices(obj)} # Object column indices
+    fill_cols = set()
+    for col in obj_cols:
+      closest_bg = min(bg_cols, key=lambda j: abs(j - col)) # Find closest background for each object column
+      fill_cols.update(range(min(col, closest_bg), max(col, closest_bg) + 1)) # Add range to fill
+    I = underfill(I, color(obj), {(obj_row, j) for j in fill_cols}) # Fill the determined columns
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Object Row:**  The code identifies the row containing the current object using `uppermost(obj)`.
+2. **Find Background Columns:** It gathers all column indices of background cells within the object's row.
+3. **Connect to Closest Background:** For every column occupied by the object, it finds the nearest background column and fills the entire horizontal range between them.
+4. **Fill:** The `underfill` function draws the connecting lines, ensuring only background cells are filled.
+
+### Program Version 3:
+
+**Code:**
+
+```python
+def program_version_3(I):
+  for obj in fgpartition(I):
+    obj_center = centerofmass(obj)
+    bg_indices = ofcolor(I, mostcommon(I))
+    closest_bg = min(bg_indices, key=lambda x: abs(x[1] - obj_center[1]))
+    fill_indices = connect((obj_center[0], closest_bg[1]), (obj_center[0], leftmost(obj)))
+    fill_indices |= connect((obj_center[0], closest_bg[1]), (obj_center[0], rightmost(obj)))
+    I = underfill(I, color(obj), fill_indices)
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Locate Closest Background:**  Identifies the background cell (`closest_bg`) horizontally closest to the object's center of mass.
+2. **Establish Connection Points:**  Determines the leftmost and rightmost points of the object for connection.
+3. **Draw Connecting Lines:**  Utilizes the `connect` function to draw lines from the `closest_bg` to both the leftmost and rightmost points, effectively extending the object horizontally. 
+4. **Fill:** Employs `underfill` to apply the object's color to the connecting lines, ensuring that only background cells are modified.
+
+### Program Version 4:
+
+**Code:**
+
+```python
+def program_version_4(I):
+  for obj in fgpartition(I):
+    obj_center_j = centerofmass(obj)[1]
+    bg_indices = ofcolor(I, mostcommon(I))
+    left_bg = next(
+        (
+            (i, j) for i, j in bg_indices
+            if i == obj_center[0] and j < leftmost(obj)
+        ),
+        None
+    )
+    right_bg = next(
+        (
+            (i, j) for i, j in bg_indices
+            if i == obj_center[0] and j > rightmost(obj)
+        ),
+        None
+    )
+    if left_bg and right_bg:
+      closest_bg = left_bg if abs(left_bg[1] - obj_center_j) <= abs(right_bg[1] - obj_center_j) else right_bg
+    elif left_bg:
+      closest_bg = left_bg
+    else:
+      closest_bg = right_bg
+    if closest_bg is not None:
+      I = underfill(I, color(obj), connect(closest_bg, (closest_bg[0], leftmost(obj))))
+      I = underfill(I, color(obj), connect(closest_bg, (closest_bg[0], rightmost(obj))))
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Locate Background Cells:**  Finds background cells (`left_bg`, `right_bg`) to the left and right of the object within the same row.
+2. **Determine Closest Background:** If background cells are found on both sides, it picks the one closest to the object's center. If only one side has a background cell, it's selected.
+3. **Draw Lines:** If a suitable background cell exists, it draws lines from that cell to the leftmost and rightmost points of the object using `connect` and `underfill`.
+
+### Program Version 5:
+
+**Code:**
+
+```python
+def program_version_5(I):
+  for obj in fgpartition(I):
+    for i, j in toindices(obj):
+      closest_bg = min(
+          ofcolor(I, mostcommon(I)),
+          key=lambda x: manhattan({x}, {(i, j)}) if x[0] == i else float('inf')
+      )
+      I = underfill(I, color(obj), connect((i, j), (i, closest_bg[1])))
+  O = I
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through Object Cells:** Iterates over each cell of every non-background object.
+2. **Find Closest Background in Row:** For each object cell, it locates the nearest background cell within the same row.
+3. **Draw Connecting Line:**  It draws a horizontal line from the object cell to the closest background cell.
+4. **Fill:** Utilizes `underfill` to color the connecting line using the object's color while modifying only background cells.
+
+
+Each of these program versions achieves the desired transformation through different strategies and function combinations, offering diverse solutions to the problem.

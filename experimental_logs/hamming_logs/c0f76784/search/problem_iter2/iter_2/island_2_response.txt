@@ -1,0 +1,143 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects within the grid (considering each digit as a distinct object) and then modifying these objects based on their properties and positions. Specifically, the transformation seems to follow these rules:
+
+* **Object Expansion:** Objects with value '8' are expanded vertically downwards.
+* **Value Replacement:** The newly added cells during expansion take on the value '7'.
+* **Boundary Preservation:** The expansion only occurs within the existing boundaries of the object. No new columns are created.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+    objs = fgpartition(I)  # Identify objects without background
+    expanded_objs = set()
+    for obj in objs:
+        if 8 in palette(obj):  # Check if object contains color '8'
+            top = uppermost(obj)
+            bottom = lowermost(obj)
+            left = leftmost(obj)
+            right = rightmost(obj)
+            for i in range(top, bottom + 1):
+                for j in range(left, right + 1):
+                    if (i, j) in toindices(obj):
+                        expanded_objs.add((7 if grid[i][j] == 8 else grid[i][j], (i, j)))  # Expand downwards, replacing '8' with '7'
+                    elif i > top and (i - 1, j) in toindices(obj):
+                        expanded_objs.add((7, (i, j)))  # Fill newly added cells with '7'
+        else:
+            expanded_objs.add(obj)  # Keep other objects unchanged
+    O = paint(canvas(0, shape(I)), frozenset(expanded_objs))  # Paint expanded objects onto a blank canvas
+    return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** We start by identifying all objects in the input grid using `fgpartition`.
+2. **Expansion Logic:**
+    * We iterate through each object. If an object contains the value '8', we determine its boundaries.
+    * For each cell within the object's bounding box, we check:
+        * If the cell is part of the original object, we add it to the `expanded_objs` set, replacing '8' with '7'.
+        * If the cell is below the object and its upper neighbor was part of the object, we add it to `expanded_objs` with the value '7'.
+    * Objects without the value '8' are added to `expanded_objs` without modification.
+3. **Output Generation:** Finally, we paint the `expanded_objs` onto a blank canvas of the same size as the input grid.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = fgpartition(I)
+  def expand_obj(obj):
+    if 8 in palette(obj):
+      return recolor(7, toindices(obj) | {(i+1, j) for (i, j) in toindices(obj) if i < lowermost(obj)})
+    return obj
+  O = paint(canvas(0, shape(I)), frozenset(apply(expand_obj, objs)))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** Similar to Version 1, we identify objects using `fgpartition`.
+2. **Expansion Logic:**
+    * Define a helper function `expand_obj` which:
+        * Checks if the object contains '8'.
+        * If so, it recolors the object to '7' and adds cells below each object cell (except the bottom row) to the object.
+        * If not, it returns the object unmodified.
+    * Apply `expand_obj` to each object in `objs` using `apply`.
+3. **Output Generation:** Paint the expanded objects onto a blank canvas like in Version 1.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  return paint(I, merge(apply(lambda obj: recolor(7, {(i + k, j) for (i, j) in toindices(obj) for k in range(2) if (i == uppermost(obj) and grid[i][j] == 8) or (k == 0)}), fgpartition(I))))
+```
+
+**Explanation:**
+
+This version compresses the logic into a single line using nested functions and lambda expressions.
+
+1. **Object Identification:**  `fgpartition(I)` identifies objects.
+2. **Expansion & Recoloring:**
+    *  A lambda function is applied to each object, which:
+       *  Iterates through each cell and its lower neighbor.
+       *  If the cell is in the top row and has value '8', or if it's the original cell (k=0), it's included in a new set with color '7'.
+3. **Painting:** The expanded and recolored cells are merged and painted onto the input grid.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+    objs = fgpartition(I)
+    def expand_down(obj):
+      shifted = shift(obj, (1, 0))
+      return (obj | recolor(7, toindices(shifted) & backdrop(obj))) if 8 in palette(obj) else obj
+    O = paint(canvas(0, shape(I)), frozenset(apply(expand_down, objs)))
+    return O
+```
+
+**Explanation:**
+
+1. **Object Identification:** Objects are identified with `fgpartition`.
+2. **Expansion Logic:**
+    * `expand_down` function:
+        * Shifts the object downwards.
+        * If the object contains '8', it merges the original object with the shifted object after recoloring it to '7' and only keeping the intersection with the original object's backdrop.
+        * If the object doesn't contain '8', it's returned unmodified.
+3. **Output Generation:** Expanded objects are painted onto a blank canvas.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  def process_cell(i, j):
+    return 7 if (i > 0 and I[i - 1][j] == 8) or I[i][j] == 8 else I[i][j]
+  O = canvas(0, shape(I))
+  O = tuple(tuple(process_cell(i, j) for j in range(len(I[0]))) for i in range(len(I)))
+  return O
+```
+
+**Explanation:**
+
+1. **Cell-wise Processing:** Instead of explicitly identifying objects, this version processes the grid cell by cell.
+2. **Expansion & Recoloring:**
+    * `process_cell` function:
+        * For each cell, it checks if the cell above contains '8' or if the current cell itself contains '8'.
+        * If either condition is true, it assigns the value '7' to the current cell in the output grid.
+        * Otherwise, it keeps the original value.
+3. **Output Generation:** The processed grid `O` is returned as the output.
+
+
+Each of these versions provides a distinct way to achieve the desired transformation using the DSL functions. Versions 1 and 2 are more explicit in their object handling, while versions 3, 4 and 5 offer more compact and potentially more efficient solutions.

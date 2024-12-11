@@ -1,0 +1,171 @@
+## Transformation Analysis:
+
+The transformation recolors objects in the input grid based on their size and relative position, while preserving their shape and location. Here's a breakdown:
+
+* **Smallest objects:** Recolored to '1'.
+* **Largest objects:** Recolored to '2'.
+* **Remaining objects:** Recolored to '1' if positioned to the left or below a '2' object, otherwise recolored to '2'. 
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+    bg = mostcolor(I)
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    small_objs = sizefilter(objs, minimum(apply(size, objs)))
+    large_objs = sizefilter(objs, maximum(apply(size, objs)))
+    O = I
+    for obj in objs:
+        if obj in small_objs:
+            O = paint(O, recolor(1, obj))
+        elif obj in large_objs:
+            O = paint(O, recolor(2, obj))
+        else:
+            for other_obj in objs:
+                if other_obj in large_objs and (
+                    (position(obj, other_obj) == (-1, 0)) or 
+                    (position(obj, other_obj) == (0, -1))
+                ):
+                    O = paint(O, recolor(1, obj))
+                    break
+            else:
+                O = paint(O, recolor(2, obj))
+    return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:**  The code identifies all objects in the grid using `objects` function, excluding the background.
+2. **Categorize Objects:** It finds the smallest and largest objects based on their sizes using `sizefilter` and `minimum`/`maximum` functions.
+3. **Recolor:**  
+   - Smallest objects are directly recolored to '1'. 
+   - Largest objects are directly recolored to '2'.
+   - For remaining objects, the code iterates through large objects and checks their relative positions using `position`. If the object is located left or below a large object, it's recolored to '1', otherwise to '2'. 
+4. **Return:** The modified grid is returned.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  small_size = minimum(apply(size, objs))
+  large_size = maximum(apply(size, objs))
+  def recolor_logic(obj):
+    if size(obj) == small_size:
+      return recolor(1, obj)
+    elif size(obj) == large_size:
+      return recolor(2, obj)
+    else:
+      for other_obj in objs:
+        if size(other_obj) == large_size and (
+            (position(obj, other_obj) == (-1, 0)) or 
+            (position(obj, other_obj) == (0, -1))
+        ):
+          return recolor(1, obj)
+      return recolor(2, obj)
+  return paint(I, merge(apply(recolor_logic, objs))) 
+```
+
+**Explanation:**
+
+1. **Identify and Categorize:** Similar to Version 1, it identifies objects and finds the smallest and largest object sizes.
+2. **Recolor Logic:** Defines a `recolor_logic` function that takes an object and:
+   - Recolors to '1' if it's the smallest.
+   - Recolors to '2' if it's the largest.
+   - For others, checks its position relative to large objects and recolors accordingly.
+3. **Apply and Paint:** Applies the `recolor_logic` to each object using `apply`, merges the resulting recolored objects with `merge`, and paints them onto the original grid using `paint`.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+    objs = sorted(objects(I, univalued=True, diagonal=False, without_bg=True), key=size)
+    O = I
+    for i, obj in enumerate(objs):
+        if i == 0:
+            O = paint(O, recolor(1, obj))
+        elif i == len(objs) - 1:
+            O = paint(O, recolor(2, obj))
+        else:
+            for j in range(i + 1, len(objs)):
+                if (position(obj, objs[j]) == (-1, 0)) or (position(obj, objs[j]) == (0, -1)):
+                    O = paint(O, recolor(1, obj))
+                    break
+            else:
+                O = paint(O, recolor(2, obj))
+    return O 
+```
+
+**Explanation:**
+
+1. **Sort Objects:** It sorts the identified objects by size using `sorted` and `size`.
+2. **Iterate and Recolor:** It iterates through the sorted objects:
+   - The first (smallest) object is recolored to '1'.
+   - The last (largest) object is recolored to '2'.
+   - For others, it iterates through larger objects and checks their positions. Recolors to '1' if below or to the left, otherwise to '2'. 
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  small_objs =  frozenset(obj for obj in objs if size(obj) == minimum(apply(size, objs)))
+  large_objs = frozenset(obj for obj in objs if size(obj) == maximum(apply(size, objs)))
+  other_objs = objs - small_objs - large_objs
+  def check_position(obj):
+    for large_obj in large_objs:
+      if (position(obj, large_obj) == (-1, 0)) or (position(obj, large_obj) == (0, -1)):
+        return True
+    return False
+  recolored_other_objs = frozenset((1, obj) if check_position(obj) else (2, obj) for obj in other_objs)
+  return paint(paint(I, merge(apply(lambda x: recolor(1, x), small_objs))), merge(apply(lambda x: recolor(x[0], x[1]), recolored_other_objs)))
+```
+
+**Explanation:**
+
+1. **Categorize Objects:** Similar to previous versions, it identifies and categorizes objects into small, large, and other.
+2. **Position Check:**  Defines a `check_position` function to determine if an object is below or to the left of any large object.
+3. **Recolor and Combine:** 
+   - Small objects are recolored to '1'.
+   - Other objects are processed using `check_position` and recolored accordingly, storing the target color and object as pairs.
+   - Finally, all recolored objects are combined and painted onto the original grid.
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+    objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+    def recolor_func(obj):
+        min_size = minimum(apply(size, objs))
+        max_size = maximum(apply(size, objs))
+        if size(obj) == min_size: return 1
+        if size(obj) == max_size: return 2
+        for other_obj in objs:
+          if size(other_obj) == max_size and any(x in ((-1,0),(0,-1)) for x in rapply(lambda d: position(obj, shift(other_obj, d)), dneighbors((0,0)))):
+            return 1
+        return 2
+    return paint(I, merge(apply(lambda o: recolor(recolor_func(o), o), objs))) 
+```
+
+**Explanation:**
+
+1. **Identify Objects:** Identifies objects in the grid.
+2. **Recolor Function:** Defines a `recolor_func` that determines the target color based on size and relative position to large objects. It iterates through neighboring cells of each large object to check relative position.
+3. **Apply, Recolor and Paint:** Applies `recolor_func` to each object, recolors them accordingly, and paints them onto the input grid.
+
+**Note:** These programs are examples and might have slight variations in efficiency. They demonstrate different ways to achieve the same transformation logic using the provided DSL functions. 

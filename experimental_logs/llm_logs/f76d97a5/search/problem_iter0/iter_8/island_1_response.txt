@@ -1,0 +1,118 @@
+## Transformation Analysis:
+
+The transformation takes a grid and performs the following:
+
+1. **Identifies the dominant color:**  This color forms the "background" of the grid.
+2. **Isolates non-background objects:**  It identifies connected regions of cells that don't share the background color.
+3. **Creates a "frame" around each object:** The frame consists of background-colored cells that are directly adjacent to the object. 
+4. **Replaces the original objects with their frames:** The final output retains the background and replaces the original objects with their newly created frames.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  bg = mostcolor(I)
+  objs = objects(I, T, T, T)
+  def is_frame_cell(loc):
+    return any(index(I, n) == bg for n in neighbors(loc) if 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]))
+  frame_indices = mfilter(asindices(I), is_frame_cell)
+  return paint(canvas(bg, shape(I)), recolor(bg, frame_indices)) 
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:** Determines the background color of the input grid `I`.
+2. **`objs = objects(I, T, T, T)`:** Identifies all non-background objects in the grid. 
+3. **`is_frame_cell(loc)`:** This function checks if a given location `loc` is part of an object's frame. It does so by verifying if any of its neighboring cells are of the background color.
+4. **`frame_indices = mfilter(asindices(I), is_frame_cell)`:**  Applies the `is_frame_cell` function to all indices of the grid, identifying all frame cell locations and merging them into a single set.
+5. **`return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))`:** Creates a canvas filled with the background color and then paints the frame cells (identified by `frame_indices`) onto it.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  bg = mostcolor(I)
+  objs = objects(I, T, T, T)
+  def frame_indices(obj):
+    return frozenset(n for v, loc in obj for n in neighbors(loc) if 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]) and index(I, n) == bg)
+  all_frame_indices = merge(apply(frame_indices, objs))
+  return paint(canvas(bg, shape(I)), recolor(bg, all_frame_indices))
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:**  Finds the background color.
+2. **`objs = objects(I, T, T, T)`:**  Identifies non-background objects.
+3. **`frame_indices(obj)`:** This function takes an object and returns the indices of its frame cells. It iterates through each cell of the object, finds its neighbors, and includes those neighbors which are within the grid bounds and have the background color.
+4. **`all_frame_indices = merge(apply(frame_indices, objs))`:** Applies the `frame_indices` function to each object and merges the resulting indices into a single set. 
+5. **`return paint(canvas(bg, shape(I)), recolor(bg, all_frame_indices))`:**  Creates a background canvas and paints the identified frame cells onto it. 
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  bg = mostcolor(I)
+  def is_frame_cell(i, j):
+    return any(index(I, (i+di, j+dj)) == bg for di, dj in [(0,1),(0,-1),(1,0),(-1,0)] if 0 <= i+di < len(I) and 0 <= j+dj < len(I[0]))
+  frame_indices = frozenset((i,j) for i in range(len(I)) for j in range(len(I[0])) if is_frame_cell(i,j))
+  return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:**  Determines the background color.
+2. **`is_frame_cell(i, j)`:** Checks if a cell at `(i, j)` is a frame cell by examining its direct neighbors (up, down, left, right) and checking if they have the background color.
+3. **`frame_indices = frozenset(...)`:** Iterates through all grid cells and collects the indices of those identified as frame cells by `is_frame_cell`.
+4. **`return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))`:** Paints the frame cells onto a background canvas.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  bg = mostcolor(I)
+  def is_object_adjacent(loc):
+    return any(index(I, n) != bg for n in neighbors(loc) if 0 <= n[0] < len(I) and 0 <= n[1] < len(I[0]))
+  frame_indices = sfilter(asindices(I), lambda loc: index(I, loc) == bg and is_object_adjacent(loc))
+  return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:** Finds the background color.
+2. **`is_object_adjacent(loc)`:** Checks if a given location has a non-background colored cell as a neighbor.
+3. **`frame_indices = sfilter(...)`:** Iterates through all grid indices, keeping only those that represent background cells (`index(I, loc) == bg`) and are adjacent to a non-background object (`is_object_adjacent(loc)`).
+4. **`return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))`:**  Paints the identified frame cells onto a background canvas.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  bg = mostcolor(I)
+  def shifted_index(grid, loc, offset):
+    i, j = add(loc, offset)
+    return grid[i][j] if 0 <= i < len(grid) and 0 <= j < len(grid[0]) else bg
+  def is_frame_cell(i, j):
+    return any(shifted_index(I, (i,j), offset) != bg for offset in [(-1,0), (1,0), (0,-1), (0,1)]) and I[i][j] == bg
+  frame_indices = frozenset((i, j) for i in range(len(I)) for j in range(len(I[0])) if is_frame_cell(i, j))
+  return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))
+```
+
+**Explanation:**
+
+1. **`bg = mostcolor(I)`:** Determines the background color.
+2. **`shifted_index(grid, loc, offset)`:** A helper function that safely retrieves the value at a location offset from `loc` in the `grid`, returning the background color if the offset falls outside the grid.
+3. **`is_frame_cell(i, j)`:** Utilizes `shifted_index` to check if a cell at `(i, j)` is a frame cell by examining its direct neighbors and checking for non-background colors.
+4. **`frame_indices = frozenset(...)`:**  Collects the indices of all identified frame cells.
+5. **`return paint(canvas(bg, shape(I)), recolor(bg, frame_indices))`:**  Draws the frame onto a background canvas. 
+
+These versions provide a variety of approaches to identifying frame cells using different DSL functions and logic, demonstrating the flexibility of the language and offering different perspectives on solving the problem. 

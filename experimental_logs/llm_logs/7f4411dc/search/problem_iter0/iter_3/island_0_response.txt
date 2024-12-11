@@ -1,0 +1,137 @@
+## Transformation Analysis:
+
+The transformation removes the "bottom-most" occurrence of each distinct object in the input grid. An object is defined as a connected component of cells with the same value, considering diagonal connections.
+
+**Input 0:** The bottom-most "7" shaped object is removed.
+
+**Input 1:** The bottom-most occurrence of the "6" shaped object is removed.
+
+**Input 2:** The bottom-most occurrence of the "5" shaped object is removed.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def solve(I):
+  objs = objects(I, T, T, F)
+  for obj in objs:
+    locs = occurrences(I, obj)
+    bottom_most = argmax(locs, lambda loc: loc[0])
+    I = cover(I, shift(normalize(obj), bottom_most))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, T, T, F)` identifies all distinct objects in the grid, considering diagonal connections and including the background.
+2. **Iterate and Remove:** The code iterates through each object. For each object:
+    - `occurrences(I, obj)` finds all occurrences of the object in the grid.
+    - `argmax(locs, lambda loc: loc[0])` identifies the bottom-most occurrence by finding the location with the maximum row index.
+    - `cover(I, shift(normalize(obj), bottom_most))` removes the bottom-most occurrence from the grid by filling it with the background color.
+3. **Return Modified Grid:** The modified grid with the bottom-most occurrences removed is returned.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def solve(I):
+  covered = canvas(mostcolor(I), shape(I))
+  objs = objects(I, T, T, F)
+  for obj in objs:
+    locs = order(occurrences(I, obj), lambda loc: -loc[0])
+    for loc in locs:
+      if not equal(toobject(shift(normalize(obj), loc), I), toobject(shift(normalize(obj), loc), covered)):
+        covered = paint(covered, toobject(shift(normalize(obj), loc), I))
+        break
+  return covered
+```
+
+**Explanation:**
+
+1. **Initialize Canvas:** A new grid (`covered`) is created, filled with the background color, having the same dimensions as the input grid.
+2. **Identify Objects:**  `objects(I, T, T, F)` finds all distinct objects in the grid.
+3. **Iterate and Paint:** For each object:
+    - `occurrences(I, obj)` finds all occurrences.
+    - `order(..., lambda loc: -loc[0])` orders occurrences from bottom to top.
+    - The code iterates through the ordered occurrences, checking if the current occurrence overlaps with any previously painted object in `covered`. If not, it paints the object onto `covered` and moves to the next object.
+4. **Return Painted Grid:** The `covered` grid, now containing all but the bottom-most occurrences, is returned.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def solve(I):
+  def bottom_index(obj):
+    return lowermost(extract(occurrences(I, obj), identity))
+  sorted_objs = order(objects(I, T, T, F), bottom_index)
+  for obj in sorted_objs:
+    I = cover(I, shift(normalize(obj), extract(occurrences(I, obj), lambda loc: loc[0] == bottom_index(obj))))
+  return I
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** `bottom_index` finds the row index of the bottom-most cell of a given object in the input grid.
+2. **Sort Objects:** `objects(I, T, T, F)` identifies objects, and `order(..., bottom_index)` sorts them based on the row index of their bottom-most cell (descending).
+3. **Iterate and Remove:** For each object in the sorted order:
+    - `extract(occurrences(I, obj), lambda loc: loc[0] == bottom_index(obj))` finds the bottom-most occurrence's location.
+    - `cover(I, shift(normalize(obj), ...))` removes this occurrence from the grid.
+4. **Return Modified Grid:** Returns the grid with bottom-most occurrences removed.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def solve(I):
+  def bottom_row(locs):
+    return max(loc[0] for loc in locs)
+  covered = canvas(mostcolor(I), shape(I))
+  for obj in objects(I, T, T, F):
+    occurrences_list = totuple(occurrences(I, obj))
+    if len(occurrences_list) > 1:
+      for i in range(len(occurrences_list) - 1):
+        covered = paint(covered, toobject(shift(normalize(obj), occurrences_list[i]), I))
+    else:
+      covered = paint(covered, toobject(shift(normalize(obj), first(occurrences_list)), I))
+  return covered
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** `bottom_row` finds the maximum row index from a set of locations.
+2. **Initialize Canvas:** Creates an empty canvas (`covered`) of the same size and background color as the input.
+3. **Iterate through Objects:** Iterates over each unique object identified by `objects(I, T, T, F)`.
+4. **Handle Multiple Occurrences:** If an object has multiple occurrences:
+    - It paints all but the last (bottom-most) occurrence onto the `covered` grid.
+5. **Handle Single Occurrence:** If an object appears only once, it's painted directly onto `covered`.
+6. **Return Painted Grid:** The function returns the `covered` grid, now representing the input with bottom-most occurrences removed.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def solve(I):
+  def is_bottom_most(obj, loc):
+    return all(other_loc[0] <= loc[0] for other_loc in occurrences(I, obj) if other_loc != loc)
+  for obj in objects(I, T, T, F):
+    for loc in occurrences(I, obj):
+      if is_bottom_most(obj, loc):
+        I = cover(I, shift(normalize(obj), loc))
+        break
+  return I
+```
+
+**Explanation:**
+
+1. **Define Helper Function:** `is_bottom_most` checks if a given location `loc` of an object `obj` is the bottom-most occurrence by comparing its row index with other occurrences of the same object.
+2. **Iterate and Remove:** The code iterates over each unique object identified by `objects(I, T, T, F)`. For each object:
+   - It checks every occurrence of the object using `occurrences(I, obj)`.
+   - If an occurrence is determined to be the bottom-most using `is_bottom_most`, it is removed from the grid `I` using `cover`.
+   - The loop breaks after removing one bottom-most occurrence for the current object.
+3. **Return Modified Grid:** The modified grid `I`, with the bottom-most occurrences of each object removed, is returned as the result.

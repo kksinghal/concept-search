@@ -1,0 +1,132 @@
+## Transformation Analysis:
+
+The transformation replaces specific occurrences of the digit '1' in the input grid with the digit '8' in the output grid. The specific '1's to be replaced are those that are part of an object that touches the outer border of the grid. Objects are defined as connected components of the same digit, considering only direct adjacency (not diagonal). 
+
+**Examples:**
+
+* **Input_0:** The object of '1's in the center touches the right border with the '1' at position (4,9). This entire object is replaced with '8's in the output.
+* **Input_1:** Two objects of '1's touch the border. The top-left object is entirely replaced by '8's. From the bottom object, only the '1's directly on the border are replaced.
+* **Input_2:** Similar to Input_1, the '1's belonging to border-touching objects are replaced. Note that the '1' in the top row is not replaced as it doesn't belong to a border-touching object.
+* **Input_3:**  Illustrates that even if an object has multiple points of contact with the border, all its '1's are replaced.
+
+## Code Generation:
+
+Here are five distinct versions of the program ("Program_to_be_generated") to achieve this transformation, along with explanations:
+
+**Program Version 1:**
+
+```python
+def solve(I):
+    # Find objects, excluding background
+    objs = objects(I, True, False, True) 
+    # Filter for objects touching the border
+    border_objs = sfilter(objs, lambda obj: bordering(obj, I))  
+    # Combine all border objects into a single patch
+    border_patch = merge(border_objs) 
+    # Replace '1's within the border patch with '8's
+    O = fill(I, 8, toindices(sfilter(border_patch, lambda x: x[0] == 1))) 
+    return O
+```
+
+**Explanation:**
+
+1. **`objects(I, True, False, True)`:** Identifies all objects in the grid, considering only direct adjacency and excluding the background color.
+2. **`sfilter(objs, lambda obj: bordering(obj, I))`:** Filters the objects, keeping only those that touch the grid border.
+3. **`merge(border_objs)`:** Combines all the border-touching objects into a single patch.
+4. **`toindices(sfilter(border_patch, lambda x: x[0] == 1))`:** Extracts the indices of all '1's within the combined border patch.
+5. **`fill(I, 8, ...)`:**  Fills the input grid (`I`) with '8' at the extracted indices, effectively replacing the target '1's.
+
+**Program Version 2:**
+
+```python
+def solve(I):
+  # Find indices of all '1's in the grid
+  ones = ofcolor(I, 1)  
+  # Find indices of '1's on the border
+  border_ones = sfilter(ones, lambda loc: bordering({loc}, I))  
+  # Find all objects containing the border '1's
+  target_objs = mfilter(objects(I, True, False, True), lambda obj: any(loc in obj for loc in border_ones))
+  # Combine target objects into a single patch
+  target_patch = merge(target_objs)  
+  # Replace '1's in the target patch with '8's
+  O = fill(I, 8, toindices(target_patch))
+  return O
+```
+
+**Explanation:**
+
+1. **`ofcolor(I, 1)`:** Gets the indices of all cells containing '1'.
+2. **`sfilter(ones, lambda loc: bordering({loc}, I))`:** Filters for '1's directly on the border.
+3. **`mfilter(...)`:** Finds all objects that contain at least one of the border '1's.
+4. **`merge(target_objs)`:**  Combines these objects into a single patch.
+5. **`fill(I, 8, toindices(target_patch))`:** Replaces all cells within the combined patch with '8'.
+
+**Program Version 3:**
+
+```python
+def solve(I):
+    # Create a canvas of the same size as the input, filled with '8's
+    canvas_8 = canvas(8, shape(I))  
+    # Find objects, excluding background
+    objs = objects(I, True, False, True)  
+    # Filter for objects NOT touching the border
+    non_border_objs = sfilter(objs, lambda obj: not bordering(obj, I)) 
+    # Paint the non-border objects onto the canvas of '8's
+    O = paint(canvas_8, merge(non_border_objs))  
+    return O
+```
+
+**Explanation:**
+
+1. **`canvas(8, shape(I))`:** Creates a grid filled entirely with '8's, having the same dimensions as the input.
+2. **`objects(I, True, False, True)`:** Finds all objects in the input grid.
+3. **`sfilter(objs, lambda obj: not bordering(obj, I))`:**  Filters the objects, keeping only those that *don't* touch the border.
+4. **`paint(canvas_8, merge(non_border_objs))`:** Paints the non-border objects onto the canvas of '8's. This effectively keeps the non-border objects unchanged while replacing everything else with '8's.
+
+**Program Version 4:**
+
+```python
+def solve(I):
+    # Get the background color of the input grid
+    bg = mostcolor(I)  
+    # Create a function to check if a location is on the border
+    is_border = rbind(bordering, I) 
+    # Create a function to check if a location is a '1' and not on the border
+    is_inner_1 = lambda loc: index(I, loc) == 1 and not is_border({loc})  
+    # Create a new grid by applying the check to each location
+    O = tuple(tuple(8 if is_inner_1((i, j)) else I[i][j] for j in range(len(I[0]))) for i in range(len(I))) 
+    return O
+```
+
+**Explanation:**
+1. **`mostcolor(I)`:**  Identifies the background color of the input grid.
+2. **`rbind(bordering, I)`:** Creates a function `is_border` that checks if a given location is on the border of the grid.
+3. **`lambda loc: index(I, loc) == 1 and not is_border({loc})`:** Defines a function `is_inner_1` to check if a location contains a '1' and is not on the border.
+4. **`tuple(tuple(...) for ...)`:**  Iterates through all grid locations, replacing '1's with '8's only if they are not on the border, effectively applying the transformation. 
+
+**Program Version 5:**
+
+```python
+def solve(I):
+    # Find objects considering only direct adjacency, without excluding background
+    objs = objects(I, True, False, False)
+    # Find the background color
+    bg = mostcolor(I)
+    # Filter objects to keep only those touching the border and not equal to background color
+    border_objs = sfilter(objs, lambda obj: bordering(obj, I) and color(obj) != bg)
+    # Combine border objects into a single patch
+    border_patch = merge(border_objs)
+    # Replace '1's within the combined patch with '8's
+    O = fill(I, 8, toindices(sfilter(border_patch, lambda x: x[0] == 1)))
+    return O
+```
+
+**Explanation:**
+
+1. **`objects(I, True, False, False)`:** Finds all objects, including background-color objects.
+2. **`mostcolor(I)`:**  Gets the background color.
+3. **`sfilter(...)`:** Filters for objects that touch the border and are not the background color.
+4. **`merge(border_objs)`:** Combines the selected objects.
+5. **`fill(I, 8, ...)`:** Replaces '1's within the combined object with '8's.
+
+These five program versions provide diverse approaches to achieve the target transformation. Each version uses different logic and combinations of DSL functions, demonstrating flexibility and adaptability in solving the problem. 

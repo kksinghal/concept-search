@@ -1,0 +1,120 @@
+## Transformation Analysis:
+
+The transformation modifies the input grid by:
+
+1. **Identifying Objects:** It identifies distinct objects formed by connected cells of the same color, excluding the background (most frequent color).
+2. **Creating an Outline:** It draws an outline around each object using the color '7'.
+3. **Filling the Interior:** It fills the interior of each object with the color '8', leaving a one-cell border.
+4. **Marking Specific Corners:** For objects taller than two cells, it marks the cell diagonally adjacent to the upper-left corner with the color '6'.
+
+## Program_to_be_generated:
+
+**Version 1:**
+
+```python
+def program_v1(I):
+  objs = objects(I, T, F, T)
+  O = paint(I, recolor(SEVEN, mapply(lambda obj: difference(box(obj), {(uppermost(obj), leftmost(obj)), (lowermost(obj), rightmost(obj))}), objs)))
+  O = paint(O, recolor(EIGHT, mapply(lambda obj: difference(backdrop(obj), box(obj)), objs)))
+  O = paint(O, recolor(SIX, mapply(lambda obj: {add(ulcorner(obj), (1, 1))} if height(obj) > 2 else {}, objs)))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:** Identifies objects in the input grid 'I'.
+2. **`paint(I, recolor(SEVEN, ...))`:**  Draws the outline using '7'.
+    - `mapply(lambda obj: difference(box(obj), ...), objs)`: Computes the difference between the bounding box of each object and its top-left and bottom-right corners to get the outline indices.
+3. **`paint(O, recolor(EIGHT, ...))`:** Fills the interior with '8'.
+    - `mapply(lambda obj: difference(backdrop(obj), box(obj)), objs)`: Calculates the difference between the object's backdrop and its outline to get the interior indices.
+4. **`paint(O, recolor(SIX, ...))`:**  Marks corners with '6'.
+    - `mapply(lambda obj: {add(ulcorner(obj), (1, 1))} if height(obj) > 2 else {}, objs)`:  Adds the diagonally adjacent cell to the top-left corner for objects taller than two cells.
+
+**Version 2:**
+
+```python
+def program_v2(I):
+  objs = objects(I, T, F, T)
+  O = I
+  for obj in objs:
+    O = fill(O, EIGHT, difference(backdrop(obj), box(obj)))
+    O = fill(O, SEVEN, difference(box(obj), {(uppermost(obj), leftmost(obj)), (lowermost(obj), rightmost(obj))}))
+    if height(obj) > 2:
+      O = fill(O, SIX, {add(ulcorner(obj), (1, 1))})
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:**  Identifies objects in 'I'.
+2. **`for obj in objs:`:** Iterates through each object.
+3. **`O = fill(O, EIGHT, ...)`:** Fills the interior with '8'.
+4. **`O = fill(O, SEVEN, ...)`:**  Draws the outline with '7'.
+5. **`if height(obj) > 2: O = fill(O, SIX, ...)`:** Marks corners for taller objects.
+
+**Version 3:**
+
+```python
+def program_v3(I):
+  O = fill(I, EIGHT, mapply(lambda obj: difference(backdrop(obj), box(obj)), objects(I, T, F, T)))
+  O = paint(O, recolor(SEVEN, mapply(lambda obj: sfilter(box(obj), lambda loc: index(O, loc) != EIGHT), objects(I, T, F, T))))
+  O = paint(O, recolor(SIX, mapply(lambda obj: {add(ulcorner(obj), (1, 1))} if height(obj) > 2 else {}, objects(I, T, F, T))))
+  return O
+```
+
+**Explanation:**
+
+1. **`fill(I, EIGHT, ...)`:**  Fills the interior of objects with '8'.
+2. **`paint(O, recolor(SEVEN, ...))`:** Draws the outline with '7'.
+    - `sfilter(box(obj), lambda loc: index(O, loc) != EIGHT)`: Filters the bounding box indices to only keep those that are not filled with '8'.
+3. **`paint(O, recolor(SIX, ...))`:** Marks corners for taller objects.
+
+**Version 4:**
+
+```python
+def program_v4(I):
+  objs = objects(I, T, F, T)
+  edges = mapply(lambda obj: difference(box(obj), {(uppermost(obj), leftmost(obj)), (lowermost(obj), rightmost(obj))}), objs)
+  interiors = mapply(lambda obj: difference(backdrop(obj), box(obj)), objs)
+  corners = mapply(lambda obj: {add(ulcorner(obj), (1, 1))} if height(obj) > 2 else {}, objs)
+  O = fill(I, EIGHT, interiors)
+  O = paint(O, recolor(SEVEN, edges))
+  O = paint(O, recolor(SIX, corners))
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = objects(I, T, F, T)`:**  Identifies objects in 'I'.
+2. **`edges = ...`**, **`interiors = ...`**, **`corners = ...`**: Pre-computes the indices for the outline, interior, and corner markings.
+3. **`fill(I, EIGHT, interiors)`:**  Fills the interior with '8'.
+4. **`paint(O, recolor(SEVEN, edges))`:**  Draws the outline with '7'.
+5. **`paint(O, recolor(SIX, corners))`:**  Marks corners with '6'.
+
+**Version 5:**
+
+```python
+def program_v5(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    for i in range(uppermost(obj)+1, lowermost(obj)):
+      for j in range(leftmost(obj)+1, rightmost(obj)):
+        O = fill(O, EIGHT, {(i, j)})
+    for i in range(uppermost(obj), lowermost(obj)+1):
+      O = fill(O, SEVEN, {(i, leftmost(obj)), (i, rightmost(obj))})
+    for j in range(leftmost(obj), rightmost(obj)+1):
+      O = fill(O, SEVEN, {(uppermost(obj), j), (lowermost(obj), j)})
+    if height(obj) > 2:
+      O = fill(O, SIX, {add(ulcorner(obj), (1, 1))})
+  return O
+```
+
+**Explanation:**
+
+1. **`for obj in objects(I, T, F, T):`:**  Iterates through each object.
+2. **Nested loops:**  Iterate through the bounding box of each object.
+    - **`fill(O, EIGHT, ...)`:** Fills the interior with '8'.
+    - **`fill(O, SEVEN, ...)`:** Draws the outline with '7'.
+3. **`if height(obj) > 2: ...`:** Marks corners for taller objects.
+
+These five program versions provide distinct ways to implement the desired transformation, showcasing the flexibility and expressive power of the DSL. Each version leverages different function combinations and logic flow, offering a variety of approaches to achieve the same goal.

@@ -1,0 +1,123 @@
+## Transformation Analysis:
+
+The transformation involves identifying cells directly adjacent (horizontally or vertically, not diagonally) to objects formed by the digit '2' and changing those adjacent cells to '1'. All other cells retain their original values.
+
+**Example Breakdown:**
+
+* **Input_0:** The '2' object is surrounded by '0's. All adjacent '0's are replaced with '1's.
+* **Input_1:** Similar to Input_0, but with multiple '2' objects. 
+* **Input_2:**  Demonstrates the transformation with a more complex arrangement of '2' objects. 
+
+## Program Versions:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  twos = ofcolor(I, 2)  # Find indices of all '2's.
+  surrounding = mfilter(asindices(I), lambda idx: any(manhattan(initset(idx), initset(two_idx)) == 1 for two_idx in twos))  # Find indices adjacent to '2's.
+  O = fill(I, 1, surrounding)  # Fill adjacent indices with '1'.
+  return O
+```
+
+**Explanation:**
+1. **`twos = ofcolor(I, 2)`:**  Gets the indices of all cells containing the value '2'.
+2. **`surrounding = ...`:** Filters all grid indices (`asindices(I)`) to keep only those that are exactly one Manhattan distance away from any '2' cell. 
+3. **`O = fill(I, 1, surrounding)`:** Fills the `surrounding` indices with the value '1' in the input grid `I`, generating the output grid `O`.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, T, F, T)  # Extract connected components without background
+    twos = colorfilter(objs, 2)  # Filter for objects of '2's
+    dilated = mapply(lambda obj: toindices(obj) | mapply(dneighbors, toindices(obj)), twos)  # Dilate '2' objects
+    edges = difference(merge(dilated), merge(mapply(toindices, twos))) # Isolate the edges of dilated objects
+    O = fill(I, 1, edges) # Fill the edges with '1'
+    return O
+```
+
+**Explanation:**
+1. **`objs = objects(I, T, F, T)`:** Extracts connected components (objects) from the grid, excluding the background.
+2. **`twos = colorfilter(objs, 2)`:** Filters the objects to select those consisting only of the digit '2'.
+3. **`dilated = ...`:**  Dilates each '2' object by including its direct neighbors.
+4. **`edges = ...`:**  Calculates the difference between dilated objects and original objects to find the surrounding cells.
+5. **`O = fill(I, 1, edges)`:**  Fills the surrounding cells (`edges`) with '1' in the input grid `I`, producing the output grid `O`.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+    modified = I
+    for i in range(1, len(I) - 1):
+        for j in range(1, len(I[0]) - 1):
+            if I[i][j] == 2: 
+                for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]:  
+                    if I[i+di][j+dj] == 0:
+                        modified = fill(modified, 1, {(i+di, j+dj)})  
+    return modified
+```
+
+**Explanation:**
+1. **`modified = I`**: Creates a copy of the input grid.
+2. **`for i in range(1, len(I) - 1):`**: Iterates through each row of the grid (excluding the borders).
+3. **`for j in range(1, len(I[0]) - 1):`**: Iterates through each column of the grid (excluding the borders).
+4. **`if I[i][j] == 2:`**: Checks if the current cell contains '2'.
+5. **`for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]:`**: Iterates through the four adjacent neighbors of the current cell.
+6. **`if I[i+di][j+dj] == 0:`**: Checks if the neighbor cell contains '0'.
+7. **`modified = fill(modified, 1, {(i+di, j+dj)})`**: Changes the '0' neighbor to '1' in the `modified` grid.
+8. **`return modified`**: Returns the modified grid.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  objs = fgpartition(I)  # Partition into objects (no background)
+  twos = colorfilter(objs, 2) # Get '2' objects
+  surrounding = mapply(
+    lambda obj: difference(
+      mapply(
+        lambda d: toindices(shift(obj, d)), 
+        [(0,1),(0,-1),(1,0),(-1,0)] # Directions
+      ),
+      asindices(I) # All indices
+    ),
+    twos
+  )
+  O = fill(I, 1, merge(surrounding)) # Fill surrounding with '1'
+  return O
+```
+
+**Explanation:**
+
+1. **`objs = fgpartition(I)`:** Divides the grid into objects based on connected cells of the same color, ignoring the background.
+2. **`twos = colorfilter(objs, 2)`:** Selects objects composed only of the digit '2'.
+3. **`surrounding = ...`:** For each '2' object:
+    * Shifts the object one step in each of the four cardinal directions.
+    * Converts the shifted objects and the original grid into sets of indices.
+    * Finds the difference between the shifted object indices and all grid indices, effectively identifying the cells surrounding the object.
+4. **`O = fill(I, 1, merge(surrounding))`:**  Merges all surrounding cell sets and fills them with '1' in a copy of the input grid, creating the output grid.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  padded = canvas(0, add(shape(I), (2, 2))) # Create padded canvas
+  padded = paint(padded, shift(asobject(I), (1, 1))) # Place input in center
+  for i in range(1, len(padded) - 1):
+    for j in range(1, len(padded[0]) - 1):
+      if padded[i][j] == 2:
+        for di, dj in [(0,1),(0,-1),(1,0),(-1,0)]:
+          if padded[i+di][j+dj] == 0:
+            padded = fill(padded, 1, {(i+di, j+dj)}) 
+  O = crop(padded, (1, 1), shape(I)) # Extract the transformed grid
+  return O
+```
+
+**Explanation:**
+
+1. **`padded = ...`:** Creates a larger grid (`padded`) filled with '0's, providing a border around the input grid.
+2. **`padded = paint(padded, shift(asobject(I), (1, 1)))`:**  Places the input grid into the center of the padded grid.
+3. **`for ... in ...`:**  Iterates through the padded grid, similar to Version 3. 
+4. **`if padded[i][j] == 2: ...`:**  Identifies cells containing '2' and modifies adjacent '0' cells to '1'.
+5. **`O = crop(padded, (1, 1), shape(I))`:** Extracts the transformed region from the center of the padded grid, producing the output grid `O`. 

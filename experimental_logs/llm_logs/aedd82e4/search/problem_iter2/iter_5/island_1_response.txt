@@ -1,0 +1,126 @@
+## Transformation Analysis:
+
+The transformation involves identifying objects based on connected pixels of the same color (excluding the background color, which is the most frequent color in the grid). Then, the smallest object in the grid is moved to a new location. The new location depends on the position of the smallest object relative to the largest object:
+
+* **If the smallest object's upper-left corner is within the bounding box of the largest object:** The smallest object is moved so its lower-right corner aligns with the lower-left corner of the largest object. 
+* **Otherwise:** The smallest object is moved so its lower-right corner aligns with the lower-right corner of the largest object.
+
+After moving the smallest object, the vacated cells are filled with the background color.
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, F, T, T)
+  s_obj = argmin(objs, size)
+  l_obj = argmax(objs, size)
+  target_loc = branch(
+      contained(ulcorner(s_obj), toindices(l_obj)),
+      llcorner(l_obj),
+      lrcorner(l_obj)
+  )
+  O = move(I, s_obj, subtract(target_loc, lrcorner(s_obj)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, F, T, T)` identifies all objects in the grid `I`, considering diagonally connected pixels and excluding the background.
+2. **Find Smallest and Largest:** `argmin(objs, size)` and `argmax(objs, size)` find the smallest and largest objects based on their size (number of pixels).
+3. **Determine Target Location:**  
+    * `contained(ulcorner(s_obj), toindices(l_obj))` checks if the smallest object's upper-left corner is inside the largest object.
+    * If true, `target_loc` is set to the lower-left corner of the largest object (`llcorner(l_obj)`). 
+    * Otherwise, `target_loc` is set to the lower-right corner of the largest object (`lrcorner(l_obj)`).
+4. **Calculate Offset:**  `subtract(target_loc, lrcorner(s_obj))` calculates the offset to move the smallest object.
+5. **Move Object:** `move(I, s_obj, offset)` moves the smallest object by the calculated offset. The original location of the smallest object is filled with the background color.
+6. **Return Output:** The modified grid `O` is returned as the output.
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, False, True, True)
+  s_obj = argmin(objs, size)
+  l_obj = argmax(objs, size)
+  corner_func = lambda obj: llcorner(obj) if contained(ulcorner(s_obj), toindices(obj)) else lrcorner(obj)
+  target_corner = corner_func(l_obj)
+  O = paint(cover(I, s_obj), shift(s_obj, subtract(target_corner, lrcorner(s_obj))))
+  return O
+```
+
+**Explanation:**
+
+This version is similar to version 1 but uses a lambda function for a more concise way to determine the target corner.
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, F, T, T)
+  s_obj = argmin(objs, lambda o: len(o))
+  l_obj = argmax(objs, lambda o: len(o))
+  target_loc = lrcorner(l_obj) if not any(contained(c, toindices(l_obj)) for c in corners(s_obj)) else llcorner(l_obj)
+  return move(I, s_obj, subtract(target_loc, lrcorner(s_obj)))
+```
+
+**Explanation:**
+
+This version modifies how the target location is determined. Instead of checking if the upper-left corner of the smallest object is within the largest object, it checks if *any* corner of the smallest object is within the largest object.
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    s_obj = min(objects(I, False, True, True), key=len)
+    l_obj = max(objects(I, False, True, True), key=len)
+    
+    if any((i, j) in toindices(l_obj) for i, j in corners(s_obj)):
+        target = llcorner(l_obj)
+    else:
+        target = lrcorner(l_obj)
+    
+    return paint(
+        cover(I, s_obj), 
+        shift(s_obj, (target[0] - lrcorner(s_obj)[0], target[1] - lrcorner(s_obj)[1]))
+    )
+```
+
+**Explanation:**
+
+This version uses Python's built-in `min` and `max` functions instead of `argmin` and `argmax`.  It also utilizes a generator expression within `any` to check if any corner of the smaller object is within the largest.
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+    objs = objects(I, False, True, True)
+    s_obj = min(objs, key=lambda x: len(x))
+    l_obj = max(objs, key=lambda x: len(x))
+    
+    offset = subtract(
+        branch(
+            any(contained(corner, toindices(l_obj)) for corner in corners(s_obj)), 
+            llcorner(l_obj), 
+            lrcorner(l_obj)
+        ), 
+        lrcorner(s_obj)
+    )
+    
+    return paint(cover(I, s_obj), shift(s_obj, offset))
+```
+
+**Explanation:**
+
+This version uses a combination of techniques from previous versions. It leverages a lambda function within `min` and `max`, similar to Version 2. However, it also adopts the corner checking approach from Version 3, but instead of using a separate loop, it employs a generator expression within `any` for conciseness. Finally, it calculates the offset in a more compact way using the `subtract` function.
+
+These five program versions demonstrate different ways to achieve the same transformation using the provided DSL. Each version showcases a distinct combination of functions and logic, offering a variety of solutions for the task.

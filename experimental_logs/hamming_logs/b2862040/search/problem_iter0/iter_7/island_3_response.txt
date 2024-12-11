@@ -1,0 +1,129 @@
+## Transformation Analysis:
+
+The transformation applied to the input grids can be described as follows:
+
+**For each connected object (group of adjacent cells with the same value) where all cells within the object share a side with exactly two other cells of the same value (excluding diagonal connections), recolor the surrounding cells (those directly adjacent but not part of the object) to the value 8.**
+
+Let's illustrate this with Input_0:
+
+```
+Input_0:      Transformation:     Output_0:
+9 9 9 9 9 ...  No change           9 9 9 9 9 ...
+9 9 9 9 9 ...  No change           9 9 9 9 9 ...
+9 1 1 1 9 ...  ---->              9 8 8 8 9 ...
+9 1 9 1 9 ...  Surrounding        9 8 9 8 9 ...
+9 1 9 1 9 ...  cells recolored   9 8 9 8 9 ...
+9 1 1 1 9 ...                    9 8 8 8 9 ...
+9 9 9 9 9 ...  No change           9 9 9 9 9 ... 
+...            ...                 ...
+```
+
+
+## Program Versions:
+
+Here are five distinct versions of the "Program_to_be_generated" using the DSL, each with an explanation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  one_objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  halo_indices = set()
+  for obj in one_objs:
+    obj_indices = toindices(obj)
+    for idx in obj_indices:
+      if len(intersection(dneighbors(idx), obj_indices)) == 2:
+        halo_indices |= dneighbors(idx) - obj_indices
+  O = paint(I, recolor(8, frozenset(halo_indices)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects:** `objects(I, True, False, True)` finds all connected objects in the grid, excluding the background.
+2. **Iterate and check:** For each object, iterate through its cell indices (`toindices(obj)`). If a cell has exactly two direct neighbors also belonging to the object (`len(intersection(dneighbors(idx), obj_indices)) == 2`), add its surrounding cells to `halo_indices`.
+3. **Recolor and paint:** Recolor the identified surrounding cells to 8 (`recolor(8, halo_indices)`) and paint them onto the original grid (`paint(I, ...)`) to get the final output.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  one_obj_indices = merge(apply(toindices, objects(I, True, False, True)))
+  halo_indices = mfilter(one_obj_indices, lambda idx: len(intersection(dneighbors(idx), one_obj_indices)) == 2 and len(intersection(ineighbors(idx), one_obj_indices)) == 0)
+  O = paint(I, recolor(8, halo_indices))
+  return O
+```
+
+**Explanation:**
+
+1. **Get object indices:** Identify all object cells and merge their indices (`merge(apply(toindices, objects(I, True, False, True)))`).
+2. **Filter for halo:** Filter the object indices to keep only those with exactly two direct neighbors and no diagonal neighbors within the object, representing the cells inside the object. Their direct neighbors will be the halo.
+3. **Recolor and paint:** Recolor the identified halo cells to 8 (`recolor(8, halo_indices)`) and paint them onto the original grid (`paint(I, ...)`) for the final output.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  halo_indices = set()
+  for i in range(1, len(I) - 1):
+    for j in range(1, len(I[0]) - 1):
+      if I[i][j] != mostcolor(I) and (I[i-1][j] == I[i+1][j] != I[i][j] or I[i][j-1] == I[i][j+1] != I[i][j]):
+        halo_indices.add((i, j))
+  O = paint(I, recolor(8, frozenset(halo_indices)))
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate through inner grid:** Loop through each cell of the grid, excluding the borders.
+2. **Check for halo condition:** If a cell isn't the background color and has its vertically or horizontally adjacent cells equal to each other but different from itself, it's part of the halo.
+3. **Recolor and paint:** Recolor the identified halo cells to 8 (`recolor(8, halo_indices)`) and paint them onto the original grid (`paint(I, ...)`) for the final output.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  one_objs = objects(I, univalued=True, diagonal=False, without_bg=True)
+  halo_indices = set()
+  for obj in one_objs:
+    obj_indices = toindices(obj)
+    box_indices = box(obj_indices)
+    for idx in box_indices:
+      if len(intersection(dneighbors(idx), obj_indices)) == 1:
+        halo_indices.add(idx)
+  O = paint(I, recolor(8, frozenset(halo_indices)))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify objects and their boxes:** Find all connected objects and calculate their bounding boxes (`box(toindices(obj))`).
+2. **Iterate through boxes:** For each box, iterate through its cell indices. If a cell has exactly one direct neighbor belonging to the object, it's part of the halo.
+3. **Recolor and paint:** Recolor the identified halo cells to 8 (`recolor(8, halo_indices)`) and paint them onto the original grid (`paint(I, ...)`) for the final output.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  padded_grid = canvas(9, (len(I) + 2, len(I[0]) + 2))
+  padded_grid = paint(padded_grid, shift(asobject(I), (1, 1)))
+  halo_indices = set()
+  for i in range(1, len(padded_grid) - 1):
+    for j in range(1, len(padded_grid[0]) - 1):
+      if padded_grid[i][j] == 9 and (
+          (padded_grid[i-1][j] == padded_grid[i+1][j] != 9) or 
+          (padded_grid[i][j-1] == padded_grid[i][j+1] != 9)
+      ):
+        halo_indices.add((i - 1, j - 1))
+  O = paint(I, recolor(8, frozenset(halo_indices)))
+  return O
+```
+
+**Explanation:**
+
+1. **Create padded grid:** Create a larger grid filled with the background color (9), providing a buffer around the original grid.
+2. **Paint shifted object:** Paint the original grid onto the padded grid, shifted by one cell in both directions.
+3. **Iterate and check:** Similar to Version 3, iterate through the inner cells of the padded grid. Check for the halo condition using the background color (9) for comparison. If satisfied, adjust the indices to match the original grid and add to `halo_indices`.
+4. **Recolor and paint:** Recolor the identified halo cells to 8 (`recolor(8, halo_indices)`) and paint them onto the original grid (`paint(I, ...)`) for the final output. 
+
+Each of these program versions utilizes different combinations of DSL functions and logic to achieve the same halo effect described in the transformation analysis. 

@@ -1,0 +1,171 @@
+## Transformation Analysis:
+
+The transformation involves taking the two foreground objects in the input grid and moving them vertically until they collide with another object or the edge of the grid. The upper object moves downwards, and the lower object moves upwards. The colors of the objects are also switched.
+
+**Input 0:**
+
+* The object with value '5' moves down until it hits the bottom of the grid.
+* The object with value '6' moves up until it hits the top of the grid.
+* The '5' object becomes '2' and the '6' object becomes '8'.
+
+**Input 1:**
+
+* The object with value '1' moves down until it hits the object with value '5'.
+* The object with value '5' moves up until it hits the object with value '1'.
+* The '1' object becomes '7' and the '5' object becomes '4'.
+
+**Input 2:**
+
+* The object with value '1' moves down until it hits the object with value '5'.
+* The object with value '5' moves up until it hits the object with value '1'.
+* The '1' object becomes '7' and the '5' object becomes '6'.
+
+## Code Generation:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+  
+  def move_to_collision(obj, target_obj, direction):
+    while any(0 <= add(loc, direction)[0] < height(I) and 
+               0 <= add(loc, direction)[1] < width(I) and
+               index(I, add(loc, direction)) == mostcolor(I)
+               for loc in toindices(obj)):
+      obj = shift(obj, direction)
+    return obj
+
+  moved_obj1 = move_to_collision(obj1, obj2, DOWN)
+  moved_obj2 = move_to_collision(obj2, obj1, UP)
+  
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+```
+
+**Explanation:**
+
+1. **Identify Objects:** The code first identifies the two foreground objects (`obj1`, `obj2`) based on their vertical position using `fgpartition` and `order`.
+2. **Move to Collision:** The `move_to_collision` function iteratively shifts an object in a given direction until it encounters another object or the grid boundary. It checks for collisions by verifying if any shifted cell of the object overlaps with a non-background cell in the input grid.
+3. **Apply Movement:** The `moved_obj1` and `moved_obj2` variables store the positions of the objects after they have been moved to their collision points.
+4. **Paint Objects:** Finally, the code creates a blank canvas using `canvas`, paints the moved objects onto it using `paint` with the colors swapped using `recolor`, and returns the resulting grid.
+
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def move_until_blocked(obj, direction):
+    shifted = shift(obj, direction)
+    while not intersection(toindices(shifted), asindices(I) - toindices(obj)):
+      obj = shifted
+      shifted = shift(obj, direction)
+    return obj
+
+  moved_obj1 = move_until_blocked(obj1, DOWN)
+  moved_obj2 = move_until_blocked(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Identification:**  Identifies the two foreground objects like Version 1.
+2. **Movement Until Blocked:**  The `move_until_blocked` function shifts an object until it encounters another object (including itself) or the grid boundary. It achieves this by checking for intersections between the shifted object's indices and the indices of non-object cells in the grid.
+3. **Object Placement and Recoloring:**  Similar to Version 1, places the moved objects on a blank canvas and swaps their colors before returning the final grid.
+
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def slide_to_limit(obj, direction):
+    collision_points = intersection(backdrop(shift(obj, direction)), 
+                                   asindices(I) - toindices(obj))
+    if collision_points:
+      return shift(obj, multiply(direction, minimum(
+        apply(lambda p: abs(p[0] - center(obj)[0]) 
+              if direction[0] != 0 
+              else abs(p[1] - center(obj)[1]), 
+              collision_points))))
+    return shift(obj, multiply(direction, 10)) # Assuming grid size <= 10
+
+  moved_obj1 = slide_to_limit(obj1, DOWN)
+  moved_obj2 = slide_to_limit(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Selection:** Selects the two foreground objects like in previous versions.
+2. **Sliding to Limit:** The `slide_to_limit` function calculates the object's movement in a single step. It identifies potential collision points and calculates the minimum distance to those points in the given direction. If no collision is found, the object is shifted by a large amount (assuming the grid size is smaller), effectively moving it to the edge.
+3. **Object Painting and Recoloring:**  Similar to previous versions, paints the moved objects onto a blank canvas with swapped colors.
+
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def move_and_collide(obj, direction, other_obj):
+    while all(0 <= i < height(I) and 0 <= j < width(I) and (i, j) not in toindices(other_obj)
+              for i, j in apply(lambda loc: add(loc, direction), toindices(obj))):
+      obj = shift(obj, direction)
+    return obj
+
+  moved_obj1 = move_and_collide(obj1, DOWN, obj2)
+  moved_obj2 = move_and_collide(obj2, UP, obj1)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+```
+
+**Explanation:**
+
+1. **Foreground Object Identification:** Similar to the previous versions, identifies the two foreground objects based on their vertical positions.
+2. **Collision-Driven Movement:** The `move_and_collide` function iteratively shifts an object in a specific direction until it collides with another object. It checks for collisions by ensuring that none of the shifted cells of the object overlap with the indices of the other object.
+3. **Object Painting and Color Swapping:** Like before, paints the moved objects on a blank canvas, swapping their colors to create the final output grid.
+
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+  obj1, obj2 = order(fgpartition(I), lambda obj: uppermost(obj))[0:2]
+
+  def advance_until_obstruction(obj, direction):
+    next_locs = apply(lambda loc: add(loc, direction), toindices(obj))
+    while all(0 <= i < height(I) and 
+               0 <= j < width(I) and 
+               index(I, (i, j)) == mostcolor(I)
+               for i, j in next_locs):
+      obj = shift(obj, direction)
+      next_locs = apply(lambda loc: add(loc, direction), toindices(obj))
+    return obj
+
+  moved_obj1 = advance_until_obstruction(obj1, DOWN)
+  moved_obj2 = advance_until_obstruction(obj2, UP)
+  O = paint(paint(canvas(mostcolor(I), shape(I)), 
+                  recolor(color(obj2), moved_obj1)), 
+                  recolor(color(obj1), moved_obj2))
+  return O
+```
+
+**Explanation:**
+
+1. **Object Isolation:** Identifies the two foreground objects like previous versions.
+2. **Movement with Obstruction Check:** The `advance_until_obstruction` function moves an object in a given direction until it encounters another object or the grid boundary. It precomputes the next potential positions of the object's cells and checks if these positions are valid and correspond to the background color. 
+3. **Object Placement and Color Exchange:** Similar to other versions, places the moved objects on a new canvas, switching their colors to generate the final output grid. 

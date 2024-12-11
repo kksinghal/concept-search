@@ -1,0 +1,164 @@
+## Transformation Analysis:
+
+The transformation centers a specific object (color 1) on a specific line (color 7) horizontally, while moving all other objects to the top of the grid.
+
+**Input 0:**
+
+* The line object (7) is centered horizontally.
+* The center object (1) is centered on the line object.
+* The other objects (3) are moved to the top of the grid, maintaining their horizontal positions relative to the line object.
+
+**Input 1:**
+
+* Same logic as Input 0, but the initial vertical positions of the objects are different.
+
+**Input 2:**
+
+* Same logic as previous inputs, demonstrating the transformation's consistency regardless of initial object placement.
+
+
+## Program Version 1:
+
+**Code:**
+
+```python
+def program_v1(grid):
+  line_color = 7
+  center_color = 1
+  line_obj = extract(fgpartition(grid), lambda obj: color(obj) == line_color)
+  center_obj = extract(fgpartition(grid), lambda obj: color(obj) == center_color)
+  other_objs = remove(line_obj, remove(center_obj, fgpartition(grid)))
+  line_center_h = (len(grid[0]) - width(line_obj)) // 2
+  centered_line = shift(line_obj, (0, line_center_h - leftmost(line_obj)))
+  line_center = center(centered_line)
+  centered_center = shift(center_obj, subtract(line_center, center(center_obj)))
+  shifted_others = frozenset(shift(obj, (uppermost(grid) - lowermost(obj) - 1, 
+                                        line_center_h - leftmost(obj)))
+                           for obj in other_objs)
+  return paint(canvas(0, shape(grid)), merge([centered_line, centered_center, shifted_others]))
+```
+
+**Explanation:**
+
+1. **Extract Objects:** Extracts the line object, center object, and the remaining objects from the input grid.
+2. **Center Line:**  Calculates the horizontal center position for the line and shifts the line object to that position.
+3. **Center on Line:** Calculates the center of the centered line and shifts the center object to align its center with the line's center.
+4. **Shift Other Objects:**  Moves each of the other objects to the top of the grid while maintaining their horizontal position relative to the line object.
+5. **Paint and Merge:** Paints all the transformed objects onto a blank canvas and returns the final grid.
+
+
+## Program Version 2:
+
+**Code:**
+
+```python
+def program_v2(grid):
+  line_color, center_color = 7, 1
+  objs = fgpartition(grid)
+  line = extract(objs, lambda o: color(o) == line_color)
+  center = extract(objs, lambda o: color(o) == center_color)
+  others = remove(line, remove(center, objs))
+  line_h_center = (len(grid[0]) - width(line)) // 2
+  shifted_line = shift(line, (0, line_h_center - leftmost(line)))
+  line_center_idx = center(shifted_line)
+  centered_center = shift(center, subtract(line_center_idx, center(center)))
+  top_shifted = lambda obj: shift(obj, (0 - lowermost(obj), line_h_center - leftmost(obj)))
+  shifted_others = frozenset(map(top_shifted, others))
+  return paint(canvas(0, shape(grid)), merge((shifted_line, centered_center, shifted_others)))
+```
+
+**Explanation:**
+
+* Similar to version 1, but uses `map` and a lambda function (`top_shifted`) to apply the top shifting logic to other objects. This improves code readability.
+
+
+## Program Version 3:
+
+**Code:**
+
+```python
+def program_v3(grid):
+  line_color = 7
+  center_color = 1
+  objs = fgpartition(grid)
+  line_obj = extract(objs, matcher(color, line_color)) 
+  center_obj = extract(objs, matcher(color, center_color))
+  other_objs = difference(objs, frozenset({line_obj, center_obj}))
+  line_center = ((len(grid) - 1) // 2, (len(grid[0]) - width(line_obj)) // 2)
+  shifted_line = shift(line_obj, subtract(line_center, ulcorner(line_obj)))
+  centered_center = shift(center_obj, subtract(center(shifted_line), center(center_obj)))
+  shifted_others = mapply(lambda obj: shift(obj, (0 - lowermost(obj), line_center[1] - leftmost(obj))), other_objs)
+  return paint(canvas(0, shape(grid)), merge((shifted_line, centered_center, shifted_others))) 
+```
+
+**Explanation:**
+
+* Uses `matcher` function for object extraction, making the code concise.
+* Employs `difference` for a cleaner separation of objects.
+* Leverages `mapply` for efficient application of the shifting transformation to other objects.
+
+
+## Program Version 4:
+
+**Code:**
+
+```python
+def program_v4(grid):
+  line_c, center_c = 7, 1
+  line_obj = extract(fgpartition(grid), lambda obj: color(obj) == line_c)
+  line_center_x = (len(grid[0]) - width(line_obj)) // 2
+  shifted_line = shift(line_obj, (0, line_center_x - leftmost(line_obj)))
+  return paint(
+      canvas(0, shape(grid)),
+      merge(
+        (
+          shifted_line,
+          shift(extract(fgpartition(grid), lambda obj: color(obj) == center_c), subtract(center(shifted_line), center(extract(fgpartition(grid), lambda obj: color(obj) == center_c)))),
+          mapply(
+            lambda obj: shift(obj, (0 - lowermost(obj), line_center_x - leftmost(obj))),
+            remove(line_obj, remove(extract(fgpartition(grid), lambda obj: color(obj) == center_c), fgpartition(grid)))
+          )
+        )
+      )
+  )
+```
+
+**Explanation:**
+
+* This version attempts to be more concise by nesting operations within the `paint` and `merge` functions. 
+* While functional, this approach might be less readable than previous versions. 
+
+
+## Program Version 5:
+
+**Code:**
+
+```python
+def program_v5(grid):
+  def transform_object(obj, line_center_x):
+    if color(obj) == 1:
+      return shift(obj, subtract((uppermost(line_obj) + height(line_obj) // 2 - height(obj) // 2, line_center_x), ulcorner(obj)))
+    else:
+      return shift(obj, (0 - lowermost(obj), line_center_x - leftmost(obj)))
+  
+  line_c = 7
+  line_obj = extract(fgpartition(grid), lambda obj: color(obj) == line_c)
+  line_center_x = (len(grid[0]) - width(line_obj)) // 2
+  shifted_line = shift(line_obj, (0, line_center_x - leftmost(line_obj)))
+
+  return paint(
+      canvas(0, shape(grid)),
+      merge(
+        (shifted_line,) + 
+        tuple(transform_object(obj, line_center_x) for obj in remove(line_obj, fgpartition(grid))) 
+      )
+  )
+```
+
+**Explanation:**
+
+* Introduces a dedicated `transform_object` function to handle both the centering of the center object and the top shifting of other objects based on their color.
+* This modular approach enhances readability and organization.
+
+
+Each of these versions provides a distinct way to achieve the desired transformation using the provided DSL. They showcase different coding styles and function combinations, highlighting the flexibility and expressiveness of the DSL. Remember to choose the version that you find most readable and maintainable for your specific needs. 

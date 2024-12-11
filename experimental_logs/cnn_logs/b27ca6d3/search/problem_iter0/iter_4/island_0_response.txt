@@ -1,0 +1,112 @@
+## Transformation Analysis:
+
+**Input_0 -> Output_0:** For each object (connected cells) of value '2' in the input grid, fill the cells to its immediate left and right with '3', but only if those cells are originally '0'.
+
+**Input_1 -> Output_1:** This transformation builds upon the logic of the previous one. It applies the same rule: for each object of value '2', fill its immediate left and right neighbors with '3' if they are originally '0'. However, there's an additional rule: if a '3' is already present as a left or right neighbor, extend the filling of '3's horizontally until a non-zero value is encountered.
+
+
+## Program_to_be_generated:
+
+### Version 1: (Inspired by Program_B's iterative approach and lambda function from extended_boxes in Program_A)
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  for obj in objs:
+    for i, j in box(obj):
+      for shift in [-1, 1]:
+        if 0 <= j + shift < len(I[0]) and I[i][j + shift] == 0:
+          I = fill(I, THREE, ((i, j + shift),))
+  return I
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objects(I, True, False, True)` extracts all connected components of non-background color ('2' in this case) as separate objects.
+2. **Iterate and Fill:** It iterates through each cell (`i`, `j`) on the bounding box (`box(obj)`) of every object. 
+3. **Horizontal Check:** For each bounding box cell, it checks cells to the left (`shift = -1`) and right (`shift = 1`).
+4. **Fill Condition:** If the neighboring cell is within the grid bounds and has a value of '0', it is filled with '3' using `fill(I, THREE, ((i, j + shift),))`.
+
+### Version 2: (Utilizing mapply for functional style and box logic from Program_B)
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  extended_boxes = mapply(lambda obj: frozenset({(i, j + shift) for i, j in box(obj) for shift in [-1, 1] if 0 <= j + shift < len(I[0]) and I[i][j + shift] == 0}), objs)
+  return underfill(I, THREE, merge(extended_boxes))
+```
+
+**Explanation:**
+
+1. **Object and Boxes:** Similar to Version 1, it identifies objects and then calculates their bounding boxes using `box(obj)`.
+2. **Functional Extension:** It uses `mapply` to apply a lambda function to each object's bounding box. 
+3. **Lambda Logic:** The lambda function generates a set of indices that are one step to the left and right of each bounding box cell, only if they are within grid bounds and have a value of '0'.
+4. **Merge and Fill:**  All the extended indices are merged using `merge` and then filled with '3' using `underfill`.
+
+### Version 3: (Combining elements from Program_A and Program_B for a hybrid approach)
+
+**Code:** 
+
+```python
+def Program_to_be_generated(I):
+  boxes = mapply(box, objects(I, True, False, True))
+  return underfill(I, THREE, merge(mapply(lambda box_ind: frozenset((i, j + shift) for i, j in box_ind for shift in [-1, 1] if 0 <= j + shift < len(I[0]) and I[i][j + shift] == 0), boxes)))
+```
+
+**Explanation:**
+
+1. **Directly Process Boxes:** It directly applies `mapply` with the `box` function to the result of `objects()`, finding bounding boxes of all '2' objects in one step.
+2. **Nested mapply:**  Another `mapply` is used with a lambda function (similar to Version 2) to process the bounding boxes and find the indices to fill.
+3. **Concise Filling:** The `underfill` function efficiently fills all the identified indices with '3' in a single operation.
+
+### Version 4: (Using set operations for a more declarative style)
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  fill_indices = frozenset()
+  for obj in objs:
+    box_indices = box(obj)
+    left_indices = frozenset((i, j - 1) for i, j in box_indices if j > 0 and I[i][j - 1] == 0)
+    right_indices = frozenset((i, j + 1) for i, j in box_indices if j < len(I[0]) - 1 and I[i][j + 1] == 0)
+    fill_indices = fill_indices | left_indices | right_indices
+  return fill(I, THREE, fill_indices) 
+```
+
+**Explanation:**
+
+1. **Explicit Set Building:**  This version explicitly builds sets of indices for left and right neighbors that meet the criteria.
+2. **Set Union:**  It utilizes set union (`|`) to combine the indices to be filled. 
+3. **Direct Filling:** Finally, it uses `fill` to fill all the collected indices with '3'. 
+
+### Version 5: (Exploiting connect function for line-based filling)
+
+**Code:**
+
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, True, False, True)
+  fill_indices = frozenset()
+  for obj in objs:
+    upper, lower = uppermost(obj), lowermost(obj)
+    left, right = leftmost(obj), rightmost(obj)
+    if left > 0 and I[upper][left - 1] == 0:
+      fill_indices = fill_indices | connect((upper, left - 1), (lower, left - 1))
+    if right < len(I[0]) - 1 and I[upper][right + 1] == 0:
+      fill_indices = fill_indices | connect((upper, right + 1), (lower, right + 1))
+  return fill(I, THREE, fill_indices)
+```
+
+**Explanation:**
+
+1. **Find Extreme Points:** It determines the topmost, bottommost, leftmost, and rightmost points of each object.
+2. **Conditional Line Filling:** It checks if the cell to the left or right of these extreme points is '0', and if so, uses `connect` to draw a vertical line of '3's along the object's edge.
+3. **Efficient Filling:** Using `connect` can be more efficient than filling individual cells, especially for larger objects. 
+
+These are five distinct program versions that aim to solve the given transformation task. Each version leverages different aspects and functions from the DSL, offering a diverse set of solutions. 

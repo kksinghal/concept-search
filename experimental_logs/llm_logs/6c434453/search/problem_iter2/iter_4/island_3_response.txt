@@ -1,0 +1,214 @@
+## Transformation Analysis:
+
+The transformation involves taking two objects within the input grid, one small and one large, and applying different transformations to them:
+
+**Small Object:**
+* **Rotation:** The small object is rotated by 180 degrees.
+* **Translation:** The rotated small object is then translated to a different location in the grid. The new location appears dependent on the initial location of both the small and large objects. 
+
+**Large Object:** 
+* **Splitting:** The large object is split into two parts along its diagonal.
+* **Translation:** The bottom-right portion of the large object is shifted down and right by one unit.
+
+**Final Output:** A new grid is created, and the transformed small and large object parts are painted onto it.
+
+## Code Generation:
+
+Here are five distinct versions of the "Program_to_be_generated" code in the provided DSL, along with explanations for each:
+
+**Program Version 1:**
+
+```python
+def Program_to_be_generated(I):
+  # Extract objects
+  small_obj = extract(objects(I, T, F, T), lambda obj: size(obj) == 3)
+  large_obj = extract(objects(I, T, F, T), lambda obj: size(obj) == 6)
+
+  # Transform small object
+  moved_small_obj = rot180(shift(small_obj, subtract((0, 0), ulcorner(small_obj))))
+  moved_small_obj = shift(moved_small_obj, (5, 7)) if uppermost(large_obj) == 0 else shift(moved_small_obj, (7, 8)) 
+
+  # Split and transform large object
+  large_indices = toindices(large_obj)
+  top_left_large = frozenset(idx for idx in large_indices if idx[0] <= idx[1])
+  bottom_right_large = frozenset(idx for idx in large_indices if idx[0] > idx[1])
+  transformed_large = shift(bottom_right_large, (1, 1))
+
+  # Construct output
+  O = canvas(0, shape(I))
+  O = paint(O, recolor(1, moved_small_obj))
+  O = paint(O, recolor(2, top_left_large))
+  O = paint(O, recolor(2, transformed_large))
+  return O
+
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Identifies the small (size 3) and large (size 6) objects.
+2. **Small Object Transformation:** 
+    * Rotates the small object by 180 degrees.
+    * Shifts the object based on the initial position of the large object, moving it to (5,7) if the large object starts at the top and (7,8) otherwise.
+3. **Large Object Transformation:**
+    * Splits the object along the diagonal.
+    * Shifts the bottom-right portion down and right by one unit.
+4. **Output Construction:** Creates a blank canvas and paints the transformed objects onto it.
+
+**Program Version 2:**
+
+```python
+def Program_to_be_generated(I):
+  # Extract objects using color instead of size
+  small_obj = extract(objects(I, T, F, T), lambda obj: color(obj) == 1)
+  large_obj = extract(objects(I, T, F, T), lambda obj: color(obj) == 2)
+
+  # Define transformation functions
+  move_to_top_right = lambda obj: shift(obj, subtract((0,0), ulcorner(obj)))
+  split_and_shift_diagonal = lambda obj: shift(
+    frozenset(idx for idx in toindices(obj) if idx[0] > idx[1]), (1, 1)
+  )
+
+  # Apply transformations
+  O = paint(
+    canvas(0, shape(I)), 
+    recolor(1, rot180(shift(move_to_top_right(small_obj), (5, 7) if uppermost(large_obj) == 0 else (7, 8))))
+  )
+  O = paint(
+    O,
+    recolor(2, split_and_shift_diagonal(large_obj))
+  )
+  O = paint(
+    O,
+    recolor(2, frozenset(idx for idx in toindices(large_obj) if idx[0] <= idx[1]))
+  )
+  return O
+
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Uses color instead of size to differentiate objects.
+2. **Transformation Functions:** Defines reusable functions for clarity.
+3. **Small Object Transformation:**
+   * Moves the object to the top-right corner using `move_to_top_right`.
+   * Rotates by 180 degrees.
+   * Shifts based on the large object's initial position like in Version 1.
+4. **Large Object Transformation:** 
+   * Uses `split_and_shift_diagonal` to split and shift the bottom-right part.
+5. **Output Construction:** Similar to Version 1, but uses nested `paint` calls for conciseness.
+
+**Program Version 3:**
+
+```python
+def Program_to_be_generated(I):
+  # Extract objects and their properties
+  small_obj = extract(objects(I, T, F, T), lambda obj: color(obj) == 1)
+  large_obj = extract(objects(I, T, F, T), lambda obj: color(obj) == 2)
+  h, w = shape(I)
+
+  # Define a function to move an object to a specific corner after rotation
+  def move_to_corner(obj, rotation, corner):
+    rotated_obj = rotation(obj)
+    return shift(rotated_obj, subtract(corner, ulcorner(rotated_obj)))
+
+  # Apply transformations
+  O = canvas(0, (h, w))
+  O = paint(O, recolor(1, move_to_corner(small_obj, rot180, (5, 7) if uppermost(large_obj) == 0 else (7, 8))))
+  O = paint(
+      O, 
+      recolor(
+          2, 
+          frozenset(
+              (i + (1 if i > j else 0), j + (1 if i > j else 0)) 
+              for i, j in toindices(large_obj)
+          )
+      )
+  )
+  return O
+
+```
+
+**Explanation:**
+
+1. **Object Extraction:** Similar to Version 2.
+2. **`move_to_corner` Function:**  A more generic function to move an object to any corner after applying a given rotation.
+3. **Small Object Transformation:** Uses `move_to_corner` with `rot180` and the conditional corner logic.
+4. **Large Object Transformation:** Directly applies the diagonal split and shift within the `paint` call using a set comprehension.
+
+**Program Version 4:**
+
+```python
+def Program_to_be_generated(I):
+  # Object extraction and transformation
+  O = paint(
+    paint(
+        canvas(0, shape(I)), 
+        recolor(
+            1, 
+            rot180(
+                shift(
+                    extract(objects(I, T, F, T), lambda obj: color(obj) == 1),
+                    subtract((5, 7) if uppermost(extract(objects(I, T, F, T), lambda obj: color(obj) == 2)) == 0 else (7, 8), ulcorner(extract(objects(I, T, F, T), lambda obj: color(obj) == 1)))
+                )
+            )
+        )
+    ),
+    recolor(
+        2,
+        mapply(
+            lambda idx: (idx[0] + (1 if idx[0] > idx[1] else 0), idx[1] + (1 if idx[0] > idx[1] else 0)), 
+            toindices(extract(objects(I, T, F, T), lambda obj: color(obj) == 2))
+        )
+    )
+  )
+  return O
+
+```
+
+**Explanation:**
+
+1. **Compact Style:** This version prioritizes a more compact style by nesting calls and using lambda functions extensively. 
+2. **Conditional Shift:** The small object's shift is still conditional on the large object's position, but it's embedded directly within the `subtract` call.
+3. **Large Object Transformation:** Uses `mapply` to apply the diagonal split and shift to the large object's indices.
+
+**Program Version 5:**
+
+```python
+def Program_to_be_generated(I):
+    def transform_object(obj, color_value, move_corner, rotation=identity):
+        return recolor(
+            color_value,
+            shift(
+                rotation(obj),
+                subtract(move_corner, ulcorner(rotation(obj)))
+            )
+        )
+
+    large_obj = extract(objects(I, T, F, T), lambda obj: color(obj) == 2)
+
+    return paint(
+        paint(
+            canvas(0, shape(I)),
+            transform_object(
+                extract(objects(I, T, F, T), lambda obj: color(obj) == 1),
+                1, (5, 7) if uppermost(large_obj) == 0 else (7, 8), rot180
+            )
+        ),
+        transform_object(
+            frozenset(
+                (v, (i + (1 if i > j else 0), j + (1 if i > j else 0)))
+                for v, (i, j) in extract(objects(I, T, F, T), lambda obj: color(obj) == 2)
+            ),
+            2, (0, 0)
+        )
+    ) 
+
+```
+
+**Explanation:**
+
+1. **`transform_object` Function:**  A highly reusable function that encapsulates the common pattern of recoloring, rotating, and shifting an object based on its desired corner.
+2. **Code Clarity:** This version emphasizes code clarity and reusability through the `transform_object` function.
+3. **Transformation Application:** The logic for both the small and large objects is streamlined by using `transform_object` with appropriate parameters.
+
+These five versions demonstrate different ways to achieve the desired transformation, utilizing various functions and coding styles available in the provided DSL. 

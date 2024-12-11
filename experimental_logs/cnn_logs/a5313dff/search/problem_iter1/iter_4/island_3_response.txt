@@ -1,0 +1,136 @@
+## Transformation Analysis:
+
+The transformation aims to identify the inner perimeter of each object in the grid. This means finding and marking cells that are:
+
+1. **Directly adjacent** (not diagonally) to an object cell.
+2. **Not part of the object itself.**
+3. **Part of the background.** This means they have the most frequent color in the grid.
+
+Let's illustrate with Input_1:
+
+**Input_1:**
+```
+0 0 0 2 0 0 0 0
+0 2 0 2 0 0 0 0
+0 0 0 2 0 0 0 0
+2 2 2 2 2 2 2 0
+0 0 2 0 0 0 2 0
+0 0 2 0 2 0 2 0
+0 0 2 0 0 0 2 0
+0 0 2 2 2 2 2 0
+```
+
+**Output_1:**
+```
+0 0 0 2 0 0 0 0
+0 2 0 2 0 0 0 0
+0 0 0 2 0 0 0 0
+2 2 2 2 2 2 2 0
+0 0 2 1 1 1 2 0
+0 0 2 1 2 1 2 0
+0 0 2 1 1 1 2 0
+0 0 2 2 2 2 2 0 
+```
+
+Notice how the '1's form a connected perimeter around the '2' objects, but only where the background ('0') was present.
+
+## Program Versions:
+
+Here are five distinct program versions utilizing the DSL to achieve this transformation:
+
+**Program Version 1**
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  objs = objects(I, T, F, T) 
+  to_fill = set()
+  for obj in objs:
+    for cell in toindices(obj):
+      for d in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        neighbor = add(cell, d)
+        if neighbor not in toindices(obj) and index(I, neighbor) == mostcolor(I):
+          to_fill.add(neighbor)
+  return fill(I, ONE, frozenset(to_fill))
+```
+
+**Explanation:**
+
+1. **Identify Objects:** `objs = objects(I, T, F, T)` finds all objects (non-background connected components).
+2. **Iterate and Check:** It loops through each object, then each cell of the object, and its four direct neighbors.
+3. **Condition for Filling:** If a neighbor is not part of the object and has the background color (`mostcolor(I)`), mark it for filling.
+4. **Fill and Return:** `fill(I, ONE, frozenset(to_fill))` replaces the marked cells with '1' in the input grid.
+
+**Program Version 2**
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  return underfill(I, ONE, mpapply(
+      lambda x: sfilter(dneighbors(x), lambda y: index(I, y) == mostcolor(I)),
+      merge(apply(toindices, objects(I, T, F, T)))
+  ))
+```
+
+**Explanation:**
+
+1. **Identify Objects and Indices:** `objects(I, T, F, T)` finds objects, `toindices` gets their cell indices, and `merge` combines them.
+2. **Find Neighbors to Fill:** `mpapply` applies a lambda function to each object cell index. This lambda function finds direct neighbors (`dneighbors`) that are background colored (`index(I, y) == mostcolor(I)`).
+3. **Underfill:** `underfill` fills the background color cells found in step 2 with '1'.
+
+**Program Version 3**
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    O = underfill(O, ONE, delta(toindices(obj))) 
+  return O
+```
+
+**Explanation:**
+
+1. **Iterate Through Objects:** Loops over each object found using `objects`.
+2. **Find Delta and Underfill:** For each object, it calculates the delta (`delta(toindices(obj))`), which are cells in the bounding box but not part of the object. It then uses `underfill` to fill these delta cells with '1' only if they were originally background colored. 
+
+**Program Version 4**
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  O = I
+  for obj in objects(I, T, F, T):
+    perimeter = difference(backdrop(toindices(obj)), toindices(obj))
+    O = underfill(O, ONE, perimeter)
+  return O
+```
+
+**Explanation:**
+
+1. **Find Objects:** Identifies objects in the grid.
+2. **Calculate Perimeter:** For each object, it calculates the perimeter by subtracting the object's indices (`toindices(obj)`) from its backdrop (`backdrop(toindices(obj))`).
+3. **Underfill Perimeter:** It then uses `underfill` to fill the calculated perimeter with '1' only if those cells were originally background colored.
+
+**Program Version 5**
+
+**Code:**
+```python
+def Program_to_be_generated(I):
+  def is_perimeter(cell, obj):
+    return cell in delta(toindices(obj)) and index(I, cell) == mostcolor(I)
+  
+  O = I
+  for obj in objects(I, T, F, T):
+    perimeter_cells = frozenset(filter(lambda c: is_perimeter(c, obj), asindices(I)))
+    O = fill(O, ONE, perimeter_cells) 
+  return O
+```
+
+**Explanation:**
+
+1. **`is_perimeter` Function:** Defines a helper function to check if a cell is part of the perimeter (in the delta and has the background color).
+2. **Iterate and Find Perimeter:** It iterates through objects and uses `filter` with the `is_perimeter` function to find perimeter cells.
+3. **Fill Perimeter:** Fills the identified perimeter cells with '1'.
+
+These versions demonstrate a variety of approaches to achieve the desired transformation. You can choose the one that best suits your needs in terms of readability, conciseness, or potentially computational efficiency. 
