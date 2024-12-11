@@ -5,12 +5,22 @@
     ```
     git clone git@github.com:fchollet/ARC-AGI.git
     ```
-- SentenceTransformer for LLM-based scoring is too large to be uploaded in supplementary material, hence will be provided after review on Github. For now, the model can be fine-tuned using ./finetune_sentence_transformer.ipynb
 - The entry point is ./main.py and it calls neural_search.py, where the ConceptSearch algorithm resides.
 - To run the algorithm on the evaluation set:
     ```
     python main.py
     ```
 
-## Notes
-- Only a subset of logs are provided. The full set will be uploaded on Github after review.
+## Citation
+If you find our work helpful, kindly cite our paper,
+```
+@misc{singhal2024conceptsearchefficientprogramsearch,
+      title={ConceptSearch: Towards Efficient Program Search Using LLMs for Abstraction and Reasoning Corpus (ARC)}, 
+      author={Kartik Singhal and Gautam Shroff},
+      year={2024},
+      eprint={2412.07322},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2412.07322}, 
+}
+```
